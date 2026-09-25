@@ -13,6 +13,7 @@ Where the work currently lives decides whether this is the right skill:
 | The work is… | Reach for |
 | --- | --- |
 | A ticket on the tracker | `/implement #42`, one ticket per session, clearing context between tickets |
+| An SDD sub-issue (it has Files owned and a Verify block) | `/implement #42` hands it to [implement-issue](../engineering/implement-issue.md), which claims, branches, runs Verify and opens the PR |
 | A spec, not yet split up, and the build spans sessions | [to-tickets](../engineering/to-tickets.md) first, then `/implement` per ticket |
 | A spec, and the build is small | `/implement` directly against the spec |
 | Only in the conversation you just had, and it's still small | `/implement` right there, in the same window |

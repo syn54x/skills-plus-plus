@@ -1,0 +1,3 @@
+interface:
+  display_name: "Sync Progress"
+  short_description: "Upsert SDD marker comments on issues"

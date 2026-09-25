@@ -1,0 +1,3 @@
+interface:
+  display_name: "Close Epic"
+  short_description: "Retro, learnings and close an epic"

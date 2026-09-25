@@ -1,0 +1,3 @@
+interface:
+  display_name: "Review PR"
+  short_description: "Gate a slice PR with a fresh reviewer"

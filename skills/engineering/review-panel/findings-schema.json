@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "review-panel persona output",
+  "description": "What every persona returns, and nothing else. The orchestrator merges these across personas.",
+  "type": "object",
+  "required": ["persona", "findings", "cannot_verify", "checked"],
+  "properties": {
+    "persona": { "type": "string", "description": "the persona name from personas.md" },
+    "checked": {
+      "type": "array",
+      "description": "what this persona actually examined: files, laws, ADRs, call sites. Lets the report say what was covered.",
+      "items": { "type": "string" }
+    },
+    "cannot_verify": {
+      "type": "array",
+      "description": "requirements or risks that cannot be judged from the diff alone; reported, never chased",
+      "items": { "type": "string" }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "confidence", "file", "line", "sha", "title", "what", "why", "verified_by", "pre_existing"],
+        "properties": {
+          "severity": { "type": "string", "enum": ["Critical", "Important", "Minor"] },
+          "confidence": { "type": "integer", "minimum": 0, "maximum": 100, "description": "0 not confident (false positive) · 25 might be real · 50 real but minor · 75 real and important · 100 certain. Only >= 80 is reported." },
+          "file": { "type": "string" },
+          "line": { "type": "integer" },
+          "line_end": { "type": "integer" },
+          "sha": { "type": "string", "description": "the head SHA the line numbers refer to" },
+          "title": { "type": "string", "maxLength": 100 },
+          "what": { "type": "string", "description": "the defect, concretely" },
+          "why": { "type": "string", "description": "the failure it causes or the rule it breaks" },
+          "fix": { "type": "string", "description": "how to fix, only if not obvious" },
+          "verified_by": { "type": "string", "description": "the check that raised confidence: call sites read, test run, ADR quoted" },
+          "pre_existing": { "type": "boolean", "description": "true means the PR did not introduce it; such findings are omitted from the report" },
+          "rule": { "type": "string", "description": "for standards-and-invariants: the ADR id, doc path or epic decision violated, e.g. ADR-0007, CONTEXT.md#Invoice, epic:Implementation Decisions#3" },
+          "category": { "type": "string", "enum": ["correctness", "tests", "maintainability", "standard", "adr", "invariant", "terminology", "security", "reliability", "adversarial", "migration", "contract", "history", "ticket-mandated"] }
+        }
+      }
+    },
+    "advisories": {
+      "type": "array",
+      "description": "not findings: candidate ADRs, terminology drift, rollout or monitoring notes for the Residual risk section",
+      "items": {
+        "type": "object",
+        "required": ["kind", "note"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["candidate-adr", "terminology-drift", "residual-risk", "coverage-gap"] },
+          "note": { "type": "string" },
+          "file": { "type": "string" },
+          "line": { "type": "integer" }
+        }
+      }
+    }
+  }
+}
