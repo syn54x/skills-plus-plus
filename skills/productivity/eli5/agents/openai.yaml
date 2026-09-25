@@ -1,0 +1,5 @@
+interface:
+  display_name: "ELI5"
+  short_description: "Plain-language explanation with an analogy"
+policy:
+  allow_implicit_invocation: false

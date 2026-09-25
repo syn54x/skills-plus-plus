@@ -36,3 +36,6 @@ Model- or user-reachable (rich trigger phrasing so the model can reach for them)
 - **[review-panel](./review-panel/SKILL.md)**: Panel review for the PR to `main`: review-pr's spec and coherence verdicts plus parallel reviewer personas, deduped into one report.
 - **[close-epic](./close-epic/SKILL.md)**: Close an SDD epic after its PR to `main` merges: summary, retro from GitHub state, tagged learnings, and consented skill feedback.
 - **[sync-progress](./sync-progress/SKILL.md)**: One marker comment per issue, rewritten in place, plus claim and unclaim by assignment. The bookkeeping under every SDD skill.
+- **[scaffold-python-project](./scaffold-python-project/SKILL.md)**: Scaffold a new Python repo on one opinionated stack (uv, prek, ruff, ty, pytest, zensical, pydantic, structlog, ferro-orm, GitHub Actions), with optional CLI, API, database, Logfire, docs and PyPI flags.
+- **[scaffold-frontend-project](./scaffold-frontend-project/SKILL.md)**: Scaffold a new React SPA on one opinionated stack (Vite, TypeScript, pnpm, Biome, TanStack Router and Query, Tailwind, shadcn/ui, vitest, GitHub Actions), with optional Playwright and OpenAPI client.
+- **[prepare-release-notes](./prepare-release-notes/SKILL.md)**: Draft bloggy GitHub Release highlights from the commits and PRs since the last tag, and print the release command without running it.

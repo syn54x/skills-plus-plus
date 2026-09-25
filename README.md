@@ -186,6 +186,9 @@ Skills I use daily for code work.
 - **[review-panel](./skills/engineering/review-panel/SKILL.md)**: Panel review for the PR to `main`: review-pr's spec and coherence verdicts plus parallel reviewer personas, deduped into one report.
 - **[close-epic](./skills/engineering/close-epic/SKILL.md)**: Close an SDD epic after its PR to `main` merges: summary, retro from GitHub state, tagged learnings, and consented skill feedback.
 - **[sync-progress](./skills/engineering/sync-progress/SKILL.md)**: One marker comment per issue, rewritten in place, plus claim and unclaim by assignment. The bookkeeping under every SDD skill.
+- **[scaffold-python-project](./skills/engineering/scaffold-python-project/SKILL.md)**: Scaffold a new Python repo on one opinionated stack (uv, prek, ruff, ty, pytest, zensical, pydantic, structlog, ferro-orm, GitHub Actions), with optional CLI, API, database, Logfire, docs and PyPI flags.
+- **[scaffold-frontend-project](./skills/engineering/scaffold-frontend-project/SKILL.md)**: Scaffold a new React SPA on one opinionated stack (Vite, TypeScript, pnpm, Biome, TanStack Router and Query, Tailwind, shadcn/ui, vitest, GitHub Actions), with optional Playwright and OpenAPI client.
+- **[prepare-release-notes](./skills/engineering/prepare-release-notes/SKILL.md)**: Draft bloggy GitHub Release highlights from the commits and PRs since the last tag, and print the release command without running it.
 
 ### Productivity
 
@@ -193,6 +196,8 @@ General workflow tools, not code-specific.
 
 **User-invoked**
 
+- **[adhd](./skills/productivity/adhd/SKILL.md)**: The shortest useful answer: the point first, at most three bullets, then stop.
+- **[eli5](./skills/productivity/eli5/SKILL.md)**: A plain-language explanation with one everyday analogy.
 - **[grill-me](./skills/productivity/grill-me/SKILL.md)**: Get relentlessly interviewed about a plan or design until every branch of the design tree is resolved.
 - **[handoff](./skills/productivity/handoff/SKILL.md)**: Compact the current conversation into a handoff document so another agent can continue the work.
 - **[teach](./skills/productivity/teach/SKILL.md)**: Teach the user a new skill or concept over multiple sessions, using the current directory as a stateful teaching workspace.
