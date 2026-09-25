@@ -3,7 +3,9 @@
 
 1. A skill's `disable-model-invocation: true` frontmatter and its
    `agents/openai.yaml` `allow_implicit_invocation: false` must agree.
-2. Every skill another skill or agent calls (`Call the Skill tool with "x"`,
+2. Skill and agent frontmatter has no unquoted ': ' in a value (invalid
+   YAML: Claude Code tolerates it, Cursor silently drops the file).
+3. Every skill another skill or agent calls (`Call the Skill tool with "x"`,
    or an agent's `skills:` preload) must exist and be model-invoked. A
    user-invoked skill can only be reached by the human typing it.
 """
@@ -23,6 +25,16 @@ def frontmatter(path: Path) -> str:
     return text[4 : text.find("\n---", 4)]
 
 
+def yaml_colon_errors(fm: str) -> list[str]:
+    """Unquoted scalar values containing ': ' are invalid YAML; some hosts drop the file."""
+    bad = []
+    for line in fm.splitlines():
+        m = re.match(r"^([\w-]+):\s+(.*)$", line)
+        if m and m.group(2)[:1] not in "\"'>|[" and (": " in m.group(2) or " #" in m.group(2)):
+            bad.append(m.group(1))
+    return bad
+
+
 def field(fm: str, key: str) -> str | None:
     m = re.search(rf"^{key}:\s*(.+)$", fm, re.M)
     return m.group(1).strip().strip('"') if m else None
@@ -37,6 +49,8 @@ for skill_md in sorted((ROOT / "skills").glob("*/*/SKILL.md")):
         continue
     rel = skill_md.relative_to(ROOT)
     fm = frontmatter(skill_md)
+    for key in yaml_colon_errors(fm):
+        errors.append(f"{rel}: frontmatter '{key}' has an unquoted ': ' or ' #' (invalid YAML); quote it or rephrase")
     name = field(fm, "name")
     if name != skill_md.parent.name:
         errors.append(f"{rel}: name '{name}' does not match its directory")
@@ -76,6 +90,8 @@ for path in sources:
                 check_target(f"{rel}:{lineno}", target)
     if path.parent.name == "agents" and path.parent.parent == ROOT:
         fm = frontmatter(path)
+        for key in yaml_colon_errors(fm):
+            errors.append(f"{rel}: frontmatter '{key}' has an unquoted ': ' or ' #' (invalid YAML); quote it or rephrase")
         block = re.search(r"^skills:\n((?:\s+-\s*.+\n?)+)", fm, re.M)
         for target in re.findall(r"-\s*([\w-]+)", block.group(1)) if block else []:
             check_target(f"{rel} (skills: preload)", target)

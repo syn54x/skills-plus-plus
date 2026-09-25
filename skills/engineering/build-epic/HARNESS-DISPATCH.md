@@ -29,7 +29,7 @@ Agent(
 
 ## Codex
 
-This set has no Codex plugin yet (see `.agents/adr/0002-ship-as-a-claude-code-plugin.md`), so the Stop and worktree-remove gates do not run there: the worker records its Verify note by hand, as `implement-issue` says. Codex has no custom-agent slot either, so workers are plain delegations.
+The `skills-plus-plus` Codex plugin (`.codex-plugin/`, unverified) carries the skills only. It ships no hooks, so the Stop and worktree-remove gates do not run: the worker records its Verify note by hand, as `implement-issue` says. Codex has no custom-agent slot, so workers are plain delegations.
 
 Delegate one subagent per ticket, each told to create and work in its own worktree:
 
@@ -42,7 +42,7 @@ Codex subagents do not share your context, so the brief must be complete. For a 
 
 ## Cursor
 
-This set has no Cursor plugin yet, so there are no `sdd-worker` / `sdd-reviewer` subagents and no stop or shell gates: the brief carries the worker rules, and the worker records its Verify note by hand.
+Install the `skills-plus-plus` Cursor plugin for the skills and the `sdd-worker` / `sdd-reviewer` subagents. Its `stop` and `beforeShellExecution` hooks are not yet verified on Cursor, so the worker records its Verify note by hand either way.
 
 One background agent per ticket, each in its own worktree (ask for worktree isolation explicitly; Cursor subagents share the checkout by default):
 

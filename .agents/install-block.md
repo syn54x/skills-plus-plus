@@ -22,9 +22,13 @@ Or, from inside a session:
 
 </canonical-block>
 
+## Cursor and Codex: the plugin
+
+The same repo is also a Cursor plugin (`.cursor-plugin/`) and a Codex plugin (`.codex-plugin/`, with its marketplace at `.agents/plugins/marketplace.json`), both named `skills-plus-plus` in the `syn54x` marketplace. Cursor ships the promoted set and the agents; its hooks are unverified. Codex ships every bucket and is unverified. See [adr/0002-ship-as-a-claude-code-plugin.md](./adr/0002-ship-as-a-claude-code-plugin.md). Until both are verified, the README documents only Claude Code and skills.sh.
+
 ## Codex, and other agents: skills.sh
 
-The plugin is Claude Code only for now. Everywhere else, [skills.sh](https://skills.sh/syn54x/skills-plus-plus) copies editable skill files into the project. Use the whole-set form on `README.md`:
+Everywhere else, [skills.sh](https://skills.sh/syn54x/skills-plus-plus) copies editable skill files into the project. Use the whole-set form on `README.md`:
 
 <canonical-block name="skills-sh-whole-set">
 

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://cursor.com/schemas/cursor-plugin/marketplace.json",
+  "name": "syn54x",
+  "owner": {
+    "name": "Taylor"
+  },
+  "metadata": {
+    "description": "syn54x skills-plus-plus as a Cursor plugin."
+  },
+  "plugins": [
+    {
+      "name": "skills-plus-plus",
+      "source": ".",
+      "description": "Matt Pocock's engineering skills plus a spec-driven delivery pipeline on GitHub Issues: grilling, spec and ticket flows, parallel worktree builds, gated review, TDD, domain modelling and more."
+    }
+  ]
+}

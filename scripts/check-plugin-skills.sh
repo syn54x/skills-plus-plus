@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fail if the promoted set and its three listings disagree (see CLAUDE.md).
 # Promoted = every skills/engineering/*/ and skills/productivity/*/ with a SKILL.md.
-# Each promoted skill must be in .claude-plugin/plugin.json's "skills" array, have a
+# Each promoted skill must be in .claude-plugin/plugin.json's (and .cursor-plugin/plugin.json's) "skills" array, have a
 # docs page at docs/<bucket>/<name>.md, and be linked from README.md. Nothing outside
 # the promoted buckets may appear in any of the three.
 set -euo pipefail
@@ -24,6 +24,11 @@ report() { # <message> <lines>
 
 report "promoted but not listed in $manifest:" "$(comm -23 <(echo "$promoted") <(echo "$listed"))"
 report "listed in $manifest but not a promoted skill:" "$(comm -13 <(echo "$promoted") <(echo "$listed"))"
+if [ -f .cursor-plugin/plugin.json ]; then
+  cursor=$(jq -r '.skills[]?' .cursor-plugin/plugin.json | sed 's#^\./##; s#/$##' | sort)
+  report "promoted but not listed in .cursor-plugin/plugin.json:" "$(comm -23 <(echo "$promoted") <(echo "$cursor"))"
+  report "listed in .cursor-plugin/plugin.json but not a promoted skill:" "$(comm -13 <(echo "$promoted") <(echo "$cursor"))"
+fi
 report "promoted but no docs page at docs/<bucket>/<name>.md:" "$(comm -23 <(echo "$promoted") <(echo "$docs"))"
 report "docs page for a skill that is not promoted:" "$(comm -13 <(echo "$promoted") <(echo "$docs"))"
 report "promoted but not linked from README.md:" "$(comm -23 <(echo "$promoted") <(echo "$readme"))"

@@ -1,0 +1,29 @@
+{
+  "name": "skills-plus-plus",
+  "version": "1.2.3",
+  "description": "Matt Pocock's engineering skills plus a spec-driven delivery pipeline on GitHub Issues: grilling, spec and ticket flows, parallel worktree builds, gated review, TDD, domain modelling and more.",
+  "author": {
+    "name": "Taylor",
+    "url": "https://github.com/syn54x"
+  },
+  "homepage": "https://github.com/syn54x/skills-plus-plus",
+  "repository": "https://github.com/syn54x/skills-plus-plus",
+  "license": "MIT",
+  "keywords": ["skills", "engineering", "tdd", "code-review", "grilling", "spec-driven-development", "github-issues", "worktree"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "skills-plus-plus",
+    "shortDescription": "Matt Pocock's engineering skills plus an issue-native SDD pipeline.",
+    "longDescription": "The engineering flow (grill, spec, tickets, TDD, code review, domain modelling) plus the SDD pipeline on GitHub Issues: to-tickets hardens sub-issues with Files owned, Interfaces, Test scenarios and Verify; build-epic dispatches isolated workers in waves and gates each PR with a fresh reviewer; review-panel gates the PR to main; close-epic writes the retro. Codex has no custom-agent slot, so workers are plain subagent delegations. Codex receives every bucket under skills/, including in-progress and misc.",
+    "developerName": "Taylor",
+    "category": "Coding",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "websiteURL": "https://github.com/syn54x/skills-plus-plus",
+    "defaultPrompt": [
+      "/setup-syn54x-skills",
+      "/ask-syn54x",
+      "/to-tickets 42",
+      "/build-epic 42"
+    ]
+  }
+}

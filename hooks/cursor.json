@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      { "command": "bash ./hooks/verify-gate.sh", "timeout": 20 }
+    ],
+    "subagentStop": [
+      { "command": "bash ./hooks/verify-gate.sh", "timeout": 20 }
+    ],
+    "beforeShellExecution": [
+      { "command": "bash ./hooks/worktree-guard.sh", "timeout": 20 }
+    ]
+  }
+}
