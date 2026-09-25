@@ -8,6 +8,7 @@ This repo is a fork of `mattpocock/skills` (remote `upstream`). The shape of the
    - **Hooked `SKILL.md`s** (`to-tickets`, `implement`): take upstream's text, then put the fork's hook lines back where they were.
    - **`package.json` / `CHANGELOG.md`**: take upstream's side, then run `npm run version` so `plugin.json` tracks it.
    - **`.claude-plugin/plugin.json`**: keep the fork's name, author and URLs; take upstream's additions to `skills`.
+   - **Skills the fork deleted** (`misc/scaffold-exercises`): a modify/delete conflict means upstream edited it; keep it deleted (`git rm`).
    - **`README.md`, `.agents/install-block.md`, `CLAUDE.md`**: keep the fork's install story and fork pointer; take everything else.
 3. Upstream's pending changesets arrive keyed `"mattpocock-skills"`. They are valid as-is, because the package name is unchanged.
 4. If upstream added, renamed, or removed a user-reachable skill, update `ask-syn54x` and the bucket `README.md`s (see `CLAUDE.md`).
