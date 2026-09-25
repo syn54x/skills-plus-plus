@@ -53,6 +53,23 @@ One shape breaks the tracer-bullet rule. A **wide refactor** is a single mechani
 
 Where even the batches can't stay green alone, they share an integration branch and all block a final integrate-and-verify ticket. Green is promised only there.
 
+## On the SDD pipeline
+
+When [setup-syn54x-skills](../engineering/setup-syn54x-skills.md) has switched the SDD pipeline on (the repo's instruction file carries an `<!-- sdd-routing -->` block), `to-tickets` does more before and after publishing, because a worker in the pipeline sees only its own issue and never the conversation:
+
+| Addition | Why |
+| --- | --- |
+| **Files owned** (Create / Modify / Test paths) | the claim that lets tickets in the same wave run in parallel without touching the same file |
+| **Interfaces** (Consumes / Produces, with exact names and types) | how a worker learns the names its neighbours are coding against right now |
+| **Test scenarios** and a runnable **Verify** block | what the worker turns into tests, and the command whose green means done |
+| A size (`size:S`, `M` or `L`) | S can go to the cloud workflow; M and L go to `build-epic` |
+| Native parent and blocked-by links, created with each issue | the ready queue is computed by `gh`, not read from prose |
+| One `<!-- sdd-plan -->` comment on the epic | the dependency layers at a glance, rewritten in place when tickets change |
+
+A ticket that still has a placeholder (`TBD`, "add appropriate error handling", a name no ticket defines) is published as `needs-info` rather than `ready-for-agent`. A ticket whose files live in another repo is created there, parented to the same epic.
+
+Files owned is the one place the "no file paths in tickets" rule does not hold: there a path is a claim on the file, not a description of the code.
+
 ## Common questions
 
 **It produced twelve tickets for a three-line change.**
@@ -84,9 +101,10 @@ The skill stops at the artifact, and there is no auto-dispatch mode. Dispatch is
 - Every ticket has an answer to "what can I demo when this is done?", and the answer is behaviour, not a layer.
 - The list comes back to you numbered, with a "Blocked by" line on each, before anything is published.
 - The ticket at the top has no blockers and can be started immediately.
-- Nothing in a ticket body is a file path or a line number, except a snippet a prototype produced.
+- Nothing in a ticket body is a file path or a line number, except a snippet a prototype produced (or, on the SDD pipeline, the Files owned section).
 - Each ticket reads like something a fresh session could finish without you in the room.
 - Prefactoring, where it found any, is at the front of the order rather than mixed into feature tickets.
+- On the SDD pipeline: every ticket carries Files owned, Interfaces, Test scenarios and Verify, is a native sub-issue of the epic with native blocking edges, and the epic has exactly one plan comment.
 
 ## Where it fits
 
