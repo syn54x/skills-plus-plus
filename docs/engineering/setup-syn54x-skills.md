@@ -1,6 +1,6 @@
 ## What it does
 
-`setup-syn54x-skills` answers three questions about one repo: where issues live, what the triage labels are called, and where the domain docs sit. It records the answers as markdown files under `docs/agents/`.
+`setup-syn54x-skills` answers three questions about one repo: where issues live, what the triage labels are called, and where the domain docs sit. It records the answers as markdown files under `docs/agents/`. On a GitHub repo it can also switch on the SDD pipeline, the issue-native build flow that runs from an epic to merged sub-issues.
 
 Those files are the only thing that varies between repos. The skills themselves are identical everywhere; they read `docs/agents/issue-tracker.md` at run time and do what it says. That is why the set is not tied to GitHub, and why no skill file ever needs editing to point it somewhere else. Invoking it with "link the skills to a custom issue tracker" works with anything you can connect to programmatically, with zero changes to the skills.
 
@@ -22,10 +22,14 @@ It writes into the repo you run it in:
 | `domain.md` | `docs/agents/` |
 | `triage-labels.md` | `docs/agents/`, only when the `triage` skill is installed |
 | An `## Agent skills` block | whichever of `CLAUDE.md` / `AGENTS.md` already exists |
+| An `<!-- sdd-routing -->` block, below `## Agent skills` | the same file, only when the SDD pipeline is on |
+| `sdd-implement.yml`, `sdd-review.yml` | `.github/workflows/`, only when you opt into the cloud path |
+
+With the SDD pipeline on it also creates labels on the GitHub repo (the five triage roles, `needs-plan`, `blocked`, `size:S/M/L`) and, on an org repo and only if you agree, the `Epic` and `Task` issue types.
 
 All of it is committed markdown. There is no user-level or global mode: the config lives in the repo, so every repo gets its own copy.
 
-## The three decisions
+## The decisions
 
 It leads each section with the recommended answer, and skips whatever exploration already settled. Most runs are two confirmations and done.
 
@@ -34,6 +38,7 @@ It leads each section with the recommended answer, and skips whatever exploratio
 | **Issue tracker** | the one matching your `git remote` | always: this is the one real choice |
 | **Triage labels** | keep the five canonical names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) | only if the `triage` skill is installed |
 | **Domain docs** | single-context: one `CONTEXT.md` plus `docs/adr/` at the root | only if it spots monorepo signals, and then it offers a multi-context `CONTEXT-MAP.md` |
+| **SDD pipeline** | on, for a repo you build features in | only when the tracker is GitHub; then a few follow-ups: issue types (org repos), upstream skill feedback (default off), and the cloud workflows for `size:S` issues |
 
 The tracker options:
 
@@ -87,6 +92,7 @@ One long-standing complaint says yes, in these words: *"having a skill to set up
 - An `## Agent skills` section appears in the instruction file your harness actually reads, with a one-line summary pointing at each of those files.
 - The tracker it proposed matches the remote you really use, and the label strings match labels that really exist in your tracker.
 - Afterwards, `/to-tickets` publishes without asking you where issues live, and `/triage` applies labels rather than inventing them.
+- With the SDD pipeline on: the routing block sits below `## Agent skills`, `gh label list` shows the `size:*` and readiness labels, and a re-run replaces the block rather than adding a second one.
 - Nothing in the skill files themselves changed. If setup edited a `SKILL.md`, something went wrong.
 
 ## Where it fits

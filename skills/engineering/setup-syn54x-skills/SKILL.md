@@ -1,6 +1,6 @@
 ---
 name: setup-syn54x-skills
-description: "Configure this repo for the engineering skills: set up its issue tracker, triage label vocabulary, and domain doc layout. Run once before first use of the other engineering skills."
+description: "Configure this repo for the engineering skills: set up its issue tracker, triage label vocabulary, domain doc layout, and (on GitHub) the SDD pipeline. Run once before first use of the other engineering skills."
 disable-model-invocation: true
 ---
 
@@ -11,6 +11,7 @@ Scaffold the per-repo configuration that the engineering skills assume:
 - **Issue tracker**: where issues live (GitHub by default; local markdown is also supported out of the box)
 - **Triage labels**: the strings used for the five canonical triage roles
 - **Domain docs**: where `CONTEXT.md` and ADRs live, and the consumer rules for reading them
+- **SDD pipeline** (GitHub only, optional): labels, issue types, the routing block, and the cloud workflows the spec-driven build skills assume
 
 This is a prompt-driven skill, not a deterministic script. Explore, present what you found, confirm with the user, then write.
 
@@ -60,12 +61,15 @@ The defaults are the five canonical roles, each label string equal to its name: 
 
 Offer **multi-context** (a root `CONTEXT-MAP.md` pointing to per-context `CONTEXT.md` files) only when exploration found monorepo signals. Then confirm which layout they want.
 
+**Section D: SDD pipeline.** Only when Section A chose GitHub. Read [SDD.md](./SDD.md) and follow it.
+
 ### 3. Confirm and edit
 
 Show the user a draft of:
 
 - The `## Agent skills` block to add to whichever of `CLAUDE.md` / `AGENTS.md` is being edited (see step 4 for selection rules)
 - The contents of `docs/agents/issue-tracker.md`, `docs/agents/domain.md`, and `docs/agents/triage-labels.md` (the last only when `triage` is installed)
+- The SDD routing block, and which labels, issue types and workflows will be created (only when Section D ran)
 
 Let them edit before writing.
 
@@ -111,6 +115,8 @@ Then write the docs files using the seed templates in this skill folder as a sta
 
 For "other" issue trackers, write `docs/agents/issue-tracker.md` from scratch using the user's description.
 
+When Section D ran, apply it now as [SDD.md](./SDD.md) describes: labels, issue types, the routing block below `## Agent skills`, and any workflows.
+
 ### 5. Done
 
-Tell the user the setup is complete and which engineering skills will now read from these files. Mention they can edit `docs/agents/*.md` directly later; re-running this skill is only necessary if they want to switch issue trackers or restart from scratch.
+Tell the user the setup is complete and which engineering skills will now read from these files. Mention they can edit `docs/agents/*.md` directly later; re-running this skill is only necessary if they want to switch issue trackers, turn the SDD pipeline on, or restart from scratch. Point them at `/ask-syn54x` for which skill to reach for next.
