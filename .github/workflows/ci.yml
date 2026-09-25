@@ -1,0 +1,22 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    name: repo checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: promoted skills are listed in plugin.json, docs/ and README.md
+        run: scripts/check-plugin-skills.sh
+      - name: invocation flags agree and no skill calls a user-invoked skill
+        run: python3 scripts/check-invocation.py
+      - name: plugin.json version tracks package.json
+        run: node scripts/sync-plugin-version.mjs --check
