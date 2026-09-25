@@ -1,6 +1,6 @@
 ---
 name: sdd-worker
-description: Implements one ready sub-issue in an isolated worktree by following the implement-issue skill: claim, branch, TDD, Verify, PR with Closes #N, progress comment. Dispatched by build-epic, one per ticket per wave; resumable by name for the single fix round.
+description: Implements one ready sub-issue in an isolated worktree by following the implement-issue skill (claim, branch, TDD, Verify, a PR that closes the issue, progress comment). Dispatched by build-epic, one per ticket per wave; resumable by name for the single fix round.
 model: sonnet
 isolation: worktree
 skills:
