@@ -1,0 +1,46 @@
+# Review gate for PRs opened by the cloud path (and any other PR that closes a sub-issue).
+# Runs /review-pr from the skills-plus-plus plugin: two verdicts (spec, quality), posts them on the PR.
+name: sdd-review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write   # only needed for OIDC auth; harmless otherwise
+
+concurrency:
+  group: sdd-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: >-
+      github.event.pull_request.draft == false &&
+      startsWith(github.event.pull_request.head.ref, 'sdd/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          # --- auth: pick ONE -------------------------------------------------
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          # anthropic_organization_id:    ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          # ---------------------------------------------------------------------
+          track_progress: true
+          plugins: |
+            skills-plus-plus@syn54x
+          plugin_marketplaces: |
+            https://github.com/syn54x/skills-plus-plus.git
+          prompt: |
+            /review-pr ${{ github.event.pull_request.number }}
+          claude_args: |
+            --max-turns 40

@@ -1,0 +1,52 @@
+# Cloud path for size:S tickets.
+# Fires when an issue gains the `ready-for-agent` label; the job guard keeps it to size:S.
+# Runs the same /implement-issue skill the local workers use, via the skills-plus-plus plugin.
+name: sdd-implement
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write   # only needed for OIDC auth; harmless otherwise
+
+concurrency:
+  group: sdd-implement-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    if: >-
+      github.event.label.name == 'ready-for-agent' &&
+      contains(github.event.issue.labels.*.name, 'size:S') &&
+      github.event.issue.state == 'open' &&
+      github.event.issue.assignee == null
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          # --- auth: pick ONE -------------------------------------------------
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # OIDC workload identity instead of a static key (needs id-token: write):
+          # anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          # anthropic_organization_id:    ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          # ---------------------------------------------------------------------
+          label_trigger: ready-for-agent
+          track_progress: true
+          branch_prefix: sdd/
+          plugins: |
+            skills-plus-plus@syn54x
+          plugin_marketplaces: |
+            https://github.com/syn54x/skills-plus-plus.git
+          prompt: |
+            /implement-issue ${{ github.event.issue.number }}
+          claude_args: |
+            --max-turns 80
