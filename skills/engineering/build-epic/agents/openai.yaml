@@ -1,0 +1,5 @@
+interface:
+  display_name: "Build Epic"
+  short_description: "Build an epic in parallel worktree waves"
+policy:
+  allow_implicit_invocation: false
