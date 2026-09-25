@@ -1,0 +1,3 @@
+interface:
+  display_name: "Prepare Release Notes"
+  short_description: "Draft GitHub release highlights"

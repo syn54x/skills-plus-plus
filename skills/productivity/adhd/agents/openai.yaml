@@ -1,0 +1,5 @@
+interface:
+  display_name: "ADHD"
+  short_description: "Shortest possible explanation"
+policy:
+  allow_implicit_invocation: false

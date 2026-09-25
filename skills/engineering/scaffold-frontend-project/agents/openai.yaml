@@ -1,0 +1,3 @@
+interface:
+  display_name: "Scaffold Frontend Project"
+  short_description: "Bootstrap an opinionated React SPA"
