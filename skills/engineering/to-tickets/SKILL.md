@@ -10,6 +10,8 @@ Break a plan, spec, or conversation into a set of **tickets**: tracer-bullet ver
 
 The issue tracker and triage label vocabulary should have been provided to you. If not, tell the user to run `/setup-syn54x-skills`.
 
+If `CLAUDE.md` or `AGENTS.md` contains an `<!-- sdd-routing -->` block, this repo runs the SDD pipeline: read [SDD.md](./SDD.md) now. It changes how steps 4 and 5 finish.
+
 ## Process
 
 ### 1. Gather context
@@ -53,7 +55,7 @@ Ask the user:
 - Are the blocking edges correct: does each ticket only depend on tickets that genuinely gate it?
 - Should any tickets be merged or split further?
 
-Iterate until the user approves the breakdown.
+Iterate until the user approves the breakdown. On the SDD pipeline, harden and size each ticket now, per [SDD.md](./SDD.md).
 
 ### 5. Publish the tickets to the configured tracker
 
@@ -63,6 +65,8 @@ Publish the approved tickets. **How** depends on the tracker `/setup-syn54x-skil
 - **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking / sub-issue relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `ready-for-agent` triage label unless instructed otherwise; the tickets are agent-grabbable by construction.
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
+
+On the SDD pipeline, publish and pin the plan comment per [SDD.md](./SDD.md).
 
 Do NOT close or modify any parent issue.
 
