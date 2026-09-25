@@ -2,10 +2,10 @@
   "name": "mattpocock-skills",
   "version": "1.2.3",
   "private": true,
-  "description": "Matt Pocock's agent skills for real engineering",
+  "description": "Matt Pocock's engineering skills plus a spec-driven delivery pipeline (syn54x fork)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mattpocock/skills"
+    "url": "https://github.com/syn54x/skills-plus-plus"
   },
   "license": "MIT",
   "scripts": {
