@@ -1,0 +1,50 @@
+{
+  "description": "sdd gates: a worker on an sdd/* branch cannot stop without a recorded Verify run and a clean tree; a worktree with uncommitted or unpushed work cannot be removed. Written in the shared Claude Code and Codex format; ${PLUGIN_ROOT} is Codex, ${CLAUDE_PLUGIN_ROOT} is Claude Code.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/verify-gate.sh\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/verify-gate.sh\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/worktree-guard.sh\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/worktree-guard.sh\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}
