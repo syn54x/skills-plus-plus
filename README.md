@@ -49,6 +49,100 @@ In your agent, run it once per repo. It will:
 
 ### 3. Bam - you're ready to go.
 
+## The SDD flow
+
+On a GitHub repo, `/setup-syn54x-skills` can switch on a spec-driven delivery flow: the spec is an **epic** issue, the plan is its **sub-issues**, and the build runs in parallel waves of isolated workers, with a gated review on every PR.
+
+```mermaid
+flowchart TD
+  grill["/grill-with-docs"] --> spec["/to-spec"]
+  spec --> tickets["/to-tickets (SDD pass)"]
+  tickets --> work["/build-epic, or /implement for one issue"]
+  work --> review["review-pr on each slice PR"]
+  review --> panel["review-panel on the PR to main"]
+  panel --> merge["you merge to main"]
+  merge --> close["close-epic"]
+```
+
+1. `/grill-with-docs` irons out the idea, feature or bug.
+2. `/to-spec` publishes the result as an epic issue.
+3. `/to-tickets <epic#>` cuts tracer-bullet sub-issues. On this flow it also gives each one Files owned, Interfaces, Test scenarios and a Verify block, sizes it, links it natively (`--parent`, `--blocked-by`, in another repo when the code lives there), and pins one plan comment on the epic.
+4. `/build-epic <epic#>` builds the epic in waves; `/implement #N` builds one issue. Each worker claims its issue, branches, writes failing tests first, runs Verify, and opens a PR with `Closes #N`. Workers never merge.
+5. `review-pr` gates each slice PR into the integration branch: a fresh reviewer, Verify re-run, separate spec and quality verdicts, one fix round, then `ready-for-human`.
+6. `review-panel` gates the PR to `main`, once per epic. You merge it.
+7. `close-epic` checks every sub-issue is closed and the PR to `main` merged, posts the summary and the retro, and closes the epic.
+
+Steps 5 to 7 are model-invoked: `/build-epic` reaches them, and you rarely type them.
+
+A ticket is ready when it is open, has no open blockers, is unassigned, and carries `ready-for-agent`. Claiming is assigning yourself. Progress is one comment per issue under `<!-- sdd-progress -->`, rewritten in place. A multi-repo epic gets an integration branch, worktrees and PRs in each repo; tickets are identified by URL, and a cross-repo blocker has to be merged and available before its consumer is ready.
+
+### Size ladder
+
+`to-tickets` sets the size. The size picks the runtime. `implement-issue` is the worker in every row.
+
+| Size | Ticket shape | Trigger | Runs where | Reviewer |
+| --- | --- | --- | --- | --- |
+| S | one context window, at most 3 files | label `ready-for-agent` | cloud: `claude-code-action` (`sdd-implement.yml`) | `sdd-review.yml` on the PR |
+| M | needs its plan sections; 1 or 2 workers | `/build-epic` or `/implement` | local worker in its own worktree | fresh reviewer subagent |
+| L | cross-cutting, or 3 or more sub-issues | `/build-epic` | local waves, 3 to 5 workers, one worktree each | reviewer per slice PR; `review-panel` on the PR to `main` |
+| XL | 8 or more independent sub-issues | `/build-epic --workflow` | dynamic workflow (Claude Code, on opt-in) | scripted verify, then merge order; `review-panel` on the PR to `main` |
+
+The concrete dispatch call per harness is in [`skills/engineering/build-epic/HARNESS-DISPATCH.md`](./skills/engineering/build-epic/HARNESS-DISPATCH.md).
+
+## Why the SDD flow lives in GitHub Issues
+
+The suites we looked at keep the plan in markdown: Superpowers, Compound Engineering, GSD, CCPM, PRPs, Spec Kit, BMAD, OpenSpec, cc-sdd, and a dozen smaller ones. The files live under `docs/plans/`, `.kiro/`, `openspec/`, or a similar directory.
+
+- Reviewers read issues and PRs. A plan outside the tracker drifts from what shipped as soon as the first PR merges, and the people who have to approve the work never see it.
+- Two installed suites fight over the plan, the `CLAUDE.md` block, and which `/plan` command wins. Each one also preloads several thousand tokens into every session.
+- Each suite ships a runner for its own file format, so a different tool, a cloud runner, or another person cannot pick the plan up.
+
+From 2025 through 2026, GitHub shipped sub-issues and issue types (April 2025), native blocked-by and blocking links (August 2025), issue fields on organization repos (July 2026), and `gh` 2.94 flags for them (`--parent`, `--blocked-by`, `--type`) with JSON output. An agent can read that plan with `gh`, without a separate extension.
+
+The flow started as a separate pack layered on top of Matt's skills. That broke in use: his entry points are user-invoked, so no skill of ours could call `/to-tickets`, and a worker could not start a build skill on its own. This fork owns both halves, so the SDD pass lives inside `to-tickets` and every skill a worker or reviewer needs is model-invoked ([ADR 0003](./.agents/adr/0003-fork-superset-of-mattpocock-skills.md), [ADR 0004](./.agents/adr/0004-sdd-pipeline-invocation-graph.md)). `/to-spec` writes the epic. `/to-tickets` cuts tracer-bullet sub-issues and their blocking edges.
+
+What was worth stealing from the other suites is now a section on the ticket, written as `gh` and prose, so it runs the same under Claude Code, Codex, Cursor, or a shell:
+
+- Compound Engineering: file ownership and a verification contract
+- Superpowers: the interfaces list, a no-placeholder rule, a fresh implementer and a fresh reviewer per task
+- CCPM: comments that update in place under a marker
+- gh-aw: a closer that walks sub-issues
+
+Review effort follows the diff. A slice PR into the integration branch gets one fresh reviewer and two verdicts, spec and quality. A persona panel on every slice would cost nine times as much and produce noise. The PR to `main` is large, final, and spans the slices, so it gets `review-panel`. That panel uses Compound Engineering's persona selection and adversarial reviewer, Anthropic's confidence gate and history pass, Superpowers' calibration, and mattpocock's standards axis. It reads the ticket contracts and the repo's ADRs, and it uses the pipeline's severity vocabulary.
+
+Readiness is computed from the tracker: open, no open blockers, unassigned, and labelled `ready-for-agent`. You claim a ticket by assigning yourself. The skills do not store readiness in a status field, because an agent-written status goes stale.
+
+Workers run in waves of 3 to 5, each in its own worktree. The Agent Teams flag stays unset. Teammates get no worktree of their own, the task tools sit behind an experimental flag, and a team costs several times the tokens of a wave. Suites that tried teams went back to `Agent(isolation: "worktree")`, or they kept teams for discussion only.
+
+Where the Claude Code plugin is installed, hooks enforce the stop rules. A worker on an `sdd/*` branch cannot stop without a recorded Verify run. A worktree with unpushed work cannot be removed. With only `npx skills add`, those rules are in the skill text.
+
+None of these is a dependency:
+
+- CCPM is unmaintained, and its docs use the wrong `gh-sub-issue` syntax.
+- The original GSD is archived, after a token rug-pull.
+- Spec Kit's `taskstoissues` exports one way and does not create parent links.
+- Agent OS removed execution.
+- oh-my-claudecode is built around Agent Teams and tmux.
+- The full Superpowers, Compound Engineering, and ECC bundles, installed next to Matt's skills, collide on the planner and preload 3k to 22k tokens.
+
+### Retros and skill feedback
+
+`close-epic` posts a retro on the epic under `<!-- sdd-retro -->`. The counts come from label events, marker comments, and PR reviews: tickets by size, escalations, edges added mid-build, fix rounds, Verify-block corrections, panel findings, how many findings were dropped, and claim-to-PR time. The retro names which workflow step was weak. It stays in the user's repo.
+
+Learnings are tagged `[repo]`, `[reusable]`, or `[skill]`. A `[skill]` learning is one the retro counts support.
+
+With consent, a `[skill]` learning can become a `skill-feedback` issue on `syn54x/skills-plus-plus`. Setup asks, and the default is off, recorded as `Upstream feedback: on` or `off` in the routing block.
+
+An issue may contain the skill, the step, a category from a closed set, counts, the harness version, and one sentence the user types. It may not contain repo or org names, URLs, ticket titles, paths, code, commit messages, or error text.
+
+- Each issue is shown and approved on its own, filed under the user's GitHub account, and the issue is public. `--dry-run` prints the bodies.
+- A non-interactive run never files. Drafts go on the epic for the user to file or discard. A private repo always asks for confirmation.
+- A URL, repo name, existing path, code, title, or error text in the body stops the filing. The guard does not rewrite the body.
+
+Rules and template: [`skills/engineering/close-epic/SKILL-FEEDBACK.md`](./skills/engineering/close-epic/SKILL-FEEDBACK.md).
+
+Planned next: regression evals built from fixed defects, and a scheduled routine that clusters feedback into PRs on this repo.
+
 ## Why These Skills Exist
 
 I built these skills as a way to fix common failure modes I see with Claude Code, Codex, and other coding agents.
