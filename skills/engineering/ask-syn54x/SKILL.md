@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 You don't remember every skill, so ask.
 
-A **flow** is a path through the skills. Most paths run along one **main flow**, and two **on-ramps** merge onto it. Everything else is standalone, or a vocabulary layer that runs underneath.
+A **flow** is a path through the skills. Most paths run along one **main flow**, a repo with the SDD pipeline switched on builds along the **SDD flow**, and a few **on-ramps** merge onto them. Everything else is standalone, or a vocabulary layer that runs underneath.
 
 ## The main flow: idea → ship
 
@@ -22,6 +22,7 @@ The route most work travels. You have an idea and want it built.
 3. **Branch: is this a multi-session build?**
    - **Yes** → **`/to-spec`** (turn the thread into a spec), then **`/to-tickets`** to split it into tracer-bullet tickets, each declaring its **blocking edges**. On a local tracker that's one file per ticket under `.scratch/<feature>/issues/`, worked blockers-first by hand; on a real tracker the edges become native blocking links, so any ticket whose blockers are done can be grabbed: kick off **`/implement`** per ticket, **`/clear`ing context between each one**. Each ticket is self-contained, so the last one's context is disposable.
    - **No** → **`/implement`** right here, in the same context window.
+   - **The repo carries the `<!-- sdd-routing -->` block** → the build runs on the **SDD flow** below instead.
 
    Either way, **`/implement`** builds each issue by driving **`/tdd`** internally (one red-green slice at a time), then closes out by running **`/code-review`**, a two-axis review (Standards + Spec) of the diff, before committing. Reach for **`/tdd`** on its own when you just want to build a concrete behaviour test-first without a full spec, and **`/code-review`** on its own whenever you want to review a branch or PR against a fixed point.
 
@@ -31,6 +32,19 @@ Keep steps 1–3 in **one unbroken context window** (don't compact or clear unti
 
 The limit on this is the **smart zone**: the window (~150k tokens on state-of-the-art models) within which the model still reasons sharply. If a session approaches it before `/to-tickets`, don't push on degraded; `/compact` at the nearest phase boundary and carry on (see Phase boundaries).
 
+## The SDD flow: epic → merged
+
+For a repo where `/setup-syn54x-skills` switched the SDD pipeline on (GitHub only; its routing block sits in `CLAUDE.md` or `AGENTS.md`). The spec is an **epic** issue, the plan is its **sub-issues**, and the build runs in parallel **waves** of isolated workers.
+
+1. **`/grill-with-docs`**, then **`/to-spec`** publishes the epic. Same as the main flow.
+2. **`/to-tickets <epic>`** cuts the sub-issues and, on this flow, hardens each one (Files owned, Interfaces, Test scenarios, a runnable Verify block), sizes it `S`, `M` or `L`, links it natively, and pins one plan comment on the epic.
+3. **Branch: size.**
+   - **`S`** → the `sdd-implement.yml` cloud workflow builds it when it carries `ready-for-agent` (if the repo installed the workflows), or **`/implement #N`** locally.
+   - **`M` / `L`** → **`/build-epic <epic>`**: waves of workers in their own worktrees, a fresh reviewer on every PR, merges in dependency order onto an integration branch, then a panel review of the PR to `main`. More than about eight independent tickets → `/build-epic <epic> --workflow`.
+4. **You merge to `main`.** The agent never does. Then the epic closes with a retro (`build-epic` does it, or ask for it in any later session).
+
+Underneath, `implement-issue`, `review-pr`, `review-panel`, `close-epic` and `sync-progress` are model-invoked: the entry points above reach them, and you rarely type them.
+
 ## On-ramps
 
 A starting situation that generates work, then merges onto the main flow.
@@ -39,7 +53,7 @@ A starting situation that generates work, then merges onto the main flow.
 
   Triage is only for issues **you didn't create**: bug reports, incoming feature requests, anything that arrives raw. Tickets that `/to-tickets` produced are already agent-ready, so **don't triage them**.
 
-- **Something's broken** → **`/diagnosing-bugs`**. For the hard ones: the bug that resists a first glance, the intermittent flake, the regression that crept in between two known-good states. It refuses to theorise until it has a **tight feedback loop** (one command that already goes red on *this* bug), then fixes with a regression test. Its post-mortem hands off to **`/improve-codebase-architecture`** when the real finding is that there's no good seam to lock the bug down.
+- **Something's broken** → **`/diagnosing-bugs`**. For the hard ones: the bug that resists a first glance, the intermittent flake, the regression that crept in between two known-good states. It refuses to theorise until it has a **tight feedback loop** (one command that already goes red on *this* bug), then fixes with a regression test.
 
 - **A huge, foggy effort: a greenfield project or a huge feature build, too big for one session** → **`/wayfinder`**, the most cognitively demanding flow here. When the way from here to the destination isn't visible yet, it charts a **shared map** of **decision tickets** on the issue tracker and resolves them one at a time, producing **decisions, not deliverables**, until the fog is pushed back and the way is clear. Where **`/grill-with-docs`** sharpens an idea you can hold in one session, wayfinder is for the idea you can't, and it's slower and denser, so save it for exactly that, never a well-scoped feature.
 
@@ -83,8 +97,12 @@ Off the main flow entirely.
 - **`/wizard`** is for the steps only a **human** can take: provisioning infrastructure, setting up credentials or CI secrets, clicking through an unfamiliar third-party dashboard, running a one-off migration or cutover. It generates an interactive bash script that opens each URL, captures each value, and writes it into `.env` and GitHub secrets, so the procedure stops being something you re-explain to an agent every time. Model-invoked, so the agent reaches for it the moment it hits a wall only you can pass. If the agent could just do it itself, it should; this is for where a human is genuinely in the loop.
 - **`/wait-what`** is the corrective for a message that didn't land. Use it mid-conversation, inside any other skill, and the agent re-pitches what it just said with the context you were missing, in plain English, using the `CONTEXT.md` vocabulary. It works after the fact; `/grill-with-docs` is the upfront cure, because a shared language agreed early is what stops the jargon arriving at all.
 - **`/teach`**: learn a concept over multiple sessions, using the current directory as a stateful workspace.
+- **`/adhd`** and **`/eli5`**: the same explanation, shorter. `/adhd` for the point in three bullets or fewer; `/eli5` for plain words and one everyday analogy.
+- **`/prepare-release-notes`**: draft the highlights for a GitHub Release from what merged since the last tag, and print the release command for you to run.
 - **`/writing-for-agents`** is the reference for writing documents agents consume: skills, AGENTS.md, pointed-at docs.
 
 ## Precondition
 
-**`/setup-syn54x-skills`**: run before your first engineering flow to configure the issue tracker, triage labels, and doc layout the other skills assume. Custom issue trackers also work.
+**`/setup-syn54x-skills`**: run before your first engineering flow to configure the issue tracker, triage labels, and doc layout the other skills assume, and on GitHub to switch on the SDD flow. Custom issue trackers also work.
+
+Starting a repo from nothing? **`/scaffold-python-project`** or **`/scaffold-frontend-project`** first; both end by handing you `/setup-syn54x-skills`.

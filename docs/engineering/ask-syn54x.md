@@ -11,6 +11,7 @@ You invoke this by typing `/ask-syn54x`; the agent won't reach for it on its own
 | Your situation | What the router gives back |
 | --- | --- |
 | An idea, and no idea where to start | The head of the main flow, and whether the build is small enough to skip the spec |
+| A spec to build on a repo with the SDD pipeline on | The SDD flow: [to-tickets](../engineering/to-tickets.md) hardens the epic's sub-issues, then [build-epic](../engineering/build-epic.md) for M and L, or the cloud workflow for S |
 | Bugs and requests arriving from other people | The [triage](../engineering/triage.md) on-ramp, and why tickets you generated yourself don't belong on it |
 | Two skills that look interchangeable | The line between them, and it is usually one concrete test rather than a matter of taste. [grill-me](../productivity/grill-me.md) or [grill-with-docs](../engineering/grill-with-docs.md) turns on whether you are in a working directory; [grill-with-docs](../engineering/grill-with-docs.md) or [wayfinder](../engineering/wayfinder.md) turns on whether the effort fits one session |
 | A long session and a decision about the context | The ordered tree over the five options at a phase boundary |
@@ -24,9 +25,10 @@ The tracker-dependent routes (triage, `to-spec`, `to-tickets`, `implement`) assu
 
 ## Flows, not skills
 
-The word the skill gives you to think with is **flow**: a path *through* the skills, not a single one. Naming your situation places you on a flow at a step, which is a different answer from "here is the skill that matches your keywords". Four kinds of route exist, and the skill itself carries them in full:
+The word the skill gives you to think with is **flow**: a path *through* the skills, not a single one. Naming your situation places you on a flow at a step, which is a different answer from "here is the skill that matches your keywords". Five kinds of route exist, and the skill itself carries them in full:
 
 - **The main flow**, idea to ship. Grill, spec, tickets, implement, review, with two branches inside it: a prototype detour when a question needs runnable code to settle, and the spec-and-tickets split, which only earns its cost when the build spans more than one session.
+- **The SDD flow**, on a repo where setup switched the SDD pipeline on: the same grill and spec, then an epic whose sub-issues are hardened for agents and built in parallel waves, with a gated review on every PR and a panel on the PR to `main`.
 - **On-ramps**, for a situation that generates work and then merges onto the main flow: incoming bug reports, something broken, or an effort too foggy and too large to hold in one session.
 - **Standalones**, off every flow, reached for on their own terms: the prototype, the questionnaire, the merge conflict you are already sitting in.
 - **A vocabulary layer underneath**, the two references the other skills pull in when the words rather than the process are the problem.
@@ -85,6 +87,6 @@ Check the changelog for a rename before assuming it is gone. `writing-great-skil
 
 ## Where it fits
 
-`ask-syn54x` is a **standalone router** that sits over the whole set. It is never a step in a chain; it points into every chain, and it is the node the other docs pages link back to so none of them has to redraw the graph. From here you most often land on [grill-with-docs](../engineering/grill-with-docs.md), the head of the main flow, or [triage](../engineering/triage.md), the on-ramp for work that arrived rather than work you started.
+`ask-syn54x` is a **standalone router** that sits over the whole set. It is never a step in a chain; it points into every chain, and it is the node the other docs pages link back to so none of them has to redraw the graph. From here you most often land on [grill-with-docs](../engineering/grill-with-docs.md), the head of the main flow, [build-epic](../engineering/build-epic.md), the build step of the SDD flow, or [triage](../engineering/triage.md), the on-ramp for work that arrived rather than work you started.
 
 It is a secondary source over the skills it describes. Where the router and a `SKILL.md` disagree, the `SKILL.md` is right.
