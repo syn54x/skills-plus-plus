@@ -1,14 +1,14 @@
 # Writing docs pages
 
-Every skill in `engineering/` and `productivity/` has a human-facing **docs page** at `docs/<bucket>/<skill-name>.md`. The docs tree mirrors those two bucket folders under `skills/`. Upstream's pages are published at `https://aihero.dev/skills-<skill-name>`. This fork's own pages (skills that exist only here, or were renamed here) are read on GitHub at `https://github.com/syn54x/skills-plus-plus/blob/main/docs/<bucket>/<skill-name>.md`. The page is not the skill and not a copy of `SKILL.md`. Only these two buckets are promoted; the rest (`misc/`, `in-progress/`, `deprecated/`) ship no docs page.
+Every skill in `engineering/` and `productivity/` has a human-facing **docs page** at `docs/<bucket>/<skill-name>.md`. The docs tree mirrors those two bucket folders under `skills/`. `docs/` is the source of this repo's documentation site, built with Zensical and published to GitHub Pages at `https://skills-plus-plus.x54.sh`. A page's URL is `https://skills-plus-plus.x54.sh/<bucket>/<skill-name>/`. The page is not the skill and not a copy of `SKILL.md`. Only these two buckets are promoted; the rest (`misc/`, `in-progress/`, `deprecated/`) ship no docs page.
 
 Most of these skills are **user-invoked**: the agent will never fire them for you, so *you* are the index that has to remember they exist and when to reach for them. That memory is **cognitive load**. The job of a docs page is to relieve it: to orient one reader around one skill so they can hold it in their head, know when to reach for it, and see where it sits in the system. The pages are collectively a distributed router; each is a node.
 
 Act whenever a promoted skill is added, renamed, or has its behaviour changed: create or re-sync its docs page. A rename moves the file too (`docs/<bucket>/<old>.md` → `docs/<bucket>/<new>.md`), because the published URL tracks the name; a skill that moves between `engineering/` and `productivity/` moves its docs file to the matching folder. Skills in `misc/`, `in-progress/`, and `deprecated/` get no page, because none of those buckets is promoted. A skill moving *out* of one of them into `engineering/` or `productivity/` gains a page; one moving the other way loses it.
 
-Because these pages are published away from the repo, **every link is absolute**: never a repo-relative path. A link to a skill upstream also ships under the same name points at `https://aihero.dev/skills-<name>`; a link to a fork-only or renamed skill points at its GitHub docs page (see above); a link into the repo points at its full `https://github.com/syn54x/skills-plus-plus/...` URL. Existing links into `https://github.com/mattpocock/skills/...` (upstream issues, upstream files) stay as they are. A relative link that works in the repo breaks once published.
+**Links between docs pages are relative `.md` paths** (`../engineering/to-spec.md`, with an optional `#anchor`): Zensical resolves them on the site, GitHub resolves them in the repo, and a broken one fails the site build. Anything outside `docs/` is linked absolutely: a file in this repo at its full `https://github.com/syn54x/skills-plus-plus/...` URL, and an upstream issue at its `https://github.com/mattpocock/skills/issues/<n>` URL. Outside `docs/` (a `SKILL.md`, `README.md`), link a docs page by its site URL.
 
-There is no H1. The published page takes its title from the slug.
+There is no H1. The site takes the page title from its nav entry in `zensical.toml`.
 
 ## Page structure
 
@@ -16,7 +16,7 @@ Fill the template below, keeping its order. The **fixed frame** (`## What it doe
 
 Four sections make a page worth reading: `What it does`, `When to reach for it`, `Common questions`, `It's working if`. The first two orient the reader; the last two are where the page stops summarising the skill and starts answering the reader's own situation. Each of the last two has a bar to clear, below, but treat a page that clears neither as unfinished, not as finished-and-short.
 
-**A page carries no install commands.** The ai-hero page template renders the install widget itself (a copy button, the single-skill command, the whole-set command, and the update line) above the body. A page that also writes them out shows the reader the same command twice, and the two copies drift: the hand-written pair on every page went stale against the widget beside it. Install wording is a property of the site, not of the page. If it needs changing, change it in ai-hero; the canonical wording lives in [the install block](./install-block.md).
+**A page carries no install commands.** Install wording lives once, on the site's install page, copied from [the install block](./install-block.md). A page that also writes the commands out gives the reader a second copy, and the copies drift: the hand-written pair on every page once went stale against the canonical one. Link the install page instead when a page needs to mention installing.
 
 <page-template>
 
@@ -29,7 +29,7 @@ One or two plain-language paragraphs. Lead with the skill's one-sentence job, th
 How and when you reach for the skill, in two beats that are both effectively always present:
 
 - **Invocation mode.** State whether you type it or the agent fires it. A user-invoked skill: "You invoke this by typing `/<name>`, and the agent won't reach for it on its own." A model-invoked skill: "Type `/<name>`, or the agent reaches for it automatically when a task fits."
-- **Trigger boundary.** The index entry: "reach for this when …". Where the skill is confusable with a sibling, add the other half: "for <X> instead, use [<sibling>](https://aihero.dev/skills-<sibling>)."
+- **Trigger boundary.** The index entry: "reach for this when …". Where the skill is confusable with a sibling, add the other half: "for <X> instead, use [<sibling>](../<bucket>/<sibling>.md)."
 
 ## Prerequisites
 
@@ -64,8 +64,8 @@ A few bullets naming what the reader sees when the skill is doing its job. The b
 Always present. Situate the skill in the system in a sentence or two:
 
 - **Role.** Name it: a **chain step** (`grill-with-docs → to-spec → to-tickets → implement → code-review`), a **run-once setup** (`setup-syn54x-skills`), **periodic maintenance** (`improve-codebase-architecture`, "every few days"), or a **reach-for-it-anytime standalone** (`diagnosing-bugs`, `prototype`, `handoff`). A standalone's map is one honest sentence, which is far better than omitting the section.
-- **Neighbours.** The one or two siblings that matter, each with a because-clause, linked absolutely.
-- **The map.** Point to [ask-syn54x](https://github.com/syn54x/skills-plus-plus/blob/main/docs/engineering/ask-syn54x.md), the router over the whole set, so this page stays a node and never has to redraw the graph.
+- **Neighbours.** The one or two siblings that matter, each with a because-clause, linked by relative path.
+- **The map.** Point to [ask-syn54x](../engineering/ask-syn54x.md), the router over the whole set, so this page stays a node and never has to redraw the graph.
 
 </page-template>
 
@@ -74,7 +74,7 @@ Always present. Situate the skill in the system in a sentence or two:
 - Explain the **why**, not the process. The page orients and situates the skill; it never reproduces the `SKILL.md` steps or template dumps: a human choosing a tool does not need the runbook.
 - **Never name the author.** The page is a technical document, not a record of who said what. "Matt says", "Matt's own answer", "his position is", a quoted reply: all of it goes. A finding from the question hunt is worth keeping; its attribution is not. State the substance as a plain claim about the skill ("the fix is a direct instruction: …", "the split comes down to session count") and drop the frame. The reader is deciding whether to use a tool; an opinion carries the same weight either way, and an attributed one dates as soon as the position moves. Quoting a *user* stays fine: "one user reported …" is evidence about the skill in the wild, and stays anonymous.
 - Use the skill's **leading words** (_seam_, _deep module_, _tracer bullet_) so the page and the skill speak one language.
-- **Use the [AI Coding Dictionary](https://www.aihero.dev/ai-coding-dictionary)'s term where one exists, and link its first use on the page.** The dictionary is the house vocabulary for AI coding: _context window_, _subagent_, _harness_, _primary source_, _agent mode_. Prefer its word over a synonym you invent. Link the first occurrence of each term to `https://www.aihero.dev/ai-coding-dictionary/<slug>` (the slug is the term lowercased with non-alphanumerics as hyphens: _context window_ → `context-window`), and leave every later occurrence unlinked. Link only where the word carries the dictionary's sense: a domain *model*, background *context* or an auth *token* is a different word that happens to match. Never link inside a heading, a code span, or an existing link, and never link a word that names a skill in this repo rather than the concept. For the full term list, read `~/repos/ai/ai-coding-dictionary/dictionary/` if it exists on this machine (one file per term, the filename *is* the term), and otherwise [mattpocock/dictionary-of-ai-coding](https://github.com/mattpocock/dictionary-of-ai-coding), which is the source of truth either way.
+- **Use the house vocabulary.** Prefer the established term for an AI-coding concept (_context window_, _subagent_, _harness_, _primary source_) over a synonym you invent, and this repo's `CONTEXT.md` term for anything it defines. Don't link out to an external glossary.
 - **Branches go in a table or a list, never in a paragraph.** Where the page presents a choice (two artifacts the skill can produce, four situations that trigger it, five options at a boundary), the reader is scanning for the one row that matches their situation. A paragraph makes them read all of it to find out. A short markdown table (condition in the left column, what to do in the right) or a bulleted list gives it back in one glance. This applies wherever the branch appears, most often in `## When to reach for it` and the free-form middle.
 - Keep the page itself low-load. It is documentation *about* low-cognitive-load skills; furniture (spare headings, restated links) is the thing it is arguing against.
 
@@ -88,7 +88,7 @@ Always present. Situate the skill in the system in a sentence or two:
 - `## Where it fits` names the role and links to `ask-syn54x`.
 - A prerequisite (workspace, prior setup, tooling) is stated where one exists, and the section is absent where none does.
 - The middle surfaces the leading word.
-- Every AI Coding Dictionary term the page uses is spelt the dictionary's way, and its first use (and only its first use) links to the dictionary entry.
+- The page links no external glossary, and every link to another docs page is a relative `.md` path.
 - Every multi-way branch is a table or a list, not a paragraph the reader has to read in full.
 - The hunt for real questions ran (the wiki, the issues, the changelog), and `## Common questions` is sized to what it found, not padded to match a richer skill's page.
 - Every `## It's working if` bullet is checkable without opening `SKILL.md`.

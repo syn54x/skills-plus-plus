@@ -13,6 +13,6 @@ We forked upstream into `syn54x/skills-plus-plus` and moved the SDD pipeline and
 
 ## Consequences
 
-- Upstream's `docs/` pages still point at `aihero.dev`; fork-only and renamed pages point at GitHub. [writing-docs.md](../writing-docs.md) says which link goes where.
+- Documentation moves off upstream's site. `docs/` is built with Zensical and published to this repo's GitHub Pages at `https://skills-plus-plus.x54.sh`; docs pages link each other by relative path. [writing-docs.md](../writing-docs.md) has the link rules.
 - Syncing upstream is a routine chore, not a rebase. The steps live in [upstream-sync.md](../upstream-sync.md).
 - `syn54x/skills` is archived once the move is complete, with a pointer to this repo.
