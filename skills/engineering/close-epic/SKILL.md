@@ -15,10 +15,13 @@ Usage: `/close-epic <epic#> [--dry-run]`
 EPIC=42
 gh issue view "$EPIC" --json state,subIssuesSummary,subIssues \
   --jq '{state, summary: .subIssuesSummary, open: [.subIssues.nodes[] | select(.state=="OPEN") | .number]}'
+REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+gh api "repos/$REPO/issues/$EPIC/comments" --paginate \
+  --jq '[.[] | select(.body | startswith("<!-- sdd-summary -->"))] | length'
 ```
 
 - `open` is non-empty → stop. Report the open tickets and their assignees; the epic is not done.
-- `state` is already `CLOSED` → stop; nothing to do.
+- A `<!-- sdd-summary -->` comment already exists → stop; this skill has run. The epic's `state` on its own decides nothing: the integration-branch PR says `Closes #<epic>`, so the user's merge normally closes the epic before this skill runs, and a closed epic with no summary is the ordinary case, not an error.
 - Also check that the integration-branch PR (if any) has merged to `main`: `gh pr list --search "head:feat/<slug>" --state merged`. In a multi-repo epic, check **every** repo named in the plan comment (`gh pr list -R owner/repo …`). If any has not merged, say so and ask whether to close anyway; the default is **no**.
 
 ## 2. Collect
@@ -89,11 +92,15 @@ Keep it under 40 lines. Facts only; no praise. The retro numbers are the evidenc
 
 ## 6. Close
 
+Only if the epic is still open (the merge did not close it: auto-close is off in the repo, or a human wrote the PR body without the keyword):
+
 ```bash
-gh issue close "$EPIC" --reason completed --comment "All sub-issues closed; summary above."
+if [ "$(gh issue view "$EPIC" --json state --jq .state)" = "OPEN" ]; then
+  gh issue close "$EPIC" --reason completed --comment "All sub-issues closed; summary above."
+fi
 gh issue edit "$EPIC" --remove-label needs-plan 2>/dev/null || true
 ```
 
 ## 7. Report
 
-One line to the user: epic closed, N tickets, M PRs, link to the summary comment, and how many skill-feedback issues were filed, drafted, or skipped. If you wrote a `docs/solutions/` file, name it.
+One line to the user: epic closed (here, or already by the merge), N tickets, M PRs, link to the summary comment, and how many skill-feedback issues were filed, drafted, or skipped. If you wrote a `docs/solutions/` file, name it.

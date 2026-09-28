@@ -27,7 +27,7 @@ gh issue view "$N" --json title,body,parent
 gh pr diff "$PR"
 ```
 
-No `Closes #N` → spec verdict fails immediately (the merge would not close the ticket). Report and stop.
+No `Closes #N` → spec verdict fails immediately (the PR is not linked to its ticket, and the orchestrator cannot tell which sub-issue the merge completes). Report and stop.
 
 Check out the PR head in a clean worktree (`gh pr checkout "$PR"` in a throwaway worktree, or the Actions checkout) and run the ticket's `## Verify` block yourself. Also check the Verify note, if the worker pushed one: `git notes --ref=sdd-verify show HEAD`.
 

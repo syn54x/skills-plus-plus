@@ -98,7 +98,7 @@ Verify block corrected: no   <!-- yes, plus what was wrong, when the block could
 <interfaces you exposed, decisions you made that the ticket left open, anything outside Files owned and why; or "none">
 ```
 
-`Closes #N` is what closes the sub-issue on merge; do not omit it, do not close the issue by hand.
+`Closes #N` is what links the PR to its ticket, and it closes the ticket when the PR targets the default branch; on an integration branch the orchestrator closes the ticket after the merge. Do not omit the line, and do not close the issue by hand.
 
 ## 7. Self-review, then report
 
