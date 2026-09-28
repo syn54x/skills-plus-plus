@@ -1,0 +1,5 @@
+interface:
+  display_name: "Improve PR Architecture"
+  short_description: "Find and grill deepening opportunities in one PR"
+policy:
+  allow_implicit_invocation: false

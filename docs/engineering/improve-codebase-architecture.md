@@ -22,6 +22,7 @@ It sits outside the build loop: it is not a step in the main loop but something 
 Where it is confusable with siblings:
 
 - For designing one module you have already chosen, use [codebase-design](../engineering/codebase-design.md): that is the bench, this is the survey that finds what to put on it.
+- For one pull request rather than the whole codebase, use [improve-pr-architecture](../engineering/improve-pr-architecture.md): the same survey, narrowed to the modules a diff touches, with a this-PR-or-follow-up call on each candidate.
 - For a whole effort too big to hold in one session, use [wayfinder](../engineering/wayfinder.md).
 - For "this specific thing is broken," use [diagnosing-bugs](../engineering/diagnosing-bugs.md). It hands back here when the real finding is that there is no good seam to lock the bug down.
 
