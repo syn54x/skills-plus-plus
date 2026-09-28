@@ -46,6 +46,13 @@ Rules:
 
 Then one **consistency pass**: every name in a Consumes line appears in an earlier ticket's Produces line with the same signature, and every requirement in the epic maps to at least one ticket. Fix inline; don't re-quiz the user for these.
 
+The pass also checks that each requirement keeps its **full strength** in the tickets it maps to. A ticket **narrows** the epic when its acceptance criteria or Test scenarios drop a case, input, limit, error path or platform the epic states, or add a qualifier the epic does not have ("for now", "only X", "except when"). A requirement that maps to a ticket but arrives narrower is the gap the reviewers otherwise catch last, as a `ticket-mandated` Spec finding on the PR to `main`.
+
+- Narrowing that nobody chose is a consistency bug: widen the ticket to the epic's behaviour, inline.
+- Narrowing that is deliberate (feasibility, a split you proposed at the quiz) is a scope decision, so stop and ask the user. Once approved, add a `**Narrows:**` line to the ticket under `## What to build`, naming the epic behaviour and what the ticket delivers instead, and record it in the plan comment (step 3). The reviewers treat a declared narrowing as accepted scope. Offer to add it to the epic's `## Spec deltas` too (step 3), so the epic stays true to what will ship.
+
+Without the line, the narrowing is a defect, and `review-pr` and `review-panel` will report it against the ticket.
+
 **Size** each ticket with exactly one size (the `size:*` label, or the `Effort` field if the routing block names one):
 
 | Size | Meaning | Builds via |
@@ -93,9 +100,10 @@ Compute dependency layers from the native links: layer *n* holds every ticket wh
 | 2 | pinch-frontend | #104 invoice UI | M | pinch-backend#103 | M: `src/invoices/**` |
 
 **Repos:** pinch-frontend (epic), pinch-backend.
+**Narrowed:** #104 delivers the invoice list without pagination (epic: paginated at 50); approved by the user.
 ```
 
-Leave out the Repo column and the Repos line for a single-repo epic. To upsert:
+Leave out the Repo column and the Repos line for a single-repo epic, and the Narrowed line when no ticket narrows the epic; otherwise one Narrowed entry per approved narrowing, in the same words as the ticket's `**Narrows:**` line. To upsert:
 
 ```bash
 REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
@@ -105,8 +113,8 @@ if [ -n "$ID" ]; then gh api -X PATCH "repos/$REPO/issues/comments/$ID" -F body=
 else gh api -X POST "repos/$REPO/issues/$EPIC/comments" -F body=@/tmp/plan.md; fi
 ```
 
-Optional: if the epic lacks a `## Spec deltas` section (ADDED / MODIFIED / REMOVED behaviours), offer to add one so the epic doubles as the change record. Change nothing else in the epic body; `to-spec` owns it.
+Optional: if the epic lacks a `## Spec deltas` section (ADDED / MODIFIED / REMOVED behaviours), offer to add one so the epic doubles as the change record. An approved narrowing from step 1 is a MODIFIED behaviour: offer to add it there as well. Change nothing else in the epic body; `to-spec` owns it.
 
 ## 4. Report
 
-One table: ticket, size, blocked by, ready or `needs-info`. Then the next step: `/build-epic <epic#>` for M and L, while `size:S` tickets are picked up by the cloud workflow if the repo installed it.
+One table: ticket, size, blocked by, ready or `needs-info`, and a Narrows column (the approved narrowing in one phrase, or blank). Then the next step: `/build-epic <epic#>` for M and L, while `size:S` tickets are picked up by the cloud workflow if the repo installed it.
