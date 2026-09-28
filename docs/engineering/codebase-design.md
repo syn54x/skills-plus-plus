@@ -17,6 +17,7 @@ Several skills sit close to it. Which one you want depends on what the actual pr
 | The shape of one module: its interface, its seam, its depth | `codebase-design` |
 | The *words of the domain*: "account" means three things, two people mean different things by "cancellation" | [domain-modeling](../engineering/domain-modeling.md) |
 | You don't yet know *which* module to redesign | [improve-codebase-architecture](../engineering/improve-codebase-architecture.md) (the survey that finds candidates) |
+| You want the same survey over one pull request | [improve-pr-architecture](../engineering/improve-pr-architecture.md) (candidates in the modules a diff touches) |
 | You want the design argued with, not just named | [grilling](../productivity/grilling.md) |
 | There's a concrete behaviour to build and you want tests that survive a refactor | [tdd](../engineering/tdd.md) |
 

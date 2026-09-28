@@ -18,6 +18,7 @@
     "./skills/engineering/grill-with-docs",
     "./skills/engineering/triage",
     "./skills/engineering/improve-codebase-architecture",
+    "./skills/engineering/improve-pr-architecture",
     "./skills/engineering/setup-syn54x-skills",
     "./skills/engineering/tdd",
     "./skills/engineering/to-spec",
