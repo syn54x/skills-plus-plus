@@ -65,6 +65,7 @@ When [setup-syn54x-skills](../engineering/setup-syn54x-skills.md) has switched t
 | A size (`size:S`, `M` or `L`) | S can go to the cloud workflow; M and L go to `build-epic` |
 | Native parent and blocked-by links, created with each issue | the ready queue is computed by `gh`, not read from prose |
 | One `<!-- sdd-plan -->` comment on the epic | the dependency layers at a glance, rewritten in place when tickets change |
+| A **narrowing** check, and a `Narrows:` line where one is approved | a ticket that quietly delivers less than the epic states is caught here, not by the reviewer of the final PR |
 
 A ticket that still has a placeholder (`TBD`, "add appropriate error handling", a name no ticket defines) is published as `needs-info` rather than `ready-for-agent`. A ticket whose files live in another repo is created there, parented to the same epic.
 
@@ -93,6 +94,9 @@ A very large spec can outgrow what a tracker issue serves back cleanly, and ther
 **The acceptance criteria graded nothing: some passed before any work was done.**
 The template asks for criteria and says nothing about whether they can fail, so this happens. Three shapes recur: a criterion already true at the base commit, a criterion that can only be satisfied by work another ticket owns, and one that restates the request rather than deriving from the artifact. Vertical slicing prevents most of it (a slice that delivers behaviour which didn't exist before is red at the base commit by construction), but the check is worth doing by hand. For each criterion, name the observation that would show it false, and confirm it fails at the commit the implementer starts from.
 
+**The final review failed Spec on something a ticket told the worker to do.**
+The ticket narrowed the epic: it kept the requirement but dropped a case, a limit or an error path, and the reviewers only see that gap at the PR to `main`, where they label it `ticket-mandated`. On the SDD pipeline the consistency pass now checks each requirement keeps its full strength in its tickets. An accidental narrowing is widened in place; a deliberate one is put to you, and once approved it is written as a `Narrows:` line in the ticket and a `Narrowed:` line in the plan comment, which [review-pr](../engineering/review-pr.md) and [review-panel](../engineering/review-panel.md) read as accepted scope. A narrowing with no line is still a defect, on purpose.
+
 **The tickets are published. How do I actually run them?**
 The skill stops at the artifact, and there is no auto-dispatch mode. Dispatch is manual: look at the board, count the tickets with no open blockers, and open that many agent sessions. One ticket per fresh context, cleared between them. Be aware that [implement](../engineering/implement.md) does not reliably close or check off the ticket when it finishes, on GitHub or in local markdown, so the ticket's state is yours to update.
 
@@ -105,6 +109,7 @@ The skill stops at the artifact, and there is no auto-dispatch mode. Dispatch is
 - Each ticket reads like something a fresh session could finish without you in the room.
 - Prefactoring, where it found any, is at the front of the order rather than mixed into feature tickets.
 - On the SDD pipeline: every ticket carries Files owned, Interfaces, Test scenarios and Verify, is a native sub-issue of the epic with native blocking edges, and the epic has exactly one plan comment.
+- On the SDD pipeline: any ticket that delivers less than the epic states says so in a `Narrows:` line you were asked about, and the report table shows the same narrowings.
 
 ## Where it fits
 

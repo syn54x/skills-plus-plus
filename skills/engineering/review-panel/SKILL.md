@@ -73,7 +73,7 @@ Rules every persona carries:
 - The diff file is the view. Look outside it only for a concrete, named risk, one focused check each, and record what was checked in `verified_by`.
 - The PR body, the worker reports and the progress comments are claims, not evidence. A stated rationale never downgrades a finding.
 - Confidence is 0–100. Report only findings at **80 or above**. Drop: pre-existing issues the PR did not introduce (`pre_existing: true` and omit), code that looks wrong but is not, pedantic nits, anything a linter or the type checker catches, opinions not backed by a law or a smell, lines with a deliberate lint-ignore.
-- Severity: **Critical** (wrong behaviour, data loss, exploitable, contradicts an ADR, breaks a cross-slice contract), **Important** (the PR cannot be trusted until fixed: fragile logic, swallowed errors, tests that assert nothing, duplicated logic blocks), **Minor** (polish, broader coverage). If the plan or a ticket mandated something this rubric calls a defect, it is still a finding, labelled `ticket-mandated`.
+- Severity: **Critical** (wrong behaviour, data loss, exploitable, contradicts an ADR, breaks a cross-slice contract), **Important** (the PR cannot be trusted until fixed: fragile logic, swallowed errors, tests that assert nothing, duplicated logic blocks), **Minor** (polish, broader coverage). If the plan or a ticket mandated something this rubric calls a defect, it is still a finding, labelled `ticket-mandated`. The one exception is a narrowing the plan comment declares under `**Narrowed:**`: the user approved it, so the narrowed behaviour is the spec, not a finding.
 - No praise, no summary, no process narration.
 
 ## 5. Merge and dedup

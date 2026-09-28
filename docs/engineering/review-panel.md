@@ -12,6 +12,8 @@ Type `/review-panel <pr#>`, or the agent reaches for it when a PR to `main` need
 
 **Why are findings numbered `F1` and not `#1`?** GitHub turns a bare `#1` in a comment into a link to issue or PR 1, so a report posted as a comment linked to unrelated work.
 
+**A finding says `ticket-mandated`. What do I do with it?** A ticket told the worker to do something the rubric calls a defect, and the panel reports it anyway so the decision is yours. One case is exempt: a narrowing that the epic's plan comment lists under `Narrowed:` was approved when [to-tickets](../engineering/to-tickets.md) cut the plan, so the panel judges that behaviour as narrowed and not as missing.
+
 **Does it check our ADRs and invariants?** Yes: the standards-and-invariants persona reads `CLAUDE.md`, `AGENTS.md`, `CONTEXT.md`, the coding standards and every ADR, and flags where the diff breaks one. Candidate new ADRs and terminology drift go into [close-epic](../engineering/close-epic.md)'s Learnings.
 
 ## It's working if

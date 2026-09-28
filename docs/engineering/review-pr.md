@@ -20,6 +20,8 @@ Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gatin
 
 **What happens on the second failure?** Nothing automatic. After the single fix round and a scoped re-review, open findings send the ticket to `ready-for-human` with the PR left open.
 
+**The ticket asked for less than the epic. Is that a Spec failure?** Only when the ticket doesn't say so. A `Narrows:` line in the ticket (and a matching `Narrowed:` line in the epic's plan comment) records a narrowing the user approved when [to-tickets](../engineering/to-tickets.md) cut the plan, and the reviewer judges that behaviour against the ticket. Without the line, delivering less than the epic is a Missing finding, labelled *ticket-mandated* when the ticket's own criteria asked for less, so the human sees it was the plan and not the worker.
+
 ## It's working if
 
 - Every slice PR has one review comment with `## Spec: PASS | FAIL`, `## Quality: PASS | FAIL` and a `Verify:` line naming the commit it ran on.
