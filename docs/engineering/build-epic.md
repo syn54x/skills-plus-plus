@@ -34,11 +34,16 @@ A worker's PR goes to [review-pr](../engineering/review-pr.md). A failing review
 
 **Does it merge to `main`?** No. It merges slices into the integration branch; the PR to `main` is reviewed by [review-panel](../engineering/review-panel.md) and merged by you. [close-epic](../engineering/close-epic.md) runs after that merge, not before.
 
+**My sub-issues stayed open after their PRs merged.** GitHub honours `Closes #N` only on a PR into the default branch, so a merge into `feat/<slug>` closes nothing by itself. The orchestrator now closes each sub-issue after its gated merge, if it is still open; the worker's `Closes #N` stays because it links the PR to the ticket, and it does the closing in the one-ticket case that targets `main`.
+
+**The epic closed the moment I merged the PR to `main`. Did I skip something?** No, that is the intended path: the integration PR says `Closes #<epic>` so the epic closes when the work lands. [close-epic](../engineering/close-epic.md) still runs afterwards and posts the summary and retro against the closed epic. In a multi-repo epic only the PR in the epic's own repo carries that line, so a repo that holds tasks but no epic closes nothing.
+
 **Can I use Agent Teams instead of worktree waves?** Not in the same session. Teammates get no worktree isolation and cost several times the tokens; the skill stops if the Agent Teams flag is set.
 
 ## It's working if
 
 - Each worker's PR touches only its ticket's Files owned, and says `Closes #N`.
+- Each sub-issue is closed right after its PR merges into the integration branch, with a comment naming the PR, and the next wave's tickets unblock from that.
 - The epic carries one `<!-- sdd-wave -->` comment that updates in place, with an `Edges added:` line.
 - Nothing is merged to `main` by the agent, and every slice PR has a review comment with separate Spec and Quality verdicts.
 - A worker that could not finish shows up as `ready-for-human` with its PR left open, not as a silent stop.
