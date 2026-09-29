@@ -1,6 +1,6 @@
 # Writing docs pages
 
-Every skill in `engineering/` and `productivity/` has a human-facing **docs page** at `docs/<bucket>/<skill-name>.md`. The docs tree mirrors those two bucket folders under `skills/`. `docs/` is the source of this repo's documentation site, built with Zensical and published to GitHub Pages at `https://skills-plus-plus.x54.sh`. A page's URL is `https://skills-plus-plus.x54.sh/<bucket>/<skill-name>/`. The page is not the skill and not a copy of `SKILL.md`. Only these two buckets are promoted; the rest (`misc/`, `in-progress/`, `deprecated/`) ship no docs page.
+Every skill in `engineering/` and `productivity/` has a human-facing **docs page** at `docs/<bucket>/<skill-name>.md`. The docs tree mirrors those two bucket folders under `skills/`. `docs/` is the source of this repo's documentation site, built with Zensical and published to GitHub Pages at `https://skills.x54.sh`. A page's URL is `https://skills.x54.sh/<bucket>/<skill-name>/`. The page is not the skill and not a copy of `SKILL.md`. Only these two buckets are promoted; the rest (`misc/`, `in-progress/`, `deprecated/`) ship no docs page.
 
 Most of these skills are **user-invoked**: the agent will never fire them for you, so *you* are the index that has to remember they exist and when to reach for them. That memory is **cognitive load**. The job of a docs page is to relieve it: to orient one reader around one skill so they can hold it in their head, know when to reach for it, and see where it sits in the system. The pages are collectively a distributed router; each is a node.
 
@@ -8,7 +8,7 @@ Act whenever a promoted skill is added, renamed, or has its behaviour changed: c
 
 **Links between docs pages are relative `.md` paths** (`../engineering/to-spec.md`, with an optional `#anchor`): Zensical resolves them on the site, GitHub resolves them in the repo, and a broken one fails the site build. Anything outside `docs/` is linked absolutely: a file in this repo at its full `https://github.com/syn54x/skills-plus-plus/...` URL, and an upstream issue at its `https://github.com/mattpocock/skills/issues/<n>` URL. Outside `docs/` (a `SKILL.md`, `README.md`), link a docs page by its site URL.
 
-There is no H1. The site takes the page title from its nav entry in `zensical.toml`.
+There is no H1. The site takes the page title from its nav entry in `zensical.toml`: add `{ "<skill-name>" = "<bucket>/<skill-name>.md" }` under the bucket's **User-invoked** or **Model-invoked** section when the page is created, in the same order as `README.md`, and move or remove the entry on a rename, bucket move, or demotion. `scripts/check-plugin-skills.sh` fails when a page has no entry. The one page with an H1 is `docs/index.md`, the landing and install page.
 
 ## Page structure
 
@@ -16,7 +16,7 @@ Fill the template below, keeping its order. The **fixed frame** (`## What it doe
 
 Four sections make a page worth reading: `What it does`, `When to reach for it`, `Common questions`, `It's working if`. The first two orient the reader; the last two are where the page stops summarising the skill and starts answering the reader's own situation. Each of the last two has a bar to clear, below, but treat a page that clears neither as unfinished, not as finished-and-short.
 
-**A page carries no install commands.** Install wording lives once, on the site's install page, copied from [the install block](./install-block.md). A page that also writes the commands out gives the reader a second copy, and the copies drift: the hand-written pair on every page once went stale against the canonical one. Link the install page instead when a page needs to mention installing.
+**A page carries no install commands.** Install wording lives once, on the site's install page, copied from [the install block](./install-block.md). A page that also writes the commands out gives the reader a second copy, and the copies drift: the hand-written pair on every page once went stale against the canonical one. Link the install page instead when a page needs to mention installing: it is `docs/index.md`, reached from a skill page as `../index.md#install`.
 
 <page-template>
 
@@ -94,3 +94,5 @@ Always present. Situate the skill in the system in a sentence or two:
 - Every `## It's working if` bullet is checkable without opening `SKILL.md`.
 - The sections appear in the template's order.
 - Every link is absolute, and every one resolves.
+- The page has a nav entry in `zensical.toml` (`scripts/check-plugin-skills.sh` passes).
+- `uv run --frozen zensical build --clean --strict` passes, so every relative link and anchor resolves.

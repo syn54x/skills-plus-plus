@@ -1,0 +1,12 @@
+[project]
+name = "skills-plus-plus-docs"
+version = "0.0.0"
+description = "Docs toolchain for the skills-plus-plus site. Not a package."
+requires-python = ">=3.12"
+
+[dependency-groups]
+docs = ["zensical==0.0.66"]
+
+[tool.uv]
+package = false
+default-groups = ["docs"]
