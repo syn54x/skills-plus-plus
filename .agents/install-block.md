@@ -1,6 +1,6 @@
 # The canonical install block
 
-One install story, one wording. `README.md`, `.changeset/*`, and every page under `docs/` must say **this** and nothing else. Change it here first, then propagate.
+One install story, one wording. `README.md`, `.changeset/*`, and `docs/index.md` (the site's install page) must say **this** and nothing else. Change it here first, then propagate.
 
 This repo is a fork of `mattpocock/skills`. Upstream's plugin, `mattpocock-skills`, is listed in Claude Code's official marketplace; this fork's plugin, `skills-plus-plus`, is not. It installs from the fork's own marketplace (`syn54x`, defined in `.claude-plugin/marketplace.json`), so there is one marketplace to add first. Why the fork exists and how it tracks upstream lives in [adr/0003-fork-superset-of-mattpocock-skills.md](./adr/0003-fork-superset-of-mattpocock-skills.md).
 
@@ -40,7 +40,7 @@ Pick the skills you want, and which coding agents to install them on. **The inst
 
 </canonical-block>
 
-…and the single-skill form wherever one skill is named on its own. `docs/` pages are not a consumer of this block; see [writing-docs.md](./writing-docs.md).
+…and the single-skill form wherever one skill is named on its own. Under `docs/`, only `docs/index.md` copies the `claude-code` and `skills-sh-whole-set` blocks; every skill page links it instead of writing the commands out, see [writing-docs.md](./writing-docs.md).
 
 <canonical-block name="skills-sh-one-skill">
 

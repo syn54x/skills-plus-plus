@@ -6,6 +6,8 @@ The sections under [Why These Skills Exist](#why-these-skills-exist) are Matt's,
 
 ## Installation
 
+Every skill below has a page on the docs site at [skills.x54.sh](https://skills.x54.sh): what it does, when to reach for it, and the questions people ask about it.
+
 Two ways in. **The [Claude Code plugin](https://code.claude.com/docs/en/plugins)** installs the whole set as a managed, read-only bundle. **[skills.sh](https://skills.sh/syn54x/skills-plus-plus)** copies editable skill files into your project. Pick one: installing both leaves you with every skill twice. If you already have `mattpocock-skills` installed, remove it first, since this set includes every skill it ships.
 
 ### 1. Get the skills

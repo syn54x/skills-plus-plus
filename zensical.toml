@@ -1,0 +1,115 @@
+# Site config for docs/ (Zensical). See .agents/writing-docs.md: every promoted
+# skill's page needs a nav entry here, labelled with the skill name, because the
+# pages carry no H1 and the site takes their title from the label.
+# Build: uv run --frozen zensical build --clean --strict   Preview: uv run zensical serve
+
+[project]
+site_name = "skills-plus-plus"
+site_description = "Matt Pocock's engineering skills plus a spec-driven delivery pipeline"
+site_url = "https://skills.x54.sh/"
+repo_url = "https://github.com/syn54x/skills-plus-plus"
+repo_name = "syn54x/skills-plus-plus"
+edit_uri = "edit/main/docs/"
+docs_dir = "docs"
+site_dir = "site"
+
+nav = [
+  { "Home" = "index.md" },
+  { "Engineering" = [
+    { "User-invoked" = [
+      { "ask-syn54x" = "engineering/ask-syn54x.md" },
+      { "grill-with-docs" = "engineering/grill-with-docs.md" },
+      { "triage" = "engineering/triage.md" },
+      { "improve-codebase-architecture" = "engineering/improve-codebase-architecture.md" },
+      { "improve-pr-architecture" = "engineering/improve-pr-architecture.md" },
+      { "setup-syn54x-skills" = "engineering/setup-syn54x-skills.md" },
+      { "to-spec" = "engineering/to-spec.md" },
+      { "to-tickets" = "engineering/to-tickets.md" },
+      { "implement" = "engineering/implement.md" },
+      { "build-epic" = "engineering/build-epic.md" },
+      { "wayfinder" = "engineering/wayfinder.md" },
+    ] },
+    { "Model-invoked" = [
+      { "prototype" = "engineering/prototype.md" },
+      { "diagnosing-bugs" = "engineering/diagnosing-bugs.md" },
+      { "research" = "engineering/research.md" },
+      { "tdd" = "engineering/tdd.md" },
+      { "domain-modeling" = "engineering/domain-modeling.md" },
+      { "codebase-design" = "engineering/codebase-design.md" },
+      { "code-review" = "engineering/code-review.md" },
+      { "resolving-merge-conflicts" = "engineering/resolving-merge-conflicts.md" },
+      { "wizard" = "engineering/wizard.md" },
+      { "implement-issue" = "engineering/implement-issue.md" },
+      { "review-pr" = "engineering/review-pr.md" },
+      { "review-panel" = "engineering/review-panel.md" },
+      { "close-epic" = "engineering/close-epic.md" },
+      { "sync-progress" = "engineering/sync-progress.md" },
+      { "scaffold-python-project" = "engineering/scaffold-python-project.md" },
+      { "scaffold-frontend-project" = "engineering/scaffold-frontend-project.md" },
+      { "prepare-release-notes" = "engineering/prepare-release-notes.md" },
+    ] },
+  ] },
+  { "Productivity" = [
+    { "User-invoked" = [
+      { "adhd" = "productivity/adhd.md" },
+      { "eli5" = "productivity/eli5.md" },
+      { "grill-me" = "productivity/grill-me.md" },
+      { "handoff" = "productivity/handoff.md" },
+      { "teach" = "productivity/teach.md" },
+      { "to-questionnaire" = "productivity/to-questionnaire.md" },
+      { "wait-what" = "productivity/wait-what.md" },
+    ] },
+    { "Model-invoked" = [
+      { "grilling" = "productivity/grilling.md" },
+      { "writing-for-agents" = "productivity/writing-for-agents.md" },
+    ] },
+  ] },
+]
+
+[project.theme]
+language = "en"
+features = [
+  "navigation.tabs",
+  "navigation.sections",
+  "navigation.expand",
+  "navigation.top",
+  "navigation.footer",
+  "toc.follow",
+  "search.suggest",
+  "search.highlight",
+  "content.code.copy",
+  "content.action.edit",
+  "content.action.view",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/syn54x/skills-plus-plus"
+
+[project.markdown_extensions]
+admonition = {}
+attr_list = {}
+md_in_html = {}
+tables = {}
+toc.permalink = true
+pymdownx.details = {}
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.line_spans = "__span"
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.inlinehilite = {}
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+pymdownx.tabbed.alternate_style = true

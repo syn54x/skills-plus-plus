@@ -7,10 +7,16 @@ repos:
         entry: scripts/check-plugin-skills.sh
         language: script
         pass_filenames: false
-        files: ^(skills/.+/SKILL\.md|docs/.+\.md|README\.md|\.claude-plugin/plugin\.json)$
+        files: ^(skills/.+/SKILL\.md|docs/.+\.md|README\.md|\.claude-plugin/plugin\.json|zensical\.toml)$
       - id: check-invocation
         name: invocation flags agree and no skill calls a user-invoked skill
         entry: scripts/check-invocation.py
         language: script
         pass_filenames: false
         files: ^(skills/.+|agents/.+\.md)$
+      - id: zensical-build
+        name: docs site builds with no broken links (zensical --strict)
+        entry: uv run --frozen zensical build --clean --strict
+        language: system
+        pass_filenames: false
+        files: ^(docs/.+|zensical\.toml|pyproject\.toml|uv\.lock)$

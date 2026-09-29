@@ -20,3 +20,8 @@ jobs:
         run: python3 scripts/check-invocation.py
       - name: plugin.json version tracks package.json
         run: node scripts/sync-plugin-version.mjs --check
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - name: docs site builds with no broken links
+        run: uv run --frozen zensical build --clean --strict

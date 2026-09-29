@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Fail if the promoted set and its three listings disagree (see CLAUDE.md).
+# Fail if the promoted set and its four listings disagree (see CLAUDE.md).
 # Promoted = every skills/engineering/*/ and skills/productivity/*/ with a SKILL.md.
 # Each promoted skill must be in .claude-plugin/plugin.json's (and .cursor-plugin/plugin.json's) "skills" array, have a
-# docs page at docs/<bucket>/<name>.md, and be linked from README.md. Nothing outside
-# the promoted buckets may appear in any of the three.
+# docs page at docs/<bucket>/<name>.md with a nav entry in zensical.toml, and be linked from README.md.
+# Nothing outside the promoted buckets may appear in any of the four.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -13,6 +13,7 @@ promoted=$(find skills/engineering skills/productivity -mindepth 2 -maxdepth 2 -
 listed=$(jq -r '.skills[]?' "$manifest" | sed 's#^\./##; s#/$##' | sort)
 docs=$(find docs/engineering docs/productivity -name '*.md' | sed 's#^docs/#skills/#; s#\.md$##' | sort)
 readme=$(grep -oE '\./skills/[a-z-]+/[a-z0-9-]+/SKILL\.md' README.md | sed 's#^\./##; s#/SKILL\.md$##' | sort -u)
+nav=$(grep -oE '"(engineering|productivity)/[a-z0-9-]+\.md"' zensical.toml | tr -d '"' | sed 's#^#skills/#; s#\.md$##' | sort -u)
 
 status=0
 report() { # <message> <lines>
@@ -31,8 +32,10 @@ if [ -f .cursor-plugin/plugin.json ]; then
 fi
 report "promoted but no docs page at docs/<bucket>/<name>.md:" "$(comm -23 <(echo "$promoted") <(echo "$docs"))"
 report "docs page for a skill that is not promoted:" "$(comm -13 <(echo "$promoted") <(echo "$docs"))"
+report "promoted but no nav entry in zensical.toml (the page would have no title):" "$(comm -23 <(echo "$promoted") <(echo "$nav"))"
+report "zensical.toml nav lists a docs page for a skill that is not promoted:" "$(comm -13 <(echo "$promoted") <(echo "$nav"))"
 report "promoted but not linked from README.md:" "$(comm -23 <(echo "$promoted") <(echo "$readme"))"
 report "README.md links a skill outside the promoted buckets:" "$(comm -13 <(echo "$promoted") <(echo "$readme"))"
 
-[ "$status" -eq 0 ] && echo "ok: $(echo "$promoted" | wc -l | tr -d ' ') promoted skills listed in $manifest, docs/ and README.md"
+[ "$status" -eq 0 ] && echo "ok: $(echo "$promoted" | wc -l | tr -d ' ') promoted skills listed in $manifest, docs/, zensical.toml and README.md"
 exit "$status"
