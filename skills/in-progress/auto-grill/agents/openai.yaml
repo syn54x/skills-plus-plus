@@ -1,0 +1,5 @@
+interface:
+  display_name: "Auto Grill"
+  short_description: "Grill by proxy, escalating only what the agent cannot cite"
+policy:
+  allow_implicit_invocation: false
