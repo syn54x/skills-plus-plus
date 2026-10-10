@@ -65,6 +65,34 @@ A `skill-feedback` **Issue** on `syn54x/skills-plus-plus` that `close-epic` may 
 **Harness dispatch**:
 The one step of `build-epic` that differs per tool; `build-epic/HARNESS-DISPATCH.md` holds the concrete calls.
 
+### Grilling
+
+**Round**:
+One batch of questions put to whoever is being grilled, covering the whole **Frontier**; the next **Round** waits on the answers.
+
+**Frontier**:
+Every open decision in a grilling session whose prerequisites are already settled, so it can be asked now without guessing at unheard answers.
+
+**Griller**:
+The sub-agent that runs the interview in `auto-grill`: it owns the design tree and asks the **Proxy** everything, facts and decisions alike.
+_Avoid_: grilling sub-agent, interviewer
+
+**Proxy**:
+The main thread in `auto-grill`: it answers the **Griller** on the **Principal**'s behalf and raises an **Escalation** for anything it cannot answer.
+_Avoid_: main thread, delegate, answerer, stand-in
+
+**Principal**:
+The human the **Proxy** stands in for; the only party whose answers settle an **Escalation**.
+_Avoid_: the user, me
+
+**Escalation**:
+A **Griller** question the **Proxy** cannot answer from a citable source (a looked-up fact, a recorded decision, or something the **Principal** already said), so it is put to the **Principal** with the **Griller**'s recommendation and the **Proxy**'s **Best fit**.
+_Avoid_: hand-off, interrupt
+
+**Best fit**:
+The answer the **Proxy** arrives at by researching an **Escalation** before raising it; a researched recommendation for the **Principal** to confirm or overrule, never a citation.
+_Avoid_: proxy answer, guess
+
 ### Scaffolds
 
 **Template bag**:
@@ -86,6 +114,7 @@ An optional **Feature matrix** row chosen in discovery. Python: `cli`, `api`, `d
 - A **Decision ticket** is an **Issue** (a child of a `wayfinder:map`)
 - An **Epic** holds many **Sub-issues**; a **Sub-issue** may live in another repo than its **Epic**
 - A **Wave** dispatches part of the **Ready queue**
+- A **Griller** asks; a **Proxy** answers or raises an **Escalation**; only a **Principal** settles an **Escalation**
 
 ## Flagged ambiguities
 
