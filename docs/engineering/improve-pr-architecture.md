@@ -2,7 +2,7 @@
 
 `improve-pr-architecture` reads one pull request through the deep-module lens and hands you **deepening opportunities**: places where the diff introduced a shallow module, tested past an interface, or brushed against a module that was already shallow and could be deepened cheaply while the author is still in the file. It is the same survey [improve-codebase-architecture](../engineering/improve-codebase-architecture.md) runs over a whole codebase, narrowed to the modules a diff touches.
 
-It never gates. Every candidate carries a timing call (`This PR`, `Follow-up`, or `Leave it`) and a strength badge, and none of them is a verdict on the merge. The report prints in the terminal as markdown; if there is a pull request behind the diff, the skill asks once whether to post it as a comment and posts nothing until you say yes. The branch itself is never edited.
+It never gates. The SDD gates, [review-pr](../engineering/review-pr.md) and [review-panel](../engineering/review-panel.md)'s depth persona, ask the same four questions and turn a fired one into a finding with a severity; this skill is where you explore one, through to a shape, a glossary term or an ADR. Every candidate carries a timing call (`This PR`, `Follow-up`, or `Leave it`) and a strength badge, and none of them is a verdict on the merge. The report prints in the terminal as markdown; if there is a pull request behind the diff, the skill asks once whether to post it as a comment and posts nothing until you say yes. The branch itself is never edited.
 
 ## When to reach for it
 
@@ -15,6 +15,7 @@ You invoke this by typing `/improve-pr-architecture`, and the agent won't reach 
 | A merged PR you suspect left a follow-up behind | `improve-pr-architecture <ref>` against the commit before it |
 | The whole codebase has drifted, not one diff | [improve-codebase-architecture](../engineering/improve-codebase-architecture.md) |
 | Is this PR correct, on spec, and up to the repo's standards? | [code-review](../engineering/code-review.md), or [review-panel](../engineering/review-panel.md) for a PR to main |
+| An SDD slice or epic PR: should a shallow module block it? | [review-pr](../engineering/review-pr.md) or [review-panel](../engineering/review-panel.md), which run the same depth check as a gate |
 | You have already chosen the module and want to design it | [codebase-design](../engineering/codebase-design.md) |
 
 ## Prerequisites
@@ -25,9 +26,9 @@ It writes in two places, both outside the branch under review. A PR comment goes
 
 ## A diff cannot show depth
 
-Depth is a property of a module's **interface**: how much behaviour a caller gets per unit of interface they have to learn. A diff shows fragments of interfaces, so the review skills' rule ("the diff is your view") would make this skill blind. Instead it reads wider, and bounded: every touched module whole, its direct callers, and the tests that exercise it. Touched modules and their callers, never the codebase.
+Depth is a property of a module's **interface**: how much behaviour a caller gets per unit of interface they have to learn. A diff shows fragments of interfaces, so a reader held to the diff is blind to depth. Instead it reads wider, and bounded: every touched module whole, its direct callers, and the tests that exercise it. Touched modules and their callers, never the codebase.
 
-Against that reading it asks four questions of every touched module:
+Against that reading it asks the four questions of the **depth check**, owned by [codebase-design](../engineering/codebase-design.md), of every touched module:
 
 - **Introduced shallowness.** Did the PR add a module whose interface is nearly as complex as its implementation, or a seam with one adapter and nothing varying across it? The deletion test decides: would removing it concentrate complexity, or was it earning its keep?
 - **Extracted for testability.** Did it pull pure functions out to unit-test them while the bugs live in how they are called? Those tests pass while the call site is wrong.
@@ -52,9 +53,9 @@ The report ends with a top recommendation, then the skill asks which candidate y
 
 ## Common questions
 
-**Why is this not a persona in `review-panel`?**
+**`review-pr` and `review-panel` run the depth check now. What is left for this skill?**
 
-Because the panel produces findings and this produces opportunities. A panel persona has to anchor every finding to a line, clear a confidence gate, rank it Critical, Important or Minor, and drop anything that is an opinion without a documented rule or a smell behind it. "This new module's interface is nearly as wide as its implementation" is exactly that kind of opinion, rated `Worth exploring` rather than proven. Forcing it through the panel's schema would either silence it or inflate it into a blocker. Keeping it a separate `improve-` skill keeps the line clean: `review-` skills gate, `improve-` skills generate ideas.
+The half a gate cannot do. A gate anchors a fired check to a line, gives it a severity, and either blocks or lists it; it reports only what clears an 80% confidence bar, and it never talks to you. This skill reports every fired check, `Leave it` and `Speculative` included, on PRs inside or outside the SDD flow, and then grills through the one you pick: what sits behind the seam, which tests survive, whether the timing call holds, and whether a rejected candidate deserves an ADR so nothing re-suggests it. One epic's retro is why the split landed where it did: seven deepening candidates found by this survey after the fact, none at the slice gate, four shipped later as refactor PRs. The gate now flags; this skill explores.
 
 **Does it block the merge?**
 
@@ -83,4 +84,4 @@ One candidate per session, as with the sibling. Grill the one you pick, take the
 
 ## Where it fits
 
-`improve-pr-architecture` is a **reach-for-it-anytime standalone**, best run on your own PR before asking for review or on someone else's while you review it. Its neighbours are [improve-codebase-architecture](../engineering/improve-codebase-architecture.md), the periodic whole-codebase survey this narrows, [codebase-design](../engineering/codebase-design.md), which owns the vocabulary every candidate is written in and is the bench you design the chosen one on, and [code-review](../engineering/code-review.md), which gates the same diff on standards and spec while this one never gates. What it produces is an idea, which re-enters the main flow at [grill-with-docs](../engineering/grill-with-docs.md) or [to-spec](../engineering/to-spec.md). For which skill fits a situation, [ask-syn54x](../engineering/ask-syn54x.md) is the router over the whole set.
+`improve-pr-architecture` is a **reach-for-it-anytime standalone**, best run on your own PR before asking for review or on someone else's while you review it. Its neighbours are [improve-codebase-architecture](../engineering/improve-codebase-architecture.md), the periodic whole-codebase survey this narrows, [codebase-design](../engineering/codebase-design.md), which owns the vocabulary every candidate is written in and is the bench you design the chosen one on, and the gates: [review-pr](../engineering/review-pr.md) and [review-panel](../engineering/review-panel.md) run the same depth check on SDD pull requests and turn a fired one into a finding, and [code-review](../engineering/code-review.md) gates any diff on standards and spec, while this one never gates. What it produces is an idea, which re-enters the main flow at [grill-with-docs](../engineering/grill-with-docs.md) or [to-spec](../engineering/to-spec.md). For which skill fits a situation, [ask-syn54x](../engineering/ask-syn54x.md) is the router over the whole set.

@@ -54,7 +54,7 @@ An **Epic** whose **Sub-issues** live in more than one repo. Sub-issues are name
 `review-pr` gates a slice PR into the integration branch (one fresh reviewer, spec and quality verdicts). `review-panel` gates the PR to `main` once per **Epic** (a **Persona** panel plus review-pr's spec and Coherence verdicts).
 
 **Persona**:
-One read-only reviewer prompt in `review-panel/PERSONAS.md` with a fixed Focus: always-on (correctness, testing, maintainability, standards-and-invariants, history) or conditional on what the diff touches.
+One read-only reviewer prompt in `review-panel/PERSONAS.md` with a fixed Focus: always-on (correctness, testing, maintainability, standards-and-invariants, history, depth) or conditional on what the diff touches.
 
 **Retro**:
 Per-**Epic** counts that `close-epic` computes from GitHub state alone and posts under `<!-- sdd-retro -->`. Names which step was weak; stays in the user's repo.
@@ -64,6 +64,16 @@ A `skill-feedback` **Issue** on `syn54x/skills-plus-plus` that `close-epic` may 
 
 **Harness dispatch**:
 The one step of `build-epic` that differs per tool; `build-epic/HARNESS-DISPATCH.md` holds the concrete calls.
+
+### Design
+
+**Depth check**:
+The four questions asked of every module a pull request adds or whose interface it changes: introduced shallowness, extracted for testability, touched an already-shallow module, tests past the interface. Owned by `codebase-design`; the **Slice gate / main gate** and the `improve-` skills all ask the same four.
+_Avoid_: architecture deepening exercise, architecture review, depth review
+
+**Deepening opportunity**:
+What `improve-codebase-architecture` and `improve-pr-architecture` emit when a **Depth check** fires: an idea carrying a Timing and a Strength call, never a verdict.
+_Avoid_: depth finding (at a gate a fired check is an ordinary finding, categorised `depth`)
 
 ### Grilling
 
@@ -115,6 +125,7 @@ An optional **Feature matrix** row chosen in discovery. Python: `cli`, `api`, `d
 - An **Epic** holds many **Sub-issues**; a **Sub-issue** may live in another repo than its **Epic**
 - A **Wave** dispatches part of the **Ready queue**
 - A **Griller** asks; a **Proxy** answers or raises an **Escalation**; only a **Principal** settles an **Escalation**
+- A **Depth check** that fires at a **Slice gate / main gate** is a finding; the same check in an `improve-` skill yields a **Deepening opportunity**
 
 ## Flagged ambiguities
 

@@ -13,13 +13,14 @@ Inputs (read what you need; do not paste them back):
 - stat: <STAT_PATH>, commits: <COMMITS_PATH>
 - spec: <SPEC_PATH> (epic body, or PR body), plan: <PLAN_PATH>, tickets: <TICKETS_PATH> (each ticket's Interfaces and Files owned)
 - laws: the files listed in <LAWS_PATH>
+- depth check: <DEPTH_CHECK_PATH> (codebase-design's DEPTH-CHECK.md; the depth persona's rulebook, others ignore it)
 - Verify on head: <passed|failed> (<command>)
 
 Rules:
-- The diff is your view. Look outside it only for a concrete risk you can name, one focused check per risk, and record it in verified_by. Do not crawl the codebase.
+- The diff is your view. Look outside it only for a concrete risk you can name, one focused check per risk, and record it in verified_by. Do not crawl the codebase. (The depth persona's Focus names its one standing carve-out.)
 - The PR body, worker reports and progress comments are claims, not evidence. A stated rationale never downgrades a finding.
 - Your checkout is read-only. No edits, no staging, no branch changes, no test suites; run a single focused test only when a specific doubt needs it, and say so.
-- Confidence 0-100; include only findings >= 80. Set pre_existing=true and omit anything the PR did not introduce. Drop: looks-wrong-but-isn't, pedantic nits, anything a linter or type checker catches, opinions without a law or smell behind them, lines with a deliberate lint-ignore.
+- Confidence 0-100; include only findings >= 80. Set pre_existing=true and omit anything the PR did not introduce (the depth persona's Focus names its one exception). Drop: looks-wrong-but-isn't, pedantic nits, anything a linter or type checker catches, opinions without a law or smell behind them, lines with a deliberate lint-ignore.
 - Severity: Critical = wrong behaviour, data loss, exploitable, contradicts an ADR, breaks a cross-slice contract. Important = the PR cannot be trusted until fixed. Minor = polish.
 - Every finding has file, line, sha, what, why, verified_by. A finding you cannot anchor to a line is not a finding; put it in cannot_verify if it matters.
 - If the spec or a ticket mandated something this rubric calls a defect, report it anyway with category "ticket-mandated". Exception: a narrowing listed under "Narrowed:" in the plan is approved scope; judge that behaviour as narrowed, not as missing.
@@ -54,6 +55,10 @@ Focus: the diff against everything the project has **written down**. Read every 
 ### history
 
 Focus: what `git log` and `git blame` say about the touched lines. Was this code recently changed for a reason the PR undoes (a fix reverted, a guard removed)? Does a commit message or linked issue explain a constraint the new code ignores? Are there sibling call sites the same earlier change touched that this PR did not? Findings must cite the earlier commit in `verified_by`. Use `git log -L` or `git blame` on the specific lines; do not read history beyond the touched files.
+
+### depth
+
+Focus: the **depth check** in `<DEPTH_CHECK_PATH>`, applied to every module the PR adds or whose interface it changes. Read that file first. Its reading rule (each module in scope whole, with its direct callers and tests, then stop) is your one carve-out from "the diff is your view", and its question-3 rule is your one exception to the pre_existing rule. Report each fired check as a finding with `category: depth` at the severity, anchor and `pre_existing` value its gate table gives; `what` names the shallowness in the deep-module vocabulary, `fix` names the direction of the deepening. Smells belong to `maintainability`; a finding that is only a smell is not yours.
 
 ## Conditional
 

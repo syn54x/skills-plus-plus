@@ -37,6 +37,7 @@ Collect the **spec and the laws** as file paths, not pasted text; personas read 
 
 - Spec: the epic body and its `<!-- sdd-plan -->` comment (`gh issue view <epic url> --json body`, and the plan comment via `gh api`), each saved under `/tmp/review-panel/$PR/`. Plus every sub-issue's `## Interfaces` and `## Files owned`, concatenated to `tickets.md`. No epic → the PR body.
 - Laws: `CLAUDE.md`, `AGENTS.md`, `CONTEXT.md`, `CONCEPTS.md`, `CODING_STANDARDS.md`, `CONTRIBUTING.md`, and every file under `docs/adr/` (or the path the repo's domain docs name). List the paths that exist to `laws.txt`.
+- Depth check: call the Skill tool with "codebase-design" and note the absolute path of its `DEPTH-CHECK.md`; the `depth` persona reads it from there.
 
 Run the epic's aggregate Verify (each merged ticket's Verify block, or the repo's suite if `CLAUDE.md` names one) on `$HEAD`. Record pass/fail and the command; the panel does not re-run it.
 
@@ -48,7 +49,7 @@ Call the Skill tool with "review-pr" for this PR, in its **full-epic mode**: spe
 
 From [PERSONAS.md](./PERSONAS.md). Selection is judgment about what the diff touches, not keyword matching; count only executable code toward line thresholds.
 
-**Always on (5):** `correctness`, `testing`, `maintainability`, `standards-and-invariants`, `history`.
+**Always on (6):** `correctness`, `testing`, `maintainability`, `standards-and-invariants`, `history`, `depth`.
 
 **Conditional, add when true:**
 
@@ -60,7 +61,7 @@ From [PERSONAS.md](./PERSONAS.md). Selection is judgment about what the diff tou
 | `data-migration` | schema, migration files, backfills, data transforms |
 | `api-contract` | routes, request/response types, serializers, exported types, generated clients |
 
-Cap at 9. Instruction-prose diffs (skills, docs, config) skip `adversarial` unless the prose describes auth, payment or data-mutation behaviour.
+Cap at 9. Instruction-prose diffs (skills, docs, config) skip `depth`, and skip `adversarial` unless the prose describes auth, payment or data-mutation behaviour.
 
 Present the set as one line, with the reason for each conditional, and continue; this is progress, not a question.
 
@@ -70,7 +71,7 @@ One reviewer per persona, all concurrently, each **read-only**, each with the sa
 
 Rules every persona carries:
 
-- The diff file is the view. Look outside it only for a concrete, named risk, one focused check each, and record what was checked in `verified_by`.
+- The diff file is the view. Look outside it only for a concrete, named risk, one focused check each, and record what was checked in `verified_by`. The `depth` persona alone carries a standing carve-out, stated in its Focus.
 - The PR body, the worker reports and the progress comments are claims, not evidence. A stated rationale never downgrades a finding.
 - Confidence is 0–100. Report only findings at **80 or above**. Drop: pre-existing issues the PR did not introduce (`pre_existing: true` and omit), code that looks wrong but is not, pedantic nits, anything a linter or the type checker catches, opinions not backed by a law or a smell, lines with a deliberate lint-ignore.
 - Severity: **Critical** (wrong behaviour, data loss, exploitable, contradicts an ADR, breaks a cross-slice contract), **Important** (the PR cannot be trusted until fixed: fragile logic, swallowed errors, tests that assert nothing, duplicated logic blocks), **Minor** (polish, broader coverage). If the plan or a ticket mandated something this rubric calls a defect, it is still a finding, labelled `ticket-mandated`. The one exception is a narrowing the plan comment declares under `**Narrowed:**`: the user approved it, so the narrowed behaviour is the spec, not a finding.
@@ -114,7 +115,7 @@ Candidate ADRs: <rules the code relies on that no document states, or "none">.
 Terminology drift: <new names for existing concepts, or "none">.
 
 ## Coverage
-Personas: correctness, testing, maintainability, standards-and-invariants, history, adversarial (≥300 lines), api-contract (routes changed).
+Personas: correctness, testing, maintainability, standards-and-invariants, history, depth, adversarial (≥300 lines), api-contract (routes changed).
 Dropped below confidence 80: 4. Cannot verify from diff: <list, or none>.
 Verify: passed | failed on `<sha7>` (`<command>`).
 
@@ -129,7 +130,7 @@ After the comment is posted, update the epic's progress: upsert under `<!-- sdd-
 ## 7. Route
 
 - **FIX FIRST** → the orchestrator sends Critical and Important findings back to the workers that own the files (by ticket, from `Files owned`), one fix round each, then a **scoped re-review**: one persona (`correctness`, or the persona that raised the finding) verdicts each finding by id (`F1` `ADDRESSED` / `NOT ADDRESSED`) and inspects the fix diff only. Not a fresh panel. Cite `F1`, never `#1`.
-- **HUMAN DECISION** and **MERGE** → hand to the user with the report. Candidate ADRs and terminology drift go to `close-epic`'s Learnings.
+- **HUMAN DECISION** and **MERGE** → hand to the user with the report. Candidate ADRs, terminology drift and Minor `depth` findings go to `close-epic`'s Learnings, so the follow-up deepenings are filed from one place.
 
 ## Guardrails
 
