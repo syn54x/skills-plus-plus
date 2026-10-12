@@ -64,14 +64,14 @@ A starting situation that generates work, then merges onto the main flow.
 Not feature work, just upkeep.
 
 - **`/improve-codebase-architecture`** runs whenever you have a spare moment to keep the codebase good for agents to operate in. It surfaces **deepening opportunities**; picking one _generates an idea_ you can take into the main flow at `/grill-with-docs`. It's the survey that finds the candidates; **`/codebase-design`** (below) is the bench you design the chosen one on.
-- **`/improve-pr-architecture`** is the same survey narrowed to one pull request: did this diff introduce a shallow module or a one-adapter seam, extract pure functions while the bugs stay at the call site, test past an interface, or brush against a module that was already shallow while the author is in there with tests open. Each opportunity carries a `This PR` / `Follow-up` / `Leave it` call and none of them is a verdict (gating is `/code-review`'s and `/review-panel`'s job); the whole-codebase sweep stays with `/improve-codebase-architecture`.
+- **`/improve-pr-architecture`** is the same survey narrowed to one pull request: did this diff introduce a shallow module or a one-adapter seam, extract pure functions while the bugs stay at the call site, test past an interface, or brush against a module that was already shallow while the author is in there with tests open. Each opportunity carries a `This PR` / `Follow-up` / `Leave it` call and none of them is a verdict. The same four questions, the **depth check** owned by `/codebase-design`, also run inside the SDD gates: `review-pr` and `/review-panel`'s `depth` persona turn a fired check into a finding with a severity, so a shallow module is caught at the slice. The gates flag; this skill explores, through to a glossary term or an ADR. The whole-codebase sweep stays with `/improve-codebase-architecture`.
 
 ## Vocabulary underneath
 
 Two model-invoked references that run *beneath* the other skills, each the single source of truth for its vocabulary. Reach for them directly when the **words**, not the process, are the problem; or let the skills above pull them in.
 
 - **`/domain-modeling`**: sharpen the project's *domain* language: challenge a fuzzy term, resolve an overloaded word ("account" doing three jobs), record a hard-to-reverse decision as an ADR. It's the active discipline `/grill-with-docs` drives to keep `CONTEXT.md` a clean glossary.
-- **`/codebase-design`** is the deep-module vocabulary (module, interface, depth, seam, adapter, leverage, locality) for designing a module's *shape*: a lot of behaviour behind a small interface at a clean seam. `/tdd`, `/improve-codebase-architecture` and `/improve-pr-architecture` all speak it.
+- **`/codebase-design`** is the deep-module vocabulary (module, interface, depth, seam, adapter, leverage, locality) for designing a module's *shape*: a lot of behaviour behind a small interface at a clean seam. `/tdd`, `/improve-codebase-architecture` and `/improve-pr-architecture` all speak it, and its `DEPTH-CHECK.md` is the one copy of the four depth questions the SDD gates and `/improve-pr-architecture` ask.
 
 ## Phase boundaries
 

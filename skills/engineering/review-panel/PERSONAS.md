@@ -13,6 +13,7 @@ Inputs (read what you need; do not paste them back):
 - stat: <STAT_PATH>, commits: <COMMITS_PATH>
 - spec: <SPEC_PATH> (epic body, or PR body), plan: <PLAN_PATH>, tickets: <TICKETS_PATH> (each ticket's Interfaces and Files owned)
 - laws: the files listed in <LAWS_PATH>
+- depth check: <DEPTH_CHECK_PATH> (codebase-design's DEPTH-CHECK.md; the depth persona's rulebook, others ignore it)
 - Verify on head: <passed|failed> (<command>)
 
 Rules:
@@ -54,6 +55,10 @@ Focus: the diff against everything the project has **written down**. Read every 
 ### history
 
 Focus: what `git log` and `git blame` say about the touched lines. Was this code recently changed for a reason the PR undoes (a fix reverted, a guard removed)? Does a commit message or linked issue explain a constraint the new code ignores? Are there sibling call sites the same earlier change touched that this PR did not? Findings must cite the earlier commit in `verified_by`. Use `git log -L` or `git blame` on the specific lines; do not read history beyond the touched files.
+
+### depth
+
+Focus: the **depth check** in `<DEPTH_CHECK_PATH>`, applied to every module the PR adds or whose interface it changes. Read that file first and follow its reading rule, which is this persona's one carve-out from "the diff is your view": each module in scope whole, its direct callers, and the tests that exercise it, then stop. Ask its four questions (introduced shallowness, extracted for testability, touched an already-shallow module, tests past the interface) and report each fired check as a finding with `category: depth` at the severity its gate table gives: Important only when the PR introduced the shallowness and the deepening fits the PR's own files, Minor otherwise, never Critical. Anchor to the line that declares the interface; `what` names the shallowness in the deep-module vocabulary and `fix` names the direction of the deepening, never a design. A question-3 finding (already shallow, touched here) carries `pre_existing: false`; the PR's contribution is the missed cheap moment. Smells belong to `maintainability`; a finding that is only a smell is not yours.
 
 ## Conditional
 

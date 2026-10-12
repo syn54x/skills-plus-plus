@@ -6,16 +6,16 @@ disable-model-invocation: true
 
 # Improve PR Architecture
 
-Read one pull request through the deep-module lens and propose **deepening opportunities**: places where the PR introduced a shallow module, tested past an interface, or touched a module that was already shallow and could be deepened cheaply while the author is in there. The output is opportunities, never a verdict. `improve-` skills generate ideas; `review-` skills gate. This one never blocks a merge, never edits code, and never posts without an explicit yes.
+Read one pull request through the deep-module lens and propose **deepening opportunities**: places where the PR introduced a shallow module, tested past an interface, or touched a module that was already shallow and could be deepened cheaply while the author is in there. The output is opportunities, never a verdict. The review gates run the same depth check and *flag* a shallow module as a finding; this skill *explores* one with you, through to a shape, a glossary term or an ADR. It never blocks a merge, never edits code, and never posts without an explicit yes.
 
 Usage: `/improve-pr-architecture <pr# | PR URL | git ref>`, or no argument for the current branch.
 
 Built on the same vocabulary as the other design skills:
 
-- Call the Skill tool with "codebase-design" for the vocabulary (**module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**) and its principles (the deletion test, "the interface is the test surface", "one adapter = hypothetical seam, two = real", replace-don't-layer testing). Use these terms exactly in every candidate.
+- Call the Skill tool with "codebase-design" for the vocabulary (**module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**), its principles (the deletion test, "the interface is the test surface", "one adapter = hypothetical seam, two = real", replace-don't-layer testing), and its `DEPTH-CHECK.md`, the one copy of the four questions this skill, `review-pr` and `review-panel` all ask. Use these terms exactly in every candidate.
 - The domain language in `CONTEXT.md` names the modules; ADRs in `docs/adr/` record decisions this skill honours rather than re-litigates.
 
-What this skill is not: a third smell reviewer. `code-review`'s Standards axis and `review-panel`'s `maintainability` persona already run the Fowler smells, and Middle Man, Speculative Generality and Shotgun Surgery brush against shallowness from the smell side. This skill's lens is narrower and deeper: interface complexity against implementation complexity, where the seam sits, and whether the tests have locality. A finding that is a smell and nothing more belongs to those skills.
+What this skill is not: a gate, or a third smell reviewer. `review-pr` and `review-panel`'s `depth` persona already run the depth check on SDD pull requests and turn a fired check into a finding with a severity; this skill reports every fired check, `Leave it` included, with a Strength call, and then grills through the one you pick. `code-review`'s Standards axis and the `maintainability` persona run the Fowler smells, and Middle Man, Speculative Generality and Shotgun Surgery brush against shallowness from the smell side; a finding that is a smell and nothing more belongs to them.
 
 ## Process
 
@@ -51,23 +51,11 @@ Done when `BASE` and `HEAD` both resolve, the file list is non-empty, and you ha
 
 Read `CONTEXT.md` and the ADRs whose scope touches the changed files first.
 
-Then spawn a sub-agent to read the change. Its brief carries `BASE`, `HEAD`, the checkout path, the file list, the paths to `CONTEXT.md` and the relevant ADRs, the codebase-design glossary and principles pasted in (it has no other access to them), and the reading rule and four questions below, verbatim.
+Then spawn a sub-agent to read the change. Its brief carries `BASE`, `HEAD`, the checkout path, the file list, the paths to `CONTEXT.md`, the relevant ADRs, and the codebase-design `SKILL.md` and `DEPTH-CHECK.md` (it has no other access to them), and the two instructions below.
 
-**A diff cannot show depth.** Depth is a property of the interface, and a diff shows fragments of interfaces. So the sub-agent reads wider than a reviewer, and bounded: for every touched module, the module whole (interface and implementation), its direct callers, and the tests that exercise it. Touched modules and their direct callers, not the codebase. (The review skills say "the diff is your view"; this skill deliberately reads more, and stops there.)
+Read as `DEPTH-CHECK.md` says, with the survey's wider scope: **every touched module**, not only the ones the PR adds or whose interface it changes. A diff cannot show depth, so each module in scope is read whole, with its direct callers and the tests that exercise it, and no further. (The review gates say "the diff is your view"; this skill deliberately reads more, and stops there.)
 
-Four questions, asked of every touched module:
-
-1. **Introduced shallowness.** Did the PR add a module whose interface is nearly as complex as its implementation, or a seam with one adapter and nothing varying across it? Apply the deletion test: would deleting the new module concentrate complexity back where it belongs, or was it earning its keep?
-2. **Extracted for testability.** Did it pull pure functions out so they could be unit-tested, while the bugs live in how they are called? Tests with no locality pass while the call site is wrong.
-3. **Touched an already-shallow module.** Was the module shallow before this PR? Pre-existing shallowness counts only where the PR touches it, and there it is the cheap moment: the author is already in the file and tests are being written.
-4. **Tests past the interface.** Do the PR's tests cross the interface, or assert on internals and mock the code under test? A test that would break under an internal refactor is testing past the interface.
-
-Each yes becomes a candidate carrying: the files (module and callers), the problem in the vocabulary, the deepening (what goes behind which interface, in a line or two: a direction, not a design), the payoff (locality or leverage gained, which tests get simpler or disappear), and two calls:
-
-- **Timing**: `This PR` when the deepening lives inside the files the PR already rewrites and the PR's own tests become the tests at the new interface; `Follow-up` when it is real but spreads past the PR's files or would change its scope; `Leave it` when it is pre-existing and cheap to live with, or an ADR settles it. One line of reason.
-- **Strength**: `Strong`, `Worth exploring`, or `Speculative`.
-
-An ADR conflict is surfaced only when the friction is real enough to reopen the ADR, and is named on the card.
+Ask its four questions of every module in scope. Each fired check becomes a candidate carrying what `DEPTH-CHECK.md` lists (files, problem, deepening, payoff, **Timing** with a one-line reason) plus the survey's **Strength** call: `Strong`, `Worth exploring`, or `Speculative`. An ADR conflict is named on the card only when the friction is real enough to reopen the ADR.
 
 Done when every file in the diff has been read as part of its whole module, each of the four questions has an answer per touched module (a "no" is an answer), and every candidate carries both calls. Zero candidates is a valid result.
 

@@ -35,7 +35,7 @@
           "verified_by": { "type": "string", "description": "the check that raised confidence: call sites read, test run, ADR quoted" },
           "pre_existing": { "type": "boolean", "description": "true means the PR did not introduce it; such findings are omitted from the report" },
           "rule": { "type": "string", "description": "for standards-and-invariants: the ADR id, doc path or epic decision violated, e.g. ADR-0007, CONTEXT.md#Invoice, epic:Implementation Decisions#3" },
-          "category": { "type": "string", "enum": ["correctness", "tests", "maintainability", "standard", "adr", "invariant", "terminology", "security", "reliability", "adversarial", "migration", "contract", "history", "ticket-mandated"] }
+          "category": { "type": "string", "enum": ["correctness", "tests", "maintainability", "standard", "adr", "invariant", "terminology", "security", "reliability", "adversarial", "migration", "contract", "history", "depth", "ticket-mandated"] }
         }
       }
     },

@@ -69,7 +69,7 @@ Each learning carries one tag:
 - **[reusable]** <something true beyond this repo → `docs/solutions/<slug>.md`, only if genuinely reusable>
 - **[skill: <name> §<step>]** <the skill told the agent the wrong thing, or nothing, and the retro shows it → candidate for upstream feedback, step 5>
 
-Also carry forward from the `review-panel` report: candidate ADRs and terminology drift, each as a [repo] learning.
+Also carry forward from the `review-panel` report: candidate ADRs, terminology drift and Minor `depth` findings (the follow-up deepenings), each as a [repo] learning.
 
 ## Spec deltas
 

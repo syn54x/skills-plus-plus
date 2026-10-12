@@ -1,0 +1,5 @@
+---
+"mattpocock-skills": minor
+---
+
+The four depth questions move out of `improve-pr-architecture` into one file, `codebase-design/DEPTH-CHECK.md`, and both SDD gates now ask them. `review-pr`'s Quality verdict and a new always-on `depth` persona in `review-panel` read each module the PR adds or whose interface it changes whole, with its callers and tests, and report a fired question as a finding with category `depth`: Important when the PR introduced the shallowness and the fix fits its own files, Minor when the module was already shallow or the fix spreads wider, never Critical. Minor depth findings ride with candidate ADRs into `close-epic`'s Learnings. `sdd-reviewer` preloads `codebase-design`; the findings schema gains the `depth` category; prose-only diffs skip the persona. `improve-pr-architecture` keeps the Strength call, the report and the grilling loop, and now reads the questions from the shared file. ADR 0005 records why this reverses the earlier "depth never gates" decision (issue #22: seven deepening candidates found after an epic, none at the slice gate).

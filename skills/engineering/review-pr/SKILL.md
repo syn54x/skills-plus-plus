@@ -33,7 +33,7 @@ Check out the PR head in a clean worktree (`gh pr checkout "$PR"` in a throwaway
 
 **Do not trust the report.** The PR body, the progress comment and the worker's message are unverified claims about the code. Verify each against the diff. A stated rationale ("kept it simple per YAGNI", "left it out deliberately") is the worker grading its own work; it never downgrades a finding.
 
-**The diff is your view.** Read it once, with its context lines. Look outside the diff only to check a concrete risk you can name (a changed contract, lock ordering, shared mutable state → check the call sites), one focused check per named risk, and say what you checked. Do not crawl the codebase. Your checkout is read-only: no edits, no staging, no branch changes beyond the checkout itself.
+**The diff is your view.** Read it once, with its context lines. Look outside the diff only to check a concrete risk you can name (a changed contract, lock ordering, shared mutable state → check the call sites), one focused check per named risk, and say what you checked. The one standing carve-out is the depth check in step 4, which reads a module the PR adds or whose interface it changes whole, with its callers and tests. Do not crawl the codebase. Your checkout is read-only: no edits, no staging, no branch changes beyond the checkout itself.
 
 ## 3. Spec verdict
 
@@ -58,7 +58,9 @@ Against the repo's laws (`CLAUDE.md`, `AGENTS.md`, ADRs, the pattern the brief n
 - Commit history readable; PR body honest.
 - Nothing in the diff the ticket did not ask for.
 
-**Severity.** Every finding is **Critical** (wrong behaviour, missed requirement, would corrupt data or break a sibling ticket), **Important** (the PR cannot be trusted until fixed: fragile logic, swallowed errors, tests that assert nothing, verbatim duplication you would block a merge over), or **Minor** (polish, broader coverage). A verdict is FAIL if any Critical or Important finding stands. If the ticket itself mandates something this rubric calls a defect, it is still a finding, labelled *ticket-mandated*; the human decides.
+**Depth check.** Call the Skill tool with "codebase-design" and run its `DEPTH-CHECK.md` over every module the PR adds or whose interface it changes: read as that file says, ask its four questions, and report each fired check as a finding, category `depth`, at the severity its gate table gives (Important only when the PR introduced the shallowness and the deepening fits the PR's own files; otherwise Minor; never Critical), anchored to the line that declares the interface. A finding names the direction of the deepening, never the design.
+
+**Severity.** Every finding is **Critical** (wrong behaviour, missed requirement, would corrupt data or break a sibling ticket), **Important** (the PR cannot be trusted until fixed: fragile logic, swallowed errors, tests that assert nothing, verbatim duplication you would block a merge over, a shallow module the PR introduced per the depth check), or **Minor** (polish, broader coverage). A verdict is FAIL if any Critical or Important finding stands. If the ticket itself mandates something this rubric calls a defect, it is still a finding, labelled *ticket-mandated*; the human decides.
 
 **Confidence gate.** Report a finding only if you can name the line and the failure it causes and you are at least 80% sure it is real; "Consider…" is not a finding. Drop: pre-existing issues the PR did not introduce; code that looks wrong but is not; pedantic nits; anything a linter or the type checker will catch; general quality opinions not backed by a repo law; lines carrying a deliberate lint-ignore.
 
