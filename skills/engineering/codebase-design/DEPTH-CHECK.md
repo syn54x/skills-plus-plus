@@ -1,13 +1,13 @@
 # Depth check
 
-The four questions asked of every module a pull request adds or whose interface it changes. Assumes the vocabulary in [SKILL.md](SKILL.md): **module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**, and its principles (the deletion test, "the interface is the test surface", "one adapter means a hypothetical seam, two a real one"). One file, three readers: the slice gate (`review-pr`), the `depth` persona at the main gate (`review-panel`), and the survey (`improve-pr-architecture`). Each applies it as its own section below says; the questions never change.
+The four questions asked of every module a pull request adds or whose interface it changes. Assumes the vocabulary in [SKILL.md](SKILL.md): **module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**, and its principles (the deletion test, "the interface is the test surface", "one adapter means a hypothetical seam, two a real one"). One file, three readers: the slice gate (`review-pr`), the `depth` persona at the main gate (`review-panel`), and the survey (`improve-pr-architecture`). The gates turn a fired check into a finding as the last section says; the survey turns it into a deepening opportunity.
 
 ## Reading rule
 
 **A diff cannot show depth.** Depth is a property of the interface, and a diff shows fragments of interfaces. So the check reads wider than a diff, and bounded:
 
 - **In scope**: every module the PR **adds**, and every module whose **interface it changes** (a new or changed signature, export, route, event, invariant, error mode). Lines changed inside an unchanged interface stay out of scope; the diff and its context lines are enough there. The survey widens scope to every touched module; the gates do not.
-- **For each module in scope, read**: the module whole (interface and implementation), its direct callers, and the tests that exercise it. Then stop. Touched modules and their direct callers, never the codebase.
+- **For each module in scope, read**: the module whole (interface and implementation), its direct callers, and the tests that exercise it. Then stop.
 
 ## The four questions
 
@@ -23,12 +23,6 @@ Every fired check carries: the files (module and callers), the problem in the vo
 - `This PR`: the deepening lives inside the files the PR already rewrites, and the PR's own tests become the tests at the new interface.
 - `Follow-up`: real, but it spreads past the PR's files or would change the PR's scope.
 - `Leave it`: pre-existing and cheap to live with, or an ADR settles it.
-
-An ADR conflict is named only when the friction is real enough to reopen the ADR.
-
-## In the survey
-
-`improve-pr-architecture` adds a **Strength** call (`Strong`, `Worth exploring`, `Speculative`) and reports every fired check, `Leave it` included, as a **deepening opportunity**: an idea, never a verdict.
 
 ## At a gate
 

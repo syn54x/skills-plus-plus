@@ -54,7 +54,7 @@ An **Epic** whose **Sub-issues** live in more than one repo. Sub-issues are name
 `review-pr` gates a slice PR into the integration branch (one fresh reviewer, spec and quality verdicts). `review-panel` gates the PR to `main` once per **Epic** (a **Persona** panel plus review-pr's spec and Coherence verdicts).
 
 **Persona**:
-One read-only reviewer prompt in `review-panel/PERSONAS.md` with a fixed Focus: always-on (correctness, testing, maintainability, standards-and-invariants, history) or conditional on what the diff touches.
+One read-only reviewer prompt in `review-panel/PERSONAS.md` with a fixed Focus: always-on (correctness, testing, maintainability, standards-and-invariants, history, depth) or conditional on what the diff touches.
 
 **Retro**:
 Per-**Epic** counts that `close-epic` computes from GitHub state alone and posts under `<!-- sdd-retro -->`. Names which step was weak; stays in the user's repo.

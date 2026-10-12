@@ -53,9 +53,9 @@ Read `CONTEXT.md` and the ADRs whose scope touches the changed files first.
 
 Then spawn a sub-agent to read the change. Its brief carries `BASE`, `HEAD`, the checkout path, the file list, the paths to `CONTEXT.md`, the relevant ADRs, and the codebase-design `SKILL.md` and `DEPTH-CHECK.md` (it has no other access to them), and the two instructions below.
 
-Read as `DEPTH-CHECK.md` says, with the survey's wider scope: **every touched module**, not only the ones the PR adds or whose interface it changes. A diff cannot show depth, so each module in scope is read whole, with its direct callers and the tests that exercise it, and no further. (The review gates say "the diff is your view"; this skill deliberately reads more, and stops there.)
+Read as `DEPTH-CHECK.md` says, with the survey's wider scope: **every touched module**, not only the ones the PR adds or whose interface it changes. (The review gates say "the diff is your view"; this skill deliberately reads more, and stops where that file stops.)
 
-Ask its four questions of every module in scope. Each fired check becomes a candidate carrying what `DEPTH-CHECK.md` lists (files, problem, deepening, payoff, **Timing** with a one-line reason) plus the survey's **Strength** call: `Strong`, `Worth exploring`, or `Speculative`. An ADR conflict is named on the card only when the friction is real enough to reopen the ADR.
+Ask its four questions of every module in scope. Every fired check, `Leave it` included, becomes a candidate carrying what `DEPTH-CHECK.md` lists (files, problem, deepening, payoff, **Timing** with a one-line reason) plus the survey's own **Strength** call: `Strong`, `Worth exploring`, or `Speculative`. An ADR conflict is named on the card only when the friction is real enough to reopen the ADR.
 
 Done when every file in the diff has been read as part of its whole module, each of the four questions has an answer per touched module (a "no" is an answer), and every candidate carries both calls. Zero candidates is a valid result.
 

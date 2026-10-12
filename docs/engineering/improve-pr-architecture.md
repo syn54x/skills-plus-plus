@@ -26,9 +26,9 @@ It writes in two places, both outside the branch under review. A PR comment goes
 
 ## A diff cannot show depth
 
-Depth is a property of a module's **interface**: how much behaviour a caller gets per unit of interface they have to learn. A diff shows fragments of interfaces, so the review skills' rule ("the diff is your view") would make this skill blind. Instead it reads wider, and bounded: every touched module whole, its direct callers, and the tests that exercise it. Touched modules and their callers, never the codebase.
+Depth is a property of a module's **interface**: how much behaviour a caller gets per unit of interface they have to learn. A diff shows fragments of interfaces, so a reader held to the diff is blind to depth. Instead it reads wider, and bounded: every touched module whole, its direct callers, and the tests that exercise it. Touched modules and their callers, never the codebase.
 
-Against that reading it asks the four questions of the **depth check**, kept in one file under [codebase-design](../engineering/codebase-design.md) so this skill and both SDD gates never drift apart, of every touched module:
+Against that reading it asks the four questions of the **depth check**, owned by [codebase-design](../engineering/codebase-design.md), of every touched module:
 
 - **Introduced shallowness.** Did the PR add a module whose interface is nearly as complex as its implementation, or a seam with one adapter and nothing varying across it? The deletion test decides: would removing it concentrate complexity, or was it earning its keep?
 - **Extracted for testability.** Did it pull pure functions out to unit-test them while the bugs live in how they are called? Those tests pass while the call site is wrong.
