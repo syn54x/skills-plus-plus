@@ -1,5 +1,0 @@
----
-"mattpocock-skills": minor
----
-
-New user-invoked skill `improve-pr-architecture` in `engineering/`: the deep-module survey that `improve-codebase-architecture` runs over a whole codebase, narrowed to one pull request. It pins the PR's diff (PR number, URL, bare ref, or the current branch), has a sub-agent read every touched module whole with its callers and tests, and reports deepening opportunities in markdown: a shallow module or one-adapter seam the PR introduced, pure functions extracted for testability while the bugs stay at the call site, tests that go past an interface, or an already-shallow module the PR brushes against. Every candidate carries a `This PR` / `Follow-up` / `Leave it` timing call and a strength badge, and the report can be posted as a PR comment on an explicit yes. Picking a candidate starts the same grilling loop as the sibling. It is a skill rather than a `review-panel` persona because depth observations are judgement calls, not line-anchored findings, and it never gates a merge.
