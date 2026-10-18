@@ -30,7 +30,7 @@ gh issue view "$EPIC" --json subIssues --jq '[.subIssues.nodes[].repository.name
 
 More than one → **multi-repo mode**. You need a local checkout of every repo listed. Default: sibling directories named after the repo (`../pinch-backend` next to `../pinch-frontend`); if one is missing, ask for its path or clone it. Every repo must have run `/setup-syn54x-skills` (labels, routing block). From here on, identify tickets by **URL**, never by bare number: `gh issue view`, `gh issue edit` and `gh pr view` all accept URLs, and a bare `#12` is ambiguous across repos.
 
-Read the plan comment and the epic body once. Read each repo's laws (`CLAUDE.md`, `AGENTS.md`, `CONTEXT.md`, ADRs) once. You should be able to write every brief without opening another file.
+Read the plan comment and the epic body once. Read each repo's laws (`CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`, ADRs) once. You should be able to write every brief without opening another file.
 
 ## 1. Integration branch
 

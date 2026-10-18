@@ -13,7 +13,7 @@ Usage: `/improve-pr-architecture <pr# | PR URL | git ref>`, or no argument for t
 Built on the same vocabulary as the other design skills:
 
 - Call the Skill tool with "codebase-design" for the vocabulary (**module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**), its principles (the deletion test, "the interface is the test surface", "one adapter = hypothetical seam, two = real", replace-don't-layer testing), and its `DEPTH-CHECK.md`, the one copy of the four questions this skill, `review-pr` and `review-panel` all ask. Use these terms exactly in every candidate.
-- The domain language in `CONTEXT.md` names the modules; ADRs in `docs/adr/` record decisions this skill honours rather than re-litigates.
+- The domain language in `GLOSSARY.md` names the modules; ADRs in `docs/adr/` record decisions this skill honours rather than re-litigates.
 
 What this skill is not: a gate, or a third smell reviewer. `review-pr` and `review-panel`'s `depth` persona already run the depth check on SDD pull requests and turn a fired check into a finding with a severity; this skill reports every fired check, `Leave it` included, with a Strength call, and then grills through the one you pick. `code-review`'s Standards axis and the `maintainability` persona run the Fowler smells, and Middle Man, Speculative Generality and Shotgun Surgery brush against shallowness from the smell side; a finding that is a smell and nothing more belongs to them.
 
@@ -49,9 +49,9 @@ Done when `BASE` and `HEAD` both resolve, the file list is non-empty, and you ha
 
 ### 2. Explore
 
-Read `CONTEXT.md` and the ADRs whose scope touches the changed files first.
+Read `GLOSSARY.md` and the ADRs whose scope touches the changed files first.
 
-Then spawn a sub-agent to read the change. Its brief carries `BASE`, `HEAD`, the checkout path, the file list, the paths to `CONTEXT.md`, the relevant ADRs, and the codebase-design `SKILL.md` and `DEPTH-CHECK.md` (it has no other access to them), and the two instructions below.
+Then spawn a sub-agent to read the change. Its brief carries `BASE`, `HEAD`, the checkout path, the file list, the paths to `GLOSSARY.md`, the relevant ADRs, and the codebase-design `SKILL.md` and `DEPTH-CHECK.md` (it has no other access to them), and the two instructions below.
 
 Read as `DEPTH-CHECK.md` says, with the survey's wider scope: **every touched module**, not only the ones the PR adds or whose interface it changes. (The review gates say "the diff is your view"; this skill deliberately reads more, and stops where that file stops.)
 
@@ -61,14 +61,14 @@ Done when every file in the diff has been read as part of its whole module, each
 
 ### 3. Report
 
-Print the report in the terminal, in `CONTEXT.md` nouns for the domain and codebase-design terms for the architecture. Keep each card short; the deepening is a direction, not a design.
+Print the report in the terminal, in `GLOSSARY.md` nouns for the domain and codebase-design terms for the architecture. Keep each card short; the deepening is a direction, not a design.
 
 ```markdown
 ## Deepening opportunities: <PR title or branch> (`<base7>..<head7>`)
 
 Opportunities, not a verdict: nothing here blocks the merge.
 
-### 1. <Candidate, named in CONTEXT.md nouns>
+### 1. <Candidate, named in GLOSSARY.md nouns>
 - **Files**: `src/orders/intake.ts`, `src/orders/validate.ts` (callers: `src/api/orders.ts`)
 - **Problem**: <which question fired, in the vocabulary>
 - **Deepening**: <before, in a line> → <after, in a line>
@@ -93,8 +93,8 @@ Ask which candidate the user wants to explore; "none" ends the run. Once they pi
 
 Side effects happen inline as decisions crystallise; call the Skill tool with "domain-modeling" to keep the domain model current. Writes go to the user's own checkout, never the throwaway worktree:
 
-- Naming a deepened module after a concept not in `CONTEXT.md`? Add the term. Create the file lazily if it doesn't exist.
-- Sharpening a fuzzy term during the conversation? Update `CONTEXT.md` right there.
+- Naming a deepened module after a concept not in `GLOSSARY.md`? Add the term. Create the file lazily if it doesn't exist.
+- Sharpening a fuzzy term during the conversation? Update `GLOSSARY.md` right there.
 - User rejects the candidate with a load-bearing reason? Offer an ADR: _"Want me to record this as an ADR so future architecture passes don't re-suggest it?"_ Only when a future explorer would need the reason; skip ephemeral ("not now") and self-evident ones.
 - Want to explore alternative interfaces for the deepened module? Call the Skill tool with "codebase-design" and use its design-it-twice parallel sub-agent pattern.
 
@@ -105,6 +105,6 @@ Done when the user has stopped, or the picked candidate has been grilled to a sh
 ## Guardrails
 
 - Opportunities, never a verdict. No "fix before merge", no approve, no request-changes. The merge is someone else's decision.
-- Read-only on the branch. The only files this skill writes are `CONTEXT.md` and ADRs from the grilling loop, in the user's checkout.
+- Read-only on the branch. The only files this skill writes are `GLOSSARY.md` and ADRs from the grilling loop, in the user's checkout.
 - Post only after an explicit yes. No PR, nothing to post.
 - Read touched modules and their direct callers, then stop. Pre-existing shallowness is surfaced only where the PR touches it; for the whole codebase, tell the user to run `/improve-codebase-architecture`.

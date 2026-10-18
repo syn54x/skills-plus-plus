@@ -25,7 +25,7 @@ Start the transcript: one Markdown file in the session scratchpad, path printed 
 
 The Griller returns one **Round** per turn: numbered questions, each with its recommended answer, in the `grilling` format. Continue it with SendMessage to `griller`. For every question in the Round:
 
-**Cite or escalate.** You may answer a question only when you can point at its source: a fact you looked up, a decision recorded in `CONTEXT.md`, an ADR, an issue or the repo's standards, something the Principal said earlier in this conversation, or an answer the Principal gave to an earlier Escalation. An answer with no citation is a bug. Everything else, every genuine preference and every open trade-off, is an Escalation.
+**Cite or escalate.** You may answer a question only when you can point at its source: a fact you looked up, a decision recorded in `GLOSSARY.md`, an ADR, an issue or the repo's standards, something the Principal said earlier in this conversation, or an answer the Principal gave to an earlier Escalation. An answer with no citation is a bug. Everything else, every genuine preference and every open trade-off, is an Escalation.
 
 **Due diligence.** Before raising the Round's Escalations, run one research pass over all of them together: the repo, the conversation, the standards, the web, what other products and libraries do, and a `research` agent when one earns it (call the Skill tool with "research"). A citation found here turns the question into an auto-answer. A genuine decision stays an Escalation no matter how strong the research; what it gains is a **Best fit**: your researched answer, with its basis in one sentence. Research sharpens the Best fit; it never promotes a preference into a fact.
 
@@ -39,4 +39,4 @@ Append the Round to the transcript: each question, its answer, its label, its ci
 
 The Griller ends by declaring the frontier empty and returning a summary of the shared understanding. Show the Principal that summary and the full veto list of every auto-answer in the session. Confirmation is the Principal's alone: on an objection, send it to the Griller, which reopens the frontier and continues at step 3.
 
-On confirmation, close with: the confirmed summary, the files the Griller wrote (`CONTEXT.md`, ADRs), the transcript path, and one line noting that `/to-spec` is the usual next step. Do not invoke it.
+On confirmation, close with: the confirmed summary, the files the Griller wrote (`GLOSSARY.md`, ADRs), the transcript path, and one line noting that `/to-spec` is the usual next step. Do not invoke it.

@@ -20,9 +20,9 @@ You invoke this by typing `/improve-pr-architecture`, and the agent won't reach 
 
 ## Prerequisites
 
-The PR modes need the `gh` CLI signed in; a bare ref or the current branch needs only git. It reads `CONTEXT.md` and `docs/adr/` when they exist and names candidates in your domain's nouns when they do.
+The PR modes need the `gh` CLI signed in; a bare ref or the current branch needs only git. It reads `GLOSSARY.md` and `docs/adr/` when they exist and names candidates in your domain's nouns when they do.
 
-It writes in two places, both outside the branch under review. A PR comment goes up only after you say yes. During the grilling loop it adds or sharpens terms in your checkout's `CONTEXT.md`, creating the file if needed, and offers to record a rejected candidate as an ADR so a later run does not re-suggest it.
+It writes in two places, both outside the branch under review. A PR comment goes up only after you say yes. During the grilling loop it adds or sharpens terms in your checkout's `GLOSSARY.md`, creating the file if needed, and offers to record a rejected candidate as an ADR so a later run does not re-suggest it.
 
 ## A diff cannot show depth
 
@@ -75,9 +75,9 @@ One candidate per session, as with the sibling. Grill the one you pick, take the
 
 ## It's working if
 
-- Candidates are named in your `CONTEXT.md` nouns, not in class names the diff happens to use.
+- Candidates are named in your `GLOSSARY.md` nouns, not in class names the diff happens to use.
 - Every card carries both a timing call and a strength badge, and the report ends with a top recommendation.
-- Nothing on the branch changed. The only writes are `CONTEXT.md` and ADRs in your own checkout, during the grill.
+- Nothing on the branch changed. The only writes are `GLOSSARY.md` and ADRs in your own checkout, during the grill.
 - It asked before posting, and a no left the report in the conversation.
 - A run against a bare ref never touched GitHub at all.
 - A candidate the sub-agent could only see from the diff was not reported; every card names the module and its callers.

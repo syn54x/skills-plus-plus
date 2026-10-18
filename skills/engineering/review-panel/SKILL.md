@@ -36,7 +36,7 @@ Three-dot semantics via the merge-base, so the diff is what the PR adds, not wha
 Collect the **spec and the laws** as file paths, not pasted text; personas read what they need:
 
 - Spec: the epic body and its `<!-- sdd-plan -->` comment (`gh issue view <epic url> --json body`, and the plan comment via `gh api`), each saved under `/tmp/review-panel/$PR/`. Plus every sub-issue's `## Interfaces` and `## Files owned`, concatenated to `tickets.md`. No epic → the PR body.
-- Laws: `CLAUDE.md`, `AGENTS.md`, `CONTEXT.md`, `CONCEPTS.md`, `CODING_STANDARDS.md`, `CONTRIBUTING.md`, and every file under `docs/adr/` (or the path the repo's domain docs name). List the paths that exist to `laws.txt`.
+- Laws: `CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`, `CONCEPTS.md`, `CODING_STANDARDS.md`, `CONTRIBUTING.md`, and every file under `docs/adr/` (or the path the repo's domain docs name). List the paths that exist to `laws.txt`.
 - Depth check: call the Skill tool with "codebase-design" and note the absolute path of its `DEPTH-CHECK.md`; the `depth` persona reads it from there.
 
 Run the epic's aggregate Verify (each merged ticket's Verify block, or the repo's suite if `CLAUDE.md` names one) on `$HEAD`. Record pass/fail and the command; the panel does not re-run it.
@@ -109,8 +109,8 @@ A no leaves the report in the conversation. Do not comment, and do not write a r
 …
 
 ## Invariants and ADRs
-Checked: `docs/adr/0007-idempotent-events.md`, `CONTEXT.md` (Invoice, InvoiceStatus), CLAUDE.md §Testing, epic Implementation Decisions 1–4.
-Violations: listed above, tagged [ADR-0007] / [CONTEXT] / [epic].
+Checked: `docs/adr/0007-idempotent-events.md`, `GLOSSARY.md` (Invoice, InvoiceStatus), CLAUDE.md §Testing, epic Implementation Decisions 1–4.
+Violations: listed above, tagged [ADR-0007] / [GLOSSARY] / [epic].
 Candidate ADRs: <rules the code relies on that no document states, or "none">.
 Terminology drift: <new names for existing concepts, or "none">.
 

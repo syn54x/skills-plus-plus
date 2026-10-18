@@ -4,7 +4,24 @@ One install story, one wording. `README.md`, `.changeset/*`, and `docs/index.md`
 
 This repo is a fork of `mattpocock/skills`. Upstream's plugin, `mattpocock-skills`, is listed in Claude Code's official marketplace; this fork's plugin, `skills-plus-plus`, is not. It installs from the fork's own marketplace (`syn54x`, defined in `.claude-plugin/marketplace.json`), so there is one marketplace to add first. Why the fork exists and how it tracks upstream lives in [adr/0003-fork-superset-of-mattpocock-skills.md](./adr/0003-fork-superset-of-mattpocock-skills.md).
 
-## Claude Code: the plugin
+Lead with installs that update themselves. Fall back to skills.sh, labelled "manual updates", only for agents that have no such install. Call a route managed only if it updates without the user running a command. Put any one-time opt-in beside its install command. Never promise "instant".
+
+Claude Code installs from its official marketplace, `claude-plugins-official`. Every other managed route installs from this repo's own marketplace, `.claude-plugin/marketplace.json` and `plugin.json`. Those routes reinstall only when the `version` in `plugin.json` changes. The Release workflow runs `npm run version`, which copies that field from `package.json`, so users get a release when the "chore: version skills" PR merges.
+
+| Agent         | Route                            | Updates itself?                                                  |
+| ------------- | -------------------------------- | ---------------------------------------------------------------- |
+| Claude Code   | `@claude-plugins-official`       | Yes, by default                                                  |
+| Codex         | `@mattpocock` marketplace        | Yes, at startup, by default                                      |
+| Copilot CLI   | `@mattpocock` marketplace        | Yes, after a one-time `autoUpdate: true`                         |
+| VS Code       | Chat: Install Plugin From Source | Yes, daily, by default                                           |
+| Gemini CLI    | `gemini skills install` (copies) | No. A Gemini extension would need a flat `skills/<name>/` layout |
+| Everyone else | skills.sh                        | No. Run `npx skills update`, and re-run `add` for new skills     |
+
+Sources (2026-10-08): Codex `core-plugins/src/manager.rs`; Copilot [cli-config-dir-reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference); VS Code `pluginAutoUpdate.ts`; Gemini `skillLoader.ts`.
+
+Nobody has run Auggie, Droid, Qwen or Goose against this repo, so they stay on skills.sh until someone does.
+
+## Claude Code
 
 <canonical-block name="claude-code">
 
@@ -13,8 +30,14 @@ claude plugins marketplace add syn54x/skills-plus-plus
 claude plugins install skills-plus-plus@syn54x
 ```
 
-Or, from inside a session:
+Then, once, add to `~/.copilot/settings.json`:
 
+```json
+{
+  "extraKnownMarketplaces": {
+    "mattpocock": { "source": { "source": "github", "repo": "mattpocock/skills" }, "autoUpdate": true }
+  }
+}
 ```
 /plugin marketplace add syn54x/skills-plus-plus
 /plugin install skills-plus-plus@syn54x
@@ -30,7 +53,7 @@ The same repo is also a Cursor plugin (`.cursor-plugin/`) and a Codex plugin (`.
 
 Everywhere else, [skills.sh](https://skills.sh/syn54x/skills-plus-plus) copies editable skill files into the project. Use the whole-set form on `README.md`:
 
-<canonical-block name="skills-sh-whole-set">
+<canonical-block name="other-agents">
 
 ```bash
 npx skills@latest add syn54x/skills-plus-plus
