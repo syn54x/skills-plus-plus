@@ -44,6 +44,10 @@ Assigning yourself to a **Sub-issue**. Removes it from the **Ready queue**; undo
 **Verify block**:
 The fenced commands in a **Sub-issue**'s `## Verify`; green means done. Recorded on the commit as `git notes --ref=sdd-verify`.
 
+**Interface deviation**:
+A **Sub-issue**'s declared departure from its own Produces line, stated in its PR and recorded on the **Epic**'s plan. Only in-repo code signatures may deviate; a cross-repo contract or an interface the **Epic** states never does.
+_Avoid_: interface drift (the undeclared kind is a defect), signature change
+
 **Size ladder**:
 `size:S` builds in the cloud (`claude-code-action`), `size:M` and `L` in local **Waves**, XL as a dynamic workflow.
 
@@ -55,6 +59,10 @@ An **Epic** whose **Sub-issues** live in more than one repo. Sub-issues are name
 
 **Persona**:
 One read-only reviewer prompt in `review-panel/PERSONAS.md` with a fixed Focus: always-on (correctness, testing, maintainability, standards-and-invariants, history, depth) or conditional on what the diff touches.
+
+**Composition pass**:
+The `review-panel` re-review after a FIX FIRST fix round: the always-on **Personas**, plus the conditionals the fix diff warrants, run once over that round's combined fix diff, so defects that appear only where fix slices meet surface before the merge.
+_Avoid_: second panel, fresh panel, full re-review
 
 **Retro**:
 Per-**Epic** counts that `close-epic` computes from GitHub state alone and posts under `<!-- sdd-retro -->`. Names which step was weak; stays in the user's repo.
