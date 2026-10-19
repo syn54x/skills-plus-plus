@@ -13,6 +13,6 @@ Written into `CLAUDE.md` (or `AGENTS.md`) below the `## Agent skills` block. Rep
 - Readiness = open + not blocked + unassigned + `ready-for-agent`. Claim by assigning yourself. Unclaim if you stop without a PR.
 - Progress is one comment per issue under `<!-- sdd-progress -->`, rewritten in place. Never post a second one.
 - Mode: <org | labels-only>. Sizes: <`size:S/M/L` labels | issue field `Effort`>. Priority: <none | issue field `Priority`>.
-- Upstream feedback: <off | on>. When on, `close-epic` may propose skill-defect issues on syn54x/skills-plus-plus, allowlisted fields only, each one shown and approved by a human before filing; never from a non-interactive run.
+- Upstream feedback: <off | counts | detailed | attributed>. Unless off, `close-epic` may propose skill-defect issues on syn54x/skills-plus-plus, the profile's allowlisted fields only, each one shown and approved by a human before filing; never from a non-interactive run.
 <!-- /sdd-routing -->
 ```

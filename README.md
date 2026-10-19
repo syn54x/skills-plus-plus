@@ -133,13 +133,17 @@ None of these is a dependency:
 
 Learnings are tagged `[repo]`, `[reusable]`, or `[skill]`. A `[skill]` learning is one the retro counts support.
 
-With consent, a `[skill]` learning can become a `skill-feedback` issue on `syn54x/skills-plus-plus`. Setup asks, and the default is off, recorded as `Upstream feedback: on` or `off` in the routing block.
+With consent, a `[skill]` learning can become a `skill-feedback` issue on `syn54x/skills-plus-plus`. Setup asks for a profile, and the default is off, recorded as `Upstream feedback: <off | counts | detailed | attributed>` in the routing block. An older `on` reads as `counts`.
 
-An issue may contain the skill, the step, a category from a closed set, counts, the harness version, and one sentence the user types. It may not contain repo or org names, URLs, ticket titles, paths, code, commit messages, or error text.
+- `counts`: the skill, the step, a category from a closed set, counts, the harness version, and one sentence the user types.
+- `detailed`: `counts`, plus a few sentences on what the skill said, what the agent did, and what the user did by hand.
+- `attributed`: `detailed`, plus the user's own repo name and links to the epic, its tickets and PRs.
+
+No profile lets through another repo's name or URL, ticket titles, paths, code, commit messages, or error text; only `attributed` lets through the user's own repo name and its issue and PR links.
 
 - Each issue is shown and approved on its own, filed under the user's GitHub account, and the issue is public. `--dry-run` prints the bodies.
 - A non-interactive run never files. Drafts go on the epic for the user to file or discard. A private repo always asks for confirmation.
-- A URL, repo name, existing path, code, title, or error text in the body stops the filing. The guard does not rewrite the body.
+- A URL, repo name, existing path, code, title, or error text in the body stops the filing (under `attributed`, the user's own repo name and its issue and PR links excepted). The guard does not rewrite the body.
 
 Rules and template: [`skills/engineering/close-epic/SKILL-FEEDBACK.md`](./skills/engineering/close-epic/SKILL-FEEDBACK.md).
 

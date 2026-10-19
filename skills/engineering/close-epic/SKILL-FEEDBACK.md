@@ -6,17 +6,26 @@ How a **[skill]** learning becomes an issue on `syn54x/skills-plus-plus`, and wh
 
 | Condition | Result |
 |---|---|
+The routing block's `Upstream feedback:` line names a **profile**. A line that still says `on` is read as `counts`.
+
+| Condition | Result |
+|---|---|
 | Routing block has no `Upstream feedback` line, or says `off` | skip step 5 entirely; say so in one line |
-| `Upstream feedback: on`, interactive session | preview each body; user approves / edits / skips each one |
-| `Upstream feedback: on`, non-interactive (Actions, headless) | never file; write drafts under `<!-- sdd-feedback-draft -->` on the epic |
-| repo is private (`gh repo view --json isPrivate`) | confirmation mandatory; drafts by default when nobody can confirm |
+| `Upstream feedback: counts` (or a legacy `on`) | the counts template; all six guard rules |
+| `Upstream feedback: detailed` | the detailed template; all six guard rules, unchanged |
+| `Upstream feedback: attributed` | the attributed template; rules 1 and 2 relaxed for the user's own repo only, rules 3 to 6 unchanged |
+| any profile but `off`, interactive session | preview each body; user approves / edits / skips each one |
+| any profile but `off`, non-interactive (Actions, headless) | never file; write drafts under `<!-- sdd-feedback-draft -->` on the epic |
+| repo is private (`gh repo view --json isPrivate`) | confirmation mandatory; drafts by default when nobody can confirm. Under `attributed`, the confirmation names the repo and says that its name and the epic, ticket and PR links become public |
 | `--dry-run` | print the bodies and stop |
 
 Filing happens under the user's own `gh` login and the issue is public. Say both things at confirmation. `--web` (`gh issue create --web`) lets the user file from the browser instead, or not at all.
 
 ## What may leave (allowlist)
 
-The body is generated from this template and nothing else. Every field is either from a closed set, a number, or the one sentence the user types.
+The body is generated from the profile's template and nothing else. Under `counts`, every field is either from a closed set, a number, or the one sentence the user types.
+
+### `counts`
 
 ```markdown
 <!-- sdd-feedback/1 -->
@@ -30,6 +39,23 @@ The body is generated from this template and nothing else. Every field is either
 ```
 
 **Observed** is composed from counts and category text only; it never quotes a ticket.
+
+### `detailed`
+
+The `counts` template, with **Observed** as several sentences that describe the mechanism: what the skill said, what the agent did, what the user had to do by hand. Write it in your own words, at the level of the skill's steps. It names no repo, URL, path, ticket or PR title, code or error text; the guard checks all six rules as for `counts`.
+
+```markdown
+**Observed:** The step told the agent to copy the test command from the epic. The agent copied it as written, and the command named a runner the repo does not use. The user rewrote the Verify block by hand on 2 of 6 tickets before workers could run it.
+```
+
+### `attributed`
+
+The `detailed` template, plus two lines after **Observed**. `<owner/repo>` is the user's own repo (`gh repo view --json nameWithOwner`). Each link is a full `https://github.com/<owner/repo>/issues/<n>` or `/pull/<n>` URL to the epic, one of its sub-issues, or one of their PRs, and nothing else.
+
+```markdown
+**Repo:** <owner/repo>
+**Links:** epic <url> · tickets <url>, <url> · PRs <url>, <url>
+```
 
 ### Categories (closed set)
 
@@ -54,14 +80,14 @@ The body is generated from this template and nothing else. Every field is either
 
 Before filing, check the body. Any hit **blocks** the filing; the guard never rewrites:
 
-1. Any URL (`https?://`).
-2. The repo name, the org/owner name, or any `owner/repo` string from the epic or its tickets.
+1. Any URL (`https?://`). Under `attributed`, an issue or PR link into the user's own repo passes; any other URL, including another path in the own repo, still blocks.
+2. The repo name, the org/owner name, or any `owner/repo` string from the epic or its tickets. Under `attributed`, the own repo's `owner/repo` and its bare repo name pass; any other repo's name, and the bare owner name, still block.
 3. Any path that exists in the checkout (`git ls-files` match, or a token containing `/` that resolves to a file).
 4. A fenced code block, or a line that looks like code (`;`, `{`, `=>`, `def `, `func `, `import `).
 5. Ticket or PR titles: any line from a sub-issue title longer than three words appearing verbatim.
 6. Commit messages, error text, stack traces: any line containing `Error`, `Traceback`, `at ` + path, or `exit code`.
 
-`scripts/feedback-guard.sh <body-file>` in this skill's base directory runs these checks and exits 2 on a hit, naming the rule. Without the script, run them by eye against the list above before every filing.
+`scripts/feedback-guard.sh <body-file> --profile <profile>` in this skill's base directory runs these checks and exits 2 on a hit, naming the rule; under `attributed` add `--own <owner/repo>`. It exits 1 under `off`. `scripts/feedback-guard-check.sh` runs its fixture cases for every profile. Without the script, run them by eye against the list above before every filing.
 
 ## Filing
 
@@ -73,7 +99,7 @@ gh issue create -R syn54x/skills-plus-plus --label skill-feedback \
 gh issue create -R syn54x/skills-plus-plus --label skill-feedback --title "…" --body-file /tmp/feedback-1.md --web
 ```
 
-Title format: `<skill> §<step>: <category> (<count>)`. No repo names in titles either.
+Title format: `<skill> §<step>: <category> (<count>)`. Under `attributed` the title may end with ` in <repo>` (the repo name only, never the owner or a link); under every other profile, no repo names in titles either.
 
 ## Drafts
 

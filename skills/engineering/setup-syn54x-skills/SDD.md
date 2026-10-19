@@ -60,9 +60,20 @@ Issue **fields** (Priority, Effort) are optional. If the user wants them, they c
 
 ## D4. Routing block
 
-Fill in the block from [sdd-routing-block.md](./sdd-routing-block.md): the mode line (`org` / `labels-only`), the field names if any, and **upstream feedback**, which defaults to **off**. Ask:
+Fill in the block from [sdd-routing-block.md](./sdd-routing-block.md): the mode line (`org` / `labels-only`), the field names if any, and the **upstream feedback** profile, which defaults to **off**. Ask, showing the table:
 
-> When an epic closes, may `close-epic` propose skill-defect issues on syn54x/skills-plus-plus? Each one is shown to you first, contains only counts and category names (never repo names, URLs, titles, paths or code), and is filed under your GitHub account. (recommended: **off** unless this is your own repo)
+> When an epic closes, may `close-epic` propose skill-defect issues on syn54x/skills-plus-plus? Each one is shown to you first, filed under your GitHub account, and public. Pick what it may send:
+>
+> | Profile | What it sends |
+> |---|---|
+> | `off` | nothing |
+> | `counts` | skill, step, a category name, retro counts, harness version, one sentence you type; never repo names, URLs, titles, paths or code |
+> | `detailed` | `counts`, plus a few sentences on what the skill said, what the agent did, and what you had to do by hand |
+> | `attributed` | `detailed`, plus this repo's name and links to the epic, its tickets and PRs |
+>
+> (recommended: **off** unless this is your own repo; **counts** or **detailed** if it is)
+
+Write the answer as `Upstream feedback: <profile>`. If an existing block says `Upstream feedback: on`, write `counts` (what `on` already meant) and tell the user the line was rewritten.
 
 The block **disables competing planners** on purpose: `to-spec` owns the spec and `to-tickets` owns the plan, and a second brainstorming or plan-writing skill produces plan files that nobody reads. If Superpowers, Compound Engineering or a similar suite is installed globally, the block tells the agent not to route through them; recommend leaving them uninstalled in this repo.
 
