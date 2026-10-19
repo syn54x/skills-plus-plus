@@ -17,7 +17,7 @@ Agent(
 
 - No worktree isolation needed: the panel is read-only and every persona reads the same checkout. Do the `gh pr checkout` in a throwaway worktree **once**, before dispatch, and pass its path.
 - Ask for the structured shape explicitly in the prompt ("return only JSON matching the schema"); validate each result with `python3 -c 'import json,sys; json.load(sys.stdin)'` before merging, and re-ask a persona once if its output is not JSON.
-- Scoped re-review after a fix round: one `Agent` call with the finding list and the fix diff, same persona name.
+- Re-review after a fix round: the per-finding check is one `Agent` call with the finding list and the fix patch, same persona name; the **Composition pass** is the same concurrent dispatch as above, with the fix patch in place of `diff.patch`.
 - XL alternative: the `Workflow` tool, `parallel(PERSONAS.map(p => () => agent(prompt(p), {schema: FINDINGS, agentType: 'sdd-reviewer'})))`, which validates the schema for you. Only when the user has opted in with "ultracode" or "run a workflow".
 
 ## Codex

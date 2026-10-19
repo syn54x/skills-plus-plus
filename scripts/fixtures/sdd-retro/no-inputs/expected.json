@@ -1,0 +1,30 @@
+{
+ "schema": "sdd-retro/2",
+ "epic": "https://github.com/acme/none/issues/1",
+ "tickets": {
+  "total": 1,
+  "by_size": {
+   "S": 1,
+   "M": 0,
+   "L": 0
+  },
+  "repos": 1
+ },
+ "escalations": {
+  "needs_info": 0,
+  "ready_for_human": 0,
+  "blocked": 0
+ },
+ "edges_added": null,
+ "fix_rounds": null,
+ "verify_corrections": null,
+ "panel": null,
+ "cycle": {
+  "median_hours_claim_to_pr": null
+ },
+ "not_found": [
+  "ticket PR: https://github.com/acme/none/issues/2",
+  "wave comment",
+  "integration PR"
+ ]
+}

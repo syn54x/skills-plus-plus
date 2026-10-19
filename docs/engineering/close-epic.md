@@ -20,6 +20,8 @@ Upstream feedback is off unless the repo's routing block says `Upstream feedback
 
 **The epic was already closed when I ran it. Is the retro lost?** No. A closed epic with no summary comment is the normal starting state, since the PR to `main` closes the epic on merge. The skill posts the retro and summary as usual and leaves the close alone.
 
+**Older retros showed 0 fix rounds and an empty panel. Were they right?** Usually not. They found ticket PRs through GitHub's closed-by links, which fill in only when a PR merges into the default branch, and slice PRs merge into the integration branch; they also read the panel only from PR reviews, while the panel posts a comment. The retro now finds each ticket's PR by its base branch and `Closes #N` line, reads the panel from comments and reviews, counts each re-review round (`panel (2 rounds)`), and says **not found** for a measure it has no input for, so a missing input never passes for a zero.
+
 **What leaves my repo?** Nothing, unless feedback is on and you approve each issue. The retro comment stays on your epic. A feedback issue carries the skill and step, a category from a closed list, the retro counts, the harness and `gh` versions, and one sentence you type; never a repo name, URL, title, path or code.
 
 ## It's working if

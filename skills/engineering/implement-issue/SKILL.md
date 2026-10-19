@@ -39,7 +39,7 @@ Then write the first progress comment (call the Skill tool with "sync-progress";
 
 Determine where you are:
 
-- **Local / worktree worker** (`GITHUB_ACTIONS` unset): the brief names the integration branch. Create `sdd/<N>-<slug>` from it:
+- **Local / worktree worker** (`GITHUB_ACTIONS` unset): the brief names the integration branch. Create `sdd/<N>-<slug>` from the **remote** ref `origin/<integration branch>`, never from `HEAD`: a worktree may start on the default branch. If the brief's first step already put you on `sdd/<N>-<slug>` cut from that ref, stay on it.
   ```bash
   BASE=feat/invoices                                  # from the brief; default main
   SLUG=$(gh issue view "$N" --json title --jq '.title | ascii_downcase | gsub("[^a-z0-9]+";"-") | .[0:40]')
@@ -52,6 +52,8 @@ Determine where you are:
 Work only inside **Files owned** (its Create, Modify and Test paths). If the slice genuinely needs a file outside that list, you may touch it, but say so in the PR body under **Outside Files owned** with the reason; the reviewer decides whether that is scope creep.
 
 Call the Skill tool with "tdd" for the loop's rules; if it is unavailable, run the same loop by hand: failing test → minimal code → green → refactor. Start from the ticket's **Test scenarios**: one test per line, in the order given, and add any case you discover under the same category headings in the PR body. Follow the in-repo pattern the brief names. Keep the **Produces** signatures in **Interfaces** exactly as the ticket states them; another ticket, possibly in another repo, is coded against those names. Import what you **Consume** by the names the producing ticket published; if a name differs in the merged code, stop and report rather than adapt silently. A **Consumes** line from another repo carries an *Available when* clause: if that thing is not reachable from your checkout (the route 404s, the client method is missing), you are `BLOCKED`, not creative.
+
+When the ticket touches a docs page or a docstring, call the Skill tool with `writing-for-humans` before writing its prose.
 
 Run the type checker and the single test file you are working in often; run the full suite once, at the end, before Verify. Commit as you go with conventional messages. Do not squash history yourself; the merge does that.
 
@@ -67,7 +69,7 @@ git status --porcelain            # must be empty before Verify counts
 ```
 
 - Green → record it on the commit so hooks and reviewers can see it: `git notes --ref=sdd-verify add -f -m "verified $(date -u +%FT%TZ)" HEAD` and push the note: `git push origin refs/notes/sdd-verify` (ignore failure if notes cannot be pushed; the PR body carries the SHA too).
-- Red → fix and repeat. If the Verify block itself is wrong (a command that cannot exist in this repo), do not edit it silently: say so in the progress comment and in the PR body, and run the closest correct command.
+- Red → fix and repeat. If the Verify block itself is wrong (a command that cannot exist in this repo), do not edit it silently: say so in the progress comment and on the PR body's `Verify block corrected:` line, and run the closest correct command.
 
 Never open the PR with Verify red or un-run.
 
@@ -91,7 +93,7 @@ Closes #<N>
 
 Ran the ticket's Verify block on `<short sha>`: passed.
 TDD: RED `<command>` failed as expected (<one line>); GREEN `<command>` passed (<n/n>).
-Verify block corrected: no   <!-- yes, plus what was wrong, when the block could not run as written -->
+Verify block corrected: no   <!-- required, never omitted: `no`, or `yes:` plus what was wrong and the command you ran instead -->
 
 ## Notes for the reviewer
 

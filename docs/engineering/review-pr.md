@@ -24,6 +24,8 @@ Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gatin
 
 **Verify passed on the PR head. Why is Spec a Critical FAIL?** The trial merge went red. Two slices can each be green alone and break together once both land, say a test constant in one meeting a new refusal in the other. When the base has moved, the reviewer merges the PR into the current base locally and runs Verify there too; red only on that tree is a Critical finding naming the base commits it comes from. A textual conflict is reported the same way and never resolved by the reviewer: the fix is the worker rebasing. If the base has not moved, there is one run and no trial merge. `build-epic`'s Verify after each merge stays as the backstop.
 
+**Quality failed on a PR whose Verify passed. Why?** The worker ran something other than the ticket's Verify block and the PR body did not say so: `Verify block corrected: no`, or no such line at all. That is an Important finding, because a silent correction hides a ticket that could not run as written. Saying `yes` with what was wrong is all it takes.
+
 **The ticket asked for less than the epic. Is that a Spec failure?** Only when the ticket doesn't say so. A `Narrows:` line in the ticket (and a matching `Narrowed:` line in the epic's plan comment) records a narrowing the user approved when [to-tickets](../engineering/to-tickets.md) cut the plan, and the reviewer judges that behaviour against the ticket. Without the line, delivering less than the epic is a Missing finding, labelled *ticket-mandated* when the ticket's own criteria asked for less, so the human sees it was the plan and not the worker.
 
 ## It's working if

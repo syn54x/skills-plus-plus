@@ -27,10 +27,14 @@ The issue must be open, unblocked, unassigned and labelled `ready-for-agent`. On
 
 **Why is it model-invoked when `implement` is not?** Workers and the cloud workflow have to start it without a human typing it. A user-invoked skill cannot be reached by another skill or agent at all.
 
+**Which branch does it start from?** The remote integration branch named in the brief (`origin/<integration branch>`), never whatever the worktree happened to be checked out on, which is often the default branch.
+
 ## It's working if
 
 - The PR says `Closes #N`, targets the integration branch named in the brief, and touches only Files owned (anything else is declared in the PR body).
+- `git log origin/<integration branch>..HEAD` on the worker's branch lists only the ticket's own commits, none from the default branch.
 - `git notes --ref=sdd-verify show HEAD` on the PR head says `verified`.
+- The PR body carries a `Verify block corrected:` line, `no` or `yes` with what was wrong.
 - The issue has exactly one `<!-- sdd-progress -->` comment, rewritten as the work moves.
 
 ## Where it fits
