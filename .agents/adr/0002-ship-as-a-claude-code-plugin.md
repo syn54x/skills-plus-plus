@@ -47,3 +47,15 @@ In `syn54x/skills-plus-plus` (see [ADR 0003](./0003-fork-superset-of-mattpocock-
 - **Cursor accepts a `skills` array.** Verified 2026-09-25 with `cursor-agent` 2026.08.31 and `--plugin-dir`: a single `"./skills/"` path does **not** discover the bucketed layout (`skills/engineering/<name>/SKILL.md` was not loaded), while an array of skill directories, or a bucket path like `"./skills/engineering/"`, is. `.cursor-plugin/plugin.json` therefore lists the same promoted set as `.claude-plugin/plugin.json`, and `scripts/check-plugin-skills.sh` keeps the two in step. Cursor loaded `agents/` too, but silently dropped an agent whose frontmatter was invalid YAML (an unquoted `: `); `scripts/check-invocation.py` now rejects that. Cursor's hooks (`hooks/cursor.json`, commands relative to the plugin root as Superpowers ships them) are **unverified**: `cursor-agent -p` gave no stop-hook feedback either way.
 - **Codex is still unverified.** Its manifest takes one `skills` path, so it points at `"./skills/"`. If Codex discovers nested skills at all, it gets every bucket, including `in-progress/` and `misc/`; that trade-off is accepted. Codex was not installed on the machine that wrote this, so nothing about the Codex plugin has been exercised.
 - `scripts/sync-plugin-version.mjs` now keeps all three manifests' `version` equal to `package.json`'s.
+
+## Update, 2026-10-07
+
+The Codex constraint above no longer holds. Codex `main` accepts a `skills` string array and falls back to `.claude-plugin/` when there is no `.codex-plugin/` ([manifest.rs](https://github.com/openai/codex/blob/main/codex-rs/core-plugins/src/manifest.rs)). Codex still drops symlinks.
+
+On Codex 0.161.0, the `@mattpocock` marketplace install loads the promoted model-invoked skills and nothing from `misc/` or `in-progress/`. Copilot CLI reads the same manifests and reports "Installed 27 skills".
+
+## Update, 2026-10-08: managed installs first
+
+`@mattpocock` is now the lead route on Codex, Copilot and VS Code, at the cost of a one-time opt-in on Copilot. Claude Code stays on `claude-plugins-official`, as in the 2026-08-05 update, because it auto-updates by default and needs no `marketplace add`.
+
+The version invariant above now applies to every managed route. `npm run version` already keeps it by running `scripts/sync-plugin-version.mjs`. `marketplace.json` has no `version` field, so it can't drift.

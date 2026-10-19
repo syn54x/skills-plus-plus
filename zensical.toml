@@ -27,6 +27,8 @@ nav = [
       { "to-tickets" = "engineering/to-tickets.md" },
       { "implement" = "engineering/implement.md" },
       { "build-epic" = "engineering/build-epic.md" },
+      { "implement-spec" = "engineering/implement-spec.md" },
+      { "retro" = "engineering/retro.md" },
       { "wayfinder" = "engineering/wayfinder.md" },
     ] },
     { "Model-invoked" = [
@@ -37,7 +39,7 @@ nav = [
       { "domain-modeling" = "engineering/domain-modeling.md" },
       { "codebase-design" = "engineering/codebase-design.md" },
       { "code-review" = "engineering/code-review.md" },
-      { "resolving-merge-conflicts" = "engineering/resolving-merge-conflicts.md" },
+      { "pr" = "engineering/pr.md" },
       { "wizard" = "engineering/wizard.md" },
       { "implement-issue" = "engineering/implement-issue.md" },
       { "review-pr" = "engineering/review-pr.md" },

@@ -16,7 +16,7 @@ Type `/review-panel <pr#>`, or the agent reaches for it when a PR to `main` need
 
 **What does the depth persona do that maintainability does not?** It runs the **depth check** from [codebase-design](../engineering/codebase-design.md): the four questions about shallow modules, extracted-for-testability functions, tests past an interface, and already-shallow modules the PR touched. It is the one persona allowed to read past the diff, bounded to each module the PR adds or whose interface it changes, with its callers and tests. Its Important findings block like any other; its Minor ones are the follow-up deepenings, and they travel with candidate ADRs into [close-epic](../engineering/close-epic.md)'s Learnings so you file them from one place. Prose-only diffs skip it.
 
-**Does it check our ADRs and invariants?** Yes: the standards-and-invariants persona reads `CLAUDE.md`, `AGENTS.md`, `CONTEXT.md`, the coding standards and every ADR, and flags where the diff breaks one. Candidate new ADRs and terminology drift go into [close-epic](../engineering/close-epic.md)'s Learnings.
+**Does it check our ADRs and invariants?** Yes: the standards-and-invariants persona reads `CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`, the coding standards and every ADR, and flags where the diff breaks one. Candidate new ADRs and terminology drift go into [close-epic](../engineering/close-epic.md)'s Learnings.
 
 ## It's working if
 

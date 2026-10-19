@@ -17,7 +17,7 @@ Call the Skill tool with "implement-issue" for <issue URL> and follow it. This b
 
 ## Laws
 
-<the repo rules that bind this slice: from CLAUDE.md / AGENTS.md / CONTEXT.md / ADRs: merge discipline, version pins, test cadence, naming, anything the orchestrator would otherwise have to review for>
+<the repo rules that bind this slice: from CLAUDE.md / AGENTS.md / GLOSSARY.md / ADRs: merge discipline, version pins, test cadence, naming, anything the orchestrator would otherwise have to review for>
 
 ## Seams and patterns
 

@@ -25,7 +25,7 @@ The issue must be **open**, labelled `ready-for-agent`, have **no open blockers*
 
 The body must carry `## What to build`, `## Acceptance criteria`, `## Files owned` (Create / Modify / Test), `## Interfaces` (Consumes / Produces), `## Test scenarios` and `## Verify`. A missing or placeholder section (`TBD`, empty, "add appropriate error handling", "similar to #N") means the ticket is not buildable: add `needs-info`, remove `ready-for-agent`, write one progress comment saying what is missing, and stop.
 
-Read the parent epic body once for the decisions that bind you (`## Implementation Decisions`, `## Testing Decisions`, `## Out of Scope`, as `to-spec` writes them); the parent may live in another repo, so use `gh issue view "$(gh issue view "$N" --json parent --jq .parent.url)"`. Read `CLAUDE.md`/`AGENTS.md`, `CONTEXT.md` and any ADR that touches the files you own.
+Read the parent epic body once for the decisions that bind you (`## Implementation Decisions`, `## Testing Decisions`, `## Out of Scope`, as `to-spec` writes them); the parent may live in another repo, so use `gh issue view "$(gh issue view "$N" --json parent --jq .parent.url)"`. Read `CLAUDE.md`/`AGENTS.md`, `GLOSSARY.md` and any ADR that touches the files you own.
 
 ## 2. Claim
 

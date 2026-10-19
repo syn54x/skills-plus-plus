@@ -98,7 +98,7 @@ For each selected flag, copy the listed files from [REFERENCE.md](./REFERENCE.md
 
 Copy from [AGENT-GUIDES.md](./AGENT-GUIDES.md). Do not paraphrase the I-1 invariant. Substitute `<project-name>` in `docs/agents/design.md`.
 
-Do not create `CLAUDE.md`. Do not pre-seed `docs/agents/issue-tracker.md`, `docs/agents/domain.md`, `docs/agents/triage-labels.md`, or `CONTEXT.md`; those belong to step 9 when `syn54x-skills` is on.
+Do not create `CLAUDE.md`. Do not pre-seed `docs/agents/issue-tracker.md`, `docs/agents/domain.md`, `docs/agents/triage-labels.md`, or `GLOSSARY.md`; those belong to step 9 when `syn54x-skills` is on.
 
 ### Step 6: Placeholders
 
