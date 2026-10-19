@@ -31,9 +31,20 @@ No `Closes #N` → spec verdict fails immediately (the PR is not linked to its t
 
 Check out the PR head in a clean worktree (`gh pr checkout "$PR"` in a throwaway worktree, or the Actions checkout) and run the ticket's `## Verify` block yourself. Also check the Verify note, if the worker pushed one: `git notes --ref=sdd-verify show HEAD`.
 
+**Trial merge.** Two slices can each be green on their own heads and red together. Check whether the base moved since the PR branched:
+
+```bash
+BASE=$(gh pr view "$PR" --json baseRefName --jq .baseRefName)
+git fetch origin "$BASE"
+MB=$(git merge-base HEAD "origin/$BASE")
+git log --oneline "$MB..origin/$BASE"     # empty: the base has not moved, one Verify run as above
+```
+
+If that lists commits, run Verify a second time on a local trial merge of the PR head into the current base, in the same throwaway worktree: `git switch --detach && git merge --no-edit "origin/$BASE"`, then the Verify block again. The trial merge is never pushed; discard the worktree when you are done. A textual conflict is a result, not a task: record the conflicting files (`git diff --name-only --diff-filter=U`), `git merge --abort`, and do not resolve it, since picking a side discards one ticket's intent. This applies to slice PRs; full-epic mode below is unchanged.
+
 **Do not trust the report.** The PR body, the progress comment and the worker's message are unverified claims about the code. Verify each against the diff. A stated rationale ("kept it simple per YAGNI", "left it out deliberately") is the worker grading its own work; it never downgrades a finding.
 
-**The diff is your view.** Read it once, with its context lines. Look outside the diff only to check a concrete risk you can name (a changed contract, lock ordering, shared mutable state → check the call sites), one focused check per named risk, and say what you checked. The one standing carve-out is step 4's depth check. Do not crawl the codebase. Your checkout is read-only: no edits, no staging, no branch changes beyond the checkout itself.
+**The diff is your view.** Read it once, with its context lines. Look outside the diff only to check a concrete risk you can name (a changed contract, lock ordering, shared mutable state → check the call sites), one focused check per named risk, and say what you checked. The one standing carve-out is step 4's depth check. Do not crawl the codebase. Your checkout is read-only: no edits, no staging, no branch changes beyond the checkout itself and the unpushed trial merge.
 
 ## 3. Spec verdict
 
@@ -45,7 +56,7 @@ Against the sub-issue body only. Ignore how nice the code is. Classify each gap 
 - **Interfaces**: every **Produces** line exists with exactly that signature (names, types, events, routes), and every **Consumes** line is used by the published name, not a local alias. A drift here breaks a sibling ticket, possibly in another repo: for a cross-repo **Produces** (a route, a schema), check the contract against the consuming ticket's Consumes line, not just the local tests.
 - **Out of scope** items from the epic are not touched.
 - A `**Narrows:**` line in the ticket is accepted scope: the user approved that narrowing when the tickets were cut, so the behaviour it names is judged against the ticket, not the epic. A ticket that delivers less than the epic states *without* that line is a **Missing** finding, labelled *ticket-mandated* if the ticket's own criteria asked for less.
-- Verify is green on the PR head.
+- Verify is green on the PR head and, when step 2 ran one, on the trial merge. Red only on the trial merge is a **Critical** finding (it breaks a sibling ticket) naming the base commits since `$MB` that it comes from, narrowed to those touching the failing files where you can tell. A trial-merge conflict is a **Critical** finding listing the conflicting files and those base commits, left unresolved; the fix round is the worker's rebase.
 - Something you cannot verify from the diff alone (it lives in unchanged code, or spans tickets) is reported as **Cannot verify** next to the verdict, for the orchestrator to check, not a reason to widen the search.
 
 ## 4. Quality verdict
@@ -77,7 +88,8 @@ Cannot verify: <items, or none>
 ## Quality: PASS | FAIL
 <findings, each: severity · file:line at <sha> · what is wrong · why it matters · fix if not obvious>
 
-Verify: passed | failed on `<short sha>` (`<command that failed>`)
+Verify: PR head `<short sha>` passed | failed (`<command that failed>`)
+Trial merge: not run (base unchanged) | `<short sha>` into `<base>` at `<short sha>` passed | failed (`<command that failed>`) | conflict (`<files>`)
 ```
 
 Every line is a verdict, a finding, or a check you ran. No preamble, no narration, no closing summary.
@@ -92,7 +104,7 @@ Update the sub-issue's progress comment (call the Skill tool with "sync-progress
 
 - **PASS / PASS** → tell the orchestrator (or, in the cloud path, label the issue `ready-for-human` so a person merges).
 - **Any FAIL, first time** → the Critical and Important findings go back to the **same worker** for exactly one fix round (orchestrator resumes it by name; cloud: comment on the issue mentioning the failing items and re-add `ready-for-agent`).
-- **When the PR updates** → a **scoped re-review**, not a fresh one: diff only from the head you reviewed to the new head; verdict every finding `ADDRESSED` / `NOT ADDRESSED` with file:line ("attempted" is not addressed; the defect must be gone); flag new Critical/Important breakage in the fix diff; anything you notice outside the fix diff goes under *Out-of-scope observations* and does not block. Re-run Verify.
+- **When the PR updates** → a **scoped re-review**, not a fresh one: diff only from the head you reviewed to the new head; verdict every finding `ADDRESSED` / `NOT ADDRESSED` with file:line ("attempted" is not addressed; the defect must be gone); flag new Critical/Important breakage in the fix diff; anything you notice outside the fix diff goes under *Out-of-scope observations* and does not block. Re-run Verify by step 2's rule: on the new head, and on a fresh trial merge if the base has moved since the new head's merge base.
 - **Findings still open after the fix round** → `gh issue edit "$N" --add-label ready-for-human --remove-assignee @me`; leave the PR open with the review on it. Stop. (The orchestrator may choose one ceiling-tier re-dispatch before that; see `build-epic`.)
 
 ## Full-epic review
