@@ -24,6 +24,8 @@ Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gatin
 
 **The ticket asked for less than the epic. Is that a Spec failure?** Only when the ticket doesn't say so. A `Narrows:` line in the ticket (and a matching `Narrowed:` line in the epic's plan comment) records a narrowing the user approved when [to-tickets](../engineering/to-tickets.md) cut the plan, and the reviewer judges that behaviour against the ticket. Without the line, delivering less than the epic is a Missing finding, labelled *ticket-mandated* when the ticket's own criteria asked for less, so the human sees it was the plan and not the worker.
 
+**The worker changed a Produces signature. Is that a failure?** Not if it says so. An `Interfaces changed:` line in the PR body declares an **Interface deviation** on an in-repo signature: the reviewer checks the code matches the new signature and judges whether the ticket's one really could not work. An unneeded deviation is an Important Quality finding, fixed by reverting to the ticket's signature. A signature that differs with no line is Important too, and one on a cross-repo contract or an interface the epic states is never allowed.
+
 ## It's working if
 
 - Every slice PR has one review comment with `## Spec: PASS | FAIL`, `## Quality: PASS | FAIL` and a `Verify:` line naming the commit it ran on.

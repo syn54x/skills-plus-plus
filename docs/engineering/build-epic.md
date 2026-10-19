@@ -38,6 +38,8 @@ A worker's PR goes to [review-pr](../engineering/review-pr.md). A failing review
 
 **The epic closed the moment I merged the PR to `main`. Did I skip something?** No, that is the intended path: the integration PR says `Closes #<epic>` so the epic closes when the work lands. [close-epic](../engineering/close-epic.md) still runs afterwards and posts the summary and retro against the closed epic. In a multi-repo epic only the PR in the epic's own repo carries that line, so a repo that holds tasks but no epic closes nothing.
 
+**A merged slice shipped a different signature from its ticket. Who fixes the consumers?** The orchestrator, before it dispatches any of them. When a worker declares an **Interface deviation** and the PR merges, the producer ticket's Produces line and every consumer ticket's Consumes line are rewritten to the shipped signature, and the change is recorded under `Deviated:` in the epic's plan comment, so the main gate knows it was accepted. No consumer is running yet, because every Consumes line is blocked by its producer.
+
 **Can I use Agent Teams instead of worktree waves?** Not in the same session. Teammates get no worktree isolation and cost several times the tokens; the skill stops if the Agent Teams flag is set.
 
 ## It's working if

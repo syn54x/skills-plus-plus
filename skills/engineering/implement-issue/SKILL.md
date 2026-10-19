@@ -51,7 +51,7 @@ Determine where you are:
 
 Work only inside **Files owned** (its Create, Modify and Test paths). If the slice genuinely needs a file outside that list, you may touch it, but say so in the PR body under **Outside Files owned** with the reason; the reviewer decides whether that is scope creep.
 
-Call the Skill tool with "tdd" for the loop's rules; if it is unavailable, run the same loop by hand: failing test → minimal code → green → refactor. Start from the ticket's **Test scenarios**: one test per line, in the order given, and add any case you discover under the same category headings in the PR body. Follow the in-repo pattern the brief names. Keep the **Produces** signatures in **Interfaces** exactly as the ticket states them; another ticket, possibly in another repo, is coded against those names. Import what you **Consume** by the names the producing ticket published; if a name differs in the merged code, stop and report rather than adapt silently. A **Consumes** line from another repo carries an *Available when* clause: if that thing is not reachable from your checkout (the route 404s, the client method is missing), you are `BLOCKED`, not creative.
+Call the Skill tool with "tdd" for the loop's rules; if it is unavailable, run the same loop by hand: failing test → minimal code → green → refactor. Start from the ticket's **Test scenarios**: one test per line, in the order given, and add any case you discover under the same category headings in the PR body. Follow the in-repo pattern the brief names. Keep the **Produces** signatures in **Interfaces** exactly as the ticket states them; another ticket, possibly in another repo, is coded against those names. The one exit is a declared **Interface deviation**: when an in-repo code signature (function, type, enum, struct) cannot work as written, ship the signature that works, add one `Interfaces changed:` line per deviation to the PR body, and report `DONE_WITH_CONCERNS`. A cross-repo contract (a route and its request/response shapes, an event payload, a generated-client method) and any interface the epic body states never deviate: stop with `NEEDS_CONTEXT`. Import what you **Consume** by the names the producing ticket published; if a name differs in the merged code, stop and report rather than adapt silently. A **Consumes** line from another repo carries an *Available when* clause: if that thing is not reachable from your checkout (the route 404s, the client method is missing), you are `BLOCKED`, not creative.
 
 Run the type checker and the single test file you are working in often; run the full suite once, at the end, before Verify. Commit as you go with conventional messages. Do not squash history yourself; the merge does that.
 
@@ -92,6 +92,10 @@ Closes #<N>
 Ran the ticket's Verify block on `<short sha>`: passed.
 TDD: RED `<command>` failed as expected (<one line>); GREEN `<command>` passed (<n/n>).
 Verify block corrected: no   <!-- yes, plus what was wrong, when the block could not run as written -->
+
+## Interfaces
+
+Interfaces changed: none   <!-- or, one line per Interface deviation: `<old signature>` → `<new signature>`: <why the ticket's signature could not work as written> -->
 
 ## Notes for the reviewer
 

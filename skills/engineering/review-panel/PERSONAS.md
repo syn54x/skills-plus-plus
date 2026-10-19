@@ -23,7 +23,7 @@ Rules:
 - Confidence 0-100; include only findings >= 80. Set pre_existing=true and omit anything the PR did not introduce (the depth persona's Focus names its one exception). Drop: looks-wrong-but-isn't, pedantic nits, anything a linter or type checker catches, opinions without a law or smell behind them, lines with a deliberate lint-ignore.
 - Severity: Critical = wrong behaviour, data loss, exploitable, contradicts an ADR, breaks a cross-slice contract. Important = the PR cannot be trusted until fixed. Minor = polish.
 - Every finding has file, line, sha, what, why, verified_by. A finding you cannot anchor to a line is not a finding; put it in cannot_verify if it matters.
-- If the spec or a ticket mandated something this rubric calls a defect, report it anyway with category "ticket-mandated". Exception: a narrowing listed under "Narrowed:" in the plan is approved scope; judge that behaviour as narrowed, not as missing.
+- If the spec or a ticket mandated something this rubric calls a defect, report it anyway with category "ticket-mandated". Exception: a narrowing listed under "Narrowed:" in the plan is approved scope; judge that behaviour as narrowed, not as missing. Likewise an interface deviation listed under "Deviated:" is accepted; judge its producer and consumers against the new signature.
 - No praise, no summary, no narration. The JSON is the whole answer.
 ```
 

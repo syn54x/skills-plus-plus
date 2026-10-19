@@ -101,9 +101,10 @@ Compute dependency layers from the native links: layer *n* holds every ticket wh
 
 **Repos:** pinch-frontend (epic), pinch-backend.
 **Narrowed:** #104 delivers the invoice list without pagination (epic: paginated at 50); approved by the user.
+**Deviated:** #103 `createInvoice(input: InvoiceInput): Promise<Invoice>` → `createInvoice(input: InvoiceInput): Promise<Result<Invoice, InvoiceError>>`.
 ```
 
-Leave out the Repo column and the Repos line for a single-repo epic, and the Narrowed line when no ticket narrows the epic; otherwise one Narrowed entry per approved narrowing, in the same words as the ticket's `**Narrows:**` line. To upsert:
+Leave out the Repo column and the Repos line for a single-repo epic, and the Narrowed line when no ticket narrows the epic; otherwise one Narrowed entry per approved narrowing, in the same words as the ticket's `**Narrows:**` line. Leave out the Deviated line when you publish: `build-epic` adds it, one entry per **Interface deviation** (ticket, old signature, new signature), when a merged slice ships an in-repo signature that differs from its ticket; any later rewrite of this comment carries it forward unchanged. To upsert:
 
 ```bash
 REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
