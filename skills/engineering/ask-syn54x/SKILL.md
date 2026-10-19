@@ -108,6 +108,7 @@ Off the main flow entirely.
 - **`/adhd`** and **`/eli5`**: the same explanation, shorter. `/adhd` for the point in three bullets or fewer; `/eli5` for plain words and one everyday analogy.
 - **`/prepare-release-notes`**: draft the highlights for a GitHub Release from what merged since the last tag, and print the release command for you to run.
 - **`/writing-for-agents`** is the reference for writing documents agents consume: skills, AGENTS.md, pointed-at docs.
+- **`/writing-for-humans`** is its counterpart for prose a person reads: release notes, PR bodies, docs pages, docstrings, issue and summary comments. Model-invoked, so `/prepare-release-notes`, `/pr`, `implement-issue` and `close-epic` load it at their drafting step; type it when you're writing such prose by hand.
 
 ## Precondition
 

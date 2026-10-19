@@ -10,6 +10,8 @@ Type `/review-panel <pr#>`, or the agent reaches for it when a PR to `main` need
 
 ## Common questions
 
+**After FIX FIRST, does it run the whole panel again?** No, it runs a narrower re-review. Fix slices that each pass their own gate can still break where they meet, so the re-review checks each earlier finding by id, re-runs the Spec and Coherence verdicts on the fixed head, and runs a **Composition pass**: the always-on personas, plus any conditional the fix diff warrants, reading all of that round's fixes as one diff. Its report opens with `Round 2` (or `Round 3`), is posted only when you say so, and leaves the first report untouched. After two fix rounds, anything still blocking comes to you as **HUMAN DECISION** instead of a third round.
+
 **Why are findings numbered `F1` and not `#1`?** GitHub turns a bare `#1` in a comment into a link to issue or PR 1, so a report posted as a comment linked to unrelated work.
 
 **A finding says `ticket-mandated`. What do I do with it?** A ticket told the worker to do something the rubric calls a defect, and the panel reports it anyway so the decision is yours. One case is exempt: a narrowing that the epic's plan comment lists under `Narrowed:` was approved when [to-tickets](../engineering/to-tickets.md) cut the plan, so the panel judges that behaviour as narrowed and not as missing.
@@ -23,6 +25,7 @@ Type `/review-panel <pr#>`, or the agent reaches for it when a PR to `main` need
 - The persona set is announced, with a reason for each conditional one, before any reviewer runs.
 - The report has one verdict, findings with `F` numbers, file and line, and a Coverage section saying what was dropped and why.
 - Nothing is posted to the PR until you approve it.
+- After a fix round, a separate `Round 2` report says `ADDRESSED` or `NOT ADDRESSED` for each earlier `F` number and lists only the new findings.
 
 ## Where it fits
 

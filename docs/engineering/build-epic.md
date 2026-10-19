@@ -28,6 +28,8 @@ Each worker is an isolated subagent in its own worktree, branched from the integ
 
 A worker's PR goes to [review-pr](../engineering/review-pr.md). A failing review sends the findings back to the same worker for exactly one fix round; findings still open after that go to `ready-for-human`. A merge conflict is never hand-resolved: the worker rebases and re-runs Verify.
 
+The PR to `main` goes to [review-panel](../engineering/review-panel.md). A **FIX FIRST** verdict sends its findings to the workers that own the files, and once those fix slices merge, the panel re-reviews the new head: each earlier finding checked by id, the Spec and Coherence verdicts re-run, and a **Composition pass** over the fix slices together. That loop runs at most twice; still FIX FIRST after the second fix round, it comes to you as **HUMAN DECISION**.
+
 ## Common questions
 
 **Why did my workers stall before writing any code?** In the pack this replaces, the worker had to start a user-invoked skill, which no agent can do. Here `implement-issue` is model-invoked and the `sdd-worker` agent preloads it, and `scripts/check-invocation.py` fails CI if any skill or agent calls a user-invoked skill again.
@@ -37,6 +39,10 @@ A worker's PR goes to [review-pr](../engineering/review-pr.md). A failing review
 **My sub-issues stayed open after their PRs merged.** GitHub honours `Closes #N` only on a PR into the default branch, so a merge into `feat/<slug>` closes nothing by itself. The orchestrator now closes each sub-issue after its gated merge, if it is still open; the worker's `Closes #N` stays because it links the PR to the ticket, and it does the closing in the one-ticket case that targets `main`.
 
 **The epic closed the moment I merged the PR to `main`. Did I skip something?** No, that is the intended path: the integration PR says `Closes #<epic>` so the epic closes when the work lands. [close-epic](../engineering/close-epic.md) still runs afterwards and posts the summary and retro against the closed epic. In a multi-repo epic only the PR in the epic's own repo carries that line, so a repo that holds tasks but no epic closes nothing.
+
+**My workers branched from `main`, not the integration branch.** A harness worktree can start on the default branch whatever your own checkout is on. The brief's first step fetches the integration branch, cuts `sdd/<N>-<slug>` from `origin/<integration branch>` and checks the merge base before any code is written, so the worker lands on the right base by following the brief alone.
+
+**A re-review went to a fresh reviewer that redid the whole review.** A PR's worker and reviewer worktrees now stay until that PR merges or goes to `ready-for-human`, so a sibling's merge no longer removes the reviewer you need to resume. When a reviewer cannot be resumed anyway, the fresh one gets the earlier findings by id and the head SHA they were reviewed at, and runs only the scoped re-review.
 
 **Can I use Agent Teams instead of worktree waves?** Not in the same session. Teammates get no worktree isolation and cost several times the tokens; the skill stops if the Agent Teams flag is set.
 

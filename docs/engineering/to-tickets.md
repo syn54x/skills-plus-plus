@@ -66,6 +66,8 @@ When [setup-syn54x-skills](../engineering/setup-syn54x-skills.md) has switched t
 | Native parent and blocked-by links, created with each issue | the ready queue is computed by `gh`, not read from prose |
 | One `<!-- sdd-plan -->` comment on the epic | the dependency layers at a glance, rewritten in place when tickets change |
 | A **narrowing** check, and a `Narrows:` line where one is approved | a ticket that quietly delivers less than the epic states is caught here, not by the reviewer of the final PR |
+| **Code checks** read against the repo: every Test scenario's data exists, output pins and callers of a changed signature are in Files owned, every Verify command resolves and its pre-existing commands are green on the default branch | what would otherwise surface mid-build as a ruling, an edit outside Files owned, or a worker quietly fixing the Verify block |
+| `ready-for-agent` taken off the epic once its Sub-issues are published | only the Sub-issues are claimable; the readiness rule would otherwise match the epic itself |
 
 A ticket that still has a placeholder (`TBD`, "add appropriate error handling", a name no ticket defines) is published as `needs-info` rather than `ready-for-agent`. A ticket whose files live in another repo is created there, parented to the same epic.
 
@@ -97,6 +99,12 @@ The template asks for criteria and says nothing about whether they can fail, so 
 **The final review failed Spec on something a ticket told the worker to do.**
 The ticket narrowed the epic: it kept the requirement but dropped a case, a limit or an error path, and the reviewers only see that gap at the PR to `main`, where they label it `ticket-mandated`. On the SDD pipeline the consistency pass now checks each requirement keeps its full strength in its tickets. An accidental narrowing is widened in place; a deliberate one is put to you, and once approved it is written as a `Narrows:` line in the ticket and a `Narrowed:` line in the plan comment, which [review-pr](../engineering/review-pr.md) and [review-panel](../engineering/review-panel.md) read as accepted scope. A narrowing with no line is still a defect, on purpose.
 
+**The epic itself showed up as a ready ticket.**
+`to-spec` labels a spec `ready-for-agent`, and the readiness rule (open, unblocked, unassigned, `ready-for-agent`) matched the epic too. Fixed: on the SDD pipeline, `to-tickets` takes the label off the epic when it publishes the Sub-issues. A spec used outside the pipeline keeps it.
+
+**A worker had to change a file outside Files owned, or fix the ticket's Verify block.**
+Those tickets were written from the plan rather than the code: a scenario asserting on a field only an internal record carries, an error the code never raises, a test pinning the exact output the ticket changes, a caller of a changed signature, a Verify line for a tool the repo does not use or a lint already red on `main`. The SDD pass now reads the code for each before publishing and fixes the ticket, or publishes it `needs-info`. The new Modify entries can collide and cost some parallelism; that is the accepted price.
+
 **The tickets are published. How do I actually run them?**
 The skill stops at the artifact, and there is no auto-dispatch mode. Dispatch is manual: look at the board, count the tickets with no open blockers, and open that many agent sessions. Give each ticket a fresh context, and clear between them. [implement](../engineering/implement.md) does not reliably close or check off the ticket when it finishes, on GitHub or in local markdown, so you update the ticket's state yourself.
 
@@ -109,6 +117,7 @@ The skill stops at the artifact, and there is no auto-dispatch mode. Dispatch is
 - Each ticket reads like something a fresh session could finish without you in the room.
 - Prefactoring, where it found any, is at the front of the order rather than mixed into feature tickets.
 - On the SDD pipeline: every ticket carries Files owned, Interfaces, Test scenarios and Verify, is a native sub-issue of the epic with native blocking edges, and the epic has exactly one plan comment.
+- On the SDD pipeline: the epic no longer carries `ready-for-agent`, no worker PR says `Verify block corrected: yes`, and none needs a ruling to touch a test or caller outside Files owned.
 - On the SDD pipeline: any ticket that delivers less than the epic states says so in a `Narrows:` line you were asked about, and the report table shows the same narrowings.
 
 ## Where it fits
