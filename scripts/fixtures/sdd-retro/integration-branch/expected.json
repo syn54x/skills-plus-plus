@@ -1,0 +1,45 @@
+{
+ "schema": "sdd-retro/2",
+ "epic": "https://github.com/acme/app/issues/1",
+ "tickets": {
+  "total": 3,
+  "by_size": {
+   "S": 1,
+   "M": 1,
+   "L": 1
+  },
+  "repos": 1
+ },
+ "escalations": {
+  "needs_info": 1,
+  "ready_for_human": 0,
+  "blocked": 0
+ },
+ "edges_added": 1,
+ "fix_rounds": {
+  "total": 3,
+  "prs_with_rounds": 2,
+  "max": 2
+ },
+ "verify_corrections": 1,
+ "panel": {
+  "rounds": 2,
+  "personas": [
+   "correctness",
+   "testing",
+   "maintainability",
+   "standards-and-invariants",
+   "history",
+   "depth",
+   "api-contract"
+  ],
+  "critical": 1,
+  "important": 3,
+  "minor": 1,
+  "dropped": 3
+ },
+ "cycle": {
+  "median_hours_claim_to_pr": 2.0
+ },
+ "not_found": []
+}

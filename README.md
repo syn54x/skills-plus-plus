@@ -71,7 +71,7 @@ flowchart TD
 3. `/to-tickets <epic#>` cuts tracer-bullet sub-issues. On this flow it also gives each one Files owned, Interfaces, Test scenarios and a Verify block, sizes it, links it natively (`--parent`, `--blocked-by`, in another repo when the code lives there), and pins one plan comment on the epic.
 4. `/build-epic <epic#>` builds the epic in waves; `/implement #N` builds one issue. Each worker claims its issue, branches, writes failing tests first, runs Verify, and opens a PR with `Closes #N`. Workers never merge.
 5. `review-pr` gates each slice PR into the integration branch: a fresh reviewer, Verify re-run, separate spec and quality verdicts, one fix round, then `ready-for-human`.
-6. `review-panel` gates the PR to `main`, once per epic. You merge it.
+6. `review-panel` gates the PR to `main`, once per epic, plus a re-review after each of at most two fix rounds. You merge it.
 7. `close-epic` checks every sub-issue is closed and the PR to `main` merged, posts the summary and the retro, and closes the epic.
 
 Steps 5 to 7 are model-invoked: `/build-epic` reaches them, and you rarely type them.
@@ -129,7 +129,7 @@ None of these is a dependency:
 
 ### Retros and skill feedback
 
-`close-epic` posts a retro on the epic under `<!-- sdd-retro -->`. The counts come from label events, marker comments, and PR reviews: tickets by size, escalations, edges added mid-build, fix rounds, Verify-block corrections, panel findings, how many findings were dropped, and claim-to-PR time. The retro names which workflow step was weak. It stays in the user's repo.
+`close-epic` posts a retro on the epic under `<!-- sdd-retro -->`. The counts come from label events, marker comments, and PR reviews and comments: tickets by size, escalations, edges added mid-build, fix rounds, Verify-block corrections, panel findings, how many findings were dropped, and claim-to-PR time. The retro names which workflow step was weak. It stays in the user's repo.
 
 Learnings are tagged `[repo]`, `[reusable]`, or `[skill]`. A `[skill]` learning is one the retro counts support.
 
@@ -307,3 +307,4 @@ General workflow tools, not code-specific.
 
 - **[grilling](./skills/productivity/grilling/SKILL.md)**: Interview the user relentlessly about a plan, decision, or idea until every branch of the design tree is resolved. The reusable interview primitive behind `grill-me`, `grill-with-docs`, `triage`, `wayfinder`, `improve-codebase-architecture` and `improve-pr-architecture`.
 - **[writing-for-agents](./skills/productivity/writing-for-agents/SKILL.md)**: Writing documents for agents: skills, AGENTS.md/CLAUDE.md, and any doc an agent reaches by a pointer.
+- **[writing-for-humans](./skills/productivity/writing-for-humans/SKILL.md)**: Editorial rules for prose a person reads: release notes, PR bodies, docs pages, docstrings, and issue and summary comments.

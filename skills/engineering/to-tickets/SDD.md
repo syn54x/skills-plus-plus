@@ -41,10 +41,19 @@ Rules:
 - **Files owned** is the parallel-safety contract, and it overrides the "avoid specific file paths" rule at the end of `SKILL.md`: here a path is a claim on the file, not a description of the code. `Modify` and `Test` paths must not appear in two tickets that can run at the same time; two tickets may each *create* different files in one directory. If a path collides, merge the tickets or add a blocking edge. Directories (`src/billing/**`) are allowed but shrink the frontier, so prefer files.
 - **Interfaces** is how a worker learns the names its neighbours use. **Consumes** lists what this ticket relies on from earlier tickets, naming the producer; **Produces** lists exact names, parameter and return types, events and routes that later tickets rely on, naming the consumer. Every Consumes line needs a blocking edge to its producer. Across repos, name the ticket as `owner/repo#N` and state the contract, not the code (the route and its request/response shape, the event and payload, the generated-client method), and add an **Available when** clause ("backend PR merged to `feat/<slug>` and preview deployed"), because a cross-repo consumer is ready only when the producer is reachable, not merely closed.
 - **Test scenarios** are what the worker turns into tests, one line each, prefixed Happy path / Edge case / Error path / Integration. Include only the categories that apply. A ticket with no behavioural change says `Test expectation: none, because <reason>` rather than leaving the section empty.
-- **Verify** is fenced, runnable from the repo root, and green means done. The worker runs it before opening its PR and the reviewer runs it again. No "manually check that…" lines.
+- **Verify** is fenced, runnable from the repo root, and green means done. The worker runs it before opening its PR and the reviewer runs it again. No "manually check that…" lines. Every command must resolve in this repo (check 4 of the code checks below).
 - **No placeholders.** Any of these means the ticket is not ready: `TBD`, `TODO`, `?`, an empty section; "add appropriate error handling / validation / edge cases"; "write tests for the above" with no scenarios; "similar to ticket N" instead of the content; a name in Interfaces that no ticket defines; an acceptance criterion that says what to do without saying how it is checked. Publish that ticket with `needs-info` instead of `ready-for-agent`, and tell the user what is missing.
 
 Then one **consistency pass**: every name in a Consumes line appears in an earlier ticket's Produces line with the same signature, and every requirement in the epic maps to at least one ticket. Fix inline; don't re-quiz the user for these.
+
+The pass then runs four **code checks** on every ticket, reading the code rather than the ticket. Fix each failure inline; a ticket you cannot fix is published `needs-info` under the no-placeholders rule.
+
+1. **Scenario data exists.** Every Test scenario asserts on data (a field, an event, a rendered part) that exists on the type or report it names, either in today's code or in a Produces line of this ticket or an earlier one. When it does not, add the Produces line and the ticket work that creates it, or rewrite the scenario against data that exists. Every Error path scenario names an error the code already raises or one this ticket's Produces adds.
+2. **Output pins.** For a ticket that changes user-visible output (a printed line, a heading, rendered text, an error message), search for the tests, snapshots and example scripts that assert that exact output, and list each under Files owned as Modify or Test. A ticket that changes no output is not searched.
+3. **Callers of changed signatures.** For a ticket that changes an existing signature, list every existing caller under Files owned as Modify.
+4. **Verify resolves.** Every binary and subcommand in the Verify block resolves: the tool is installed or declared in the repo's toolchain (`package.json` scripts, `pyproject.toml`, `Makefile`, the CI workflow), and the subcommand exists (`<tool> <subcommand> --help`). Then baseline each command that does not depend on the ticket's new code (lint, typecheck, build, a test path that already exists): run it on the current default branch, where it must be green, or the ticket inherits a red it cannot fix. A command that runs tests the ticket will add is expected to fail now, so check only that it resolves. Do not run whole test suites here; for a suite command, resolution is enough.
+
+New Modify and Test entries from checks 2 and 3 go through the Files owned collision rule: merge the tickets or add a blocking edge. Losing some parallelism is the accepted cost.
 
 The pass also checks that each requirement keeps its **full strength** in the tickets it maps to. A ticket **narrows** the epic when its acceptance criteria or Test scenarios drop a case, input, limit, error path or platform the epic states, or add a qualifier the epic does not have ("for now", "only X", "except when"). A requirement that maps to a ticket but arrives narrower is the gap the reviewers otherwise catch last, as a `ticket-mandated` Spec finding on the PR to `main`.
 
@@ -74,11 +83,12 @@ Step 5's real-tracker branch applies, with these specifics:
     --parent "$EPIC_URL" --blocked-by 101,102 \
     --label ready-for-agent --label size:M                            # --type Task in org mode
   gh issue edit "$EPIC" --type Epic                                   # org mode only
+  gh issue edit "$EPIC" --remove-label ready-for-agent --add-label needs-plan   # both modes
   ```
 
   Keep the `## Blocked by` prose in the body too, for humans; the native edge is what the orchestrator trusts. To fix an edge later: `gh issue edit "$N" --add-blocked-by <n>` or `--remove-blocked-by <n>`.
 
-- Add the `needs-plan` label to the epic while you publish, and remove it once the plan comment below is up.
+- On the epic, in both modes, remove `ready-for-agent` and add `needs-plan` while you publish; remove `needs-plan` once the plan comment below is up. `to-spec` labels the spec agent-ready, but once it has Sub-issues only they are claimable, and the readiness rule would otherwise match the epic itself.
 
 ## 3. Pin the plan on the epic
 

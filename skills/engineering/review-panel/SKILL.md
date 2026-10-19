@@ -129,13 +129,55 @@ After the comment is posted, update the epic's progress: upsert under `<!-- sdd-
 
 ## 7. Route
 
-- **FIX FIRST** → the orchestrator sends Critical and Important findings back to the workers that own the files (by ticket, from `Files owned`), one fix round each, then a **scoped re-review**: one persona (`correctness`, or the persona that raised the finding) verdicts each finding by id (`F1` `ADDRESSED` / `NOT ADDRESSED`) and inspects the fix diff only. Not a fresh panel. Cite `F1`, never `#1`.
+- **FIX FIRST** → the orchestrator sends Critical and Important findings back to the workers that own the files (by ticket, from `Files owned`), one fix round each. Once that round's fixes have merged onto the integration branch, run a **re-review** on the PR's new head (below).
+- **Cap: two fix rounds.** If the Round 3 re-review would say FIX FIRST (a Critical or a Spec FAIL still open after the second fix round, or Verify red), its verdict is **HUMAN DECISION** instead: hand it to the user with the open findings. A third fix round never starts.
 - **HUMAN DECISION** and **MERGE** → hand to the user with the report. Candidate ADRs, terminology drift and Minor `depth` findings go to `close-epic`'s Learnings, so the follow-up deepenings are filed from one place.
+
+### Re-review
+
+`LAST` is the head the panel last reviewed (the first report's `$HEAD`, or the previous re-review's `NEW`); `NEW` is the PR's head now. The **fix diff** is the combined diff of the round's fix slices: `git diff -U8 "$LAST" "$NEW" > /tmp/review-panel/$PR/fix-<round>.patch`. Three parts, all on `NEW`:
+
+1. **Per-finding check.** One persona (`correctness`, or the persona that raised the finding) verdicts each open Critical and Important finding by id, `F1` `ADDRESSED` / `NOT ADDRESSED`, against the fix diff. Cite `F1`, never `#1`.
+2. **Spec and Coherence re-run.** Step 2 again: `review-pr`'s full-epic Spec and Coherence verdicts on `NEW`, verbatim, plus the aggregate Verify.
+3. **Composition pass.** The always-on personas, plus each conditional step 3's table warrants for the **fix diff** (a conditional the fix diff does not touch is dropped, even if the first panel ran it), dispatched as in step 4 once over the whole fix diff, not slice by slice, with the fix patch as their view. Merge and gate as in step 5. New findings continue the ids from the last report (`F24`, `F25`, …).
+
+The verdict follows step 6's rule over what is still open: `NOT ADDRESSED` findings, new findings, and the re-run verdicts. The report opens with the same heading plus a round marker, `Round 2` after the first fix round and `Round 3` after the second; `close-epic`'s retro counts each marked report as a panel round. Show it and post it under step 6's rule, as a new PR comment. The first report and earlier re-reviews are never edited.
+
+```markdown
+## Verdict: MERGE | FIX FIRST | HUMAN DECISION · Round 2
+<one sentence: the reason>
+
+## Earlier findings
+| Id | Status | Evidence |
+|---|---|---|
+| F1 | ADDRESSED | `src/billing/invoice.ts:88` @ `<sha7>` |
+
+## Spec: PASS | FAIL
+<review-pr's full-epic spec findings on NEW, verbatim>
+
+## Coherence
+<review-pr's cross-slice contract findings on NEW, verbatim>
+
+## New findings
+### Critical
+- F24 `correctness`+`api-contract` · `src/billing/invoice.ts:102` @ `<sha7>` · conf 88 · <title>
+  <what is wrong> · <why it matters> · <fix, if not obvious> · verified by: <what the persona checked>
+### Important
+…
+### Minor
+…
+
+## Coverage
+Fix diff: `<LAST sha7>..<NEW sha7>`, <n> files.
+Personas: correctness, testing, maintainability, standards-and-invariants, history, depth, api-contract (serializer changed in the fix diff).
+Dropped below confidence 80: 1. Cannot verify from diff: <list, or none>.
+Verify: passed | failed on `<sha7>` (`<command>`).
+```
 
 ## Guardrails
 
-- Once per epic, on the PR to `main`. A panel on a slice is a misuse; say so and stop.
+- One panel per epic, on the PR to `main`, plus at most two re-reviews after FIX FIRST fix rounds. A panel on a slice is a misuse; say so and stop.
 - Read-only. The panel never edits, never autofixes, never merges.
-- Do not post the report until the user says to post it. Being asked to run a panel is not that yes.
+- Do not post a report, first or re-review, until the user says to post it. Being asked to run a panel is not that yes.
 - One schema, one severity scale, one confidence gate, for every persona. A finding without a line, a SHA and a checked risk is not a finding.
 - Findings are ranked by severity within the Spec and Quality axes, never reranked across them; Spec FAIL is not softened by a clean panel.

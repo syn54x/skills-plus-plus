@@ -1,0 +1,101 @@
+{
+ "issues": {
+  "https://github.com/acme/miss/issues/1": {
+   "url": "https://github.com/acme/miss/issues/1",
+   "labels": [],
+   "closedByPullRequestsReferences": [],
+   "subIssues": {
+    "nodes": [
+     {
+      "url": "https://github.com/acme/miss/issues/2"
+     },
+     {
+      "url": "https://github.com/acme/miss/issues/3"
+     }
+    ]
+   }
+  },
+  "https://github.com/acme/miss/issues/2": {
+   "url": "https://github.com/acme/miss/issues/2",
+   "labels": [
+    {
+     "name": "size:S"
+    }
+   ],
+   "closedByPullRequestsReferences": [],
+   "subIssues": {
+    "nodes": []
+   }
+  },
+  "https://github.com/acme/miss/issues/3": {
+   "url": "https://github.com/acme/miss/issues/3",
+   "labels": [
+    {
+     "name": "size:S"
+    }
+   ],
+   "closedByPullRequestsReferences": [],
+   "subIssues": {
+    "nodes": []
+   }
+  }
+ },
+ "prs": {
+  "https://github.com/acme/miss/pull/5": {
+   "url": "https://github.com/acme/miss/pull/5",
+   "number": 5,
+   "state": "MERGED",
+   "baseRefName": "feat/x",
+   "headRefName": "sdd/2-a",
+   "body": "Fixes the parser.\n\ncloses #2\n",
+   "createdAt": "2026-01-01T01:00:00Z",
+   "reviews": [
+    {
+     "body": "## Spec: PASS\n\n## Quality: PASS\n",
+     "submittedAt": "2026-01-01T02:00:00Z"
+    }
+   ],
+   "comments": []
+  },
+  "https://github.com/acme/miss/pull/9": {
+   "url": "https://github.com/acme/miss/pull/9",
+   "number": 9,
+   "state": "MERGED",
+   "baseRefName": "main",
+   "headRefName": "feat/x",
+   "body": "Closes #1\n",
+   "createdAt": "2026-01-02T00:00:00Z",
+   "reviews": [
+    {
+     "body": "## Verdict: HUMAN DECISION\nOne Important.\n\n## Findings\n### Important\n- F1 `testing` \u00b7 `src/a.test.ts:5` @ `abc1234` \u00b7 conf 85 \u00b7 test asserts nothing\n### Minor\n- F2 `correctness` \u00b7 `src/a.ts:1` @ `abc1234` \u00b7 conf 80 \u00b7 naming\n\n## Coverage\nPersonas: correctness, testing.\nDropped below confidence 80: 0. Cannot verify from diff: none.\n",
+     "submittedAt": "2026-01-02T01:00:00Z"
+    }
+   ],
+   "comments": []
+  }
+ },
+ "events": {
+  "acme/miss#2": [
+   {
+    "event": "assigned",
+    "created_at": "2026-01-01T00:00:00Z"
+   }
+  ],
+  "acme/miss#3": [
+   {
+    "event": "assigned",
+    "created_at": "2026-01-01T00:00:00Z"
+   }
+  ]
+ },
+ "comments": {
+  "acme/miss#1": [
+   {
+    "body": "<!-- sdd-plan -->\n**Integration branch:** `feat/x`\n"
+   },
+   {
+    "body": "<!-- sdd-wave -->\nWave 1: #2, #3\nEdges added: none\n"
+   }
+  ]
+ }
+}

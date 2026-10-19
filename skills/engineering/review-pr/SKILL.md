@@ -56,6 +56,7 @@ Against the repo's laws (`CLAUDE.md`, `AGENTS.md`, ADRs, the pattern the brief n
 - Follows the in-repo pattern; no new abstraction where an existing one fits.
 - No dead code, debug output, commented-out blocks, TODOs without an issue number.
 - Commit history readable; PR body honest.
+- The Verify the worker ran (the PR body and progress comment) matches the ticket's block, or the PR body says `Verify block corrected: yes` with what was wrong. A difference under `Verify block corrected: no`, or a PR body with no such line, is an **Important** finding: a silent correction hides a ticket that lied.
 - Nothing in the diff the ticket did not ask for.
 - Every declared **Interface deviation** was **needed**: the PR's reason shows the ticket's signature could not work as written. An unneeded one is an Important finding whose fix is reverting to the ticket's signature.
 

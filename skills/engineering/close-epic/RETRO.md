@@ -11,7 +11,26 @@ EPIC_URL=https://github.com/owner/repo/issues/42
 EPIC_REPO=$(printf '%s' "$EPIC_URL" | sed -E 's#https://github.com/([^/]+/[^/]+)/issues/.*#\1#')
 EPIC_N=${EPIC_URL##*/}
 TICKETS=$(gh issue view "$EPIC_URL" --json subIssues --jq '.subIssues.nodes[].url')
+BRANCH=$(gh api "repos/$EPIC_REPO/issues/$EPIC_N/comments" --paginate \
+  --jq '.[] | select(.body | startswith("<!-- sdd-plan -->")) | .body | capture("\\*\\*Integration branch:\\*\\* *`(?<b>[^`]+)`")? | .b')
+INT_PR=$(gh pr list -R "$EPIC_REPO" --head "$BRANCH" --state all --json url --jq '.[0].url')   # the PR to main
 ```
+
+No `**Integration branch:**` line means a one-ticket epic whose PR targets `main`; `BRANCH` and `INT_PR` stay empty.
+
+## Ticket PRs
+
+Every PR-derived measure starts from the ticket-to-PR map. GitHub fills an issue's closed-by references only when a PR merges into the default branch, and slice PRs merge into the integration branch, so those references are the fallback, not the source. Per ticket, its PRs are the first of these that finds any:
+
+1. PRs whose base is `$BRANCH`, in the ticket's repo, whose body carries a closing line for the ticket (`Closes #<N>`, as `implement-issue` writes it; `owner/repo#<N>` or the issue URL also match).
+2. PRs the `<!-- sdd-wave -->` comments record (a pull URL, or `#<n>` in the epic's repo), with the same closing line. This catches a slice PR stacked on another slice's branch.
+3. The ticket's `closedByPullRequestsReferences`: the one-ticket epic whose PR targets `main`.
+
+A ticket with no PR from any source is listed under `not_found` as `ticket PR: <url>`.
+
+## Missing inputs
+
+A real zero and a missing input look different. A measure whose input does not exist (no ticket PR found at all, no wave comment, no integration PR, no panel report posted yet) is `null` in the JSON and named in `not_found`; the human table prints it as **not found**. A measure computed over some tickets while others had no PR keeps its number, and `not_found` names the tickets it could not see.
 
 ## Measures
 
@@ -22,11 +41,11 @@ TICKETS=$(gh issue view "$EPIC_URL" --json subIssues --jq '.subIssues.nodes[].ur
 | `escalations.needs_info` | timeline `labeled` events for `needs-info` on sub-issues | ticket quality (`to-tickets` SDD pass) |
 | `escalations.ready_for_human` | same, `ready-for-human` | worker or reviewer quality |
 | `escalations.blocked` | same, `blocked` | plan edges / cross-repo availability |
-| `edges_added` | `Edges added:` line in the `<!-- sdd-wave -->` comment on the epic | safety-check misses (`to-tickets` SDD pass, `build-epic` §3) |
-| `fix_rounds.total`, `fix_rounds.prs_with_rounds`, `fix_rounds.max` | PR reviews whose body contains `## Spec: FAIL` or `## Quality: FAIL` (`review-pr`) | worker quality vs brief quality |
-| `verify_corrections` | PR bodies containing `Verify block corrected: yes` | Verify blocks that lied (`to-tickets` SDD pass) |
-| `panel.personas`, `panel.critical`, `panel.important`, `panel.minor`, `panel.dropped` | the `## Verdict:` review on the integration PR (`review-panel` report) | panel calibration |
-| `cycle.median_hours_claim_to_pr` | `assigned` event time → PR `createdAt`, per ticket | brief completeness, ticket size |
+| `edges_added` | `Edges added:` line in the `<!-- sdd-wave -->` comment on the epic (`null` with no wave comment) | safety-check misses (`to-tickets` SDD pass, `build-epic` §3) |
+| `fix_rounds.total`, `fix_rounds.prs_with_rounds`, `fix_rounds.max` | reviews on the ticket PRs whose body contains `## Spec: FAIL` or `## Quality: FAIL` (`review-pr`); one review is one round | worker quality vs brief quality |
+| `verify_corrections` | ticket PR bodies containing `Verify block corrected: yes` | Verify blocks that lied (`to-tickets` SDD pass) |
+| `panel.rounds`, `panel.personas`, `panel.critical`, `panel.important`, `panel.minor`, `panel.dropped` | every `review-panel` report on the integration PR, as a comment or a review: the first report plus each round-marked re-review report | panel calibration |
+| `cycle.median_hours_claim_to_pr` | `assigned` event time → its earliest ticket PR's `createdAt`, per ticket | brief completeness, ticket size |
 
 ## Queries
 
@@ -41,10 +60,19 @@ for URL in $TICKETS; do
 done
 ```
 
+Ticket PRs (source 1 of the map above; add the wave comment's PRs and, per ticket with no match, its closed-by references):
+
+```bash
+PRS=$(for URL in $TICKETS; do
+  R=$(repo_of "$URL"); N=${URL##*/}
+  gh pr list -R "$R" --base "$BRANCH" --state all --limit 1000 --json url,body |
+    jq -r --arg n "$N" '.[] | select(.body | test("(?i)\\bclose[sd]?:? +#" + $n + "(?![0-9])")) | .url'
+done | sort -u)
+```
+
 Fix rounds per PR (reviews from `review-pr` carry the two verdict headings):
 
 ```bash
-PRS=$(for URL in $TICKETS; do gh issue view "$URL" --json closedByPullRequestsReferences --jq '.closedByPullRequestsReferences[].url'; done | sort -u)
 for PR in $PRS; do
   gh pr view "$PR" --json reviews --jq '[.reviews[].body | select(test("## (Spec|Quality): FAIL"))] | length'
 done
@@ -63,18 +91,15 @@ gh api "repos/$EPIC_REPO/issues/$EPIC_N/comments" --paginate \
   --jq '[.[] | select(.body | startswith("<!-- sdd-wave -->")) | .body | capture("Edges added: (?<e>[^\n]*)") | .e] | map(select(. != "none") | split(",") | length) | add // 0'
 ```
 
-Panel report (the `review-panel` review on the PR to `main`):
+Panel reports (`review-panel` posts its report as a PR comment once the user says to; older runs posted a review, so read both):
 
 ```bash
-INT_PR=<integration PR url>
-gh pr view "$INT_PR" --json reviews --jq '
-  [.reviews[].body | select(startswith("## Verdict:"))] | last // "" |
-  { personas: (capture("Personas: (?<p>[^\n]*)") .p // "" | split(", ")),
-    critical:  ([scan("^- (F|#)\\d+ [^\n]*")] | length),
-    dropped:   (capture("Dropped below confidence 80: (?<d>\\d+)") .d // "0" | tonumber) }'
+gh pr view "$INT_PR" --json reviews,comments --jq '
+  [(.reviews[] | {body, at: .submittedAt}), (.comments[] | {body, at: .createdAt})]
+  | map(select(.body | startswith("## Verdict:"))) | sort_by(.at) | map(.body)'
 ```
 
-(Count Critical / Important / Minor by the heading each `- Fn` line sits under, and `- #n` from reports posted before that id change. The script does this with a small state machine.)
+Each report is one **round**: the first report has no marker and is round 1; a re-review report after a FIX FIRST fix round carries `Round 2` or `Round 3` on its `## Verdict:` line. When the same round was posted twice, keep the latest copy. `panel.rounds` counts the rounds; `critical`, `important`, `minor` and `dropped` sum across them (a re-review report lists only its new findings, so nothing counts twice); `personas` is the union. Count Critical / Important / Minor by the heading each `- Fn` line sits under, and `- #n` from reports posted before that id change. The script does this with a small state machine. No report → `panel: null`.
 
 Claim-to-PR hours per ticket:
 
@@ -82,26 +107,27 @@ Claim-to-PR hours per ticket:
 for URL in $TICKETS; do
   R=$(repo_of "$URL"); N=${URL##*/}
   CLAIMED=$(gh api "repos/$R/issues/$N/events" --jq '[.[] | select(.event=="assigned")] | first | .created_at // empty')
-  OPENED=$(gh issue view "$URL" --json closedByPullRequestsReferences --jq '.closedByPullRequestsReferences[0].url' | xargs -I{} gh pr view {} --json createdAt --jq .createdAt)
+  OPENED=<earliest createdAt among this ticket's PRs from the map>
   # hours = (OPENED - CLAIMED) / 3600, median across tickets
 done
 ```
 
 ## Output
 
-Posted on the epic under `<!-- sdd-retro -->`: a five-row table for humans, then the JSON:
+Posted on the epic under `<!-- sdd-retro -->`: a five-row table for humans, then the JSON. In the table a `null` measure reads **not found**, and a panel of more than one round reads `panel (N rounds)` with its summed counts.
 
 ```json
 {
-  "schema": "sdd-retro/1",
+  "schema": "sdd-retro/2",
   "epic": "https://github.com/owner/repo/issues/42",
   "tickets": { "total": 6, "by_size": { "S": 2, "M": 3, "L": 1 }, "repos": 2 },
   "escalations": { "needs_info": 1, "ready_for_human": 1, "blocked": 0 },
   "edges_added": 1,
   "fix_rounds": { "total": 3, "prs_with_rounds": 2, "max": 2 },
   "verify_corrections": 2,
-  "panel": { "personas": ["correctness", "testing", "maintainability", "standards-and-invariants", "history", "api-contract"], "critical": 0, "important": 2, "minor": 3, "dropped": 4 },
+  "panel": { "rounds": 2, "personas": ["correctness", "testing", "maintainability", "standards-and-invariants", "history", "api-contract"], "critical": 0, "important": 2, "minor": 3, "dropped": 4 },
   "cycle": { "median_hours_claim_to_pr": 1.4 },
+  "not_found": [],
   "harness": "claude-code 2.1.280", "gh": "2.98.0"
 }
 ```
@@ -118,4 +144,5 @@ This block is the **local** retro. It names the epic and stays in the user's rep
 | `fix_rounds.max` ≥ 2 on several PRs | worker brief or tier rubric (`build-epic` §4–5), or `review-pr` calibration |
 | `escalations.blocked` in a multi-repo epic | cross-repo *Available when* clauses missing |
 | `panel.dropped` much larger than findings | persona prompts too eager; raise specificity before raising the gate |
+| `panel.rounds` ≥ 2 on several epics | slices that pass their own gate but break where they meet: `review-pr` Coherence, or the plan's interface edges |
 | `cycle` long on S tickets | brief incomplete, or S mis-sized |

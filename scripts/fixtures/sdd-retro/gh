@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Test double for gh: answers the calls sdd-retro.sh makes from "$GH_FIXTURE" (a gh.json file).
+# gh.json: { issues: {<url>: obj}, prs: {<url>: obj}, events: {"o/r#n": [...]}, comments: {"o/r#n": [...]} }
+set -euo pipefail
+F="${GH_FIXTURE:?GH_FIXTURE unset}"
+
+POS=(); JQ=""; REPO=""; BASE=""; HEAD=""; STATE="open"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --version) echo "gh version 0.0.0-fixture"; exit 0 ;;
+    --jq) JQ="$2"; shift 2 ;;
+    --json|--limit) shift 2 ;;
+    -R|--repo) REPO="$2"; shift 2 ;;
+    --base) BASE="$2"; shift 2 ;;
+    --head) HEAD="$2"; shift 2 ;;
+    --state) STATE="$2"; shift 2 ;;
+    --paginate) shift ;;
+    *) POS+=("$1"); shift ;;
+  esac
+done
+
+miss() { echo "fixture gh: no answer for: ${POS[*]}" >&2; exit 1; }
+case "${POS[0]} ${POS[1]:-}" in
+  "issue view") OUT=$(jq -c --arg u "${POS[2]}" '.issues[$u] // empty' "$F") ;;
+  "pr view")    OUT=$(jq -c --arg u "${POS[2]}" '.prs[$u] // empty' "$F") ;;
+  "pr list")
+    OUT=$(jq -c --arg r "$REPO" --arg b "$BASE" --arg h "$HEAD" --arg s "$STATE" '
+      [.prs[] | select(.url | startswith("https://github.com/\($r)/pull/"))
+        | select($b == "" or .baseRefName == $b) | select($h == "" or .headRefName == $h)
+        | select($s == "all" or (.state | ascii_downcase) == $s)]
+      | sort_by(.url | split("/") | last | tonumber) | reverse' "$F") ;;
+  api\ repos/*)
+    P="${POS[1]#repos/}"; KIND="${P##*/}"; P="${P%/*}"; N="${P##*/}"; R="${P%/issues/*}"
+    OUT=$(jq -c --arg k "$R#$N" --arg kind "$KIND" '.[$kind][$k] // []' "$F") ;;
+  *) miss ;;
+esac
+[ -n "$OUT" ] || miss
+if [ -n "$JQ" ]; then printf '%s' "$OUT" | jq -r "$JQ"; else printf '%s\n' "$OUT"; fi

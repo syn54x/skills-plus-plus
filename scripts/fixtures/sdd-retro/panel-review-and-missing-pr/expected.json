@@ -1,0 +1,42 @@
+{
+ "schema": "sdd-retro/2",
+ "epic": "https://github.com/acme/miss/issues/1",
+ "tickets": {
+  "total": 2,
+  "by_size": {
+   "S": 2,
+   "M": 0,
+   "L": 0
+  },
+  "repos": 1
+ },
+ "escalations": {
+  "needs_info": 0,
+  "ready_for_human": 0,
+  "blocked": 0
+ },
+ "edges_added": 0,
+ "fix_rounds": {
+  "total": 0,
+  "prs_with_rounds": 0,
+  "max": 0
+ },
+ "verify_corrections": 0,
+ "panel": {
+  "rounds": 1,
+  "personas": [
+   "correctness",
+   "testing"
+  ],
+  "critical": 0,
+  "important": 1,
+  "minor": 1,
+  "dropped": 0
+ },
+ "cycle": {
+  "median_hours_claim_to_pr": 1.0
+ },
+ "not_found": [
+  "ticket PR: https://github.com/acme/miss/issues/3"
+ ]
+}
