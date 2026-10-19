@@ -103,6 +103,10 @@ _Avoid_: hand-off, interrupt
 The answer the **Proxy** arrives at by researching an **Escalation** before raising it; a researched recommendation for the **Principal** to confirm or overrule, never a citation.
 _Avoid_: proxy answer, guess
 
+**Challenge**:
+A recorded decision (an ADR, a `CONTEXT.md` decision, an issue, a standard) that the **Proxy** could cite but that forces a worse long-term answer, so it is put to the **Principal** to uphold or supersede instead of being auto-answered.
+_Avoid_: override, ADR dispute
+
 ### Scaffolds
 
 **Template bag**:
@@ -124,7 +128,7 @@ An optional **Feature matrix** row chosen in discovery. Python: `cli`, `api`, `d
 - A **Decision ticket** is an **Issue** (a child of a `wayfinder:map`)
 - An **Epic** holds many **Sub-issues**; a **Sub-issue** may live in another repo than its **Epic**
 - A **Wave** dispatches part of the **Ready queue**
-- A **Griller** asks; a **Proxy** answers or raises an **Escalation**; only a **Principal** settles an **Escalation**
+- A **Griller** asks; a **Proxy** answers or raises an **Escalation**; only a **Principal** settles an **Escalation** or a **Challenge**
 - A **Depth check** that fires at a **Slice gate / main gate** is a finding; the same check in an `improve-` skill yields a **Deepening opportunity**
 
 ## Flagged ambiguities
