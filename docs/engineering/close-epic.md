@@ -2,7 +2,7 @@
 
 `close-epic` closes an SDD epic once every sub-issue is closed and its PR to `main` has merged. It posts one summary comment with the ticket-to-PR table, computes a **retro** from GitHub state alone (tickets by size, escalations, blocking edges added mid-build, fix rounds, Verify blocks that had to be corrected, panel findings), tags each learning as `[repo]`, `[reusable]` or `[skill]`, and closes the epic.
 
-With your consent, and only then, a `[skill]` learning can become a `skill-feedback` issue on `syn54x/skills-plus-plus` so the skills themselves improve. Those issues are built from a fixed allowlist of counts and categories, previewed one by one, checked by a guard script, and never filed from a non-interactive run.
+With your consent, and only then, a `[skill]` learning can become a `skill-feedback` issue on `syn54x/skills-plus-plus` so the skills themselves improve. Those issues are built from the allowlist of the feedback profile you chose, previewed one by one, checked by a guard script, and never filed from a non-interactive run.
 
 ## When to reach for it
 
@@ -14,7 +14,7 @@ Every sub-issue closed and the integration-branch PR merged to `main`, in every 
 
 The epic itself may already be closed. The integration PR says `Closes #<epic>`, so your merge usually closes it first; what the skill keys on is whether the `<!-- sdd-summary -->` comment exists, not the epic's state. With no summary it runs every step and skips only the final close; with one it stops, because it has already run.
 
-Upstream feedback is off unless the repo's routing block says `Upstream feedback: on`, which [setup-syn54x-skills](../engineering/setup-syn54x-skills.md) asks about.
+Upstream feedback is off unless the repo's routing block names a profile other than `off`, which [setup-syn54x-skills](../engineering/setup-syn54x-skills.md) asks about. An older block that says `on` is read as `counts`.
 
 ## Common questions
 
@@ -22,7 +22,15 @@ Upstream feedback is off unless the repo's routing block says `Upstream feedback
 
 **Older retros showed 0 fix rounds and an empty panel. Were they right?** Usually not. They found ticket PRs through GitHub's closed-by links, which fill in only when a PR merges into the default branch, and slice PRs merge into the integration branch; they also read the panel only from PR reviews, while the panel posts a comment. The retro now finds each ticket's PR by its base branch and `Closes #N` line, reads the panel from comments and reviews, counts each re-review round (`panel (2 rounds)`), and says **not found** for a measure it has no input for, so a missing input never passes for a zero.
 
-**What leaves my repo?** Nothing, unless feedback is on and you approve each issue. The retro comment stays on your epic. A feedback issue carries the skill and step, a category from a closed list, the retro counts, the harness and `gh` versions, and one sentence you type; never a repo name, URL, title, path or code.
+**What leaves my repo?** Nothing, unless a profile other than `off` is set and you approve each issue. The retro comment stays on your epic either way. The profile decides what an issue may carry:
+
+| Profile | A feedback issue carries |
+| --- | --- |
+| `counts` | the skill and step, a category from a closed list, the retro counts, the harness and `gh` versions, and one sentence you type; never a repo name, URL, title, path or code |
+| `detailed` | the same, with a few sentences on what the skill said, what the agent did, and what you fixed by hand |
+| `attributed` | `detailed`, plus your repo's name and links to the epic, its tickets and PRs; never another repo's name or link, a path, code, a title or error text |
+
+On a private repo under `attributed`, the confirmation says that the repo name and those links become public.
 
 ## It's working if
 

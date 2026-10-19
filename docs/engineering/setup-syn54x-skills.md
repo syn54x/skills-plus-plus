@@ -38,7 +38,7 @@ It starts each section with the recommended answer, and skips any question its e
 | **Issue tracker** | the one matching your `git remote` | always, because this is the one real choice |
 | **Triage labels** | keep the five canonical names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) | only if the `triage` skill is installed |
 | **Domain docs** | single-context: one `GLOSSARY.md` plus `docs/adr/` at the root | only if it spots monorepo signals, and then it offers a multi-context `GLOSSARY-MAP.md` |
-| **SDD pipeline** | on, for a repo you build features in | only when the tracker is GitHub; then a few follow-ups: issue types (org repos), upstream skill feedback (default off), and the cloud workflows for `size:S` issues |
+| **SDD pipeline** | on, for a repo you build features in | only when the tracker is GitHub; then a few follow-ups: issue types (org repos), the upstream skill feedback profile (`off`, `counts`, `detailed` or `attributed`; default off), and the cloud workflows for `size:S` issues |
 
 The tracker options:
 
@@ -92,7 +92,7 @@ One long-standing complaint says yes, in these words: *"having a skill to set up
 - An `## Agent skills` section appears in the instruction file your harness reads, with a one-line summary pointing at each of those files.
 - The tracker it proposed matches the remote you use, and the label strings match labels that exist in your tracker.
 - Afterwards, `/to-tickets` publishes without asking you where issues live, and `/triage` applies labels rather than inventing them.
-- With the SDD pipeline on: the routing block sits below `## Agent skills`, `gh label list` shows the `size:*` and readiness labels, and a re-run replaces the block rather than adding a second one.
+- With the SDD pipeline on: the routing block sits below `## Agent skills`, `gh label list` shows the `size:*` and readiness labels, and a re-run replaces the block rather than adding a second one. A re-run over an older `Upstream feedback: on` line rewrites it to `counts` and tells you.
 - Nothing in the skill files themselves changed. If setup edited a `SKILL.md`, something went wrong.
 
 ## Where it fits
