@@ -69,7 +69,7 @@ git status --porcelain            # must be empty before Verify counts
 ```
 
 - Green → record it on the commit so hooks and reviewers can see it: `git notes --ref=sdd-verify add -f -m "verified $(date -u +%FT%TZ)" HEAD` and push the note: `git push origin refs/notes/sdd-verify` (ignore failure if notes cannot be pushed; the PR body carries the SHA too).
-- Red → fix and repeat. If the Verify block itself is wrong (a command that cannot exist in this repo), do not edit it silently: say so in the progress comment and in the PR body, and run the closest correct command.
+- Red → fix and repeat. If the Verify block itself is wrong (a command that cannot exist in this repo), do not edit it silently: say so in the progress comment and on the PR body's `Verify block corrected:` line, and run the closest correct command.
 
 Never open the PR with Verify red or un-run.
 
@@ -93,7 +93,7 @@ Closes #<N>
 
 Ran the ticket's Verify block on `<short sha>`: passed.
 TDD: RED `<command>` failed as expected (<one line>); GREEN `<command>` passed (<n/n>).
-Verify block corrected: no   <!-- yes, plus what was wrong, when the block could not run as written -->
+Verify block corrected: no   <!-- required, never omitted: `no`, or `yes:` plus what was wrong and the command you ran instead -->
 
 ## Notes for the reviewer
 
