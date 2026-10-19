@@ -41,7 +41,11 @@ Read each sub-issue's progress comment and each PR's review for anything flagged
 
 ## 3. Retro
 
-Compute the epic's numbers per [RETRO.md](./RETRO.md): tickets by size, escalations (`needs-info`, `ready-for-human`, `blocked` label events), edges added mid-build (from the wave comment), fix rounds per PR (from `review-pr` verdicts), Verify-block corrections (from PR bodies), panel findings by severity and persona plus the dropped count (from the `review-panel` report), and claim-to-PR time. If installed as the plugin, `${CLAUDE_PLUGIN_ROOT}/scripts/sdd-retro.sh <epic url>` prints the JSON; the reference holds the portable `gh` form.
+Compute the epic's numbers per [RETRO.md](./RETRO.md): tickets by size, escalations (`needs-info`, `ready-for-human`, `blocked` label events), edges added mid-build (from the wave comment), fix rounds per PR (from `review-pr` verdicts), Verify-block corrections (from PR bodies), panel findings by severity and persona plus the dropped count (from the `review-panel` reports), and claim-to-PR time. `scripts/sdd-retro.sh <epic url>` in this skill's base directory prints the JSON; the reference holds the portable `gh` form.
+
+- **Ticket PRs** are the PRs whose base is the integration branch (the plan comment's `**Integration branch:**` line) and whose body says `Closes #<ticket>`, plus the PRs the wave comment records. Closed-by references are only the fallback for a one-ticket epic whose PR targets `main`, since GitHub fills them only on a merge into the default branch. Use the same map for the PR column of step 4's table.
+- **The panel** is every report on the PR to `main`, read from its comments and its reviews. The first report is round 1; each re-review report carries `Round 2` or `Round 3` on its `## Verdict:` line. Count each round, sum the findings across rounds, and write `panel (N rounds)` when there is more than one.
+- **Not found is not 0.** A measure whose input is missing (no PR for a ticket, no wave comment, no panel report posted) is `null` and listed under `not_found`; the table says **not found** for it.
 
 Upsert it on the epic under `<!-- sdd-retro -->` (call the Skill tool with "sync-progress" for the upsert): a short table for humans, then the JSON in a fenced block. This comment stays in the user's repo; it may contain URLs and titles.
 

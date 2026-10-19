@@ -28,6 +28,8 @@ Each worker is an isolated subagent in its own worktree, branched from the integ
 
 A worker's PR goes to [review-pr](../engineering/review-pr.md). A failing review sends the findings back to the same worker for exactly one fix round; findings still open after that go to `ready-for-human`. A merge conflict is never hand-resolved: the worker rebases and re-runs Verify.
 
+The PR to `main` goes to [review-panel](../engineering/review-panel.md). A **FIX FIRST** verdict sends its findings to the workers that own the files, and once those fix slices merge, the panel re-reviews the new head: each earlier finding checked by id, the Spec and Coherence verdicts re-run, and a **Composition pass** over the fix slices together. That loop runs at most twice; still FIX FIRST after the second fix round, it comes to you as **HUMAN DECISION**.
+
 ## Common questions
 
 **Why did my workers stall before writing any code?** In the pack this replaces, the worker had to start a user-invoked skill, which no agent can do. Here `implement-issue` is model-invoked and the `sdd-worker` agent preloads it, and `scripts/check-invocation.py` fails CI if any skill or agent calls a user-invoked skill again.
