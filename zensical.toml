@@ -64,6 +64,7 @@ nav = [
     { "Model-invoked" = [
       { "grilling" = "productivity/grilling.md" },
       { "writing-for-agents" = "productivity/writing-for-agents.md" },
+      { "writing-for-humans" = "productivity/writing-for-humans.md" },
     ] },
   ] },
 ]

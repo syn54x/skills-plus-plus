@@ -50,6 +50,7 @@
     "./skills/productivity/to-questionnaire",
     "./skills/productivity/wait-what",
     "./skills/productivity/writing-for-agents",
+    "./skills/productivity/writing-for-humans",
     "./skills/productivity/adhd",
     "./skills/productivity/eli5"
   ],

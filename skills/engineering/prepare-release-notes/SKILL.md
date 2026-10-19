@@ -61,7 +61,7 @@ From `justfile`, `AGENTS.md`, and the last few `gh release view` tags:
 
 Shape:
 
-1. **Headline**: `## <plain-language win> <optional emoji>`
+1. **Headline**: `## <optional emoji> <plain-language win>`
 2. **Lead**: 1–3 sentences: what the user can do now / what broke and is fixed.
    Anchor on a concrete API/example when the change is a feature.
 3. **Body**: short sections or tight prose; code samples when they clarify the
@@ -71,14 +71,8 @@ Shape:
 5. **Stop**: do not include a `## vX.Y.Z` changelog section (release tooling
    adds it).
 
-Voice:
-
-- Plain language, example-first: show what the user sees, then explain.
-- Conversational but precise; celebrate the win without marketing fluff.
-- Prefer one coherent story over a bullet dump of commit subjects.
-- Patch/bugfix releases can be shorter (headline + one dense paragraph + issue
-  link).
-- Feature releases can be longer with acts/sections.
+Before drafting, call the Skill tool with `writing-for-humans` and follow it;
+release notes are explanation plus how-to.
 
 ### 4. Write the temp file
 
