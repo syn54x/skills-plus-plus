@@ -25,6 +25,8 @@ The issue must be open, unblocked, unassigned and labelled `ready-for-agent`. On
 
 **Why can't it stop?** The Stop hook is doing its job: the tree is dirty or there is no Verify note on `HEAD`. Run the Verify block and record it, or, if the ticket is blocked, unclaim it and record a `blocked` note instead.
 
+**The ticket's Produces signature can't work. Does the worker stop?** Only for a contract another repo or the epic itself states (a route and its shapes, an event payload, a generated-client method): that is `NEEDS_CONTEXT`. An in-repo code signature (a function, type, enum or struct) may change as a declared **Interface deviation**: the worker ships the signature that works, writes an `Interfaces changed:` line in the PR body with the old signature, the new one and why the old one could not work, and reports `DONE_WITH_CONCERNS`. [review-pr](../engineering/review-pr.md) then judges whether the change was needed.
+
 **Why is it model-invoked when `implement` is not?** Workers and the cloud workflow have to start it without a human typing it. A user-invoked skill cannot be reached by another skill or agent at all.
 
 **Which branch does it start from?** The remote integration branch named in the brief (`origin/<integration branch>`), never whatever the worktree happened to be checked out on, which is often the default branch.
