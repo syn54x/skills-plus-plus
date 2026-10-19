@@ -10,6 +10,12 @@ The rule I apply to my own ideas applies here too: if you can compose the behavi
 
 You're very welcome to publish a skill yourself. skills.sh makes that straightforward, and nothing here needs to know about it.
 
+## Exceptions
+
+An exception is made only when the behaviour cannot be composed from existing skills: a body of rules several skills need, that none of them can own without the others restating a fragment of it.
+
+- `writing-for-humans` (#31): the editorial rules for prose a skill writes for a human reader (release notes, PR bodies, docs pages, summary comments). `prepare-release-notes`, `pr`, `implement-issue` and `close-epic` each needed them, and each either said nothing or carried its own fragment. `humanizer` removes AI tells after drafting and `writing-for-agents` writes for a different reader, so neither can hold them.
+
 This covers *new* skills only. A concrete failure in an existing skill is judged against the bar in [`SCOPE.md`](../SCOPE.md) like any other issue.
 
 ## Prior requests

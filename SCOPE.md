@@ -21,6 +21,7 @@ Size is irrelevant: a one-word fix and a rewrite face the same bar. Reactions an
 
 Each file in [`.out-of-scope/`](./.out-of-scope/) records one rejected concept and why. Read them before filing:
 
+- [`close-epic-unsummarised-scan.md`](./.out-of-scope/close-epic-unsummarised-scan.md)
 - [`frozen-misc-skills.md`](./.out-of-scope/frozen-misc-skills.md)
 - [`harness-name-collisions.md`](./.out-of-scope/harness-name-collisions.md)
 - [`mainstream-issue-trackers-only.md`](./.out-of-scope/mainstream-issue-trackers-only.md)
