@@ -53,6 +53,8 @@ Work only inside **Files owned** (its Create, Modify and Test paths). If the sli
 
 Call the Skill tool with "tdd" for the loop's rules; if it is unavailable, run the same loop by hand: failing test → minimal code → green → refactor. Start from the ticket's **Test scenarios**: one test per line, in the order given, and add any case you discover under the same category headings in the PR body. Follow the in-repo pattern the brief names. Keep the **Produces** signatures in **Interfaces** exactly as the ticket states them; another ticket, possibly in another repo, is coded against those names. Import what you **Consume** by the names the producing ticket published; if a name differs in the merged code, stop and report rather than adapt silently. A **Consumes** line from another repo carries an *Available when* clause: if that thing is not reachable from your checkout (the route 404s, the client method is missing), you are `BLOCKED`, not creative.
 
+When the ticket touches a docs page or a docstring, call the Skill tool with `writing-for-humans` before writing its prose.
+
 Run the type checker and the single test file you are working in often; run the full suite once, at the end, before Verify. Commit as you go with conventional messages. Do not squash history yourself; the merge does that.
 
 **Stop and escalate** (see *If you get stuck*) rather than guess when: the ticket needs an architectural decision with more than one valid approach; you need to understand code beyond what the brief and ticket gave you and cannot find clarity; you are unsure your approach is right; the work needs restructuring the plan did not anticipate; or you have been reading file after file without progress.

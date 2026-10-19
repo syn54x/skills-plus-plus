@@ -51,7 +51,7 @@ Upsert it on the epic under `<!-- sdd-retro -->` (call the Skill tool with "sync
 
 ## 4. Summary comment
 
-Upsert on the epic under `<!-- sdd-summary -->`:
+Call the Skill tool with `writing-for-humans` before drafting the comment's prose. Upsert on the epic under `<!-- sdd-summary -->`:
 
 ```markdown
 <!-- sdd-summary -->
