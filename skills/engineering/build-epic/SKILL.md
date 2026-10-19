@@ -105,6 +105,16 @@ Then call the Skill tool with "review-pr" for its PR. That skill dispatches a fr
 - Either fails → the Critical and Important findings go back to the **same worker** (resume it by name; it holds the context). One fix round, then a scoped re-review.
 - Findings still open → either one fresh dispatch on the ceiling tier carrying the brief, the PR and the open findings, or straight to `ready-for-human`: label it, unclaim, leave the PR open, move on. Do not fix it yourself beyond a trivial mechanical nit.
 
+**Worktree lifetime.** A PR's worker worktree and reviewer worktree both stay until **that** PR merges or goes to `ready-for-human`; merging a sibling PR removes neither. That is what lets the fix round resume the same worker and the scoped re-review resume the same reviewer. If the reviewer cannot be resumed anyway (its session ended, the harness lost it), dispatch a fresh reviewer and give it the earlier review as posted: the findings by id (verbatim, with their file:line) and the head SHA it reviewed. It runs `review-pr`'s scoped re-review from that SHA to the new head, not a full review.
+
+```text
+PR #57 (ticket #51) fails Quality at a1b2c3d: Q1, Q2. Meanwhile #55 merges; #57's two worktrees stay.
+Resume:   worker-51 fixes and pushes e4f5a6b → resume reviewer-51: "scoped re-review, a1b2c3d..e4f5a6b".
+Fallback: reviewer-51 cannot be resumed → fresh reviewer: "scoped re-review of PR #57, reviewed head a1b2c3d,
+          new head e4f5a6b, earlier findings Q1, Q2 (verbatim from the posted review)".
+Either way the reviewer marks Q1, Q2 ADDRESSED / NOT ADDRESSED and re-runs Verify.
+```
+
 **Merging.** Merge in dependency order, one PR at a time. If a merge conflicts, abort it (`git merge --abort` or close the attempt), do not hand-resolve: silently picking a side discards one ticket's intent. Instead resume that worker with "rebase onto the current integration branch and re-run Verify", then re-gate. After each merge, run the merged ticket's Verify block (or the repo's suite if the law names one) on the integration branch before merging the next; a red tree stops the wave until it is diagnosed.
 
 Merges move the frontier. After each merge, recompute the ready queue (step 2) and dispatch the newly unblocked tickets as the next wave.

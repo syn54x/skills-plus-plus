@@ -39,7 +39,7 @@ Then write the first progress comment (call the Skill tool with "sync-progress";
 
 Determine where you are:
 
-- **Local / worktree worker** (`GITHUB_ACTIONS` unset): the brief names the integration branch. Create `sdd/<N>-<slug>` from it:
+- **Local / worktree worker** (`GITHUB_ACTIONS` unset): the brief names the integration branch. Create `sdd/<N>-<slug>` from the **remote** ref `origin/<integration branch>`, never from `HEAD`: a worktree may start on the default branch. If the brief's first step already put you on `sdd/<N>-<slug>` cut from that ref, stay on it.
   ```bash
   BASE=feat/invoices                                  # from the brief; default main
   SLUG=$(gh issue view "$N" --json title --jq '.title | ascii_downcase | gsub("[^a-z0-9]+";"-") | .[0:40]')

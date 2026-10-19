@@ -18,7 +18,7 @@ Agent(
 )
 ```
 
-- The worktree is created from the current checkout, so **switch to the integration branch before dispatching**. The worker then creates `sdd/<N>-<slug>` from it.
+- The worktree's starting branch is **not guaranteed**: workers have started on the default branch even with the orchestrator standing on the integration branch. The brief's first step (fetch, then `git switch -c sdd/<N>-<slug> origin/<integration-branch>`, then the merge-base check) is what puts the worker on the right base. Switching your own checkout to the integration branch first does no harm, but it is not the mechanism.
 - **Ticket in another repo:** `isolation: "worktree"` isolates the repo you are standing in, not the ticket's. Omit it for that worker and put the worktree in the brief instead: `git -C <path to that repo's checkout> worktree add ../<repo>-<N> -b sdd/<N>-<slug> origin/<integration-branch>`, then work there. One `Agent` call per ticket regardless of repo; the wave still runs concurrently.
 - Check `.claude/worktrees/` is gitignored before the first wave; the harness puts per-agent worktrees there.
 - Do not pass a permission `mode` to the worker; the user's configured permissions apply.
@@ -66,7 +66,7 @@ Then call the Skill tool with "implement-issue" for the ticket's URL in that che
 
 ## Cleanup
 
-After a PR merges, in this order:
+After a PR merges or goes to `ready-for-human`, remove **that PR's** worker and reviewer worktrees (never a sibling's), in this order:
 
 ```bash
 git worktree unlock <path>        # harness-created worktrees are locked; remove fails without this
@@ -74,4 +74,4 @@ git worktree remove <path>        # refuses if it has uncommitted changes
 git branch -d sdd/<N>-<slug>      # lowercase -d refuses an unmerged branch, which is the safety you want
 ```
 
-If `-d` refuses, investigate before forcing. Remote branches are deleted by the merge setting or left for the user.
+If `-d` refuses, investigate before forcing. A `ready-for-human` PR keeps its branch: skip the `git branch -d`. Remote branches are deleted by the merge setting or left for the user.

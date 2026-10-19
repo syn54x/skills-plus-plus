@@ -38,6 +38,10 @@ A worker's PR goes to [review-pr](../engineering/review-pr.md). A failing review
 
 **The epic closed the moment I merged the PR to `main`. Did I skip something?** No, that is the intended path: the integration PR says `Closes #<epic>` so the epic closes when the work lands. [close-epic](../engineering/close-epic.md) still runs afterwards and posts the summary and retro against the closed epic. In a multi-repo epic only the PR in the epic's own repo carries that line, so a repo that holds tasks but no epic closes nothing.
 
+**My workers branched from `main`, not the integration branch.** A harness worktree can start on the default branch whatever your own checkout is on. The brief's first step fetches the integration branch, cuts `sdd/<N>-<slug>` from `origin/<integration branch>` and checks the merge base before any code is written, so the worker lands on the right base by following the brief alone.
+
+**A re-review went to a fresh reviewer that redid the whole review.** A PR's worker and reviewer worktrees now stay until that PR merges or goes to `ready-for-human`, so a sibling's merge no longer removes the reviewer you need to resume. When a reviewer cannot be resumed anyway, the fresh one gets the earlier findings by id and the head SHA they were reviewed at, and runs only the scoped re-review.
+
 **Can I use Agent Teams instead of worktree waves?** Not in the same session. Teammates get no worktree isolation and cost several times the tokens; the skill stops if the Agent Teams flag is set.
 
 ## It's working if

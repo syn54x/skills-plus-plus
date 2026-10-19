@@ -5,7 +5,14 @@ The brief is the **only** context a worker gets. Conversation history, the plan 
 ```markdown
 You are implementing sub-issue <issue URL> of epic <epic URL>.
 Start in the checkout at <absolute path of this ticket's repo>; the ticket, its branch and its PR all live in <owner/repo> and nowhere else.
-Call the Skill tool with "implement-issue" for <issue URL> and follow it. This brief is the context that skill assumes.
+First, before anything else, cut your branch from the remote integration branch, whatever branch this worktree started on, and confirm its base:
+
+    git fetch origin <feat/slug>
+    git switch -c sdd/<N>-<slug> origin/<feat/slug>
+    test "$(git merge-base HEAD origin/<feat/slug>)" = "$(git rev-parse origin/<feat/slug>)"
+
+If the `test` fails, stop and report BLOCKED; write no code on a branch with any other base.
+Then call the Skill tool with "implement-issue" for <issue URL> and follow it. This brief is the context that skill assumes.
 
 ## Ticket (verbatim)
 
@@ -25,7 +32,7 @@ Call the Skill tool with "implement-issue" for <issue URL> and follow it. This b
 
 ## Mechanics
 
-- Integration branch: `<feat/slug>` in <owner/repo>. Fork `sdd/<N>-<slug>` from it; PR into it.
+- Integration branch: `<feat/slug>` in <owner/repo>. `sdd/<N>-<slug>` is cut from `origin/<feat/slug>` by the first step above; PR into `<feat/slug>`.
 - Cross-repo inputs you consume: <what, where it is reachable from this checkout (preview URL, local service, regenerated client), and how to confirm it; or "none">.
 - Commit as you go; conventional commit messages; the last commit before the PR is the one Verify ran on.
 - Open the PR with `Closes #<N>` in the body. Do not merge.
