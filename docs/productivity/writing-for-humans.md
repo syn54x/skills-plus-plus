@@ -34,7 +34,7 @@ The other three checklist items follow from it: one **running example** per page
 The reader differs, so the rules differ. An agent has read everything and wants imperatives, no examples-first and no wit. A person wants a definition, then an example on the first screen, and tolerates a little dry humour.
 
 **My project has its own writing rules. Which wins?**
-Yours. Rules in a repo's `AGENTS.md` or `CLAUDE.md` take precedence where they conflict and add to these where they go further. That is why the skill picks no spelling convention: British or American spelling is the project's call.
+Yours. Rules in a repo's `AGENTS.md` or `CLAUDE.md` take precedence where they conflict and add to these where they go further. That is why the skill sets no spelling convention: spelling is the project's call.
 
 **Where are the sources?**
 Each rule carries its reason in `SKILL.md`. The quotes and the pages they came from sit in a sibling `EVIDENCE.md`, numbered to match, which the agent reads only when it needs to check or cite a rule.
