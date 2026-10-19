@@ -61,7 +61,7 @@ No. GitHub, GitLab and local markdown under `.scratch/` all ship as ready-made t
 
 **Do I need to re-run it after updating the skills?**
 
-The direct answer after v1.1 was yes. The skill's own closing message is softer. It tells you to re-run only to switch trackers or start over. Both are defensible. The seed templates change between versions, so a `docs/agents/issue-tracker.md` from an older release can go out of date against the skills that now read it. If a downstream skill does something different from what the docs describe, re-run setup. It is cheap.
+The direct answer after v1.1 was yes. The skill's own closing message is softer. It tells you to re-run only to switch trackers or start over. Both are defensible. The seed templates change between versions, so a `docs/agents/issue-tracker.md` from an older release can go out of date against the skills that now read it. If a downstream skill does something different from what the docs describe, re-run setup. It is cheap. A re-run also catches a repo set up before 1.3.0: it finds the legacy `CONTEXT.md` / `CONTEXT-MAP.md` and offers to `git mv` it to `GLOSSARY.md` / `GLOSSARY-MAP.md` and rewrite `docs/agents/domain.md` to match.
 
 **It wrote to `CLAUDE.md`, but I'm on Codex.**
 
