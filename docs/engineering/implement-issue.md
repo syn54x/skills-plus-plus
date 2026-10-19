@@ -31,6 +31,7 @@ The issue must be open, unblocked, unassigned and labelled `ready-for-agent`. On
 
 - The PR says `Closes #N`, targets the integration branch named in the brief, and touches only Files owned (anything else is declared in the PR body).
 - `git notes --ref=sdd-verify show HEAD` on the PR head says `verified`.
+- The Verify SHA in the report equals the PR's head commit, and every test, file or pin the report or PR body names shows up in the PR's diff.
 - The issue has exactly one `<!-- sdd-progress -->` comment, rewritten as the work moves.
 
 ## Where it fits

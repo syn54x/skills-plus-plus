@@ -108,6 +108,7 @@ Before reporting, read your own diff once with fresh eyes and fix what you find:
 - **Discipline**: nothing built that was not asked for (YAGNI); in-repo patterns followed; nothing outside Files owned that is not declared.
 - **Tests**: they assert behaviour, not mocks; test output is pristine (no stray warnings or noise).
 - **Names**: say what things do, not how they work.
+- **Claims**, run last, against the pushed branch: every test named in the TDD evidence, and every file or pin the report or PR body says was added or changed, is in `git diff "origin/$BASE...HEAD"`; every test whose file changed after its RED run was run again, and GREEN comes from the final committed state (the Verify SHA equals the pushed `HEAD`, `git rev-parse "origin/sdd/$N-$SLUG"`); `git status --porcelain` is empty, so nothing the report relies on is only uncommitted. Fix a failing claim (commit, re-run Verify, push) or remove it from the report and PR body.
 
 This self-review does not replace the reviewer; it makes the review shorter.
 
@@ -115,7 +116,7 @@ Update the progress comment (status `pr-open`, PR number, Verify SHA). Then repl
 
 - **Status:** `DONE` | `DONE_WITH_CONCERNS` | `BLOCKED` | `NEEDS_CONTEXT`
 - PR link; commits (short SHA + subject)
-- **TDD evidence:** the RED command and its failing output before implementation, the GREEN command and passing output after; then the Verify SHA
+- **TDD evidence:** the RED command and its failing output before implementation, the GREEN command and passing output after; then the Verify SHA, stated as equal to the pushed `HEAD`
 - Concerns, if any; for `BLOCKED` / `NEEDS_CONTEXT`, exactly what you are stuck on, what you tried, and what would unblock you
 
 `DONE_WITH_CONCERNS` means finished but doubtful about correctness or scope. `NEEDS_CONTEXT` means information was missing, not that the work is hard. Never silently produce work you are unsure about. Stop. Review is someone else's job.
