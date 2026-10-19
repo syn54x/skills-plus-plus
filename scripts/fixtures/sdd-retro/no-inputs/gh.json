@@ -1,0 +1,38 @@
+{
+ "issues": {
+  "https://github.com/acme/none/issues/1": {
+   "url": "https://github.com/acme/none/issues/1",
+   "labels": [],
+   "closedByPullRequestsReferences": [],
+   "subIssues": {
+    "nodes": [
+     {
+      "url": "https://github.com/acme/none/issues/2"
+     }
+    ]
+   }
+  },
+  "https://github.com/acme/none/issues/2": {
+   "url": "https://github.com/acme/none/issues/2",
+   "labels": [
+    {
+     "name": "size:S"
+    }
+   ],
+   "closedByPullRequestsReferences": [],
+   "subIssues": {
+    "nodes": []
+   }
+  }
+ },
+ "prs": {},
+ "events": {
+  "acme/none#2": [
+   {
+    "event": "assigned",
+    "created_at": "2026-01-01T00:00:00Z"
+   }
+  ]
+ },
+ "comments": {}
+}
