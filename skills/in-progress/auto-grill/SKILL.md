@@ -1,37 +1,38 @@
 ---
 name: auto-grill
-description: Run a grilling session where a sub-agent asks and you answer on the user's behalf, escalating only what you cannot cite.
+description: Run a grilling session where you answer every question you can cite on the user's behalf, escalating only what you cannot.
 argument-hint: "What to grill, or nothing to grill the conversation so far"
 disable-model-invocation: true
 ---
 
-Claude Code only: this skill needs the Agent tool with named, resumable sub-agents and SendMessage.
+You are the **Proxy**: you run the interview, own the design tree, and answer each question as the **Principal**, the human, would answer it themselves, raising an **Escalation** for anything you cannot cite. The Principal sees only what needs them: the Escalations, the Challenges, and the auto-answers they may veto.
 
-Three roles. The **Griller** is a cold sub-agent that runs the interview and owns the design tree. You are the **Proxy**: you answer the Griller on behalf of the **Principal**, the human, and raise an **Escalation** for anything you cannot cite. The point of the split is fresh eyes: the Griller never sees what you already believe, so it asks the naive questions you would skip. Those cost nothing, because you answer them and they never reach the Principal.
+## 1. Start
 
-## 1. Pick the model
-
-Ask the Principal which model the Griller runs on, with a recommendation by task shape, never by vendor model name: mid tier for scoping a well-understood feature with an in-repo pattern to imitate; ceiling tier for architecture, a one-way door, or a greenfield design. Wait for the answer before spending any tokens on the Griller.
-
-## 2. Launch the Griller
-
-Fill in [GRILLER-BRIEF.md](GRILLER-BRIEF.md) and launch one general-purpose agent named `griller` on the chosen model, with the brief as its prompt and the current directory as its working directory. The brief carries the topic, the working directory, and the contract below. It never carries your opinions, your summary of the conversation, or any decision you believe is made: those stay with you as citations.
+Call the Skill tool twice, for "grilling" and "domain-modeling", and run both as written, with one override: a Round goes to you first, not to the Principal. You answer it in step 2, and the Principal sees only what you cannot settle.
 
 The topic is the argument the Principal passed. With no argument, distil the conversation so far into a neutral statement of **what is being designed**, not what has been decided.
 
-Start the transcript: one Markdown file in the session scratchpad, path printed to the Principal once. Append to it after every Round (step 3); it is the audit log, never committed.
+Start the transcript: one Markdown file in the session scratchpad, path printed to the Principal once. Append to it after every Round (step 2); it is the audit log, never committed.
 
-## 3. Work each Round
+## 2. Work each Round
 
-The Griller returns one **Round** per turn: numbered questions, each with its recommended answer, in the `grilling` format. Continue it with SendMessage to `griller`. For every question in the Round:
+**Ask cold.** Draft the whole frontier, each question with its recommended answer in the `grilling` format, before you answer any of it. The decisions you believe are already made are the ones a grilling skips, so ask them anyway: a naive question costs you one auto-answer, while a skipped one is an assumption nobody checked.
 
-**Cite or escalate.** You may answer a question only when you can point at its source: a fact you looked up, a decision recorded in `GLOSSARY.md`, an ADR, an issue or the repo's standards, something the Principal said earlier in this conversation, or an answer the Principal gave to an earlier Escalation. An answer with no citation is a bug. Everything else, every genuine preference and every open trade-off, is an Escalation.
+**Answer as the Principal would.** Work each question the way the Principal works it when answering it themselves. Run four passes, batching the research across the Round:
 
-**Challenge.** A citation grounds an answer; it does not make it right. Before auto-answering from a recorded decision (an ADR, a `GLOSSARY.md` decision, an issue, the repo's standards), ask what you would answer without it. When that answer is concretely better for the long term and you can name what keeping the decision costs, raise a **Challenge** instead of an auto-answer: the decision, the answer it forces, the better answer, and the cost. A decision the Principal made in this session is never challenged; they made it knowing the trade-off. A cited fact is different: a preference cannot overrule it, only staleness can, so re-verify a fact you doubt in the due diligence pass and cite whatever holds now.
+1. **The code.** Find what the codebase already does that confirms or constrains the answer.
+2. **The record.** Find what has already been deliberated: `GLOSSARY.md`, the ADRs, issues, the repo's standards, and anything the Principal said earlier in this conversation or in answer to an earlier Escalation.
+3. **The industry.** Find how popular libraries and products solve the same problem: the web, their docs and source, and a `research` agent when one earns it (call the Skill tool with "research"). An answer that diverges from an industry-accepted solution must know it diverges and have a reason.
+4. **Question it.** None of the first three makes an answer right. Ask whether it is the right solution for the long term, judged as if time and resources were infinite: the effort to build it is never a reason to prefer an answer, and a shortcut is never acceptable because it is cheaper now. When the code, a recorded decision, or industry practice keeps you from the right solution, that is a reason to change it, not to follow it.
 
-**Due diligence.** Before raising the Round's Escalations and Challenges, run one research pass over all of them together: the repo, the conversation, the standards, the web, what other products and libraries do, and a `research` agent when one earns it (call the Skill tool with "research"). A citation found here turns the question into an auto-answer. A genuine decision stays an Escalation no matter how strong the research; what it gains is a **Best fit**: your researched answer, with its basis in one sentence. Research sharpens the Best fit; it never promotes a preference into a fact. A Challenge that research shows was wrong (the decision holds up after all) drops back to an auto-answer citing it.
+Then give the question exactly one outcome:
 
-**Stop for the Principal only when there is an Escalation or a Challenge.** Show the Escalations in the `grilling` format: ❓ the question, ➡️ the Best fit and its basis. When the Griller's recommendation differs from the Best fit, add one line giving the Griller's answer and why you departed from it; when they agree, say nothing more. Show each Challenge as ⚖️ the decision and the answer it forces, then ➡️ supersede or uphold, with the better answer and the cost of keeping the decision. Below them, show the **veto list**: every auto-answer since the last stop, grouped by Round, one line each: question title, answer, citation. The Principal answers the Escalations, upholds or supersedes each Challenge, and may overrule any line of the veto list. A Round with no Escalations or Challenges goes straight back to the Griller; its veto list waits for the next stop.
+- **Auto-answer** when the answer survives pass 4 and you can point at its source: the code, the record, or a fact you looked up. An answer with no citation is a bug. When it diverges from industry practice, the reason for the divergence needs a citation too; a divergence you cannot cite a reason for is an Escalation.
+- **Challenge** when the code or a recorded decision forces an answer that pass 4 finds worse, and you can name the better answer and what keeping the current one costs. A decision the Principal made in this session is never challenged; they made it knowing the trade-off. A fact about the outside world (what a library supports, how an API behaves) is not challengeable either: a preference cannot overrule it, only staleness can, so re-verify one you doubt and cite whatever holds now. The repo's own code is not that kind of fact: it is a past decision, and it can be challenged like any other.
+- **Escalation** for everything else: every genuine preference, every open trade-off, every divergence without a citable reason. It carries a **Best fit**: your researched answer, with its basis in one sentence. Research sharpens the Best fit; it never promotes a preference into a fact.
+
+**Stop for the Principal only when there is an Escalation or a Challenge.** Show the Escalations in the `grilling` format: ❓ the question, ➡️ the Best fit and its basis, and, when the Best fit diverges from what other libraries and products do, one line naming what they do. When research moved you off the recommendation you drafted with the question, add one line saying what changed your mind. Show each Challenge as ⚖️ the decision and the answer it forces, then ➡️ supersede or uphold, with the better answer and the cost of keeping the decision. Below them, show the **veto list**: every auto-answer since the last stop, grouped by Round, one line each: question title, answer, citation, and, when the answer diverges from industry practice, what others do and the cited reason. The Principal answers the Escalations, upholds or supersedes each Challenge, and may overrule any line of the veto list. A Round with no Escalations or Challenges goes straight on to the next Round; its veto list waits for the next stop.
 
 **Show, don't tell.** Every Escalation and Challenge leads with the most direct picture of its options, and prose carries only what the picture cannot: the call site for an API choice, an ASCII box diagram for a flow or a structure, a table for options compared on the same axes, a before/after snippet for a change in behaviour, pseudo-code for logic. A Challenge shows the design with the decision beside the design without it. The output lands in a terminal, so draw with Markdown, code blocks and ASCII, never Mermaid. A question a picture cannot sharpen, such as a name or a yes/no, stays a sentence, and the veto list stays one line per answer.
 
@@ -44,12 +45,12 @@ The Griller returns one **Round** per turn: numbered questions, each with its re
 ➡️ Supersede: <the better answer and its basis>. Keeping it costs <one line>.
 ```
 
-**Reply to the Griller** with one message: every answer labelled `auto` (with its citation) or `principal`, the Principal's corrections to auto-answers as changed answers, and anything else the Principal said, passed through verbatim. An upheld Challenge is a `principal` answer citing the decision; a superseded one is a `principal` answer that names the decision it supersedes. A "wrap up" from the Principal is one such note; the Griller summarises what is settled so far.
+**Settle the Round.** Record every answer in the design tree, labelled `auto` (with its citation) or `principal`. The Principal's overrules replace the auto-answers they hit, and anything else they said steers the next Round. An upheld Challenge is a `principal` answer citing the decision; a superseded one is a `principal` answer that names the decision it supersedes. A `principal` answer is firmer than an `auto` one, so weight them that way when the domain-modeling pass records a decision: a `principal` answer that supersedes a recorded decision gets a new ADR, and the old one is marked superseded by it. A "wrap up" from the Principal skips straight to step 3 with what is settled so far.
 
-Append the Round to the transcript: each question, its answer, its label, its citation or Best fit basis, each Challenge and its outcome, and any overrule.
+Append the Round to the transcript: each question, its answer, its label, its citation or Best fit basis, each Challenge and its outcome, and any overrule. Then recompute the frontier and work the next Round.
 
-## 4. Close
+## 3. Close
 
-The Griller ends by declaring the frontier empty and returning a summary of the shared understanding. Show the Principal that summary, with a picture of the settled design where the summary describes a structure or a flow, and the full veto list of every auto-answer in the session. Confirmation is the Principal's alone: on an objection, send it to the Griller, which reopens the frontier and continues at step 3.
+When the frontier is empty, show the Principal a summary of the shared understanding, with a picture of the settled design where the summary describes a structure or a flow, and the full veto list of every auto-answer in the session. Confirmation is the Principal's alone: an objection reopens the frontier, and you continue at step 2.
 
-On confirmation, close with: the confirmed summary, the files the Griller wrote (`GLOSSARY.md`, ADRs, including any that supersede a challenged decision), the transcript path, and one line noting that `/to-spec` is the usual next step. Do not invoke it.
+On confirmation, close with: the confirmed summary, the files you wrote (`GLOSSARY.md`, ADRs, including any that supersede a challenged decision), the transcript path, and one line noting that `/to-spec` is the usual next step. Do not invoke it.
