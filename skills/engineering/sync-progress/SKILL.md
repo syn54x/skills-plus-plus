@@ -5,7 +5,7 @@ description: Upsert an idempotent SDD marker comment on a GitHub issue, and clai
 
 # Sync Progress
 
-One issue, one progress comment. Every update **rewrites the same comment** found by a hidden HTML marker; it never appends a second one. Claiming an issue means setting the claim mark (the label `claimed`); unclaiming means removing it. All of it is `gh`.
+One issue, one progress comment. Every update **rewrites the same comment** found by a hidden HTML marker; it never appends a second one. Claiming an issue means setting the claim mark (the label `claimed`); unclaiming means removing it. The markers and upsert are `gh`; the claim mark has one form per tracker, listed under Claim and unclaim.
 
 ## Markers
 
@@ -73,6 +73,12 @@ gh issue edit "$ISSUE" --add-label claimed
 # unclaim (on failure or hand-off)
 gh issue edit "$ISSUE" --remove-label claimed
 ```
+
+Claim mark per tracker:
+
+- GitHub: label `claimed`, with the `gh` commands above.
+- GitLab: label `claimed`, with `glab issue update <n> --label claimed` to claim and `glab issue update <n> --unlabel claimed` to unclaim. Create the label once in the project: `glab label create claimed --color '#FBCA04' --description "Held by a worker; set before work, cleared on stopping without a PR"`.
+- Local tracker: the `Status: claimed` line in the ticket file. Set it to claim; remove it or set it back to `open` to unclaim.
 
 A ticket is **held** when it carries the `claimed` label or an assignee. A held ticket is out of the ready queue, so **claim before any work starts** and **unclaim whenever you stop without a PR**. Agents write only the mark, never an assignee, and a human's self-assignment counts as held. Never add the mark over a ticket that is already held, whether by another worker's mark or a person's assignment; report it instead. The holder's name lives in the progress comment's **Worker** line.
 
