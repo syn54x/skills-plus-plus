@@ -1,6 +1,6 @@
 ## What it does
 
-`review-pr` gates one PR that closes an SDD sub-issue. A fresh reviewer, never the worker, re-runs the ticket's **Verify** block on the PR head and returns two verdicts kept apart: **Spec** (does the diff do what the sub-issue says, classed as Missing, Extra or Misunderstood?) and **Quality** (is it code the repo wants, judged against its laws, with a Fowler smell baseline where the repo documents nothing, plus the **depth check**: did the PR add a shallow module, extract pure functions while the bugs stay at the call site, test past an interface, or touch an already-shallow module without deepening it). When the integration branch has moved since the PR branched, it also runs Verify on a local trial merge of the PR into the current branch, never pushed, and Spec passes only if both trees are green. It posts both verdicts as one PR review comment and routes a failure to one fix round, then to `ready-for-human`.
+`review-pr` gates one PR that closes an SDD sub-issue. A fresh reviewer, never the worker, re-runs the ticket's **Verify** block on the PR head and returns two verdicts kept apart: **Spec** (does the diff do what the sub-issue says, classed as Missing, Extra or Misunderstood?) and **Quality** (is it code the repo wants, judged against its **Laws**: the documents the routing block's `Laws:` line names, or a fixed fallback list when the repo has none, with a Fowler smell baseline where the repo documents nothing, plus the **depth check**: did the PR add a shallow module, extract pure functions while the bugs stay at the call site, test past an interface, or touch an already-shallow module without deepening it). When the integration branch has moved since the PR branched, it also runs Verify on a local trial merge of the PR into the current branch, never pushed, and Spec passes only if both trees are green. It posts both verdicts as one PR review comment and routes a failure to one fix round, then to `ready-for-human`.
 
 It trusts nothing the worker says. The PR body and the worker's report are claims to check against the diff, and a finding is reported only when the reviewer can name the line, the failure, and is at least 80% sure.
 
@@ -18,6 +18,10 @@ Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gatin
 
 **Why doesn't it approve or request changes?** The merge decision belongs to the orchestrator or a human; the review is a comment with verdicts, never `--approve` or `--request-changes`.
 
+**What is the `[AGENTS.md#I-5]` at the start of every finding?** The **Law tag**: the rule the finding cites, as source and id. The source is a document from the `Laws:` line, an ADR, the epic, a section of the ticket, a document the ticket cites, a rule of the SDD skills themselves (`skill`, as in `[skill#Laws section]`), or `none` for a plain logic or test gap no document or skill rule names. It costs the reviewer nothing extra and lets [close-epic](../engineering/close-epic.md)'s retro count fix rounds by which law keeps getting broken.
+
+**Why is a missing `## Laws` section an Important finding?** It is tagged `[skill#Laws section]`. The worker lists in the PR body each law that applies to its slice, with how the diff meets it or `n/a` and why. The reviewer reads every line as a claim and checks it against the diff, so an `n/a` on a law the diff plainly touches is a finding under that law. With no section at all there is nothing to check, which is the same reason a missing `Verify block corrected:` line fails.
+
 **What happens on the second failure?** Nothing automatic. After the single fix round and a scoped re-review, open findings send the ticket to `ready-for-human` with the PR left open.
 
 **Quality failed on a module that works. Why?** The depth check fired. A module the PR introduced whose interface is nearly as wide as its implementation, or tests that mock the code under test, is an Important finding when the fix fits the PR's own files, because the slice is the cheap moment to deepen it. The finding names the direction, never a design; the worker chooses the shape. The four questions live in one place, [codebase-design](../engineering/codebase-design.md)'s `DEPTH-CHECK.md`, and [improve-pr-architecture](../engineering/improve-pr-architecture.md) asks the same four when you want to explore one rather than fix it.
@@ -33,9 +37,9 @@ Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gatin
 ## It's working if
 
 - Every slice PR has one review comment with `## Spec: PASS | FAIL`, `## Quality: PASS | FAIL`, a `Verify:` line naming the commit it ran on, and a `Trial merge:` line naming the base commit it merged into, or saying the base had not moved.
-- Every finding names a file and line at a commit and a severity; there are no "consider…" items.
+- Every finding names a severity, a Law tag such as `[ticket#Interfaces]` or `[none]`, and a file and line at a commit; there are no "consider…" items.
 - A `depth` finding points at the line that declares an interface and says what callers must know, which bug the tests miss, or which refactor they would not survive.
-- A re-review verdicts each earlier finding `ADDRESSED` or `NOT ADDRESSED` instead of starting over.
+- A re-review verdicts each earlier finding `ADDRESSED` or `NOT ADDRESSED` instead of starting over, and only its new findings carry a Law tag.
 
 ## Where it fits
 

@@ -61,13 +61,14 @@ Against the sub-issue body only. Ignore how nice the code is. Classify each gap 
 
 ## 4. Quality verdict
 
-Against the repo's laws (`CLAUDE.md`, `AGENTS.md`, ADRs, the pattern the brief named). Where the repo documents nothing, fall back to the Fowler smell baseline, copied from the `code-review` skill so a reviewer subagent needs nothing else loaded (mysterious name, duplicated code, feature envy, data clumps, primitive obsession, repeated switches, shotgun surgery, divergent change, speculative generality, message chains, middle man, refused bequest); a documented repo standard always overrides a baseline smell.
+Against the repo's **Laws**: the documents on the `Laws:` line of the `<!-- sdd-routing -->` block in `CLAUDE.md` or `AGENTS.md`, or, when the repo has no such line, `CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`, `CONCEPTS.md`, `CODING_STANDARDS.md`, `CONTRIBUTING.md`, and the ADR directory (`docs/adr/`, or the path the repo's domain docs name); plus the pattern the brief named. Where the repo documents nothing, fall back to the Fowler smell baseline, copied from the `code-review` skill so a reviewer subagent needs nothing else loaded (mysterious name, duplicated code, feature envy, data clumps, primitive obsession, repeated switches, shotgun surgery, divergent change, speculative generality, message chains, middle man, refused bequest); a documented repo standard always overrides a baseline smell.
 
 - Tests are real: they assert behaviour, not implementation details; no `skip`, no snapshot-only.
 - Follows the in-repo pattern; no new abstraction where an existing one fits.
 - No dead code, debug output, commented-out blocks, TODOs without an issue number.
 - Commit history readable; PR body honest.
 - The Verify the worker ran (the PR body and progress comment) matches the ticket's block, or the PR body says `Verify block corrected: yes` with what was wrong. A difference under `Verify block corrected: no`, or a PR body with no such line, is an **Important** finding: a silent correction hides a ticket that lied.
+- The PR body's `## Laws` section is a set of claims, one line per Law: verify each against the diff. A line the diff contradicts is a finding tagged with that Law. An `n/a` on a Law whose trigger the diff hits is a finding tagged with that Law. A PR body with no `## Laws` section is an **Important** finding tagged `[skill#Laws section]`, by the same rule as a missing `Verify block corrected:` line: an absent claim cannot be checked.
 - Nothing in the diff the ticket did not ask for.
 - Every declared **Interface deviation** was **needed**: the PR's reason shows the ticket's signature could not work as written. An unneeded one is an Important finding whose fix is reverting to the ticket's signature.
 
@@ -77,17 +78,27 @@ Against the repo's laws (`CLAUDE.md`, `AGENTS.md`, ADRs, the pattern the brief n
 
 **Confidence gate.** Report a finding only if you can name the line and the failure it causes and you are at least 80% sure it is real; "Consider…" is not a finding. Drop: pre-existing issues the PR did not introduce (the one exception is the depth check's question 3, an already-shallow module the PR touched, which its gate table keeps at Minor); code that looks wrong but is not; pedantic nits; anything a linter or the type checker will catch; general quality opinions not backed by a repo law; lines carrying a deliberate lint-ignore.
 
+**Law tag.** Every finding, Spec and Quality, names the Law it cites in one token right after its severity, so the retro counts findings by source with no extra review work:
+
+```
+- <severity> · [<source>#<id>] · <file:line at sha> · <the rest of the finding>
+source  = a path as written on the Laws line | ADR-<nnnn> | epic | ticket | cited | skill | none
+id      = the rule's own id or heading (I-5, Failure law, Interfaces, Register doors, Laws section); omitted after none
+```
+
+A repo rule takes its file as prefix (`[AGENTS.md#I-6]`); `epic` carries the decision's name (`[epic#Failure law]`); `ticket` the section (`[ticket#Interfaces]`, `[ticket#Test scenarios]`, `[ticket#Acceptance criteria]`, `[ticket#Files owned]`); `cited` the document the ticket names (`[cited#Register doors]`); `skill` a rule of the SDD skills themselves, by the skill's own name for it (`[skill#Laws section]`, `[skill#Verify block corrected]`, `[skill#Verify]` for Verify not run on the head). Plain logic and test gaps that no document and no skill rule names are `[none]`.
+
 ## 5. Post
 
 One PR review, structured:
 
 ```markdown
 ## Spec: PASS | FAIL
-<findings, each: severity · file:line at <sha> · Missing | Extra | Misunderstood · what is wrong · what the ticket says>
+- <severity> · [<source>#<id>] · <file:line at sha> · Missing | Extra | Misunderstood · what is wrong · what the ticket says
 Cannot verify: <items, or none>
 
 ## Quality: PASS | FAIL
-<findings, each: severity · file:line at <sha> · what is wrong · why it matters · fix if not obvious>
+- <severity> · [<source>#<id>] · <file:line at sha> · what is wrong · why it matters · fix if not obvious
 
 Verify: PR head `<short sha>` passed | failed (`<command that failed>`)
 Trial merge: not run (base unchanged) | `<short sha>` into `<base>` at `<short sha>` passed | failed (`<command that failed>`) | conflict (`<files>`)
@@ -105,9 +116,9 @@ Update the sub-issue's progress comment (call the Skill tool with "sync-progress
 
 - **PASS / PASS** → tell the orchestrator (or, in the cloud path, label the issue `ready-for-human` so a person merges).
 - **Any FAIL, first time** → the Critical and Important findings go back to the **same worker** for exactly one fix round (orchestrator resumes it by name; cloud: comment on the issue mentioning the failing items and re-add `ready-for-agent`).
-- **When the PR updates** → a **scoped re-review**, not a fresh one: diff only from the head you reviewed to the new head; verdict every finding `ADDRESSED` / `NOT ADDRESSED` with file:line ("attempted" is not addressed; the defect must be gone); flag new Critical/Important breakage in the fix diff; anything you notice outside the fix diff goes under *Out-of-scope observations* and does not block. Re-run Verify by step 2's rule: on the new head, and on a fresh trial merge if the base has moved since the new head's merge base.
+- **When the PR updates** → a **scoped re-review**, not a fresh one: diff only from the head you reviewed to the new head; verdict every finding `ADDRESSED` / `NOT ADDRESSED` with file:line ("attempted" is not addressed; the defect must be gone), with no Law tag since the finding it answers already carries one; flag new Critical/Important breakage in the fix diff as findings with their Law tag; anything you notice outside the fix diff goes under *Out-of-scope observations* and does not block. Re-run Verify by step 2's rule: on the new head, and on a fresh trial merge if the base has moved since the new head's merge base.
 - **Findings still open after the fix round** → `gh issue edit "$N" --add-label ready-for-human --remove-assignee @me`; leave the PR open with the review on it. Stop. (The orchestrator may choose one ceiling-tier re-dispatch before that; see `build-epic`.)
 
 ## Full-epic review
 
-When `build-epic` asks for the integration-branch PR to be gated, run the same two verdicts once over the whole diff, with the **epic body** as the spec instead of a sub-issue. Skip the depth check here: `review-panel`'s `depth` persona runs it over the same diff. Read the `**Narrowed:**` line of the epic's `<!-- sdd-plan -->` comment first: each entry there is accepted scope, and the epic behaviour it names is judged as narrowed. Any other shortfall against the epic is a Missing finding, even where a ticket asked for it. Add a third section, **Coherence**: do the slices agree with each other on the interfaces they shared? Read the plan comment's `**Deviated:**` line too: each entry there is an accepted **Interface deviation**, so judge its producer and consumers against the new signature, not the one the ticket first stated. This mode is normally reached through `review-panel`, which wraps it with a persona panel for the PR to `main`; the spec and Coherence verdicts stay here so one skill owns "does this match the spec". In a multi-repo epic there is one such PR per repo; review each, and in Coherence check the cross-repo contracts against the *other* repo's integration branch (the frontend's client calls against the backend's routes as merged), since that is the only place the two sides meet before production.
+When `build-epic` asks for the integration-branch PR to be gated, run the same two verdicts once over the whole diff, with the **epic body** as the spec instead of a sub-issue. Skip the depth check here: `review-panel`'s `depth` persona runs it over the same diff. Read the `**Narrowed:**` line of the epic's `<!-- sdd-plan -->` comment first: each entry there is accepted scope, and the epic behaviour it names is judged as narrowed. Any other shortfall against the epic is a Missing finding, even where a ticket asked for it. Findings carry Law tags here too; a shortfall against the epic body is `[epic#<decision>]`. Add a third section, **Coherence**: do the slices agree with each other on the interfaces they shared? Read the plan comment's `**Deviated:**` line too: each entry there is an accepted **Interface deviation**, so judge its producer and consumers against the new signature, not the one the ticket first stated. This mode is normally reached through `review-panel`, which wraps it with a persona panel for the PR to `main`; the spec and Coherence verdicts stay here so one skill owns "does this match the spec". In a multi-repo epic there is one such PR per repo; review each, and in Coherence check the cross-repo contracts against the *other* repo's integration branch (the frontend's client calls against the backend's routes as merged), since that is the only place the two sides meet before production.
