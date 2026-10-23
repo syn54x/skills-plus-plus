@@ -103,7 +103,7 @@ Apply its section 1 to this one issue, reading the code first:
 2. **Gate it** with the no-placeholders rule and the four code checks. The rules that relate tickets to each other (path collisions, the consistency pass, blocking edges, narrowing against an epic) have no second ticket here; skip them.
 3. **Size it** from the size table: exactly one `size:S`, `size:M` or `size:L` label (or the Effort field, if the Routing block names one). The size is the label, never a brief field. A one-off has no epic, so its build route is `/implement <N>` whatever the table's last column says for a Sub-issue: `size:S` in the cloud workflow or locally, M and L locally.
 
-Done when the body carries all six sections with no placeholder, every code check passes, and the issue carries exactly one size. Then write the body (`gh issue edit "$N" --body-file`), apply the labels and post the brief: the reporter sees one triage comment and an edited body.
+Done when the body carries all six sections with no placeholder, every code check passes, and the issue carries exactly one size. Then write the body (`gh issue edit "$N" --body-file`), apply the labels and post the brief: the reporter sees one triage comment and an edited body. The size and `ready-for-agent` may land in either order or in one edit, because the cloud workflow's guard fires on whichever label completes the pair.
 
 When a gap cannot be fixed inline (a scenario with no data to assert on, a Verify command that does not resolve or is red on the default branch), the outcome is `needs-info` instead: leave the body unedited, apply no `size:*` label, and post the triage notes with each gap under "What we still need".
 
