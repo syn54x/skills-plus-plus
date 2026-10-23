@@ -73,7 +73,7 @@ If [setup-syn54x-skills](../engineering/setup-syn54x-skills.md) wrote the Routin
 | `## Verify` | Commands runnable from the repo root, each one checked to exist |
 | one `size:*` label | `size:S`, `size:M` or `size:L`, from the same table `to-tickets` uses for a Sub-issue |
 
-The brief still goes in a comment and still names no file paths. The sections go in the body, where a path is a claim on a file. If a gap can't be closed (a scenario with nothing to assert on, a Verify command that doesn't resolve), the issue goes to `needs-info` with notes naming the gap. Without the Routing block, none of this happens and the brief is the whole outcome.
+The brief still goes in a comment and still names no file paths. The sections go in the body, where a path is a claim on a file. If a gap can't be closed (a scenario with nothing to assert on, a Verify command that doesn't resolve), the issue goes to `needs-info` with notes naming the gap. The size label and `ready-for-agent` can land in either order or in one edit, because the cloud workflow's guard fires on whichever label completes the pair. Without the Routing block, none of this happens and the brief is the whole outcome.
 
 The size decides who builds it. A one-off has no epic, so `/build-epic` never sees it: a `size:S` one can go to the cloud workflow, and an M or L one goes to `/implement <N>` on your machine.
 
