@@ -2,6 +2,8 @@
 
 `setup-syn54x-skills` answers three questions about one repo: where issues live, what the triage labels are called, and where the domain docs sit. It records the answers as markdown files under `docs/agents/`. On a GitHub repo it can also switch on the SDD pipeline, the issue-native build flow that runs from an epic to merged sub-issues.
 
+With the SDD pipeline on, the routing block also gets a Laws line: the repo documents that bind workers and reviewers alike, defaulting to every fallback document present (`AGENTS.md`, `GLOSSARY.md`, your ADR directory and the like), plus any design system or read-before page you name.
+
 Those files are the only thing that varies between repos. The skills themselves are identical everywhere. They read `docs/agents/issue-tracker.md` at run time and do what it says. That is why the set is not tied to GitHub, and why you never edit a skill file to point it at another tracker. Invoking it with "link the skills to a custom issue tracker" works with anything you can connect to programmatically, with no changes to the skills.
 
 It is a prompt-driven skill, not a deterministic script. It reads your `git remote`, `CLAUDE.md` and `GLOSSARY.md`, proposes what it found, and waits for you to confirm before it writes anything.
@@ -38,7 +40,7 @@ It starts each section with the recommended answer, and skips any question its e
 | **Issue tracker** | the one matching your `git remote` | always, because this is the one real choice |
 | **Triage labels** | keep the five canonical names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) | only if the `triage` skill is installed |
 | **Domain docs** | single-context: one `GLOSSARY.md` plus `docs/adr/` at the root | only if it spots monorepo signals, and then it offers a multi-context `GLOSSARY-MAP.md` |
-| **SDD pipeline** | on, for a repo you build features in | only when the tracker is GitHub; then a few follow-ups: issue types (org repos), the upstream skill feedback profile (`off`, `counts`, `detailed` or `attributed`; default off), and the cloud workflows for `size:S` issues |
+| **SDD pipeline** | on, for a repo you build features in | only when the tracker is GitHub; then a few follow-ups: issue types (org repos), the upstream skill feedback profile (`off`, `counts`, `detailed` or `attributed`; default off), the Laws line (one question for other binding documents), and the cloud workflows for `size:S` issues |
 
 The tracker options:
 
@@ -92,7 +94,7 @@ One long-standing complaint says yes, in these words: *"having a skill to set up
 - An `## Agent skills` section appears in the instruction file your harness reads, with a one-line summary pointing at each of those files.
 - The tracker it proposed matches the remote you use, and the label strings match labels that exist in your tracker.
 - Afterwards, `/to-tickets` publishes without asking you where issues live, and `/triage` applies labels rather than inventing them.
-- With the SDD pipeline on: the routing block sits below `## Agent skills`, `gh label list` shows the `size:*` and readiness labels, and a re-run replaces the block rather than adding a second one. A re-run over an older `Upstream feedback: on` line rewrites it to `counts` and tells you.
+- With the SDD pipeline on: the routing block sits below `## Agent skills`, `gh label list` shows the `size:*` and readiness labels, and a re-run replaces the block rather than adding a second one. A re-run over an older `Upstream feedback: on` line rewrites it to `counts` and tells you. A re-run keeps every entry of an existing Laws line and proposes only additions.
 - Nothing in the skill files themselves changed. If setup edited a `SKILL.md`, something went wrong.
 
 ## Where it fits
