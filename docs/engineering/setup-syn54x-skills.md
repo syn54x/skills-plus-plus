@@ -25,7 +25,7 @@ It writes into the repo you run it in:
 | `triage-labels.md` | `docs/agents/`, only when the `triage` skill is installed |
 | An `## Agent skills` block | whichever of `CLAUDE.md` or `AGENTS.md` already exists |
 | An `<!-- sdd-routing -->` block, below `## Agent skills` | the same file, only when the SDD pipeline is on |
-| `sdd-implement.yml`, `sdd-review.yml` | `.github/workflows/`, only when you opt into the cloud path for one-off `size:S` tickets outside an epic |
+| `sdd-implement.yml`, `sdd-review.yml` | `.github/workflows/`, only when you opt into the cloud path for one-off `size:S` tickets outside an epic; the worker runs with Bash enabled and the review gate accepts the worker bot's pull requests |
 
 With the SDD pipeline on it also creates labels on the GitHub repo (the five triage roles, `needs-plan`, `blocked`, the claim mark `claimed`, `size:S/M/L`) and, on an org repo and only if you agree, the `Epic` and `Task` issue types. The routing block tells agents what a ready ticket is: "Readiness = open + not blocked + not held (no claim mark, no assignee) + `ready-for-agent`. Claim by adding `claimed`. Unclaim if you stop without a PR." A worker holds a ticket with the `claimed` label rather than an assignee, so a cloud run can hold one too, and a person who assigns themselves still keeps agents off it.
 
@@ -78,7 +78,7 @@ It doesn't. `docs/agents/triage-labels.md` is a *mapping*: it tells `/triage` wh
 
 **I installed the cloud workflow. Why didn't my epic's `size:S` sub-issue build in Actions?**
 
-On purpose. The implement workflow skips any issue that has a parent, so every sub-issue of an epic builds locally in [build-epic](../engineering/build-epic.md)'s waves, whatever its size. Those waves merge onto one integration branch and check that parallel tickets don't touch the same files, and a cloud worker would bypass both. The cloud path is for a one-off ticket: an issue that completes the pair `size:S` and `ready-for-agent` (in either order), is open, not held (no `claimed` label, no assignee) and has no parent, the kind [triage](../engineering/triage.md) sizes and hardens from a bug report.
+On purpose. The implement workflow skips any issue that has a parent, so every sub-issue of an epic builds locally in [build-epic](../engineering/build-epic.md)'s waves, whatever its size. Those waves merge onto one integration branch and check that parallel tickets don't touch the same files, and a cloud worker would bypass both. The cloud path is for a one-off ticket: an issue that completes the pair `size:S` and `ready-for-agent` (in either order), is open, not held (no `claimed` label, no assignee) and has no parent, the kind [triage](../engineering/triage.md) sizes and hardens from a bug report. The workflows run the worker with Bash enabled, so it can run `gh`, `git` and your test command, and the review gate accepts pull requests from the worker bot. A green job is not proof the ticket was built: if the run's result block shows a non-zero `permission_denials_count`, the worker was denied a tool and quit.
 
 **Can I configure the other skills' behaviour here (grilling cadence, question format, tone)?**
 

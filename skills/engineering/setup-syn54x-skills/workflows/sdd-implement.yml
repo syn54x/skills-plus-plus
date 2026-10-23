@@ -6,6 +6,9 @@
 # The job guard is the only gate. The action sets no label trigger and no progress tracking, so
 # its `prompt` input runs it in agent mode, which does not skip a run started by `size:S`.
 # Runs the same /implement-issue skill the local workers use, via the skills-plus-plus plugin.
+# claude_args grants unrestricted Bash: the worker runs gh, git and the repo's test command, and an
+# allowlist would have to name every consuming repo's toolchain. The runner is isolated and the
+# token is scoped to this repo; a repo that wants a narrower list edits --allowedTools after copying.
 name: sdd-implement
 
 on:
@@ -59,3 +62,4 @@ jobs:
             /implement-issue ${{ github.event.issue.number }}
           claude_args: |
             --max-turns 80
+            --allowedTools "Bash,Read,Edit,MultiEdit,Write,Glob,Grep,Skill,Agent,TodoWrite,WebFetch"
