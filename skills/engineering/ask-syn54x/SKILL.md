@@ -57,7 +57,7 @@ Underneath, `implement-issue`, `review-pr`, `review-panel`, `close-epic` and `sy
 
 A starting situation that generates work, then merges onto the main flow.
 
-- **Bugs and requests piling up** → **`/triage`**. It moves issues through triage roles and produces agent-ready issues, which **`/implement`** later picks up.
+- **Bugs and requests piling up** → **`/triage`**. It moves issues through triage roles and produces agent-ready issues, which **`/implement`** later picks up. On an SDD repo it also hardens and sizes each one, so a `size:S` one-off can build in the cloud.
 
   Triage is only for issues **you didn't create**: bug reports, incoming feature requests, anything that arrives raw. Tickets that `/to-tickets` produced are already agent-ready, so **don't triage them**.
 

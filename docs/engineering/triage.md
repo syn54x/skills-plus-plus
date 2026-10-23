@@ -60,6 +60,23 @@ In the same pass, it runs two more checks against the codebase. The **redundancy
 
 All of this work makes one artifact good: the **agent brief**. This is the structured comment that `triage` posts when an issue moves to `ready-for-agent`. After `triage` posts it, the brief is the contract and the original report is only context. Briefs are **durable** rather than precise, because an issue can sit in `ready-for-agent` for weeks while the code changes. So a brief names types, signatures and behavioural contracts, and never file paths or line numbers. A confirmed reproduction makes a much stronger brief than a guess.
 
+## On an SDD repo, ready means buildable
+
+If [setup-syn54x-skills](../engineering/setup-syn54x-skills.md) wrote the Routing block into your `CLAUDE.md` or `AGENTS.md`, `ready-for-agent` asks for more than a brief. The worker that builds the issue, [implement-issue](../engineering/implement-issue.md), reads only the issue body and sends anything without the SDD sections back to `needs-info`. So before it applies the label, `triage` hardens the issue the way the [to-tickets](../engineering/to-tickets.md) SDD pass hardens a Sub-issue, and sizes it:
+
+| It adds | What it holds |
+| --- | --- |
+| `## What to build`, `## Acceptance criteria` | The brief's desired behaviour and checklist, where the worker looks for them |
+| `## Files owned` | The files the fix will create, modify and test |
+| `## Interfaces` | Usually `none` both ways for a one-off |
+| `## Test scenarios` | One line each: an action and the result it causes |
+| `## Verify` | Commands runnable from the repo root, each one checked to exist |
+| one `size:*` label | `size:S`, `size:M` or `size:L`, from the same table `to-tickets` uses |
+
+The brief still goes in a comment and still names no file paths. The sections go in the body, and there a path is a claim on a file, not a description of the code. If a gap can't be closed (a scenario with nothing to assert on, a Verify command that doesn't resolve), the issue goes to `needs-info` with notes naming the gap, not to `ready-for-agent`. Without the Routing block, none of this happens and the brief is the whole outcome.
+
+The size decides who builds it: a `size:S` one-off can go to the cloud workflow, and an M or L one goes to `/implement <N>` on your machine.
+
 ## A PR is an issue with attached code
 
 If the tracker treats external pull requests as a request surface, they go through the same machine, with the same categories, states and transitions. The states apply to the diff. `ready-for-agent` means a brief is attached and an agent should take the next step on the code. `ready-for-human` means a person can merge it. A brief on a PR describes what is left to do to the existing diff, not how to build the thing from nothing.
@@ -89,6 +106,9 @@ The blocked case is accepted as real, but the name is undecided (`blocked` versu
 **How is this different from `/diagnosing-bugs`?**
 The verification step here is shallow on purpose. It answers "is this real, and roughly where does it live", and does not look for a root cause. If a bug does not reproduce from the reporter's steps in a few minutes, use `needs-info`, or use [diagnosing-bugs](../engineering/diagnosing-bugs.md) if you want to investigate it now. Neither skill's text mentions the other yet. A user reported that gap, and it is still open.
 
+**Why did triage edit my issue body?**
+Your repo runs the SDD flow, and the worker that builds a `ready-for-agent` issue reads its body, not its comments. `triage` appends the sections that worker needs below your text and leaves what you wrote in place. On a repo without the Routing block it only posts a comment.
+
 **Can I point it at my whole backlog and let it run?**
 You can ask, but watch what it reads. The "show what needs attention" pass is a cheap listing for *selection*. You pick one issue, and then `triage` gathers full context on that issue. If you run it across twenty issues at once, the agent can use that cheap listing as its only evidence without telling you. The listing returns issue bodies but not comments. One user hit exactly this. Three issues already had a comment that said "already fixed, recommend closing", and all three got new agent briefs instead. For a bulk pass, say explicitly that it must read the comments on each issue.
 
@@ -102,6 +122,7 @@ Yes. The tracker is config, not a hard-coded assumption. People run it against L
 - It reproduced the bug, or checked out and ran the PR, before anything reached `ready-for-agent`.
 - The briefs it writes name types and behaviours, and contain no file paths and no line numbers.
 - When a request you rejected six months ago comes back, it tells you and quotes the old reason instead of triaging it again.
+- On an SDD repo, an issue it moves to `ready-for-agent` carries a Verify block and exactly one `size:*` label, and `/implement` starts on it without bouncing it to `needs-info`.
 - Every comment it posts starts with `> *This was generated by AI during triage.*`
 
 ## Where it fits
