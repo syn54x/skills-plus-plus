@@ -40,6 +40,11 @@ DETAILED='**Skill:** to-tickets SDD §1
 **Category:** verify-block-wrong
 **Observed:** The skill told the agent to copy the test command from the epic. The agent copied it as written, and the command named a runner the repo does not use. The user rewrote the Verify block by hand on two tickets before the workers could run it.'
 
+BY_CAUSE='**Skill:** implement-issue §4
+**Category:** law-read-not-checked
+**Observed:** 5 of 7 fix-round findings cited a Law on the Laws line; 1 cited a repo file off it.
+**Retro counts:** tickets 6 (S2 M3 L1, 2 repos) · fix rounds 3/2 PRs/max 2 · by cause: repo 4 · epic 1 · ticket 1 · cited 0 · skill 1 · none 1 · law-read-not-checked 5 · law-not-in-read-list 1'
+
 ATTR_OK="$DETAILED
 **Repo:** acme/widgets
 **Epic:** https://github.com/acme/widgets/issues/40
@@ -83,7 +88,11 @@ check "attributed blocks code"               2 --profile attributed --own acme/w
 const x = 1;"
 check "attributed blocks a ticket title"     2 --profile attributed --own acme/widgets <<<"$ATTR_OK
 Add invoice export to the billing page"
-check "attributed blocks error text"         2 --profile attributed --own acme/widgets <<<"$ATTR_OK
+# by cause line and the two Law categories: family names carry no path, so every profile passes
+check "counts by-cause body passes"          0 --profile counts <<<"$BY_CAUSE"
+check "detailed by-cause body passes"        0 --profile detailed <<<"$BY_CAUSE"
+check "attributed by-cause body passes"      0 --profile attributed --own acme/widgets <<<"$BY_CAUSE"
+check "attributed blocks error text"        2 --profile attributed --own acme/widgets <<<"$ATTR_OK
 TypeError: x is undefined"
 
 [ "$FAILS" -eq 0 ] && echo "feedback-guard-check: all passed" || echo "feedback-guard-check: $FAILS failed"

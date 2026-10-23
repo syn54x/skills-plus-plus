@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # sdd-retro.sh <epic url> [--integration-branch <name>] [--integration-pr <pr url>]
-# Computes the epic retro from GitHub state and prints the sdd-retro/2 JSON.
+# Computes the epic retro from GitHub state and prints the sdd-retro/3 JSON.
 # See skills/engineering/close-epic/RETRO.md for what each number means and the portable gh form.
 # Best-effort report: no errexit. A measure whose input is missing is null and named in not_found, never 0.
 set -uo pipefail
@@ -118,6 +118,15 @@ MEDIAN=$(printf '%s' "$HOURS" | tr ' ' '\n' | grep . | python3 -c 'import sys,st
 FIX_ROUNDS=$(jq 'if length == 0 then null else
   map([.reviews[]?.body | select(test("## (Spec|Quality): FAIL"))] | length)
   | { total: add, prs_with_rounds: map(select(. > 0)) | length, max: max } end' <<<"$PRDATA")
+# by_cause is null exactly when fix_rounds is; PRs found but no review at all is {}, not null.
+BY_CAUSE=null
+if [ "$FIX_ROUNDS" != null ]; then
+  if BY_CAUSE=$(jq '[.[].reviews[]?.body // ""]' <<<"$PRDATA" | python3 "$(dirname "$0")/sdd-by-cause.py"); then
+    [ "$BY_CAUSE" = null ] && BY_CAUSE='{}'
+  else
+    BY_CAUSE=null; not_found "by_cause counter"   # a crashed counter is not a zero
+  fi
+fi
 VC=$(jq 'if length == 0 then null else map(select((.body // "") | test("Verify block corrected: yes"))) | length end' <<<"$PRDATA")
 
 # ---- edges added (wave comments) --------------------------------------------
@@ -165,14 +174,14 @@ NF_JSON=$(printf '%s' "$NOT_FOUND" | jq -R . | jq -s .)
 
 jq -n --arg epic "$EPIC_URL" --argjson total "$TOTAL" --argjson s "$S" --argjson m "$M" --argjson l "$L" --argjson repos "$NREPOS" \
   --argjson ni "$NI" --argjson rh "$RH" --argjson bl "$BL" --argjson edges "$EDGES" \
-  --argjson fr "$FIX_ROUNDS" --argjson vc "$VC" --argjson panel "$PANEL" --argjson med "$MEDIAN" \
+  --argjson fr "$FIX_ROUNDS" --argjson bc "$BY_CAUSE" --argjson vc "$VC" --argjson panel "$PANEL" --argjson med "$MEDIAN" \
   --argjson nf "$NF_JSON" --arg harness "$HARNESS" --arg gh "$GHV" '
 {
-  schema: "sdd-retro/2", epic: $epic,
+  schema: "sdd-retro/3", epic: $epic,
   tickets: { total: $total, by_size: { S: $s, M: $m, L: $l }, repos: $repos },
   escalations: { needs_info: $ni, ready_for_human: $rh, blocked: $bl },
   edges_added: $edges,
-  fix_rounds: $fr,
+  fix_rounds: (if $fr == null then null else $fr + { by_cause: $bc } end),
   verify_corrections: $vc,
   panel: $panel,
   cycle: { median_hours_claim_to_pr: $med },

@@ -41,7 +41,7 @@ Read each sub-issue's progress comment and each PR's review for anything flagged
 
 ## 3. Retro
 
-Compute the epic's numbers per [RETRO.md](./RETRO.md): tickets by size, escalations (`needs-info`, `ready-for-human`, `blocked` label events), edges added mid-build (from the wave comment), fix rounds per PR (from `review-pr` verdicts), Verify-block corrections (from PR bodies), panel findings by severity and persona plus the dropped count (from the `review-panel` reports), and claim-to-PR time. `scripts/sdd-retro.sh <epic url>` in this skill's base directory prints the JSON; the reference holds the portable `gh` form.
+Compute the epic's numbers per [RETRO.md](./RETRO.md): tickets by size, escalations (`needs-info`, `ready-for-human`, `blocked` label events), edges added mid-build (from the wave comment), fix rounds per PR (from `review-pr` verdicts) and their findings by cause (`fix_rounds.by_cause`, keyed by each finding's **Law tag** source), Verify-block corrections (from PR bodies), panel findings by severity and persona plus the dropped count (from the `review-panel` reports), and claim-to-PR time. `scripts/sdd-retro.sh <epic url>` in this skill's base directory prints the JSON; the reference holds the portable `gh` form.
 
 - **Ticket PRs** are the PRs whose base is the integration branch (the plan comment's `**Integration branch:**` line) and whose body says `Closes #<ticket>`, plus the PRs the wave comment records. Closed-by references are only the fallback for a one-ticket epic whose PR targets `main`, since GitHub fills them only on a merge into the default branch. Use the same map for the PR column of step 4's table.
 - **The panel** is every report on the PR to `main`, read from its comments and its reviews. The first report is round 1; each re-review report carries `Round 2` or `Round 3` on its `## Verdict:` line. Count each round, sum the findings across rounds, and write `panel (N rounds)` when there is more than one.
@@ -81,6 +81,14 @@ Also carry forward from the `review-panel` report: candidate ADRs, terminology d
 ```
 
 Keep it under 40 lines. Facts only; no praise. The retro numbers are the evidence for every **[skill]** tag: a learning without a number behind it is an opinion, and it stays [repo].
+
+**Cross-check `by_cause` against the Laws line.** Read the `Laws:` line from the checkout's routing block (the same block step 5 reads the profile from), and beside it the fallback list workers read when the line is absent: `CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`, `CONCEPTS.md`, `CODING_STANDARDS.md`, `CONTRIBUTING.md`, and the ADR directory (`docs/adr/`, or the path the repo's domain docs name). Classify every `by_cause` key and sum its count into one of two totals:
+
+- **`law-read-not-checked`**: a repo-path key on either list (a file named on it, or an `ADR-nnnn` under a directory named on it), plus `epic`, every `ticket#…`, `cited` and `skill`. The worker had the Law and the fix round enforced it anyway.
+- **`law-not-in-read-list`**: a repo-path key on neither list. The worker was never told to read it.
+- `none` counts toward neither.
+
+Read each key against RETRO.md's Reading-it table for the step it points at. The two totals are the evidence for a **[skill]** learning about that step, and they travel as its category and counts in step 5.
 
 ## 5. Upstream feedback (only with consent)
 

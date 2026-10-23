@@ -43,6 +43,7 @@ A real zero and a missing input look different. A measure whose input does not e
 | `escalations.blocked` | same, `blocked` | plan edges / cross-repo availability |
 | `edges_added` | `Edges added:` line in the `<!-- sdd-wave -->` comment on the epic (`null` with no wave comment) | safety-check misses (`to-tickets` SDD pass, `build-epic` §3) |
 | `fix_rounds.total`, `fix_rounds.prs_with_rounds`, `fix_rounds.max` | reviews on the ticket PRs whose body contains `## Spec: FAIL` or `## Quality: FAIL` (`review-pr`); one review is one round | worker quality vs brief quality |
+| `fix_rounds.by_cause` | every finding line (`- Critical`, `- Important`, `- Minor`, any severity) in those FAIL reviews, keyed by its **Law tag** source (`review-pr` §4): a repo path keeps its path with the id dropped (`AGENTS.md`, `ADR-0009`), `ticket` keeps its section (`ticket#Interfaces`), `epic`, `cited`, `skill` and `none` collapse to one key each, an untagged finding counts as `none`; `ADDRESSED` / `NOT ADDRESSED` lines never count; `null` exactly when `fix_rounds` is | which **Law** the fix rounds enforced, and whether the worker had it on the **Laws line** (the skill's §4 cross-check) |
 | `verify_corrections` | ticket PR bodies containing `Verify block corrected: yes` | Verify blocks that lied (`to-tickets` SDD pass) |
 | `panel.rounds`, `panel.personas`, `panel.critical`, `panel.important`, `panel.minor`, `panel.dropped` | every `review-panel` report on the integration PR, as a comment or a review: the first report plus each round-marked re-review report | panel calibration |
 | `cycle.median_hours_claim_to_pr` | `assigned` event time → its earliest ticket PR's `createdAt`, per ticket | brief completeness, ticket size |
@@ -77,6 +78,15 @@ for PR in $PRS; do
   gh pr view "$PR" --json reviews --jq '[.reviews[].body | select(test("## (Spec|Quality): FAIL"))] | length'
 done
 ```
+
+Fix-round findings by cause (every review body on the ticket PRs; `scripts/sdd-by-cause.py` keeps only the FAIL ones, reads stdin, prints the `by_cause` object, and `scripts/sdd-retro-check.sh` checks it against a fixture):
+
+```bash
+for PR in $PRS; do gh pr view "$PR" --json reviews --jq '[.reviews[].body]'; done |
+  jq -s 'add // []' | python3 scripts/sdd-by-cause.py
+```
+
+It prints `null` for an empty array; with ticket PRs found but no review on any of them, write `{}`, so `by_cause` is `null` exactly when `fix_rounds` is.
 
 Verify corrections:
 
@@ -114,16 +124,17 @@ done
 
 ## Output
 
-Posted on the epic under `<!-- sdd-retro -->`: a five-row table for humans, then the JSON. In the table a `null` measure reads **not found**, and a panel of more than one round reads `panel (N rounds)` with its summed counts.
+Posted on the epic under `<!-- sdd-retro -->`: a five-row table for humans, then the JSON. In the table a `null` measure reads **not found**, a panel of more than one round reads `panel (N rounds)` with its summed counts, and the fix-rounds row lists `by_cause` with its keys as written (`AGENTS.md 2 · ticket#Interfaces 1 · epic 1`). A retro posted as `sdd-retro/2` simply lacks the key.
 
 ```json
 {
-  "schema": "sdd-retro/2",
+  "schema": "sdd-retro/3",
   "epic": "https://github.com/owner/repo/issues/42",
   "tickets": { "total": 6, "by_size": { "S": 2, "M": 3, "L": 1 }, "repos": 2 },
   "escalations": { "needs_info": 1, "ready_for_human": 1, "blocked": 0 },
   "edges_added": 1,
-  "fix_rounds": { "total": 3, "prs_with_rounds": 2, "max": 2 },
+  "fix_rounds": { "total": 3, "prs_with_rounds": 2, "max": 2,
+    "by_cause": { "AGENTS.md": 2, "ADR-0009": 1, "ticket#Interfaces": 1, "epic": 1, "skill": 1, "none": 2 } },
   "verify_corrections": 2,
   "panel": { "rounds": 2, "personas": ["correctness", "testing", "maintainability", "standards-and-invariants", "history", "api-contract"], "critical": 0, "important": 2, "minor": 3, "dropped": 4 },
   "cycle": { "median_hours_claim_to_pr": 1.4 },
@@ -142,6 +153,12 @@ This block is the **local** retro. It names the epic and stays in the user's rep
 | `escalations.needs_info` high | `to-tickets` SDD §1 placeholder gate, or `to-spec` leaving decisions open |
 | `edges_added` high | `to-tickets` SDD §1 / `build-epic` parallel safety check missed interface pairs |
 | `fix_rounds.max` ≥ 2 on several PRs | worker brief or tier rubric (`build-epic` §4–5), or `review-pr` calibration |
+| `by_cause` repo-path keys high | `implement-issue` §4 and §6: the Laws were read but not checked, at their trigger or in the self-review; or, when the Law states no trigger, the Law's own wording |
+| `by_cause` has a repo-path key that is not on the Laws line | the Laws line itself (`setup-syn54x-skills` Section D): the worker was never told to read that file |
+| `by_cause` `ticket#Interfaces` high | `implement-issue` §6: the Interfaces claim, the diff's public symbols matched against the Produces lines |
+| `by_cause` `ticket#Test scenarios` high | `to-tickets` SDD §1: scenarios that a worker could not map one test to each |
+| `by_cause` `epic` high | the ticket did not carry the epic's decision (`to-tickets` consistency pass, the brief's Laws section) |
+| `by_cause` `none` high | logic and test gaps no Law names: the tier rubric (`build-epic` §4–5), or `review-pr` calibration |
 | `escalations.blocked` in a multi-repo epic | cross-repo *Available when* clauses missing |
 | `panel.dropped` much larger than findings | persona prompts too eager; raise specificity before raising the gate |
 | `panel.rounds` ≥ 2 on several epics | slices that pass their own gate but break where they meet: `review-pr` Coherence, or the plan's interface edges |
