@@ -25,7 +25,13 @@ The issue must be **open**, labelled `ready-for-agent`, have **no open blockers*
 
 The body must carry `## What to build`, `## Acceptance criteria`, `## Files owned` (Create / Modify / Test), `## Interfaces` (Consumes / Produces), `## Test scenarios` and `## Verify`. A missing or placeholder section (`TBD`, empty, "add appropriate error handling", "similar to #N") means the ticket is not buildable: add `needs-info`, remove `ready-for-agent`, write one progress comment saying what is missing, and stop.
 
-Read the parent epic body once for the decisions that bind you (`## Implementation Decisions`, `## Testing Decisions`, `## Out of Scope`, as `to-spec` writes them); the parent may live in another repo, so use `gh issue view "$(gh issue view "$N" --json parent --jq .parent.url)"`. Read `CLAUDE.md`/`AGENTS.md`, `GLOSSARY.md` and any ADR that touches the files you own.
+Read the laws the gate will cite, all three layers, before any code exists:
+
+- **Repo laws**: the documents on the `Laws:` line of the `<!-- sdd-routing -->` block in `CLAUDE.md` or `AGENTS.md`. When the line is absent, read `CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`, `CONCEPTS.md`, `CODING_STANDARDS.md`, `CONTRIBUTING.md`, and the ADR directory (`docs/adr/`, or the path the repo's domain docs name), whichever exist. Read a directory selectively: the entries that touch Files owned.
+- **Epic laws**: the parent epic body's decisions (`## Implementation Decisions`, `## Testing Decisions`, `## Out of Scope`, as `to-spec` writes them). The parent may live in another repo, so use `gh issue view "$(gh issue view "$N" --json parent --jq .parent.url)"`.
+- **Cited laws**: every document the ticket cites.
+
+Note each law that states a trigger (the moment it applies) and the check that discharges it; §4 runs those checks, §6 the rest.
 
 ## 2. Claim
 
@@ -53,6 +59,8 @@ Work only inside **Files owned** (its Create, Modify and Test paths). If the sli
 
 Call the Skill tool with "tdd" for the loop's rules; if it is unavailable, run the same loop by hand: failing test → minimal code → green → refactor. Start from the ticket's **Test scenarios**: one test per line, in the order given, and add any case you discover under the same category headings in the PR body. Follow the in-repo pattern the brief names. Keep the **Produces** signatures in **Interfaces** exactly as the ticket states them; another ticket, possibly in another repo, is coded against those names. The one exit is a declared **Interface deviation**: when an in-repo code signature (function, type, enum, struct) cannot work as written, ship the signature that works, add one `Interfaces changed:` line per deviation to the PR body, and report `DONE_WITH_CONCERNS`. A cross-repo contract (a route and its request/response shapes, an event payload, a generated-client method) and any interface the epic body states never deviate: stop with `NEEDS_CONTEXT`. Import what you **Consume** by the names the producing ticket published; if a name differs in the merged code, stop and report rather than adapt silently. A **Consumes** line from another repo carries an *Available when* clause: if that thing is not reachable from your checkout (the route 404s, the client method is missing), you are `BLOCKED`, not creative.
 
+**Check a law at its trigger.** A law that states a trigger is checked at the trigger, before the line that would do the thing the law names: before a second copy of a derivation or markup, before a component mounted in a second host, before an assertion that an affordance shows. The check is usually a search (the existing copy, the other host, the test that exercises the affordance), and its result is acted on in this PR: extract the one copy, exercise the affordance. A law with no trigger is checked once, in the §6 self-review.
+
 When the ticket touches a docs page or a docstring, call the Skill tool with `writing-for-humans` before writing its prose.
 
 Run the type checker and the single test file you are working in often; run the full suite once, at the end, before Verify. Commit as you go with conventional messages. Do not squash history yourself; the merge does that.
@@ -73,7 +81,20 @@ git status --porcelain            # must be empty before Verify counts
 
 Never open the PR with Verify red or un-run.
 
-## 6. Open the PR
+## 6. Self-review
+
+Before the PR opens, read your own diff (`git diff "origin/$BASE...HEAD"`) once with fresh eyes and fix what you find. A fix is committed, and §5 runs again on the new `HEAD`.
+
+- **Completeness**: every acceptance criterion and every Test scenario has a test; no edge case from the ticket left out.
+- **Discipline**: nothing built that was not asked for (YAGNI); in-repo patterns followed; nothing outside Files owned that is not declared.
+- **Tests**: they assert behaviour, not mocks; test output is pristine (no stray warnings or noise).
+- **Names**: say what things do, not how they work.
+- **Laws**: every law from §1, each checked against the diff, including those §4 already checked at their trigger. Write the PR body's `## Laws` section now, from the diff: one line per law that applies, grouped by source (a Laws-line document by rule id where the document has ids, an epic decision by its name, a cited document by the heading it binds), and one `n/a: <reason>` line per source with nothing applying.
+- **Interfaces**: list every public symbol the diff adds, removes or re-signs inside Files owned, and match each against the ticket's Produces lines. Each mismatch is either changed back or declared as an **Interface deviation** on its own `Interfaces changed:` line (§4); a mismatch without that line is a failing claim. The line reads `none` only when the list matches the Produces lines exactly.
+
+This self-review does not replace the reviewer; it makes the review shorter.
+
+## 7. Open the PR
 
 ```bash
 git push -u origin "sdd/$N-$SLUG"
@@ -97,26 +118,32 @@ Verify block corrected: no   <!-- required, never omitted: `no`, or `yes:` plus 
 
 ## Interfaces
 
-Interfaces changed: none   <!-- or, one line per Interface deviation: `<old signature>` → `<new signature>`: <why the ticket's signature could not work as written> -->
+Interfaces changed:   <!-- required, no default: from the §6 symbol list, `none` when every symbol matches a Produces line, else one line per Interface deviation: `<old signature>` → `<new signature>`: <why the ticket's signature could not work as written> -->
+
+## Laws
+
+<!-- required, no default: the §6 Laws lines, one per law that applies, grouped by source, and one `n/a: <reason>` line per source with nothing applying -->
 
 ## Notes for the reviewer
 
 <interfaces you exposed, decisions you made that the ticket left open, anything outside Files owned and why; or "none">
 ```
 
+A `## Laws` section has this shape:
+
+```markdown
+- AGENTS.md#I-2: the document shell is extracted once in doors/document; Notes and Name map onto it
+- AGENTS.md#I-1, I-3: n/a: no second derivation or host in this diff
+- GLOSSARY.md: n/a: no term added or renamed
+- epic#Failure law: File all's failure renders under Proposed with Retry
+- cited#Register doors: Save sits in the plate's foot, violet
+```
+
 `Closes #N` is what links the PR to its ticket, and it closes the ticket when the PR targets the default branch; on an integration branch the orchestrator closes the ticket after the merge. Do not omit the line, and do not close the issue by hand.
 
-## 7. Self-review, then report
+## 8. Check the claims, then report
 
-Before reporting, read your own diff once with fresh eyes and fix what you find:
-
-- **Completeness**: every acceptance criterion and every Test scenario has a test; no edge case from the ticket left out.
-- **Discipline**: nothing built that was not asked for (YAGNI); in-repo patterns followed; nothing outside Files owned that is not declared.
-- **Tests**: they assert behaviour, not mocks; test output is pristine (no stray warnings or noise).
-- **Names**: say what things do, not how they work.
-- **Claims**, run last, against the pushed branch: every test named in the TDD evidence, and every file or pin the report or PR body says was added or changed, is in `git diff "origin/$BASE...HEAD"`; every test whose file changed after its RED run was run again, and GREEN comes from the final committed state (the Verify SHA equals the pushed `HEAD`, `git rev-parse "origin/sdd/$N-$SLUG"`); `git status --porcelain` is empty, so nothing the report relies on is only uncommitted. Fix a failing claim (commit, re-run Verify, push) or remove it from the report and PR body.
-
-This self-review does not replace the reviewer; it makes the review shorter.
+**Claims**, against the pushed branch: every test named in the TDD evidence, and every file or pin the report or PR body says was added or changed, is in `git diff "origin/$BASE...HEAD"`; every test whose file changed after its RED run was run again, and GREEN comes from the final committed state (the Verify SHA equals the pushed `HEAD`, `git rev-parse "origin/sdd/$N-$SLUG"`); `git status --porcelain` is empty, so nothing the report relies on is only uncommitted. Fix a failing claim (commit, re-run Verify, push) or remove it from the report and PR body.
 
 Update the progress comment (status `pr-open`, PR number, Verify SHA). Then reply in ≤ 200 words:
 
