@@ -5,7 +5,7 @@ This repo is a fork of `mattpocock/skills` (remote `upstream`). The shape of the
 1. `git fetch upstream && git switch -c chore/sync-upstream-<date> main && git merge upstream/main`.
 2. Resolve conflicts:
    - **Renamed skills** (`setup-syn54x-skills`, `ask-syn54x`): git follows the rename, so upstream edits usually land in the new directory. If upstream added a file under the old name, `git mv` it across. Re-apply the rename to any new mention of `setup-matt-pocock-skills` or `ask-matt` in upstream's new prose.
-   - **Hooked `SKILL.md`s** (`to-tickets`, `implement`, `writing-for-agents`): take upstream's text, then put the fork's hook lines back where they were.
+   - **Hooked `SKILL.md`s** (`to-tickets`, `implement`, `writing-for-agents`, `triage`): take upstream's text, then put the fork's hook lines back where they were.
    - **`package.json` / `CHANGELOG.md`**: take upstream's side, then run `npm run version` so `plugin.json` tracks it.
    - **`.claude-plugin/plugin.json`**: keep the fork's name, author and URLs; take upstream's additions to `skills`.
    - **Skills the fork deleted** (`misc/scaffold-exercises`): a modify/delete conflict means upstream edited it; keep it deleted (`git rm`).
