@@ -25,7 +25,7 @@ It writes into the repo you run it in:
 | `triage-labels.md` | `docs/agents/`, only when the `triage` skill is installed |
 | An `## Agent skills` block | whichever of `CLAUDE.md` or `AGENTS.md` already exists |
 | An `<!-- sdd-routing -->` block, below `## Agent skills` | the same file, only when the SDD pipeline is on |
-| `sdd-implement.yml`, `sdd-review.yml` | `.github/workflows/`, only when you opt into the cloud path |
+| `sdd-implement.yml`, `sdd-review.yml` | `.github/workflows/`, only when you opt into the cloud path for one-off `size:S` tickets outside an epic |
 
 With the SDD pipeline on it also creates labels on the GitHub repo (the five triage roles, `needs-plan`, `blocked`, `size:S/M/L`) and, on an org repo and only if you agree, the `Epic` and `Task` issue types.
 
@@ -40,7 +40,7 @@ It starts each section with the recommended answer, and skips any question its e
 | **Issue tracker** | the one matching your `git remote` | always, because this is the one real choice |
 | **Triage labels** | keep the five canonical names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) | only if the `triage` skill is installed |
 | **Domain docs** | single-context: one `GLOSSARY.md` plus `docs/adr/` at the root | only if it spots monorepo signals, and then it offers a multi-context `GLOSSARY-MAP.md` |
-| **SDD pipeline** | on, for a repo you build features in | only when the tracker is GitHub; then a few follow-ups: issue types (org repos), the upstream skill feedback profile (`off`, `counts`, `detailed` or `attributed`; default off), the Laws line (one question for other binding documents), and the cloud workflows for `size:S` issues |
+| **SDD pipeline** | on, for a repo you build features in | only when the tracker is GitHub; then a few follow-ups: issue types (org repos), the upstream skill feedback profile (`off`, `counts`, `detailed` or `attributed`; default off), the Laws line (one question for other binding documents), and the cloud workflows for one-off `size:S` issues that have no parent epic |
 
 The tracker options:
 
@@ -75,6 +75,10 @@ It doesn't. `docs/agents/triage-labels.md` is a *mapping*: it tells `/triage` wh
 
 - If your tracker already uses the canonical names, the mapping is an identity table and there is nothing to configure. That is the intended common case, not a missing step.
 - This skill does not create [wayfinder](../engineering/wayfinder.md)'s `wayfinder:map` and `wayfinder:<type>` labels either, and `gh issue create --label <missing>` fails instead of creating the label. Create them by hand before the first wayfinder run on a GitHub repo.
+
+**I installed the cloud workflow. Why didn't my epic's `size:S` sub-issue build in Actions?**
+
+On purpose. The implement workflow skips any issue that has a parent, so every sub-issue of an epic builds locally in [build-epic](../engineering/build-epic.md)'s waves, whatever its size. Those waves merge onto one integration branch and check that parallel tickets don't touch the same files, and a cloud worker would bypass both. The cloud path is for a one-off ticket: an open, unassigned issue with no parent, labelled `size:S` and `ready-for-agent`, the kind [triage](../engineering/triage.md) sizes and hardens from a bug report.
 
 **Can I configure the other skills' behaviour here (grilling cadence, question format, tone)?**
 

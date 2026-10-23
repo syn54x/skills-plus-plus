@@ -62,7 +62,7 @@ When [setup-syn54x-skills](../engineering/setup-syn54x-skills.md) has switched t
 | **Files owned** (Create / Modify / Test paths) | the claim that lets tickets in the same wave run in parallel without touching the same file |
 | **Interfaces** (Consumes / Produces, with exact names and types) | how a worker learns the names its neighbours are coding against right now |
 | **Test scenarios** and a runnable **Verify** block | what the worker turns into tests, and the command whose green means done |
-| A size (`size:S`, `M` or `L`) | S can go to the cloud workflow; M and L go to `build-epic` |
+| A size (`size:S`, `M` or `L`) | how much worker `build-epic` gives the ticket; every size builds in its local waves |
 | Native parent and blocked-by links, created with each issue | the ready queue is computed by `gh`, not read from prose |
 | One `<!-- sdd-plan -->` comment on the epic | the dependency layers at a glance, rewritten in place when tickets change; [build-epic](../engineering/build-epic.md) later adds a `Deviated:` line for each declared **Interface deviation** |
 | A **narrowing** check, and a `Narrows:` line where one is approved | a ticket that quietly delivers less than the epic states is caught here, not by the reviewer of the final PR |

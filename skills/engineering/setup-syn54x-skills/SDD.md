@@ -35,7 +35,7 @@ gh label create ready-for-human --color D93F0B --description "Needs a human deci
 gh label create wontfix         --color FFFFFF --description "Will not be actioned" --force
 gh label create needs-plan      --color 0E8A16 --description "Epic approved as a spec; sub-issues not yet cut" --force
 gh label create blocked         --color 5319E7 --description "Waiting on a dependency the tracker knows about" --force
-gh label create size:S          --color C2E0C6 --description "One context window, <= 3 files; cloud-eligible" --force
+gh label create size:S          --color C2E0C6 --description "One context window, <= 3 files" --force
 gh label create size:M          --color BFD4F2 --description "Needs a plan; one or two local workers" --force
 gh label create size:L          --color F9D0C4 --description "Cross-cutting or multi-worker; local waves only" --force
 ```
@@ -87,9 +87,9 @@ Show the rendered block alongside the `## Agent skills` draft in step 3, and wri
 
 ## D5. GitHub Actions (optional)
 
-Ask whether the user wants the **cloud path** for `size:S` issues. On yes, copy both templates from [workflows/](./workflows/) into `.github/workflows/` during step 4:
+Ask whether the user wants the **cloud path**: it builds a one-off ticket outside an epic, the kind `triage` sizes and hardens (#82), while every sub-issue of an epic builds locally in `build-epic`'s waves. On yes, copy both templates from [workflows/](./workflows/) into `.github/workflows/` during step 4:
 
-- `sdd-implement.yml`: runs `/implement-issue <N>` in `claude-code-action` when an issue labelled `size:S` gains `ready-for-agent`.
+- `sdd-implement.yml`: runs `/implement-issue <N>` in `claude-code-action` when an issue gains `ready-for-agent` and is ready for the cloud: open, unassigned, labelled `size:S`, and with no parent.
 - `sdd-review.yml`: runs `/review-pr <N>` on every non-draft pull request from an `sdd/*` branch.
 
 Then tell the user what to add, and don't do it for them:
@@ -99,4 +99,4 @@ Then tell the user what to add, and don't do it for them:
 
 ## Report
 
-In step 5, add one table for Section D: what existed, what was created, what was skipped and why. Point at the next step: `/grill-with-docs` → `/to-spec` → `/to-tickets`, then `/build-epic <epic#>` or a `ready-for-agent` label on a `size:S` issue.
+In step 5, add one table for Section D: what existed, what was created, what was skipped and why. Point at the next step: `/grill-with-docs` → `/to-spec` → `/to-tickets`, then `/build-epic <epic#>`, or a `ready-for-agent` label on a one-off `size:S` issue outside an epic.

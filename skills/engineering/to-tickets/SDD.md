@@ -66,7 +66,7 @@ Without the line, the narrowing is a defect, and `review-pr` and `review-panel` 
 
 | Size | Meaning | Builds via |
 | --- | --- | --- |
-| `size:S` | one context window, at most 3 files, no schema or cross-package change | the cloud workflow (if installed) or locally |
+| `size:S` | one context window, at most 3 files, no schema or cross-package change | a local wave, like M and L |
 | `size:M` | its sections need careful reading; one worker, one worktree | `/build-epic` or `/implement` |
 | `size:L` | cross-cutting, touches migrations or shared contracts | `/build-epic` only, ceiling-tier worker |
 
@@ -128,4 +128,4 @@ Optional: if the epic lacks a `## Spec deltas` section (ADDED / MODIFIED / REMOV
 
 ## 4. Report
 
-One table: ticket, size, blocked by, ready or `needs-info`, and a Narrows column (the approved narrowing in one phrase, or blank). Then the next step: `/build-epic <epic#>` for M and L, while `size:S` tickets are picked up by the cloud workflow if the repo installed it.
+One table: ticket, size, blocked by, ready or `needs-info`, and a Narrows column (the approved narrowing in one phrase, or blank). Then the next step: `/build-epic <epic#>`, which builds every size in local waves.
