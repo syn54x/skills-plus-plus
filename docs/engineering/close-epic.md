@@ -22,6 +22,8 @@ Upstream feedback is off unless the repo's routing block names a profile other t
 
 **Older retros showed 0 fix rounds and an empty panel. Were they right?** Usually not. They found ticket PRs through GitHub's closed-by links, which fill in only when a PR merges into the default branch, and slice PRs merge into the integration branch; they also read the panel only from PR reviews, while the panel posts a comment. The retro now finds each ticket's PR by its base branch and `Closes #N` line, reads the panel from comments and reviews, counts each re-review round (`panel (2 rounds)`), and says **not found** for a measure it has no input for, so a missing input never passes for a zero.
 
+**When does the retro say a ticket was claimed?** At the claim mark: claim time starts at the first `claimed` label event on the ticket, and the retro measures from there to the ticket's earliest PR. Epics built before the mark have no such event, so the retro falls back to the first assignment. The measure and the retro's schema are unchanged.
+
 **What does "by cause" in the retro mean?** Every finding in a failed `review-pr` verdict on a ticket PR carries a **Law tag** naming the rule it enforced, and the retro counts those findings by tag source. A repo file keeps its name (`AGENTS.md 2`), a ticket section keeps its section (`ticket#Interfaces 1`), and `epic`, `cited`, `skill` and `none` each count as one. The skill then checks each source against your **Laws line**:
 
 | The finding cited | It counts toward | Which points at |

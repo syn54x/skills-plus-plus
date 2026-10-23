@@ -103,7 +103,8 @@ for URL in $TICKETS; do
   NI=$((NI + $(jq '[.[] | select(.event=="labeled" and .label.name=="needs-info")] | length' <<<"$EV")))
   RH=$((RH + $(jq '[.[] | select(.event=="labeled" and .label.name=="ready-for-human")] | length' <<<"$EV")))
   BL=$((BL + $(jq '[.[] | select(.event=="labeled" and .label.name=="blocked")] | length' <<<"$EV")))
-  CLAIMED=$(jq -r '[.[] | select(.event=="assigned")] | first | .created_at // empty' <<<"$EV")
+  # Claim time: the first `labeled claimed` event, else the first `assigned` (epics built before the mark).
+  CLAIMED=$(jq -r '(([.[] | select(.event=="labeled" and .label.name=="claimed")] | first) // ([.[] | select(.event=="assigned")] | first)) | .created_at // empty' <<<"$EV")
   MINE=$(printf '%s' "$TICKET_PRS" | awk -v t="$URL" '$1==t { $1=""; print }')
   OPENED=$(jq -r --arg m "$MINE" '($m | split(" ") | map(select(. != ""))) as $u
     | [.[] | select(.url as $x | $u | index($x)) | .createdAt] | min // empty' <<<"$PRDATA")

@@ -25,7 +25,7 @@
  "verify_corrections": 0,
  "panel": null,
  "cycle": {
-  "median_hours_claim_to_pr": 4.0
+  "median_hours_claim_to_pr": 3.0
  },
  "not_found": [
   "wave comment",
