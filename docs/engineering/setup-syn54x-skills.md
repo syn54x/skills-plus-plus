@@ -27,7 +27,7 @@ It writes into the repo you run it in:
 | An `<!-- sdd-routing -->` block, below `## Agent skills` | the same file, only when the SDD pipeline is on |
 | `sdd-implement.yml`, `sdd-review.yml` | `.github/workflows/`, only when you opt into the cloud path for one-off `size:S` tickets outside an epic |
 
-With the SDD pipeline on it also creates labels on the GitHub repo (the five triage roles, `needs-plan`, `blocked`, `size:S/M/L`) and, on an org repo and only if you agree, the `Epic` and `Task` issue types.
+With the SDD pipeline on it also creates labels on the GitHub repo (the five triage roles, `needs-plan`, `blocked`, the claim mark `claimed`, `size:S/M/L`) and, on an org repo and only if you agree, the `Epic` and `Task` issue types. The routing block tells agents what a ready ticket is: "Readiness = open + not blocked + not held (no claim mark, no assignee) + `ready-for-agent`. Claim by adding `claimed`. Unclaim if you stop without a PR." A worker holds a ticket with the `claimed` label rather than an assignee, so a cloud run can hold one too, and a person who assigns themselves still keeps agents off it.
 
 You commit all of it as markdown. There is no user-level or global mode. The config lives in the repo, so every repo gets its own copy.
 
@@ -98,7 +98,7 @@ One long-standing complaint says yes, in these words: *"having a skill to set up
 - An `## Agent skills` section appears in the instruction file your harness reads, with a one-line summary pointing at each of those files.
 - The tracker it proposed matches the remote you use, and the label strings match labels that exist in your tracker.
 - Afterwards, `/to-tickets` publishes without asking you where issues live, and `/triage` applies labels rather than inventing them.
-- With the SDD pipeline on: the routing block sits below `## Agent skills`, `gh label list` shows the `size:*` and readiness labels, and a re-run replaces the block rather than adding a second one. A re-run over an older `Upstream feedback: on` line rewrites it to `counts` and tells you. A re-run keeps every entry of an existing Laws line and proposes only additions.
+- With the SDD pipeline on: the routing block sits below `## Agent skills`, `gh label list` shows the `size:*`, readiness and `claimed` labels, the routing block carries the readiness line above, and a re-run replaces the block rather than adding a second one. A re-run over an older `Upstream feedback: on` line rewrites it to `counts` and tells you. A re-run keeps every entry of an existing Laws line and proposes only additions.
 - Nothing in the skill files themselves changed. If setup edited a `SKILL.md`, something went wrong.
 
 ## Where it fits

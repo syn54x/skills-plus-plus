@@ -35,6 +35,7 @@ gh label create ready-for-human --color D93F0B --description "Needs a human deci
 gh label create wontfix         --color FFFFFF --description "Will not be actioned" --force
 gh label create needs-plan      --color 0E8A16 --description "Epic approved as a spec; sub-issues not yet cut" --force
 gh label create blocked         --color 5319E7 --description "Waiting on a dependency the tracker knows about" --force
+gh label create claimed         --color FBCA04 --description "Held by a worker; set before work, cleared on stopping without a PR" --force
 gh label create size:S          --color C2E0C6 --description "One context window, <= 3 files" --force
 gh label create size:M          --color BFD4F2 --description "Needs a plan; one or two local workers" --force
 gh label create size:L          --color F9D0C4 --description "Cross-cutting or multi-worker; local waves only" --force
