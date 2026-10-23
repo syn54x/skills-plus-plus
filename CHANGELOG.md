@@ -1,5 +1,11 @@
 # mattpocock-skills
 
+## 1.5.1
+
+### Patch Changes
+
+- [#120](https://github.com/syn54x/skills-plus-plus/pull/120) [`6dd055e`](https://github.com/syn54x/skills-plus-plus/commit/6dd055e068a8ca629578749bf9a7ca7719768f12) Thanks [@claude](https://github.com/apps/claude)! - `to-tickets` SDD §1 code check 2 now says where to look for output pins: one `git grep` for the exact output string from the repository root, over the whole tree, with fixtures, snapshots, CI workflow steps and docs examples named as places a pin lives. Hits that assert the output become Files owned entries; hits that merely mention it do not.
+
 ## 1.5.0
 
 ### Minor Changes
