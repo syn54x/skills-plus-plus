@@ -66,9 +66,9 @@ Without the line, the narrowing is a defect, and `review-pr` and `review-panel` 
 
 | Size | Meaning | Builds via |
 | --- | --- | --- |
-| `size:S` | one context window, at most 3 files, no schema or cross-package change | the cloud workflow (if installed) or locally |
-| `size:M` | its sections need careful reading; one worker, one worktree | `/build-epic` or `/implement` |
-| `size:L` | cross-cutting, touches migrations or shared contracts | `/build-epic` only, ceiling-tier worker |
+| `size:S` | one context window, at most 3 files, no schema or cross-package change | an epic's ticket: `/build-epic`, in a local wave like M and L; a one-off: `/implement <N>`, or the cloud workflow if installed |
+| `size:M` | its sections need careful reading; one worker, one worktree | an epic's ticket: `/build-epic`; a one-off: `/implement <N>` |
+| `size:L` | cross-cutting, touches migrations or shared contracts | an epic's ticket: `/build-epic`, ceiling-tier worker; a one-off: `/implement <N>` |
 
 ## 2. Publish natively
 
@@ -128,4 +128,4 @@ Optional: if the epic lacks a `## Spec deltas` section (ADDED / MODIFIED / REMOV
 
 ## 4. Report
 
-One table: ticket, size, blocked by, ready or `needs-info`, and a Narrows column (the approved narrowing in one phrase, or blank). Then the next step: `/build-epic <epic#>` for M and L, while `size:S` tickets are picked up by the cloud workflow if the repo installed it.
+One table: ticket, size, blocked by, ready or `needs-info`, and a Narrows column (the approved narrowing in one phrase, or blank). Then the next step: `/build-epic <epic#>`, which builds every size in local waves.

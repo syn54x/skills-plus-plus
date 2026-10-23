@@ -80,11 +80,11 @@ A ticket is ready when it is open, has no open blockers, is unassigned, and carr
 
 ### Size ladder
 
-`to-tickets` sets the size. The size picks the runtime. `implement-issue` is the worker in every row.
+`to-tickets` sets the size. Under `build-epic` every size builds locally; the size picks how many workers and how much review. The cloud path builds only a one-off `size:S` ticket outside an epic (open, unassigned, `ready-for-agent`, no parent). `implement-issue` is the worker in every row.
 
 | Size | Ticket shape | Trigger | Runs where | Reviewer |
 | --- | --- | --- | --- | --- |
-| S | one context window, at most 3 files | label `ready-for-agent` | cloud: `claude-code-action` (`sdd-implement.yml`) | `sdd-review.yml` on the PR |
+| S | one context window, at most 3 files | `/build-epic`, or label a one-off `ready-for-agent` | a local wave, like M and L; a one-off outside an epic: cloud `claude-code-action` (`sdd-implement.yml`) | fresh reviewer subagent; `sdd-review.yml` on a cloud PR |
 | M | needs its plan sections; 1 or 2 workers | `/build-epic` or `/implement` | local worker in its own worktree | fresh reviewer subagent |
 | L | cross-cutting, or 3 or more sub-issues | `/build-epic` | local waves, 3 to 5 workers, one worktree each | reviewer per slice PR; `review-panel` on the PR to `main` |
 | XL | 8 or more independent sub-issues | `/build-epic --workflow` | dynamic workflow (Claude Code, on opt-in) | scripted verify, then merge order; `review-panel` on the PR to `main` |

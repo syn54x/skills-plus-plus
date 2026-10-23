@@ -49,7 +49,7 @@ A **Sub-issue**'s declared departure from its own Produces line, stated in its P
 _Avoid_: interface drift (the undeclared kind is a defect), signature change
 
 **Size ladder**:
-`size:S` builds in the cloud (`claude-code-action`), `size:M` and `L` in local **Waves**, XL as a dynamic workflow.
+Under `build-epic` every size (`size:S`, `M` and `L`) builds in local **Waves**, XL as a dynamic workflow. The cloud path (`claude-code-action`) is for a one-off `size:S` ticket outside an **Epic**.
 
 **Multi-repo epic**:
 An **Epic** whose **Sub-issues** live in more than one repo. Sub-issues are named by URL; each repo gets its own integration branch, worktrees and PRs; a cross-repo blocker must be merged **and available** before its consumer is ready.

@@ -1,5 +1,6 @@
-# Cloud path for size:S tickets.
-# Fires when an issue gains the `ready-for-agent` label; the job guard keeps it to size:S.
+# Cloud path for a one-off size:S ticket outside an epic.
+# Fires when an issue gains the `ready-for-agent` label; the job guard keeps it to an open,
+# unassigned size:S issue with no parent.
 # Runs the same /implement-issue skill the local workers use, via the skills-plus-plus plugin.
 name: sdd-implement
 
@@ -19,11 +20,15 @@ concurrency:
 
 jobs:
   implement:
+    # A sub-issue of an epic builds locally in build-epic's waves, which merge onto one
+    # integration branch and check parallel safety; a cloud worker would bypass both.
+    # The issue object carries parent_issue_url only when a parent is set.
     if: >-
       github.event.label.name == 'ready-for-agent' &&
       contains(github.event.issue.labels.*.name, 'size:S') &&
       github.event.issue.state == 'open' &&
-      github.event.issue.assignee == null
+      github.event.issue.assignee == null &&
+      github.event.issue.parent_issue_url == null
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
