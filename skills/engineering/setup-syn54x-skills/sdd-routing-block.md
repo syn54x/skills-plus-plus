@@ -14,5 +14,8 @@ Written into `CLAUDE.md` (or `AGENTS.md`) below the `## Agent skills` block. Rep
 - Progress is one comment per issue under `<!-- sdd-progress -->`, rewritten in place. Never post a second one.
 - Mode: <org | labels-only>. Sizes: <`size:S/M/L` labels | issue field `Effort`>. Priority: <none | issue field `Priority`>.
 - Upstream feedback: <off | counts | detailed | attributed>. Unless off, `close-epic` may propose skill-defect issues on syn54x/skills-plus-plus, the profile's allowlisted fields only, each one shown and approved by a human before filing; never from a non-interactive run.
+- Laws: <comma-separated paths and directories>
 <!-- /sdd-routing -->
 ```
+
+The Laws line names the repo documents that bind workers and reviewers alike. When it is absent, the skills fall back to `CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`, `CONCEPTS.md`, `CODING_STANDARDS.md`, `CONTRIBUTING.md` and the ADR directory (`docs/adr/`, or the path the repo's domain docs name). Paths are relative to the repo root; a path ending in `/` is a directory.
