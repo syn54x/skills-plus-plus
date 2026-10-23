@@ -21,7 +21,7 @@ gh issue view "$N" --comments
 
 Confirm you are standing in a checkout of the **ticket's** repo: the `url` field's `owner/repo` must equal `gh repo view --json nameWithOwner --jq .nameWithOwner`. If it does not, stop and report; the PR must be opened in the repo the ticket lives in, so that `Closes #N` closes it.
 
-The issue must be **open**, labelled `ready-for-agent`, have **no open blockers** (`blockedBy.nodes[] | select(.state=="OPEN")` is empty), and be **unassigned or assigned to you**. Anything else: stop and report which condition failed. Do not "just start".
+The issue must be **open**, labelled `ready-for-agent`, have **no open blockers** (`blockedBy.nodes[] | select(.state=="OPEN")` is empty), and be **not held, or held by you**. Held means it carries the `claimed` label or has an assignee; held by you means the existing progress comment's **Worker** line names you (your agent name, this run's URL in the cloud, your login). Anything else: stop and report which condition failed, and for a ticket held by someone else, report "held by <name>" from the Worker line (or the assignee). Do not "just start".
 
 The body must carry `## What to build`, `## Acceptance criteria`, `## Files owned` (Create / Modify / Test), `## Interfaces` (Consumes / Produces), `## Test scenarios` and `## Verify`. A missing or placeholder section (`TBD`, empty, "add appropriate error handling", "similar to #N") means the ticket is not buildable: add `needs-info`, remove `ready-for-agent`, write one progress comment saying what is missing, and stop.
 
@@ -35,11 +35,9 @@ Note each law that states a trigger (the moment it applies) and the check that d
 
 ## 2. Claim
 
-```bash
-gh issue edit "$N" --add-assignee @me
-```
+Call the Skill tool with "sync-progress" and claim through it: it creates the `claimed` label (with force) and adds it, which is the **Claim mark**. Never add it over a held ticket that is not yours. Resuming a ticket already held by you (a fix round) skips the claim.
 
-Then write the first progress comment (call the Skill tool with "sync-progress"; marker `<!-- sdd-progress -->`, status `in-progress`).
+Then write the first progress comment (marker `<!-- sdd-progress -->`, status `in-progress`) with the **Worker** line naming you, so a twin run can tell whose mark it is.
 
 ## 3. Branch
 
@@ -51,7 +49,7 @@ Determine where you are:
   SLUG=$(gh issue view "$N" --json title --jq '.title | ascii_downcase | gsub("[^a-z0-9]+";"-") | .[0:40]')
   git fetch origin "$BASE" && git switch -c "sdd/$N-$SLUG" "origin/$BASE"
   ```
-- **Cloud** (`GITHUB_ACTIONS=true`): claude-code-action already created the branch and checked it out. Do not create another. The PR targets the repository default branch unless the issue body names an integration branch.
+- **Cloud** (`GITHUB_ACTIONS=true`): claude-code-action already created the branch and checked it out. Do not create another. The PR targets the repository default branch unless the issue body names an integration branch. The same skill text runs here: the Worker line is this run's URL, and a second run that finds the mark already there stops at §1.
 
 ## 4. Build, test-first
 
@@ -156,4 +154,4 @@ Update the progress comment (status `pr-open`, PR number, Verify SHA). Then repl
 
 ## If you get stuck
 
-Stopping is allowed; a wrong PR is not. Missing information → `NEEDS_CONTEXT`; cannot complete → `BLOCKED`. In both cases: Unclaim (`gh issue edit "$N" --remove-assignee @me`), set `needs-info` or `ready-for-human` per `sync-progress`, write why in the progress comment, push whatever is committed on your branch, record the state on the commit (`git notes --ref=sdd-verify add -f -m blocked HEAD`, so the verify gate lets you stop), and report with the status and the specifics in the message itself; the orchestrator acts on that directly.
+Stopping is allowed; a wrong PR is not. Missing information → `NEEDS_CONTEXT`; cannot complete → `BLOCKED`. In both cases: Unclaim (`gh issue edit "$N" --remove-label claimed`), set `needs-info` or `ready-for-human` per `sync-progress`, write why in the progress comment, push whatever is committed on your branch, record the state on the commit (`git notes --ref=sdd-verify add -f -m blocked HEAD`, so the verify gate lets you stop), and report with the status and the specifics in the message itself; the orchestrator acts on that directly.

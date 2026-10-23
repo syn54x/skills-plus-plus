@@ -1,6 +1,6 @@
 ## What it does
 
-`implement-issue` builds one SDD sub-issue end to end: it checks the issue is ready, claims it by assignment, branches `sdd/<N>-<slug>`, drives the tests from the ticket's **Test scenarios**, runs the ticket's **Verify** block, records that run as a git note, reviews its own diff, and opens a PR with `Closes #N`. It keeps one progress comment on the issue current throughout. It never merges and never touches another ticket.
+`implement-issue` builds one SDD sub-issue end to end: it checks the issue is ready, claims it with the `claimed` label, branches `sdd/<N>-<slug>`, drives the tests from the ticket's **Test scenarios**, runs the ticket's **Verify** block, records that run as a git note, reviews its own diff, and opens a PR with `Closes #N`. It keeps one progress comment on the issue current throughout. It never merges and never touches another ticket.
 
 The worker reads the same laws the gate will cite: the documents on the **Laws line** of the repo's routing block (or, without one, the same fallback list [review-pr](../engineering/review-pr.md) and [review-panel](../engineering/review-panel.md) use), the epic's decisions, and every document the ticket cites. It checks a law at the moment the law's trigger comes up, and it cannot finish without writing a `## Laws` section in the PR body that makes one claim per law.
 
@@ -13,7 +13,7 @@ Type `/implement-issue <N>`, or the agent reaches for it when it is handed an SD
 | Started by | How |
 | --- | --- |
 | [build-epic](../engineering/build-epic.md) | each worker calls it for its ticket, inside its own worktree |
-| The cloud workflow | `sdd-implement.yml` runs it when a one-off `size:S` issue outside an epic (open, unassigned, no parent) gains `ready-for-agent` |
+| The cloud workflow | `sdd-implement.yml` runs it when a one-off `size:S` issue outside an epic (open, not held, no parent) gains `ready-for-agent` |
 | [implement](../engineering/implement.md) | `/implement #N` hands off to it when the issue is an SDD sub-issue |
 | You | `/implement-issue <N>` for a single ticket outside a wave |
 
@@ -21,9 +21,11 @@ For work that is not an SDD sub-issue (a spec, a plain ticket, the conversation)
 
 ## Prerequisites
 
-The issue must be open, unblocked, unassigned and labelled `ready-for-agent`. On a local run, the skills-plus-plus plugin's Stop hook refuses to let the session finish on an `sdd/*` branch until the Verify run is recorded as a git note on `HEAD`.
+The issue must be open, unblocked, not held and labelled `ready-for-agent`. Held means it carries the `claimed` label or has an assignee, unless the progress comment's Worker line names this worker, which resumes. On a local run, the skills-plus-plus plugin's Stop hook refuses to let the session finish on an `sdd/*` branch until the Verify run is recorded as a git note on `HEAD`.
 
 ## Common questions
+
+**What does claimed mean?** The worker holds the ticket by adding the `claimed` label before any work starts, and removes it when it stops without a PR. The label stays through `pr-open`. A ticket with the label, or with any assignee, is held and not ready; the Worker line in the progress comment says who holds it, and a run that finds another worker named there stops and reports "held by <name>".
 
 **Why can't it stop?** The Stop hook is doing its job: the tree is dirty or there is no Verify note on `HEAD`. Run the Verify block and record it, or, if the ticket is blocked, unclaim it and record a `blocked` note instead.
 
