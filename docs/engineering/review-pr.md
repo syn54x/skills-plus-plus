@@ -6,7 +6,7 @@ It trusts nothing the worker says. The PR body and the worker's report are claim
 
 ## When to reach for it
 
-Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gating. Usually something else starts it: [build-epic](../engineering/build-epic.md) after each worker reports, the `sdd-review.yml` cloud workflow on every non-draft `sdd/*` PR, and [review-panel](../engineering/review-panel.md), which uses its full-epic mode for the spec verdict on the PR to `main`.
+Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gating. Usually something else starts it: [build-epic](../engineering/build-epic.md) after each worker reports, the `sdd-review.yml` cloud workflow on every non-draft `sdd/*` PR the cloud worker opened, and [review-panel](../engineering/review-panel.md), which uses its full-epic mode for the spec verdict on the PR to `main`.
 
 | The PR is… | Reach for |
 | --- | --- |

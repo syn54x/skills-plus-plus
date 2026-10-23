@@ -1,4 +1,6 @@
-# Review gate for PRs opened by the cloud path (and any other PR that closes a sub-issue).
+# Review gate for pull requests the cloud worker opened. The job runs only when the PR's author is
+# a bot (the app the sdd-implement worker pushes as); a local epic slice or local one-off is opened
+# by a person and is gated by build-epic's own reviewer or a human, so CI leaves it alone.
 # Runs /review-pr from the skills-plus-plus plugin: two verdicts (spec, quality), posts them on the PR.
 # claude_args grants unrestricted Bash: the reviewer re-runs the ticket's Verify block, and an
 # allowlist would have to name every consuming repo's toolchain. The runner is isolated and the
@@ -23,7 +25,8 @@ jobs:
   review:
     if: >-
       github.event.pull_request.draft == false &&
-      startsWith(github.event.pull_request.head.ref, 'sdd/')
+      startsWith(github.event.pull_request.head.ref, 'sdd/') &&
+      github.event.pull_request.user.type == 'Bot'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
