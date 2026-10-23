@@ -51,7 +51,7 @@ Every step ends on a **completion criterion**, the condition that tells the agen
 
 The strongest criteria are both checkable and exhaustive.
 
-A rule an agent obeys while working (an `AGENTS.md` invariant, a `CLAUDE.md` law) takes the same shape: lead with its **trigger**, the moment it applies, then the **check** that discharges it; the incident that named it comes last. A rule told as a story has no moment to fire at. Before: "Last sprint two copies of the retry predicate drifted apart; keep one." After: "The moment a predicate is about to appear in a second file, move it to a shared module in that same PR; the check is one definition, imported everywhere. (Two copies of the retry predicate drifted apart.)"
+When the document holds a rule an agent obeys while working (an `AGENTS.md` invariant, a `CLAUDE.md` law), read [`RULES.md`](RULES.md) for its shape.
 
 ## When to split
 
