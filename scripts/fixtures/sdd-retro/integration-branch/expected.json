@@ -1,5 +1,5 @@
 {
- "schema": "sdd-retro/2",
+ "schema": "sdd-retro/3",
  "epic": "https://github.com/acme/app/issues/1",
  "tickets": {
   "total": 3,
@@ -19,7 +19,8 @@
  "fix_rounds": {
   "total": 3,
   "prs_with_rounds": 2,
-  "max": 2
+  "max": 2,
+  "by_cause": {}
  },
  "verify_corrections": 1,
  "panel": {
