@@ -30,7 +30,7 @@ gh issue view "$EPIC" --json subIssues --jq '[.subIssues.nodes[].repository.name
 
 More than one → **multi-repo mode**. You need a local checkout of every repo listed. Default: sibling directories named after the repo (`../pinch-backend` next to `../pinch-frontend`); if one is missing, ask for its path or clone it. Every repo must have run `/setup-syn54x-skills` (labels, routing block). From here on, identify tickets by **URL**, never by bare number: `gh issue view`, `gh issue edit` and `gh pr view` all accept URLs, and a bare `#12` is ambiguous across repos.
 
-Read the plan comment and the epic body once. Read each repo's laws (`CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`, ADRs) once. You should be able to write every brief without opening another file.
+Read the plan comment and the epic body once. Read each repo's Laws line once (the `Laws:` line of the `<!-- sdd-routing -->` block in `CLAUDE.md` or `AGENTS.md`, or the fallback list: `CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`, `CONCEPTS.md`, `CODING_STANDARDS.md`, `CONTRIBUTING.md`, and the ADR directory (`docs/adr/`, or the path the repo's domain docs name)). You should be able to write every brief without opening another file.
 
 ## 1. Integration branch
 
@@ -82,7 +82,7 @@ Wait for approval on the **first** wave. Later waves that follow the plan launch
 For each ticket in the wave:
 
 1. Claim: `gh issue edit "$N" --add-assignee @me`.
-2. Write the brief from [WORKER-BRIEF.md](./WORKER-BRIEF.md). The brief is the ticket body verbatim plus the laws, the branch mechanics, and the report format. Workers get nothing from this conversation, so the brief is complete or the worker fails.
+2. Write the brief from [WORKER-BRIEF.md](./WORKER-BRIEF.md). The brief is the ticket body verbatim plus the Laws slot (sources, not a paraphrase), the branch mechanics, and the report format. Workers get nothing from this conversation, so the brief is complete or the worker fails.
 3. Dispatch the brief to **one isolated worker per ticket, in its own worktree of that ticket's repo, branched from that repo's integration branch, with the whole wave running concurrently**. The concrete call depends on the harness: see [HARNESS-DISPATCH.md](./HARNESS-DISPATCH.md). The worker calls the Skill tool with "implement-issue" for the ticket's URL, inside that worktree. In multi-repo mode the brief names the checkout the worker starts from; a worker never guesses which repo a ticket belongs to.
 
 Then upsert the wave comment on the epic under `<!-- sdd-wave -->` (call the Skill tool with "sync-progress" for the upsert): wave number, tickets, worker names, started-at, and one line `Edges added: <consumer> ← <producer>, …` or `Edges added: none` listing every `--add-blocked-by` the safety check introduced since the plan comment. `close-epic`'s retro reads that line.

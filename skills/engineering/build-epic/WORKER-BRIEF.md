@@ -24,7 +24,7 @@ Then call the Skill tool with "implement-issue" for <issue URL> and follow it. T
 
 ## Laws
 
-<the repo rules that bind this slice: from CLAUDE.md / AGENTS.md / GLOSSARY.md / ADRs: merge discipline, version pins, test cadence, naming, anything the orchestrator would otherwise have to review for>
+<the sources of this repo's Laws line: the `Laws:` line of the `<!-- sdd-routing -->` block in `CLAUDE.md` or `AGENTS.md`, or the fallback list (`CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`, `CONCEPTS.md`, `CODING_STANDARDS.md`, `CONTRIBUTING.md`, and the ADR directory (`docs/adr/`, or the path the repo's domain docs name)); the epic decisions that bind this slice, quoted by number; anything the orchestrator would otherwise have to review for. Name sources, not rules: the worker reads them itself>
 
 ## Seams and patterns
 
