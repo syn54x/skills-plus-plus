@@ -92,7 +92,7 @@ Skills for daily code work.
 - **[review-pr](engineering/review-pr.md)**: Gate a slice PR with a fresh reviewer: re-run Verify, then separate Spec and Quality verdicts, one fix round, then `ready-for-human`.
 - **[review-panel](engineering/review-panel.md)**: Panel review for the PR to `main`: review-pr's spec and coherence verdicts plus parallel reviewer personas, deduped into one report.
 - **[close-epic](engineering/close-epic.md)**: Close an SDD epic after its PR to `main` merges: summary, retro from GitHub state, tagged learnings, and consented skill feedback.
-- **[sync-progress](engineering/sync-progress.md)**: One marker comment per issue, rewritten in place, plus claim and unclaim by assignment. The bookkeeping under every SDD skill.
+- **[sync-progress](engineering/sync-progress.md)**: One marker comment per issue, rewritten in place, plus claim and unclaim with the claim mark. The bookkeeping under every SDD skill.
 - **[scaffold-python-project](engineering/scaffold-python-project.md)**: Scaffold a new Python repo on one opinionated stack (uv, prek, ruff, ty, pytest, zensical, pydantic, structlog, ferro-orm, GitHub Actions), with optional CLI, API, database, Logfire, docs and PyPI flags.
 - **[scaffold-frontend-project](engineering/scaffold-frontend-project.md)**: Scaffold a new React SPA on one opinionated stack (Vite, TypeScript, pnpm, Biome, TanStack Router and Query, Tailwind, shadcn/ui, vitest, GitHub Actions), with optional Playwright and OpenAPI client.
 - **[prepare-release-notes](engineering/prepare-release-notes.md)**: Draft bloggy GitHub Release highlights from the commits and PRs since the last tag, and print the release command without running it.

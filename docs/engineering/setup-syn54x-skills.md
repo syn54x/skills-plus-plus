@@ -78,7 +78,7 @@ It doesn't. `docs/agents/triage-labels.md` is a *mapping*: it tells `/triage` wh
 
 **I installed the cloud workflow. Why didn't my epic's `size:S` sub-issue build in Actions?**
 
-On purpose. The implement workflow skips any issue that has a parent, so every sub-issue of an epic builds locally in [build-epic](../engineering/build-epic.md)'s waves, whatever its size. Those waves merge onto one integration branch and check that parallel tickets don't touch the same files, and a cloud worker would bypass both. The cloud path is for a one-off ticket: an open, unassigned issue with no parent, labelled `size:S` and `ready-for-agent`, the kind [triage](../engineering/triage.md) sizes and hardens from a bug report.
+On purpose. The implement workflow skips any issue that has a parent, so every sub-issue of an epic builds locally in [build-epic](../engineering/build-epic.md)'s waves, whatever its size. Those waves merge onto one integration branch and check that parallel tickets don't touch the same files, and a cloud worker would bypass both. The cloud path is for a one-off ticket: an issue that completes the pair `size:S` and `ready-for-agent` (in either order), is open, not held (no `claimed` label, no assignee) and has no parent, the kind [triage](../engineering/triage.md) sizes and hardens from a bug report.
 
 **Can I configure the other skills' behaviour here (grilling cadence, question format, tone)?**
 
