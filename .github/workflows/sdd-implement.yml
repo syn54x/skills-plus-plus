@@ -58,6 +58,8 @@ jobs:
             skills-plus-plus@syn54x
           plugin_marketplaces: |
             https://github.com/syn54x/skills-plus-plus.git
+          # this repo only: print the SDK output so an is_error result shows its message in the log
+          show_full_output: true
           prompt: |
             /implement-issue ${{ github.event.issue.number }}
           claude_args: |
