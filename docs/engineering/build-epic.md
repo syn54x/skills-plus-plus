@@ -24,7 +24,7 @@ You invoke this by typing `/build-epic <epic#>`; the agent won't reach for it on
 
 ## Waves, not a team
 
-Each worker is an isolated subagent in its own worktree, branched from the integration branch, handed a written brief and nothing else. Before each wave the orchestrator runs a parallel-safety check over the tickets' **Files owned** and **Interfaces**: two tickets that touch the same file, migration series or lockfile, or that produce and consume the same interface, never run in the same wave. It shows you the first wave's plan and waits for approval; later waves that follow the plan launch on their own.
+Each worker is an isolated subagent in its own worktree, branched from the integration branch, handed a written brief and nothing else. The orchestrator reads each repo's Laws line once, and the brief's Laws section names that line's sources (or the fallback list), the epic decisions that bind the slice, and anything the orchestrator would otherwise review for, rather than a paraphrase of the laws the worker reads anyway. Before each wave the orchestrator runs a parallel-safety check over the tickets' **Files owned** and **Interfaces**: two tickets that touch the same file, migration series or lockfile, or that produce and consume the same interface, never run in the same wave. It shows you the first wave's plan and waits for approval; later waves that follow the plan launch on their own.
 
 A worker's PR goes to [review-pr](../engineering/review-pr.md). A failing review sends the findings back to the same worker for exactly one fix round; findings still open after that go to `ready-for-human`. A merge conflict is never hand-resolved: the worker rebases and re-runs Verify.
 

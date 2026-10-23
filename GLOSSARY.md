@@ -73,6 +73,17 @@ A `skill-feedback` **Issue** on `syn54x/skills-plus-plus` that `close-epic` may 
 **Harness dispatch**:
 The one step of `build-epic` that differs per tool; `build-epic/HARNESS-DISPATCH.md` holds the concrete calls.
 
+**Law**:
+A rule a reviewer may cite against a slice. Layered by where it is written: the repo's declared documents, the **Epic**'s decisions, the **Sub-issue**'s own sections and the documents it cites, and the skills' own rules.
+_Avoid_: standard (one layer only), invariant (one repo's name for its own laws)
+
+**Laws line**:
+The line of the **Routing block** naming the repo documents that bind workers and reviewers alike. Absent, each skill's fallback list stands in.
+
+**Law tag**:
+The token on a `review-pr` finding naming the **Law** it cites by source. The **Retro** counts fix-round findings by it.
+_Avoid_: rule id, cause label
+
 ### Design
 
 **Depth check**:
@@ -134,8 +145,10 @@ An optional **Feature matrix** row chosen in discovery. Python: `cli`, `api`, `d
 - A **Wave** dispatches part of the **Ready queue**
 - A **Proxy** asks and answers, or raises an **Escalation**; only a **Principal** settles an **Escalation** or a **Challenge**
 - A **Depth check** that fires at a **Slice gate / main gate** is a finding; the same check in an `improve-` skill yields a **Deepening opportunity**
+- A **Law tag** names one **Law**; the **Retro** counts fix-round findings by **Law tag** source
 
 ## Flagged ambiguities
 
 - "backlog" was previously used to mean both the *tool* hosting issues and the *body of work* inside it. Resolved: the tool is the **Issue tracker**; "backlog" is no longer used as a domain term.
 - "backlog backend" / "backlog manager". Resolved: collapsed into **Issue tracker**.
+- "brief" named both the worker brief (`build-epic/WORKER-BRIEF.md`) and, in a draft of the law-tag vocabulary, a direction contract a ticket cites. Resolved: a brief is the worker brief; a document a **Sub-issue** cites is tagged as cited.

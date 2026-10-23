@@ -1,6 +1,6 @@
 ## What it does
 
-`close-epic` closes an SDD epic once every sub-issue is closed and its PR to `main` has merged. It posts one summary comment with the ticket-to-PR table, computes a **retro** from GitHub state alone (tickets by size, escalations, blocking edges added mid-build, fix rounds, Verify blocks that had to be corrected, panel findings), tags each learning as `[repo]`, `[reusable]` or `[skill]`, and closes the epic.
+`close-epic` closes an SDD epic once every sub-issue is closed and its PR to `main` has merged. It posts one summary comment with the ticket-to-PR table, computes a **retro** from GitHub state alone (tickets by size, escalations, blocking edges added mid-build, fix rounds and the **Law** each fix-round finding cited, Verify blocks that had to be corrected, panel findings), tags each learning as `[repo]`, `[reusable]` or `[skill]`, and closes the epic.
 
 With your consent, and only then, a `[skill]` learning can become a `skill-feedback` issue on `syn54x/skills-plus-plus` so the skills themselves improve. Those issues are built from the allowlist of the feedback profile you chose, previewed one by one, checked by a guard script, and never filed from a non-interactive run.
 
@@ -22,6 +22,16 @@ Upstream feedback is off unless the repo's routing block names a profile other t
 
 **Older retros showed 0 fix rounds and an empty panel. Were they right?** Usually not. They found ticket PRs through GitHub's closed-by links, which fill in only when a PR merges into the default branch, and slice PRs merge into the integration branch; they also read the panel only from PR reviews, while the panel posts a comment. The retro now finds each ticket's PR by its base branch and `Closes #N` line, reads the panel from comments and reviews, counts each re-review round (`panel (2 rounds)`), and says **not found** for a measure it has no input for, so a missing input never passes for a zero.
 
+**What does "by cause" in the retro mean?** Every finding in a failed `review-pr` verdict on a ticket PR carries a **Law tag** naming the rule it enforced, and the retro counts those findings by tag source. A repo file keeps its name (`AGENTS.md 2`), a ticket section keeps its section (`ticket#Interfaces 1`), and `epic`, `cited`, `skill` and `none` each count as one. The skill then checks each source against your **Laws line**:
+
+| The finding cited | It counts toward | Which points at |
+| --- | --- | --- |
+| a file on the Laws line or the fallback list, or the epic, ticket, a cited document or an SDD skill rule | `law-read-not-checked` | the worker had the rule and did not check its diff against it |
+| a repo file on neither list | `law-not-in-read-list` | the Laws line is missing that file; add it with [setup-syn54x-skills](../engineering/setup-syn54x-skills.md) |
+| no Law at all (`none`) | neither | plain logic or test gaps: the review tier or its calibration |
+
+Those two counts are the evidence behind a `[skill]` learning. A feedback issue carries them as totals by family (`repo`, `epic`, `ticket`, `cited`, `skill`, `none`) and never the file names. Retros posted before this change (`sdd-retro/2`) have no by-cause count.
+
 **What leaves my repo?** Nothing, unless a profile other than `off` is set and you approve each issue. The retro comment stays on your epic either way. The profile decides what an issue may carry:
 
 | Profile | A feedback issue carries |
@@ -35,6 +45,7 @@ On a private repo under `attributed`, the confirmation says that the repo name a
 ## It's working if
 
 - The epic has one `<!-- sdd-summary -->` and one `<!-- sdd-retro -->` comment, and every `[skill]` learning has a number behind it.
+- The retro's fix-rounds row lists the findings by cause whenever it lists a fix-round count, and says **not found** for the causes only when the fix rounds are not found either.
 - It refused to run while a sub-issue or the PR to `main` was still open, and running it twice on the same epic posted nothing new.
 - No feedback issue appeared without you seeing its full body first.
 

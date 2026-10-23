@@ -32,7 +32,7 @@ The body is generated from the profile's template and nothing else. Under `count
 **Skill:** to-tickets SDD §1
 **Category:** verify-block-wrong
 **Observed:** 2 of 6 tickets needed their Verify block corrected; 1 fix round was caused by it.
-**Retro counts:** tickets 6 (S2 M3 L1, 2 repos) · needs-info 1 · ready-for-human 1 · blocked 0 · edges added 1 · fix rounds 3/2 PRs/max 2 · verify corrections 2 · panel C0 I2 M3 dropped 4
+**Retro counts:** tickets 6 (S2 M3 L1, 2 repos) · needs-info 1 · ready-for-human 1 · blocked 0 · edges added 1 · fix rounds 3/2 PRs/max 2 · by cause: repo 3 · epic 1 · ticket 1 · cited 0 · skill 1 · none 2 · verify corrections 2 · panel C0 I2 M3 dropped 4
 **Harness:** claude-code 2.1.280 · gh 2.98.0
 **User note:** <one sentence the user typed, or omitted>
 **Proposed change:** <one of: tighten the rule / add a check / add an example / remove the step / unclear>
@@ -40,12 +40,15 @@ The body is generated from the profile's template and nothing else. Under `count
 
 **Observed** is composed from counts and category text only; it never quotes a ticket.
 
+**by cause** sums `fix_rounds.by_cause` into its six families, by name only: `repo` adds every repo-path and `ADR-nnnn` key, `ticket` adds every `ticket#…` key, and `epic`, `cited`, `skill` and `none` copy their own key (0 when absent). The keys themselves are paths and section names, so they stay in the local retro. With `by_cause` `null`, write `by cause: not found`.
+
 ### `detailed`
 
 The `counts` template, with **Observed** as several sentences that describe the mechanism: what the skill said, what the agent did, what the user had to do by hand. Write it in your own words, at the level of the skill's steps. It names no repo, URL, path, ticket or PR title, code or error text; the guard checks all six rules as for `counts`.
 
 ```markdown
 **Observed:** The step told the agent to copy the test command from the epic. The agent copied it as written, and the command named a runner the repo does not use. The user rewrote the Verify block by hand on 2 of 6 tickets before workers could run it.
+**Retro counts:** tickets 6 (S2 M3 L1, 2 repos) · … · fix rounds 3/2 PRs/max 2 · by cause: repo 3 · epic 1 · ticket 1 · cited 0 · skill 1 · none 2 · …
 ```
 
 ### `attributed`
@@ -55,6 +58,7 @@ The `detailed` template, plus two lines after **Observed**. `<owner/repo>` is th
 ```markdown
 **Repo:** <owner/repo>
 **Links:** epic <url> · tickets <url>, <url> · PRs <url>, <url>
+**Retro counts:** tickets 6 (S2 M3 L1, 2 repos) · … · fix rounds 3/2 PRs/max 2 · by cause: repo 3 · epic 1 · ticket 1 · cited 0 · skill 1 · none 2 · …
 ```
 
 ### Categories (closed set)
@@ -68,6 +72,8 @@ The `detailed` template, plus two lines after **Observed**. `<owner/repo>` is th
 | `cross-repo-not-available` | a consumer was dispatched before its producer was reachable |
 | `brief-incomplete` | a worker reported `NEEDS_CONTEXT` or `BLOCKED` for something the brief should have carried |
 | `fix-round-needed` | a reviewer verdict failed and the worker needed a fix round |
+| `law-read-not-checked` | the count of fix-round findings whose **Law** the worker was given (a repo path on the Laws line or fallback list, `epic`, `ticket`, `cited`, `skill`), from `close-epic` §4's cross-check |
+| `law-not-in-read-list` | the count of fix-round findings citing a repo path on neither the Laws line nor the fallback list, from the same cross-check |
 | `escalated-to-human` | a ticket went to `ready-for-human` |
 | `panel-false-positive` | a panel finding the human dismissed |
 | `panel-missed` | a defect found after merge that the panel should have caught |

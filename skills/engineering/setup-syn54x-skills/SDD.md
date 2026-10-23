@@ -75,6 +75,12 @@ Fill in the block from [sdd-routing-block.md](./sdd-routing-block.md): the mode 
 
 Write the answer as `Upstream feedback: <profile>`. If an existing block says `Upstream feedback: on`, write `counts` (what `on` already meant) and tell the user the line was rewritten.
 
+Then fill the **Laws line**. Its default is every document on the fallback list that exists in the repo: `CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`, `CONCEPTS.md`, `CODING_STANDARDS.md`, `CONTRIBUTING.md`, and the ADR directory (`docs/adr/`, or the path `docs/agents/domain.md` names). Check each with `test -e`; list only what exists. Ask once, leading with that default:
+
+> These documents bind every worker and reviewer: `<default list>`. Does any other document bind (a design system, a read-before-UI-work page)? Name its path, or say none.
+
+Write the answer as `Laws: <default list>, <any extra paths>`. If an existing block already has a `Laws:` line, carry every entry forward as it stands, drop none, and propose only documents not yet listed (the default list's missing entries, plus the question above). Tell the user which entries were added.
+
 The block **disables competing planners** on purpose: `to-spec` owns the spec and `to-tickets` owns the plan, and a second brainstorming or plan-writing skill produces plan files that nobody reads. If Superpowers, Compound Engineering or a similar suite is installed globally, the block tells the agent not to route through them; recommend leaving them uninstalled in this repo.
 
 Show the rendered block alongside the `## Agent skills` draft in step 3, and write it in step 4 directly below `## Agent skills`. If `<!-- sdd-routing -->` is already present, replace everything between the markers in place; never append a duplicate.

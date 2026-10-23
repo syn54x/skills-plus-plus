@@ -51,6 +51,8 @@ Every step ends on a **completion criterion**, the condition that tells the agen
 
 The strongest criteria are both checkable and exhaustive.
 
+When the document holds a rule an agent obeys while working (an `AGENTS.md` invariant, a `CLAUDE.md` law), read [`RULES.md`](RULES.md) for its shape.
+
 ## When to split
 
 Splitting one document into two spends one of the two loads, so split only when the cut earns it:
