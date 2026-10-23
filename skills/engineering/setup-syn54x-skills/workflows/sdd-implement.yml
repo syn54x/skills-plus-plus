@@ -3,6 +3,8 @@
 # one edit; the job guard keeps it to an open issue with no `claimed` label, no assignee and no parent.
 # The worker claims the ticket itself with the `claimed` label, so a second run from twin label
 # events waits on the concurrency group and stops at the skill's readiness check.
+# The job guard is the only gate. The action sets no label trigger and no progress tracking, so
+# its `prompt` input runs it in agent mode, which does not skip a run started by `size:S`.
 # Runs the same /implement-issue skill the local workers use, via the skills-plus-plus plugin.
 name: sdd-implement
 
@@ -48,8 +50,6 @@ jobs:
           # anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
           # anthropic_organization_id:    ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
           # ---------------------------------------------------------------------
-          label_trigger: ready-for-agent
-          track_progress: true
           branch_prefix: sdd/
           plugins: |
             skills-plus-plus@syn54x
