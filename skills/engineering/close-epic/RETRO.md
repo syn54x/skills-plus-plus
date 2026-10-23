@@ -46,7 +46,7 @@ A real zero and a missing input look different. A measure whose input does not e
 | `fix_rounds.by_cause` | every finding line (`- Critical`, `- Important`, `- Minor`, any severity) in those FAIL reviews, keyed by its **Law tag** source (`review-pr` §4): a repo path keeps its path with the id dropped (`AGENTS.md`, `ADR-0009`), `ticket` keeps its section (`ticket#Interfaces`), `epic`, `cited`, `skill` and `none` collapse to one key each, an untagged finding counts as `none`; `ADDRESSED` / `NOT ADDRESSED` lines never count; `null` exactly when `fix_rounds` is | which **Law** the fix rounds enforced, and whether the worker had it on the **Laws line** (the skill's §4 cross-check) |
 | `verify_corrections` | ticket PR bodies containing `Verify block corrected: yes` | Verify blocks that lied (`to-tickets` SDD pass) |
 | `panel.rounds`, `panel.personas`, `panel.critical`, `panel.important`, `panel.minor`, `panel.dropped` | every `review-panel` report on the integration PR, as a comment or a review: the first report plus each round-marked re-review report | panel calibration |
-| `cycle.median_hours_claim_to_pr` | `assigned` event time → its earliest ticket PR's `createdAt`, per ticket | brief completeness, ticket size |
+| `cycle.median_hours_claim_to_pr` | the first `labeled` event for the `claimed` label (else the first `assigned` event, for epics built before the mark) → its earliest ticket PR's `createdAt`, per ticket | brief completeness, ticket size |
 
 ## Queries
 
@@ -116,7 +116,8 @@ Claim-to-PR hours per ticket:
 ```bash
 for URL in $TICKETS; do
   R=$(repo_of "$URL"); N=${URL##*/}
-  CLAIMED=$(gh api "repos/$R/issues/$N/events" --jq '[.[] | select(.event=="assigned")] | first | .created_at // empty')
+  # the first `labeled claimed` event, else the first `assigned` event (epics built before the mark)
+  CLAIMED=$(gh api "repos/$R/issues/$N/events" --jq '(([.[] | select(.event=="labeled" and .label.name=="claimed")] | first) // ([.[] | select(.event=="assigned")] | first)) | .created_at // empty')
   OPENED=<earliest createdAt among this ticket's PRs from the map>
   # hours = (OPENED - CLAIMED) / 3600, median across tickets
 done
