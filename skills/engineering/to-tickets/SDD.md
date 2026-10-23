@@ -66,9 +66,9 @@ Without the line, the narrowing is a defect, and `review-pr` and `review-panel` 
 
 | Size | Meaning | Builds via |
 | --- | --- | --- |
-| `size:S` | one context window, at most 3 files, no schema or cross-package change | a local wave, like M and L |
-| `size:M` | its sections need careful reading; one worker, one worktree | `/build-epic` or `/implement` |
-| `size:L` | cross-cutting, touches migrations or shared contracts | `/build-epic` only, ceiling-tier worker |
+| `size:S` | one context window, at most 3 files, no schema or cross-package change | an epic's ticket: `/build-epic`, in a local wave like M and L; a one-off: `/implement <N>`, or the cloud workflow if installed |
+| `size:M` | its sections need careful reading; one worker, one worktree | an epic's ticket: `/build-epic`; a one-off: `/implement <N>` |
+| `size:L` | cross-cutting, touches migrations or shared contracts | an epic's ticket: `/build-epic`, ceiling-tier worker; a one-off: `/implement <N>` |
 
 ## 2. Publish natively
 
