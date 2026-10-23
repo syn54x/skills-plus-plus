@@ -35,6 +35,8 @@ The issue must be open, unblocked, not held and labelled `ready-for-agent`. Held
 
 **Why check a law in the middle of the work instead of at the end?** A law such as "extract the shared copy before writing a second one" is cheap at the moment the second copy is about to be written and expensive once both copies exist. So a law that names its trigger (a second copy of some markup, a component going into a second host, a test asserting a button is shown) is checked right then, usually with a search, and acted on in the same PR. A law with no trigger waits for the self-review.
 
+**What does test-first mean when the ticket only changes prose?** When the Files owned are a `SKILL.md`, a reference file or a docs page, the Test scenarios resolve to commands in the Verify block, so the Verify block is the test. The worker runs it before any edit and records which commands fail; that is RED. The edit that turns each one is GREEN, in scenario order. A command that already passes before the edit has no RED, so the worker lists it under Notes for the reviewer as `No RED: <command>` and the reviewer reads it as a weak pin. A ticket that also has a test file follows the normal [tdd](../engineering/tdd.md) loop for that file.
+
 **Why does the self-review come before the PR opens?** So the reviewer reads a diff that has already been reviewed once and is no longer changing. The claims check is the one part that runs after the push, because it compares the report with what is on the remote branch.
 
 **Why is it model-invoked when `implement` is not?** Workers and the cloud workflow have to start it without a human typing it. A user-invoked skill cannot be reached by another skill or agent at all.
@@ -48,6 +50,7 @@ The issue must be open, unblocked, not held and labelled `ready-for-agent`. Held
 - `git notes --ref=sdd-verify show HEAD` on the PR head says `verified`.
 - The Verify SHA in the report equals the PR's head commit, and every test, file or pin the report or PR body names shows up in the PR's diff.
 - The PR body carries a `Verify block corrected:` line, `no` or `yes` with what was wrong.
+- On a prose-only PR, the TDD line says which Verify commands were red before the edit and names any that were not as `No RED: <command>` under Notes for the reviewer.
 - The PR body has a `## Laws` section between `## Interfaces` and `## Notes for the reviewer`, with a line for each law that applies and an `n/a: <reason>` line for each source with nothing applying, never an empty slot.
 - The `Interfaces changed:` line is filled in by hand: `none` only when every public symbol the diff adds, removes or re-signs matches a Produces line on the ticket, otherwise one line per deviation.
 - The issue has exactly one `<!-- sdd-progress -->` comment, rewritten as the work moves.
