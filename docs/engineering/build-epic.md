@@ -1,6 +1,8 @@
 ## What it does
 
-`build-epic` takes an epic whose sub-issues have been cut and hardened by [to-tickets](../engineering/to-tickets.md), and builds it with parallel workers. It computes the **ready queue** from the tracker's native links (open, unblocked, not held, `ready-for-agent`); a ticket is held when it carries the `claimed` label or an assignee, and a held ticket stays out of the queue either way, groups the tickets into **waves** of three to five, gives each worker its own git worktree, gates every worker's PR with a fresh reviewer, and merges in dependency order onto an integration branch. At the end it opens one PR to `main` and has it panel-reviewed.
+`build-epic` takes an epic whose sub-issues have been cut and hardened by [to-tickets](../engineering/to-tickets.md), and builds it with parallel workers. It computes the **ready queue** from the tracker's native links (open, unblocked, not held, `ready-for-agent`), groups the tickets into **waves** of three to five, gives each worker its own git worktree, gates every worker's PR with a fresh reviewer, and merges in dependency order onto an integration branch. At the end it opens one PR to `main` and has it panel-reviewed.
+
+A ticket is **held** when it carries the `claimed` label or an assignee, and a held ticket stays out of the ready queue either way. Agents claim with the label; a person who assigns themselves holds the ticket too, so no worker takes it.
 
 The orchestrator never writes code. Everything it knows comes from GitHub (sub-issues, blocking edges, the `claimed` label and assignees, marker comments), not from the conversation, so a fresh session can pick up an epic where the last one stopped.
 
