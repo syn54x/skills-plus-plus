@@ -49,7 +49,7 @@ Determine where you are:
   SLUG=$(gh issue view "$N" --json title --jq '.title | ascii_downcase | gsub("[^a-z0-9]+";"-") | .[0:40]')
   git fetch origin "$BASE" && git switch -c "sdd/$N-$SLUG" "origin/$BASE"
   ```
-- **Cloud** (`GITHUB_ACTIONS=true`): claude-code-action already created the branch and checked it out. Do not create another. The PR targets the repository default branch unless the issue body names an integration branch. The same skill text runs here: the Worker line is this run's URL, and a second run that finds the mark already there stops at §1.
+- **Cloud** (`GITHUB_ACTIONS=true`): claude-code-action already created the branch and checked it out. Do not create another. The PR targets the repository default branch unless the issue body names an integration branch. The same skill text runs here: the Worker line is this run's URL, and a second run that finds the mark already there stops at §1. A cloud run does not resume a held ticket: a FAIL on a cloud PR routes to `ready-for-human` (see `review-pr` §6), and the stable cloud name that would allow a resume is tracked in [#110](https://github.com/syn54x/skills-plus-plus/issues/110).
 
 ## 4. Build, test-first
 
