@@ -41,6 +41,15 @@ Collect the **spec and the laws** as file paths, not pasted text; personas read 
 
 Run the epic's aggregate Verify (each merged ticket's Verify block, or the repo's suite if `CLAUDE.md` names one) on `$HEAD`. Record pass/fail and the command; the panel does not re-run it.
 
+Read the PR's own checks once, beside it:
+
+```bash
+gh pr checks "$PR" --json name,bucket,link > /tmp/review-panel/$PR/checks.json
+[ "$(gh pr view "$PR" --json headRefOid --jq .headRefOid)" = "$HEAD" ]   # head moved? re-checkout, recompute $HEAD, and read the checks again
+```
+
+`bucket` is the reading: `pass`, `fail`, `pending`, `skipping` or `cancel`. `cancel` counts as fail; `skipping` is not counted. The checks and the diff must describe the same commit, so a head that moved between checkout and this read is re-read for the new head. The panel reads once per head and never waits on pending checks.
+
 ## 2. Spec and Coherence first
 
 Call the Skill tool with "review-pr" for this PR, in its **full-epic mode**: spec verdict against the epic body, Coherence across slices, Verify result. Keep its output verbatim for the report. Stop before `review-pr`'s Post step: that markdown is a section of this report, not its own PR comment. If Spec fails outright (a story missing, an Out-of-scope item built), you may still run the panel, but say up front that the PR is not mergeable regardless of what the panel finds.
@@ -118,19 +127,20 @@ Terminology drift: <new names for existing concepts, or "none">.
 Personas: correctness, testing, maintainability, standards-and-invariants, history, depth, adversarial (≥300 lines), api-contract (routes changed).
 Dropped below confidence 80: 4. Cannot verify from diff: <list, or none>.
 Verify: passed | failed on `<sha7>` (`<command>`).
+Checks: <n> pass, <n> fail (<names>), <n> pending on <sha7> | none configured
 
 ## Residual risk
 <what a human should watch after merge: rollout, data, monitoring; or "none identified">
 ```
 
-Verdict rule: any Critical, or Spec FAIL, or Verify red → **FIX FIRST**. Only Important findings, or a Coherence disagreement that needs a product call → **HUMAN DECISION**. Otherwise **MERGE**.
+Verdict rule: any Critical, or Spec FAIL, or Verify red, or a failing check on the head → **FIX FIRST**. Only Important findings, or a Coherence disagreement that needs a product call, or a pending check with nothing stronger open (the one-sentence reason says the checks have not finished) → **HUMAN DECISION**. Otherwise **MERGE**. No checks configured changes nothing.
 
 After the comment is posted, update the epic's progress: upsert under `<!-- sdd-wave -->` (call the Skill tool with "sync-progress") with the verdict and the report link.
 
 ## 7. Route
 
 - **FIX FIRST** → the orchestrator sends Critical and Important findings back to the workers that own the files (by ticket, from `Files owned`), one fix round each. Once that round's fixes have merged onto the integration branch, run a **re-review** on the PR's new head (below).
-- **Cap: two fix rounds.** If the Round 3 re-review would say FIX FIRST (a Critical or a Spec FAIL still open after the second fix round, or Verify red), its verdict is **HUMAN DECISION** instead: hand it to the user with the open findings. A third fix round never starts.
+- **Cap: two fix rounds.** If the Round 3 re-review would say FIX FIRST (a Critical or a Spec FAIL still open after the second fix round, or Verify red, or a failing check), its verdict is **HUMAN DECISION** instead: hand it to the user with the open findings. A third fix round never starts.
 - **HUMAN DECISION** and **MERGE** → hand to the user with the report. Candidate ADRs, terminology drift and Minor `depth` findings go to `close-epic`'s Learnings, so the follow-up deepenings are filed from one place.
 
 ### Re-review
@@ -138,7 +148,7 @@ After the comment is posted, update the epic's progress: upsert under `<!-- sdd-
 `LAST` is the head the panel last reviewed (the first report's `$HEAD`, or the previous re-review's `NEW`); `NEW` is the PR's head now. The **fix diff** is the combined diff of the round's fix slices: `git diff -U8 "$LAST" "$NEW" > /tmp/review-panel/$PR/fix-<round>.patch`. Three parts, all on `NEW`:
 
 1. **Per-finding check.** One persona (`correctness`, or the persona that raised the finding) verdicts each open Critical and Important finding by id, `F1` `ADDRESSED` / `NOT ADDRESSED`, against the fix diff. Cite `F1`, never `#1`.
-2. **Spec and Coherence re-run.** Step 2 again: `review-pr`'s full-epic Spec and Coherence verdicts on `NEW`, verbatim, plus the aggregate Verify.
+2. **Spec and Coherence re-run.** Step 2 again: `review-pr`'s full-epic Spec and Coherence verdicts on `NEW`, verbatim, plus the aggregate Verify and the PR's checks, re-read on `NEW` as in step 1.
 3. **Composition pass.** The always-on personas, plus each conditional step 3's table warrants for the **fix diff** (a conditional the fix diff does not touch is dropped, even if the first panel ran it), dispatched as in step 4 once over the whole fix diff, not slice by slice, with the fix patch as their view. Merge and gate as in step 5. New findings continue the ids from the last report (`F24`, `F25`, …).
 
 The verdict follows step 6's rule over what is still open: `NOT ADDRESSED` findings, new findings, and the re-run verdicts. The report opens with the same heading plus a round marker, `Round 2` after the first fix round and `Round 3` after the second; `close-epic`'s retro counts each marked report as a panel round. Show it and post it under step 6's rule, as a new PR comment. The first report and earlier re-reviews are never edited.
@@ -172,6 +182,7 @@ Fix diff: `<LAST sha7>..<NEW sha7>`, <n> files.
 Personas: correctness, testing, maintainability, standards-and-invariants, history, depth, api-contract (serializer changed in the fix diff).
 Dropped below confidence 80: 1. Cannot verify from diff: <list, or none>.
 Verify: passed | failed on `<sha7>` (`<command>`).
+Checks: <n> pass, <n> fail (<names>), <n> pending on <sha7> | none configured
 ```
 
 ## Guardrails
