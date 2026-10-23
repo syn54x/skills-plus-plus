@@ -25,7 +25,7 @@ Once you think in these two loads, most authoring decisions (split or don't, inl
 
 - **Context pointers**: the reference held in context that names out-of-context material and encodes when to reach it. A skill description and an `AGENTS.md` line naming a doc are the same thing. The pointer's *wording*, not its target, decides how reliably the agent follows it.
 - **Information hierarchy**: the ladder from in-file step, to in-file reference, to disclosed reference behind a pointer. **Progressive disclosure** is moving material down that ladder so the top stays easy to read.
-- **Completion criteria**: how clear and demanding each step's done-condition is, and the **legwork** that demand causes. They are the defence against **premature completion**.
+- **Completion criteria**: how clear and demanding each step's done-condition is, and the **legwork** that demand causes. They are the defence against **premature completion**. A rule the agent obeys while working has the same shape: its trigger first (the moment it applies), the check that discharges it next, and the incident that named it last.
 - **Leading words**: a compact concept already in the model's pretraining (*tight*, *red*, *tracer bullet*) that the agent thinks with while running the document. It works in two places. In the body it guides execution, and in the pointer it triggers invocation.
 - **Pruning**: single source of truth, relevance, and the no-op test applied sentence by sentence, against **duplication**, **sediment** and **sprawl**.
 
@@ -48,6 +48,9 @@ When it works, and you can no longer find duplication, sediment or no-ops. There
 
 **Should this live in `CLAUDE.md` or somewhere else?**
 Ask which load you want to pay. `CLAUDE.md` loads into every session unconditionally. Material behind a pointer costs only the pointer's own line until it fires. Anything that applies in one session out of ten costs context load in the other nine.
+
+**How should I word a rule in `AGENTS.md` or `CLAUDE.md`?**
+Lead with the moment it applies, then the check that tells the agent it is done, and put the incident last. "The moment a predicate is about to appear in a second file, move it to a shared module in that same PR" is a rule a worker can run at that moment. The same rule told as the story of a past drift, with the rule at the end, has no moment to fire at.
 
 **Do I need to rewrite my documents for each new model?**
 Mostly no, and over-fitting to one model causes its own problems. Updating for a new model is usually another no-op pass rather than a rewrite.
