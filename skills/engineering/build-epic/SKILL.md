@@ -78,13 +78,14 @@ Present the wave as chat text, one table: ticket → size → tier → files own
 
 Wait for approval on the **first** wave. Later waves that follow the plan launch without a fresh ask; a re-bundle, a new edge or a tier change comes back for review. Max workers per wave: `--max-workers`, default 4, never more than 5.
 
-## 5. Claim and dispatch
+## 5. Brief and dispatch
+
+You do not claim. The worker claims the ticket itself in `implement-issue` §2 with the `claimed` label (the **Claim mark**) and writes the progress comment's **Worker** line with the name the brief gives it, so one place claims and the worker passes its own readiness check. You write the brief and dispatch.
 
 For each ticket in the wave:
 
-1. Claim: call the Skill tool with "sync-progress" and claim through it, which adds the `claimed` label (the **Claim mark**). Never claim a ticket that is already held.
-2. Write the brief from [WORKER-BRIEF.md](./WORKER-BRIEF.md). The brief is the ticket body verbatim plus the Laws slot (sources, not a paraphrase), the branch mechanics, and the report format. Workers get nothing from this conversation, so the brief is complete or the worker fails.
-3. Dispatch the brief to **one isolated worker per ticket, in its own worktree of that ticket's repo, branched from that repo's integration branch, with the whole wave running concurrently**. The concrete call depends on the harness: see [HARNESS-DISPATCH.md](./HARNESS-DISPATCH.md). The worker calls the Skill tool with "implement-issue" for the ticket's URL, inside that worktree. In multi-repo mode the brief names the checkout the worker starts from; a worker never guesses which repo a ticket belongs to.
+1. Write the brief from [WORKER-BRIEF.md](./WORKER-BRIEF.md). The brief is the ticket body verbatim plus the Laws slot (sources, not a paraphrase), the branch mechanics, and the report format. Workers get nothing from this conversation, so the brief is complete or the worker fails.
+2. Dispatch the brief to **one isolated worker per ticket, in its own worktree of that ticket's repo, branched from that repo's integration branch, with the whole wave running concurrently**. The concrete call depends on the harness: see [HARNESS-DISPATCH.md](./HARNESS-DISPATCH.md). The worker calls the Skill tool with "implement-issue" for the ticket's URL, inside that worktree. In multi-repo mode the brief names the checkout the worker starts from; a worker never guesses which repo a ticket belongs to.
 
 Then upsert the wave comment on the epic under `<!-- sdd-wave -->` (call the Skill tool with "sync-progress" for the upsert): wave number, tickets, worker names, started-at, and one line `Edges added: <consumer> ← <producer>, …` or `Edges added: none` listing every `--add-blocked-by` the safety check introduced since the plan comment. `close-epic`'s retro reads that line.
 
