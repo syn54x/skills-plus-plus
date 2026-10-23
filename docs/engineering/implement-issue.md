@@ -13,7 +13,7 @@ Type `/implement-issue <N>`, or the agent reaches for it when it is handed an SD
 | Started by | How |
 | --- | --- |
 | [build-epic](../engineering/build-epic.md) | each worker calls it for its ticket, inside its own worktree |
-| The cloud workflow | `sdd-implement.yml` runs it when a one-off `size:S` issue outside an epic (open, not held, no parent) gains `ready-for-agent` |
+| The cloud workflow | `sdd-implement.yml` runs it when a one-off `size:S` issue outside an epic completes the pair `ready-for-agent` and `size:S`, in either order, and is open, not held and without a parent |
 | [implement](../engineering/implement.md) | `/implement #N` hands off to it when the issue is an SDD sub-issue |
 | You | `/implement-issue <N>` for a single ticket outside a wave |
 
