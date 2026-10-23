@@ -18,9 +18,9 @@ Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gatin
 
 **Why doesn't it approve or request changes?** The merge decision belongs to the orchestrator or a human; the review is a comment with verdicts, never `--approve` or `--request-changes`.
 
-**What is the `[AGENTS.md#I-5]` at the start of every finding?** The **Law tag**: the rule the finding cites, as source and id. The source is a document from the `Laws:` line, an ADR, the epic, a section of the ticket, a document the ticket cites, or `none` for a plain logic or test gap. It costs the reviewer nothing extra and lets [close-epic](../engineering/close-epic.md)'s retro count fix rounds by which law keeps getting broken.
+**What is the `[AGENTS.md#I-5]` at the start of every finding?** The **Law tag**: the rule the finding cites, as source and id. The source is a document from the `Laws:` line, an ADR, the epic, a section of the ticket, a document the ticket cites, a rule of the SDD skills themselves (`skill`, as in `[skill#Laws section]`), or `none` for a plain logic or test gap no document or skill rule names. It costs the reviewer nothing extra and lets [close-epic](../engineering/close-epic.md)'s retro count fix rounds by which law keeps getting broken.
 
-**Why is a missing `## Laws` section an Important finding?** The worker lists in the PR body each law that applies to its slice, with how the diff meets it or `n/a` and why. The reviewer reads every line as a claim and checks it against the diff, so an `n/a` on a law the diff plainly touches is a finding under that law. With no section at all there is nothing to check, which is the same reason a missing `Verify block corrected:` line fails.
+**Why is a missing `## Laws` section an Important finding?** It is tagged `[skill#Laws section]`. The worker lists in the PR body each law that applies to its slice, with how the diff meets it or `n/a` and why. The reviewer reads every line as a claim and checks it against the diff, so an `n/a` on a law the diff plainly touches is a finding under that law. With no section at all there is nothing to check, which is the same reason a missing `Verify block corrected:` line fails.
 
 **What happens on the second failure?** Nothing automatic. After the single fix round and a scoped re-review, open findings send the ticket to `ready-for-human` with the PR left open.
 

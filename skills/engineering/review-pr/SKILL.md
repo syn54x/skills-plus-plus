@@ -68,7 +68,7 @@ Against the repo's **Laws**: the documents on the `Laws:` line of the `<!-- sdd-
 - No dead code, debug output, commented-out blocks, TODOs without an issue number.
 - Commit history readable; PR body honest.
 - The Verify the worker ran (the PR body and progress comment) matches the ticket's block, or the PR body says `Verify block corrected: yes` with what was wrong. A difference under `Verify block corrected: no`, or a PR body with no such line, is an **Important** finding: a silent correction hides a ticket that lied.
-- The PR body's `## Laws` section is a set of claims, one line per Law: verify each against the diff. A line the diff contradicts is a finding tagged with that Law. An `n/a` on a Law whose trigger the diff hits is a finding tagged with that Law. A PR body with no `## Laws` section is an **Important** finding, by the same rule as a missing `Verify block corrected:` line: an absent claim cannot be checked.
+- The PR body's `## Laws` section is a set of claims, one line per Law: verify each against the diff. A line the diff contradicts is a finding tagged with that Law. An `n/a` on a Law whose trigger the diff hits is a finding tagged with that Law. A PR body with no `## Laws` section is an **Important** finding tagged `[skill#Laws section]`, by the same rule as a missing `Verify block corrected:` line: an absent claim cannot be checked.
 - Nothing in the diff the ticket did not ask for.
 - Every declared **Interface deviation** was **needed**: the PR's reason shows the ticket's signature could not work as written. An unneeded one is an Important finding whose fix is reverting to the ticket's signature.
 
@@ -82,11 +82,11 @@ Against the repo's **Laws**: the documents on the `Laws:` line of the `<!-- sdd-
 
 ```
 - <severity> · [<source>#<id>] · <file:line at sha> · <the rest of the finding>
-source  = a path as written on the Laws line | ADR-<nnnn> | epic | ticket | cited | none
-id      = the rule's own id or heading (I-5, Failure law, Interfaces, Register doors); omitted after none
+source  = a path as written on the Laws line | ADR-<nnnn> | epic | ticket | cited | skill | none
+id      = the rule's own id or heading (I-5, Failure law, Interfaces, Register doors, Laws section); omitted after none
 ```
 
-A repo rule takes its file as prefix (`[AGENTS.md#I-6]`); `epic` carries the decision's name (`[epic#Failure law]`); `ticket` the section (`[ticket#Interfaces]`, `[ticket#Test scenarios]`, `[ticket#Acceptance criteria]`, `[ticket#Files owned]`); `cited` the document the ticket names (`[cited#Register doors]`). Plain logic and test gaps, and rules of this skill with no document behind them, are `[none]`.
+A repo rule takes its file as prefix (`[AGENTS.md#I-6]`); `epic` carries the decision's name (`[epic#Failure law]`); `ticket` the section (`[ticket#Interfaces]`, `[ticket#Test scenarios]`, `[ticket#Acceptance criteria]`, `[ticket#Files owned]`); `cited` the document the ticket names (`[cited#Register doors]`); `skill` a rule of the SDD skills themselves, by the skill's own name for it (`[skill#Laws section]`, `[skill#Verify block corrected]`, `[skill#Verify]` for Verify not run on the head). Plain logic and test gaps that no document and no skill rule names are `[none]`.
 
 ## 5. Post
 
