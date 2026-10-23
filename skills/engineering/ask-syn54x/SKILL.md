@@ -47,7 +47,7 @@ For a repo where `/setup-syn54x-skills` switched the SDD pipeline on (GitHub onl
 1. **`/grill-with-docs`**, then **`/to-spec`** publishes the epic. Same as the main flow.
 2. **`/to-tickets <epic>`** cuts the sub-issues and, on this flow, hardens each one (Files owned, Interfaces, Test scenarios, a runnable Verify block), sizes it `S`, `M` or `L`, links it natively, and pins one plan comment on the epic.
 3. **Branch: size.**
-   - **`S`** → the `sdd-implement.yml` cloud workflow builds it when it carries `ready-for-agent` (if the repo installed the workflows), or **`/implement #N`** locally.
+   - **`S`** → **`/build-epic <epic>`** too: every size of an epic builds locally in its waves. The `sdd-implement.yml` cloud workflow (if the repo installed the workflows) builds only a one-off `size:S` ticket outside an epic, one that **`/triage`** hardened and sized.
    - **`M` / `L`** → **`/build-epic <epic>`**: waves of workers in their own worktrees, a fresh reviewer on every PR, merges in dependency order onto an integration branch, then a panel review of the PR to `main`. More than about eight independent tickets → `/build-epic <epic> --workflow`.
 4. **You merge to `main`.** The agent never does. Then the epic closes with a retro (`build-epic` does it, or ask for it in any later session).
 
