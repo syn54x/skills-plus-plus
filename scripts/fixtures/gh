@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Test double for gh: answers the calls sdd-retro.sh makes from "$GH_FIXTURE" (a gh.json file).
+# Test double for gh: answers the calls of every fixture check (sdd-retro.sh, the ready-queue check) from "$GH_FIXTURE" (a gh.json file).
 # gh.json: { issues: {<url>: obj}, prs: {<url>: obj}, events: {"o/r#n": [...]}, comments: {"o/r#n": [...]} }
 set -euo pipefail
 F="${GH_FIXTURE:?GH_FIXTURE unset}"

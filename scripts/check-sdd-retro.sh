@@ -8,7 +8,9 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 RETRO="${1:-$ROOT/skills/engineering/close-epic/scripts/sdd-retro.sh}"
 FIX="$ROOT/scripts/fixtures/sdd-retro"
 STUB=$(mktemp -d); trap 'rm -rf "$STUB"' EXIT
-cp "$FIX/gh" "$STUB/gh"; chmod +x "$STUB/gh"
+SHARED="$ROOT/scripts/fixtures/gh"
+[ -f "$SHARED" ] || { echo "missing shared stub gh: $SHARED" >&2; exit 1; }
+cp "$SHARED" "$STUB/gh"; chmod +x "$STUB/gh"
 
 FAIL=0
 for D in "$FIX"/*/; do
