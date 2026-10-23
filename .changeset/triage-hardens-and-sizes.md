@@ -1,5 +1,0 @@
----
-"mattpocock-skills": minor
----
-
-On a repo with the Routing block, `triage` now hardens an issue it moves to `ready-for-agent` and sizes it, so a one-off ticket outside an epic is buildable: `size:S` by the cloud workflow, M and L by `/implement <N>`. Before the label goes on, it appends `## What to build`, `## Acceptance criteria`, `## Files owned`, `## Interfaces`, `## Test scenarios` and `## Verify` to the issue body, runs the SDD pass's placeholder gate and its four code checks, and applies exactly one `size:*` label from the SDD pass's table; the agent brief stays a comment, unchanged. An issue whose gaps cannot be closed inline goes to `needs-info` with triage notes naming them. The rules and the table keep one home, section 1 of `to-tickets/SDD.md`, which `triage` reads by path because both skills are user-invoked and neither can load the other. A repo without the Routing block sees no change (issue #82: a triaged issue carried no size and bounced off `implement-issue`'s readiness check).

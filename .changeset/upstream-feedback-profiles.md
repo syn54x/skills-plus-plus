@@ -1,5 +1,0 @@
----
-"mattpocock-skills": minor
----
-
-Upstream feedback profiles (#26). `setup-syn54x-skills` step D4 now asks for a profile instead of on/off, showing what each one sends, and writes `Upstream feedback: <off | counts | detailed | attributed>` into the routing block; a re-run rewrites a legacy `on` to `counts` and says so, and `close-epic` reads `on` as `counts` meanwhile. `counts` is the old template, `detailed` adds a several-sentence **Observed** on the mechanism, and `attributed` adds the user's own repo name and links to the epic, its tickets and PRs, with the repo name allowed in the issue title. `close-epic` step 5 and `SKILL-FEEDBACK.md` pick the template from the profile, keep preview and per-issue approval for every profile but `off`, and under `attributed` on a private repo the confirmation names what becomes public. `feedback-guard.sh` takes `--profile` (and `--own owner/repo` for `attributed`), relaxes rules 1 and 2 only for the own repo's issue and PR links and name, refuses under `off`, and ships with a fixture check, `feedback-guard-check.sh`.
