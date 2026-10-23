@@ -71,11 +71,11 @@ If [setup-syn54x-skills](../engineering/setup-syn54x-skills.md) wrote the Routin
 | `## Interfaces` | Usually `none` both ways for a one-off |
 | `## Test scenarios` | One line each: an action and the result it causes |
 | `## Verify` | Commands runnable from the repo root, each one checked to exist |
-| one `size:*` label | `size:S`, `size:M` or `size:L`, from the same table `to-tickets` uses |
+| one `size:*` label | `size:S`, `size:M` or `size:L`, from the same table `to-tickets` uses for a Sub-issue |
 
-The brief still goes in a comment and still names no file paths. The sections go in the body, and there a path is a claim on a file, not a description of the code. If a gap can't be closed (a scenario with nothing to assert on, a Verify command that doesn't resolve), the issue goes to `needs-info` with notes naming the gap, not to `ready-for-agent`. Without the Routing block, none of this happens and the brief is the whole outcome.
+The brief still goes in a comment and still names no file paths. The sections go in the body, where a path is a claim on a file. If a gap can't be closed (a scenario with nothing to assert on, a Verify command that doesn't resolve), the issue goes to `needs-info` with notes naming the gap. Without the Routing block, none of this happens and the brief is the whole outcome.
 
-The size decides who builds it: a `size:S` one-off can go to the cloud workflow, and an M or L one goes to `/implement <N>` on your machine.
+The size decides who builds it. A one-off has no epic, so `/build-epic` never sees it: a `size:S` one can go to the cloud workflow, and an M or L one goes to `/implement <N>` on your machine.
 
 ## A PR is an issue with attached code
 
@@ -107,7 +107,7 @@ The blocked case is accepted as real, but the name is undecided (`blocked` versu
 The verification step here is shallow on purpose. It answers "is this real, and roughly where does it live", and does not look for a root cause. If a bug does not reproduce from the reporter's steps in a few minutes, use `needs-info`, or use [diagnosing-bugs](../engineering/diagnosing-bugs.md) if you want to investigate it now. Neither skill's text mentions the other yet. A user reported that gap, and it is still open.
 
 **Why did triage edit my issue body?**
-Your repo runs the SDD flow, and the worker that builds a `ready-for-agent` issue reads its body, not its comments. `triage` appends the sections that worker needs below your text and leaves what you wrote in place. On a repo without the Routing block it only posts a comment.
+Your repo runs the SDD flow, and the worker that builds a `ready-for-agent` issue reads only its body. `triage` appends the sections that worker needs below your text and leaves what you wrote in place. On a repo without the Routing block it only posts a comment.
 
 **Can I point it at my whole backlog and let it run?**
 You can ask, but watch what it reads. The "show what needs attention" pass is a cheap listing for *selection*. You pick one issue, and then `triage` gathers full context on that issue. If you run it across twenty issues at once, the agent can use that cheap listing as its only evidence without telling you. The listing returns issue bodies but not comments. One user hit exactly this. Three issues already had a comment that said "already fixed, recommend closing", and all three got new agent briefs instead. For a bulk pass, say explicitly that it must read the comments on each issue.
