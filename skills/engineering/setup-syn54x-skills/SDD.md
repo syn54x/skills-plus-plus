@@ -92,6 +92,10 @@ Ask whether the user wants the **cloud path**: it builds a one-off ticket outsid
 
 - `sdd-implement.yml`: runs `/implement-issue <N>` in `claude-code-action` when an issue completes the pair `ready-for-agent` and `size:S`, in either order; the issue must be open, not held (no `claimed` label, no assignee), and have no parent.
 - `sdd-review.yml`: runs `/review-pr <N>` on every non-draft pull request from an `sdd/*` branch.
+- Both templates grant the worker unrestricted Bash through `--allowedTools`, because `/implement-issue` runs `gh`, `git` and the repo's test command and `/review-pr` re-runs the Verify block; the action allows no Bash by default. The runner is isolated and the token is scoped to the repo. A repo that wants a narrower list edits that line after copying.
+- The review template sets `allowed_bots: claude`: every PR the gate reviews is opened by the `sdd-implement` worker, which GitHub reports as the `claude` bot, and the action allows no bots by default.
+- A green `sdd-implement` job does not mean the ticket was built. The fast check is `permission_denials_count` in the run's result block: 0 on a healthy run, anything else means the worker was denied a tool and quit.
+- The cloud path takes a hardened one-off: the six SDD sections `triage` writes and one `size:S` label. A raw report labelled `ready-for-agent` is moved to `needs-info` by the worker's readiness check, as designed; run `/triage` on it first.
 
 Then tell the user what to add, and don't do it for them:
 

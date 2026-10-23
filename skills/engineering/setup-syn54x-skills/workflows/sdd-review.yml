@@ -1,5 +1,8 @@
 # Review gate for PRs opened by the cloud path (and any other PR that closes a sub-issue).
 # Runs /review-pr from the skills-plus-plus plugin: two verdicts (spec, quality), posts them on the PR.
+# claude_args grants unrestricted Bash: the reviewer re-runs the ticket's Verify block, and an
+# allowlist would have to name every consuming repo's toolchain. The runner is isolated and the
+# token is scoped to this repo; a repo that wants a narrower list edits --allowedTools after copying.
 name: sdd-review
 
 on:
@@ -36,6 +39,9 @@ jobs:
           # anthropic_organization_id:    ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
           # ---------------------------------------------------------------------
           track_progress: true
+          # every PR this gate reviews is opened by the sdd-implement worker, which GitHub reports as
+          # the claude bot; the action allows no bots by default
+          allowed_bots: claude
           plugins: |
             skills-plus-plus@syn54x
           plugin_marketplaces: |
@@ -44,3 +50,4 @@ jobs:
             /review-pr ${{ github.event.pull_request.number }}
           claude_args: |
             --max-turns 40
+            --allowedTools "Bash,Read,Edit,MultiEdit,Write,Glob,Grep,Skill,Agent,TodoWrite,WebFetch"
