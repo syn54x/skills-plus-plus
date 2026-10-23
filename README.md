@@ -76,11 +76,11 @@ flowchart TD
 
 Steps 5 to 7 are model-invoked: `/build-epic` reaches them, and you rarely type them.
 
-A ticket is ready when it is open, has no open blockers, is unassigned, and carries `ready-for-agent`. Claiming is assigning yourself. Progress is one comment per issue under `<!-- sdd-progress -->`, rewritten in place. A multi-repo epic gets an integration branch, worktrees and PRs in each repo; tickets are identified by URL, and a cross-repo blocker has to be merged and available before its consumer is ready.
+A ticket is ready when it is open, has no open blockers, is not held (no `claimed` label, no assignee), and carries `ready-for-agent`. Claim by adding the `claimed` label. Progress is one comment per issue under `<!-- sdd-progress -->`, rewritten in place. A multi-repo epic gets an integration branch, worktrees and PRs in each repo; tickets are identified by URL, and a cross-repo blocker has to be merged and available before its consumer is ready.
 
 ### Size ladder
 
-`to-tickets` sets the size. Under `build-epic` every size builds locally; the size picks how many workers and how much review. The cloud path builds only a one-off `size:S` ticket outside an epic (open, unassigned, `ready-for-agent`, no parent). `implement-issue` is the worker in every row.
+`to-tickets` sets the size. Under `build-epic` every size builds locally; the size picks how many workers and how much review. The cloud path builds only a one-off `size:S` ticket outside an epic (it fires when an issue completes the pair `ready-for-agent` and `size:S`, in either order; the issue must be open, not held, and have no parent). `implement-issue` is the worker in every row.
 
 | Size | Ticket shape | Trigger | Runs where | Reviewer |
 | --- | --- | --- | --- | --- |
@@ -112,7 +112,7 @@ What was worth stealing from the other suites is now a section on the ticket, wr
 
 Review effort follows the diff. A slice PR into the integration branch gets one fresh reviewer and two verdicts, spec and quality. A persona panel on every slice would cost nine times as much and produce noise. The PR to `main` is large, final, and spans the slices, so it gets `review-panel`. That panel uses Compound Engineering's persona selection and adversarial reviewer, Anthropic's confidence gate and history pass, Superpowers' calibration, and mattpocock's standards axis. It reads the ticket contracts and the repo's ADRs, and it uses the pipeline's severity vocabulary.
 
-Readiness is computed from the tracker: open, no open blockers, unassigned, and labelled `ready-for-agent`. You claim a ticket by assigning yourself. The skills do not store readiness in a status field, because an agent-written status goes stale.
+Readiness is computed from the tracker: open, no open blockers, not held (no `claimed` label, no assignee), and labelled `ready-for-agent`. You claim a ticket by adding the `claimed` label. The skills do not store readiness in a status field, because an agent-written status goes stale.
 
 Workers run in waves of 3 to 5, each in its own worktree. The Agent Teams flag stays unset. Teammates get no worktree of their own, the task tools sit behind an experimental flag, and a team costs several times the tokens of a wave. Suites that tried teams went back to `Agent(isolation: "worktree")`, or they kept teams for discussion only.
 
@@ -288,7 +288,7 @@ Skills I use daily for code work.
 - **[review-pr](./skills/engineering/review-pr/SKILL.md)**: Gate a slice PR with a fresh reviewer: re-run Verify, then separate Spec and Quality verdicts, one fix round, then `ready-for-human`.
 - **[review-panel](./skills/engineering/review-panel/SKILL.md)**: Panel review for the PR to `main`: review-pr's spec and coherence verdicts plus parallel reviewer personas, deduped into one report.
 - **[close-epic](./skills/engineering/close-epic/SKILL.md)**: Close an SDD epic after its PR to `main` merges: summary, retro from GitHub state, tagged learnings, and consented skill feedback.
-- **[sync-progress](./skills/engineering/sync-progress/SKILL.md)**: One marker comment per issue, rewritten in place, plus claim and unclaim by assignment. The bookkeeping under every SDD skill.
+- **[sync-progress](./skills/engineering/sync-progress/SKILL.md)**: One marker comment per issue, rewritten in place, plus claim and unclaim with the claim mark. The bookkeeping under every SDD skill.
 - **[scaffold-python-project](./skills/engineering/scaffold-python-project/SKILL.md)**: Scaffold a new Python repo on one opinionated stack (uv, prek, ruff, ty, pytest, zensical, pydantic, structlog, ferro-orm, GitHub Actions), with optional CLI, API, database, Logfire, docs and PyPI flags.
 - **[scaffold-frontend-project](./skills/engineering/scaffold-frontend-project/SKILL.md)**: Scaffold a new React SPA on one opinionated stack (Vite, TypeScript, pnpm, Biome, TanStack Router and Query, Tailwind, shadcn/ui, vitest, GitHub Actions), with optional Playwright and OpenAPI client.
 - **[prepare-release-notes](./skills/engineering/prepare-release-notes/SKILL.md)**: Draft bloggy GitHub Release highlights from the commits and PRs since the last tag, and print the release command without running it.

@@ -90,7 +90,7 @@ Show the rendered block alongside the `## Agent skills` draft in step 3, and wri
 
 Ask whether the user wants the **cloud path**: it builds a one-off ticket outside an epic, the kind `triage` sizes and hardens (#82), while every sub-issue of an epic builds locally in `build-epic`'s waves. On yes, copy both templates from [workflows/](./workflows/) into `.github/workflows/` during step 4:
 
-- `sdd-implement.yml`: runs `/implement-issue <N>` in `claude-code-action` when an issue gains `ready-for-agent` and is ready for the cloud: open, unassigned, labelled `size:S`, and with no parent.
+- `sdd-implement.yml`: runs `/implement-issue <N>` in `claude-code-action` when an issue completes the pair `ready-for-agent` and `size:S`, in either order; the issue must be open, not held (no `claimed` label, no assignee), and have no parent.
 - `sdd-review.yml`: runs `/review-pr <N>` on every non-draft pull request from an `sdd/*` branch.
 
 Then tell the user what to add, and don't do it for them:
