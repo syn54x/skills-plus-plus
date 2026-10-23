@@ -1,6 +1,6 @@
 ## What it does
 
-`sync-progress` owns the bookkeeping the SDD skills leave on GitHub issues: one comment per marker per issue, found by a hidden HTML marker on its first line and **rewritten in place** on every update, never appended. It also owns claiming (assign yourself) and unclaiming (remove the assignment), and the labels that mark an escalation.
+`sync-progress` owns the bookkeeping the SDD skills leave on GitHub issues: one comment per marker per issue, found by a hidden HTML marker on its first line and **rewritten in place** on every update, never appended. It also owns claiming (set the `claimed` label, the claim mark) and unclaiming (remove it), and the labels that mark an escalation.
 
 | Marker | Lives on | Written by |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ The agent reaches for it whenever another SDD skill records status; you rarely t
 ## It's working if
 
 - No issue ever has two comments starting with the same `<!-- sdd-… -->` marker.
-- An issue's assignee is the worker building it, and nobody once the worker stops without a PR.
+- An issue carries the `claimed` label while a worker builds it, and loses it once the worker stops without a PR. No agent ever sets an assignee, and the progress comment's Worker line names who holds it.
 
 ## Where it fits
 

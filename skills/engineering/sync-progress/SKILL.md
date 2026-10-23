@@ -1,11 +1,11 @@
 ---
 name: sync-progress
-description: Upsert an idempotent SDD marker comment on a GitHub issue, and claim or unclaim the issue by assignment. Use when an SDD skill records status on a sub-issue or epic (sdd-progress, sdd-plan, sdd-wave, sdd-summary, sdd-retro) without posting a second comment.
+description: Upsert an idempotent SDD marker comment on a GitHub issue, and claim or unclaim the issue with the claim mark. Use when an SDD skill records status on a sub-issue or epic (sdd-progress, sdd-plan, sdd-wave, sdd-summary, sdd-retro) without posting a second comment.
 ---
 
 # Sync Progress
 
-One issue, one progress comment. Every update **rewrites the same comment** found by a hidden HTML marker; it never appends a second one. Claiming an issue means assigning yourself; unclaiming means removing the assignment. All of it is `gh`.
+One issue, one progress comment. Every update **rewrites the same comment** found by a hidden HTML marker; it never appends a second one. Claiming an issue means setting the claim mark (the label `claimed`); unclaiming means removing it. The markers and upsert are `gh`; the claim mark has one form per tracker, listed under Claim and unclaim.
 
 ## Markers
 
@@ -51,7 +51,7 @@ Rewrite the **whole** body every time. Read the previous body first only if you 
 ```markdown
 <!-- sdd-progress -->
 **Status:** in-progress | verify-passed | pr-open | changes-requested | blocked | done
-**Worker:** <agent name or "cloud">
+**Worker:** <agent name locally, the Actions run URL in the cloud, the login for a human>
 **Branch:** `sdd/<N>-<slug>`
 **PR:** #<n> (or none)
 **Verify:** not run | passed <short sha> | failed <short sha>
@@ -63,12 +63,24 @@ Keep the body under 20 lines. Detail belongs in the PR, not the issue.
 
 ## Claim and unclaim
 
+The claim is a **Claim mark**: the label `claimed`. It is never an assignee.
+
 ```bash
-gh issue edit "$ISSUE" --add-assignee @me        # claim
-gh issue edit "$ISSUE" --remove-assignee @me     # unclaim (on failure or hand-off)
+# claim: create the label idempotently first, because adding a label the repo lacks fails
+gh label create claimed --color FBCA04 --description "Held by a worker; set before work, cleared on stopping without a PR" --force
+gh issue edit "$ISSUE" --add-label claimed
+
+# unclaim (on failure or hand-off)
+gh issue edit "$ISSUE" --remove-label claimed
 ```
 
-A claim is what removes an issue from the ready queue, so **claim before any work starts** and **unclaim whenever you stop without a PR**. Never reassign an issue that another login already holds; report it instead.
+Claim mark per tracker:
+
+- GitHub: label `claimed`, with the `gh` commands above.
+- GitLab: label `claimed`, with `glab issue update <n> --label claimed` to claim and `glab issue update <n> --unlabel claimed` to unclaim. Create the label once in the project: `glab label create --name claimed --color "#FBCA04" --description "Held by a worker; set before work, cleared on stopping without a PR"`.
+- Local tracker: the `Status: claimed` line in the ticket file. Set it to claim; restore the previous `Status:` value to unclaim.
+
+A ticket is **held** when it carries the `claimed` label or an assignee. A held ticket is out of the ready queue, so **claim before any work starts** and **unclaim whenever you stop without a PR**. Agents write only the mark, never an assignee, and a human's self-assignment counts as held. Never add the mark over a ticket that is already held, whether by another worker's mark or a person's assignment; report it instead. The holder's name lives in the progress comment's **Worker** line.
 
 ## Escalation labels
 

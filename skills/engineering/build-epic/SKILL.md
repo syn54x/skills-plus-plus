@@ -49,12 +49,13 @@ Record the branch name (and, in multi-repo mode, the list of repos) in the plan 
 
 ## 2. Ready queue
 
-Readiness is **derived**, never read from a status label: open, every blocker closed, unassigned, labelled `ready-for-agent`.
+Readiness is **derived** from open state, blockers, the **Claim mark** and `ready-for-agent`, never from a *workflow status* label (`todo`, `in-progress`, `done`): open, every blocker closed, not held, labelled `ready-for-agent`. A ticket is **held** when it carries the `claimed` label or an assignee.
 
 ```bash
 for URL in $(gh issue view "$EPIC" --json subIssues --jq '.subIssues.nodes[] | select(.state=="OPEN") | .url'); do
   gh issue view "$URL" --json number,title,url,body,labels,assignees,blockedBy \
     --jq 'select((.assignees|length)==0)
+        | select([.labels[].name] | index("claimed") | not)
         | select([.labels[].name] | index("ready-for-agent"))
         | select(([.blockedBy.nodes[] | select(.state=="OPEN")] | length)==0)
         | {number,title,url,size:([.labels[].name] | map(select(startswith("size:"))) | first // "size:?")}'
@@ -63,7 +64,7 @@ done
 
 The URL carries the repo, so this loop is the same in single- and multi-repo mode.
 
-Tickets that are open but still blocked form the later layers; tickets assigned to someone are in flight; tickets without `ready-for-agent` are not yours. If the queue is empty and nothing is in flight but sub-issues remain open, the plan has a cycle or a missing label: report it and stop.
+Tickets that are open but still blocked form the later layers; held tickets (the `claimed` label or an assignee) are in flight; tickets without `ready-for-agent` are not yours. If the queue is empty and nothing is in flight but sub-issues remain open, the plan has a cycle or a missing label: report it and stop.
 
 `scripts/ready.sh <epic#>` in this skill's base directory prints the same queue as JSON, and `scripts/ready.sh <epic#> --all | python3 scripts/layers.py` prints the layers. The loop above is the form to fall back on when the scripts are not at hand.
 
@@ -77,13 +78,14 @@ Present the wave as chat text, one table: ticket → size → tier → files own
 
 Wait for approval on the **first** wave. Later waves that follow the plan launch without a fresh ask; a re-bundle, a new edge or a tier change comes back for review. Max workers per wave: `--max-workers`, default 4, never more than 5.
 
-## 5. Claim and dispatch
+## 5. Brief and dispatch
+
+You do not claim. The worker claims the ticket itself in `implement-issue` §2 with the `claimed` label (the **Claim mark**) and writes the progress comment's **Worker** line with the name the brief gives it, so one place claims and the worker passes its own readiness check. You write the brief and dispatch.
 
 For each ticket in the wave:
 
-1. Claim: `gh issue edit "$N" --add-assignee @me`.
-2. Write the brief from [WORKER-BRIEF.md](./WORKER-BRIEF.md). The brief is the ticket body verbatim plus the Laws slot (sources, not a paraphrase), the branch mechanics, and the report format. Workers get nothing from this conversation, so the brief is complete or the worker fails.
-3. Dispatch the brief to **one isolated worker per ticket, in its own worktree of that ticket's repo, branched from that repo's integration branch, with the whole wave running concurrently**. The concrete call depends on the harness: see [HARNESS-DISPATCH.md](./HARNESS-DISPATCH.md). The worker calls the Skill tool with "implement-issue" for the ticket's URL, inside that worktree. In multi-repo mode the brief names the checkout the worker starts from; a worker never guesses which repo a ticket belongs to.
+1. Write the brief from [WORKER-BRIEF.md](./WORKER-BRIEF.md). The brief is the ticket body verbatim plus the Laws slot (sources, not a paraphrase), the branch mechanics, and the report format. Workers get nothing from this conversation, so the brief is complete or the worker fails.
+2. Dispatch the brief to **one isolated worker per ticket, in its own worktree of that ticket's repo, branched from that repo's integration branch, with the whole wave running concurrently**. The concrete call depends on the harness: see [HARNESS-DISPATCH.md](./HARNESS-DISPATCH.md). The worker calls the Skill tool with "implement-issue" for the ticket's URL, inside that worktree. In multi-repo mode the brief names the checkout the worker starts from; a worker never guesses which repo a ticket belongs to.
 
 Then upsert the wave comment on the epic under `<!-- sdd-wave -->` (call the Skill tool with "sync-progress" for the upsert): wave number, tickets, worker names, started-at, and one line `Edges added: <consumer> ← <producer>, …` or `Edges added: none` listing every `--add-blocked-by` the safety check introduced since the plan comment. `close-epic`'s retro reads that line.
 
@@ -139,7 +141,7 @@ More than ~8 independent tickets, or the user wants scripted verify → merge or
 
 ## Guardrails
 
-- Readiness comes from links and assignees, never from a status label.
+- Readiness is derived from open state, blockers, the claim mark and `ready-for-agent`, never from a workflow status label (`todo`, `in-progress`, `done`).
 - Every comment you write sits under a marker and is rewritten in place.
 - One team primitive per session: worktree waves and Agent Teams are mutually exclusive. This skill uses worktree waves; leave the Agent Teams flag unset.
 - You do not write code. You do not merge to `main`.

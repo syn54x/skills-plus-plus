@@ -47,10 +47,11 @@ const VERDICT = {
 }
 
 const implementPrompt = (t) =>
-  `You are a worker on epic #${EPIC}. Integration branch: ${INTEGRATION_BRANCH}. ` +
+  `You are worker-${t.n}, implementing sub-issue #${t.n} of epic #${EPIC}. Integration branch: ${INTEGRATION_BRANCH}. ` +
   `Run \`gh issue view ${t.n}\` then call the Skill tool with "implement-issue" for issue ${t.n} and follow it exactly: claim, branch sdd/${t.n}-<slug> ` +
   `from ${INTEGRATION_BRANCH}, TDD, run the ticket's Verify block, open a PR into ${INTEGRATION_BRANCH} with "Closes #${t.n}", ` +
-  `update the <!-- sdd-progress --> comment. Never merge. Return the report as structured output.`
+  `update the <!-- sdd-progress --> comment. ` +
+  `Claim #${t.n} with the claimed label as implement-issue §2 says; write worker-${t.n} on the Worker line. Never merge. Return the report as structured output.`
 
 const reviewPrompt = (r) =>
   `Review PR #${r.pr} against sub-issue #${r.ticket} by calling the Skill tool with "review-pr" for PR ${r.pr} and following it. ` +
@@ -58,7 +59,7 @@ const reviewPrompt = (r) =>
 
 const fixPrompt = (r, v) =>
   implementPrompt({ n: r.ticket }) +
-  `\n\nThis is the single fix round for PR #${r.pr}. Review findings:\n${v.findings}\n` +
+  `\n\nThis is the single fix round for PR #${r.pr}. You are worker-${r.ticket}, the name the first agent wrote on the Worker line. Review findings:\n${v.findings}\n` +
   `Address every item or explain in the PR why not, re-run Verify, update the progress comment.`
 
 const mergeOrder = []

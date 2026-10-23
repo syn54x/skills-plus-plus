@@ -14,6 +14,12 @@ repos:
         language: script
         pass_filenames: false
         files: ^(skills/.+|agents/.+\.md)$
+      - id: check-sdd-ready
+        name: build-epic ready queue matches its fixtures
+        entry: scripts/check-sdd-ready.sh
+        language: script
+        pass_filenames: false
+        files: ^(skills/engineering/build-epic/scripts/ready\.sh|scripts/check-sdd-ready\.sh|scripts/fixtures/(gh|sdd-ready/.+))$
       - id: zensical-build
         name: docs site builds with no broken links (zensical --strict)
         entry: uv run --frozen zensical build --clean --strict

@@ -3,7 +3,7 @@
 The brief is the **only** context a worker gets. Conversation history, the plan comment, the other tickets: none of it reaches the worker unless it is in the brief. Fill every slot; a brief with a blank is not dispatched.
 
 ```markdown
-You are implementing sub-issue <issue URL> of epic <epic URL>.
+You are worker-<N>, implementing sub-issue <issue URL> of epic <epic URL>.
 Start in the checkout at <absolute path of this ticket's repo>; the ticket, its branch and its PR all live in <owner/repo> and nowhere else.
 First, before anything else, cut your branch from the remote integration branch, whatever branch this worktree started on, and confirm its base:
 
@@ -34,6 +34,7 @@ Then call the Skill tool with "implement-issue" for <issue URL> and follow it. T
 
 - Integration branch: `<feat/slug>` in <owner/repo>. `sdd/<N>-<slug>` is cut from `origin/<feat/slug>` by the first step above; PR into `<feat/slug>`.
 - Cross-repo inputs you consume: <what, where it is reachable from this checkout (preview URL, local service, regenerated client), and how to confirm it; or "none">.
+- Claim #<N> with the claimed label as implement-issue §2 says; write worker-<N> on the Worker line.
 - Commit as you go; conventional commit messages; the last commit before the PR is the one Verify ran on.
 - Open the PR with `Closes #<N>` in the body. Do not merge.
 - Progress: one comment on #<N> under `<!-- sdd-progress -->`, rewritten in place (the `sync-progress` skill owns the format).

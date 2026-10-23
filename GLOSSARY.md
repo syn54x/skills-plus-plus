@@ -30,7 +30,7 @@ One tracer-bullet **Issue** under an **Epic**, linked natively (`--parent`, `--b
 The `<!-- sdd-routing -->` block `setup-syn54x-skills` writes into `CLAUDE.md` or `AGENTS.md`. Its presence is what switches a repo onto the SDD flow.
 
 **Ready queue**:
-The **Sub-issues** that are open, have no open blockers, are unassigned and carry `ready-for-agent`. Derived by `gh`, never read from a status label.
+The **Sub-issues** that are open, have no open blockers, are not held (no **Claim mark**, no assignee) and carry `ready-for-agent`. Derived by `gh`, never read from a workflow status label.
 
 **Layer**:
 The **Sub-issues** whose blockers all sit in earlier layers. Layer 0 is the initial **Ready queue**.
@@ -39,7 +39,10 @@ The **Sub-issues** whose blockers all sit in earlier layers. Layer 0 is the init
 One concurrent dispatch of 3 to 5 workers over the current **Ready queue**, one worktree each.
 
 **Claim**:
-Assigning yourself to a **Sub-issue**. Removes it from the **Ready queue**; undone by unclaiming.
+Marking a **Sub-issue** as held by whoever is building it, with the tracker's **Claim mark**. Removes it from the **Ready queue**; undone by unclaiming, which clears the mark.
+
+**Claim mark**:
+The tracker's record that a **Sub-issue** is claimed. Set by the holder before any work and cleared by the holder on stopping without a PR, so it has the lifecycle of an assignee, not of a workflow status.
 
 **Verify block**:
 The fenced commands in a **Sub-issue**'s `## Verify`; green means done. Recorded on the commit as `git notes --ref=sdd-verify`.
