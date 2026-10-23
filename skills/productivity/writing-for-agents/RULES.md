@@ -4,7 +4,7 @@ A **rule** here is a line the agent applies mid-task: an `AGENTS.md` invariant, 
 
 1. **Trigger**: the moment it applies.
 2. **Check**: the observable state that discharges it.
-3. **Incident**: the event that named it, last and optional.
+3. **Incident**: the event that named it, last.
 
 A rule told as a story has no moment to fire at.
 
