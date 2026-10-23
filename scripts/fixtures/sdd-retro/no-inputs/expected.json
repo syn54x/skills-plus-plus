@@ -1,5 +1,5 @@
 {
- "schema": "sdd-retro/2",
+ "schema": "sdd-retro/3",
  "epic": "https://github.com/acme/none/issues/1",
  "tickets": {
   "total": 1,
