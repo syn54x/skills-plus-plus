@@ -1,6 +1,8 @@
 ## What it does
 
-`implement-issue` builds one SDD sub-issue end to end: it checks the issue is ready, claims it by assignment, branches `sdd/<N>-<slug>`, drives the tests from the ticket's **Test scenarios**, runs the ticket's **Verify** block, records that run as a git note, and opens a PR with `Closes #N`. It keeps one progress comment on the issue current throughout. It never merges and never touches another ticket.
+`implement-issue` builds one SDD sub-issue end to end: it checks the issue is ready, claims it by assignment, branches `sdd/<N>-<slug>`, drives the tests from the ticket's **Test scenarios**, runs the ticket's **Verify** block, records that run as a git note, reviews its own diff, and opens a PR with `Closes #N`. It keeps one progress comment on the issue current throughout. It never merges and never touches another ticket.
+
+The worker reads the same laws the gate will cite: the documents on the **Laws line** of the repo's routing block (or, without one, the same fallback list [review-pr](../engineering/review-pr.md) and [review-panel](../engineering/review-panel.md) use), the epic's decisions, and every document the ticket cites. It checks a law at the moment the law's trigger comes up, and it cannot finish without writing a `## Laws` section in the PR body that makes one claim per law.
 
 The ticket is the whole world. A worker running this skill sees the issue, the epic it belongs to and the repo's laws, never the conversation that produced them, which is why [to-tickets](../engineering/to-tickets.md)'s SDD pass makes every ticket carry Files owned, Interfaces and Verify.
 
@@ -27,6 +29,12 @@ The issue must be open, unblocked, unassigned and labelled `ready-for-agent`. On
 
 **The ticket's Produces signature can't work. Does the worker stop?** Only for a contract another repo or the epic itself states (a route and its shapes, an event payload, a generated-client method): that is `NEEDS_CONTEXT`. An in-repo code signature (a function, type, enum or struct) may change as a declared **Interface deviation**: the worker ships the signature that works, writes an `Interfaces changed:` line in the PR body with the old signature, the new one and why the old one could not work, and reports `DONE_WITH_CONCERNS`. [review-pr](../engineering/review-pr.md) then judges whether the change was needed.
 
+**Why does the PR body need a `## Laws` section?** Fix rounds on slice PRs kept citing laws the worker had been told to read but never checked against its diff. The section has no default text, so the worker has to look at each law to fill it: one line per law that applies, saying how the diff meets it, and one `n/a: <reason>` line for a source where nothing applies. [review-pr](../engineering/review-pr.md) reads each line as a claim to verify, so an `n/a` on a law the diff triggers is a finding, and a missing section is one too.
+
+**Why check a law in the middle of the work instead of at the end?** A law such as "extract the shared copy before writing a second one" is cheap at the moment the second copy is about to be written and expensive once both copies exist. So a law that names its trigger (a second copy of some markup, a component going into a second host, a test asserting a button is shown) is checked right then, usually with a search, and acted on in the same PR. A law with no trigger waits for the self-review.
+
+**Why does the self-review come before the PR opens?** So the reviewer reads a diff that has already been reviewed once and is no longer changing. The claims check is the one part that runs after the push, because it compares the report with what is on the remote branch.
+
 **Why is it model-invoked when `implement` is not?** Workers and the cloud workflow have to start it without a human typing it. A user-invoked skill cannot be reached by another skill or agent at all.
 
 **Which branch does it start from?** The remote integration branch named in the brief (`origin/<integration branch>`), never whatever the worktree happened to be checked out on, which is often the default branch.
@@ -38,6 +46,8 @@ The issue must be open, unblocked, unassigned and labelled `ready-for-agent`. On
 - `git notes --ref=sdd-verify show HEAD` on the PR head says `verified`.
 - The Verify SHA in the report equals the PR's head commit, and every test, file or pin the report or PR body names shows up in the PR's diff.
 - The PR body carries a `Verify block corrected:` line, `no` or `yes` with what was wrong.
+- The PR body has a `## Laws` section between `## Interfaces` and `## Notes for the reviewer`, with a line for each law that applies and an `n/a: <reason>` line for each source with nothing applying, never an empty slot.
+- The `Interfaces changed:` line is filled in by hand: `none` only when every public symbol the diff adds, removes or re-signs matches a Produces line on the ticket, otherwise one line per deviation.
 - The issue has exactly one `<!-- sdd-progress -->` comment, rewritten as the work moves.
 
 ## Where it fits
