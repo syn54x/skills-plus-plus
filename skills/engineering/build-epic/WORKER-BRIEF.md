@@ -37,7 +37,7 @@ Then call the Skill tool with "implement-issue" for <issue URL> and follow it. T
 - Claim #<N> with the claimed label as implement-issue §2 says; write worker-<N> on the Worker line.
 - Commit as you go; conventional commit messages; the last commit before the PR is the one Verify ran on.
 - Open the PR with `Closes #<N>` in the body. Do not merge.
-- Progress: one comment on #<N> under `<!-- sdd-progress -->`, rewritten in place (the `sync-progress` skill owns the format).
+- Progress: one comment on #<N> under `<!-- sdd-progress -->`, rewritten in place, through `sync-progress.sh progress` (the `sync-progress` skill owns the format).
 - Secrets / env this slice needs: <list, or "none">. If anything listed is missing, stop and report; do not improvise.
 
 ## Report

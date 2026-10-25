@@ -45,7 +45,7 @@ Every worker PR targets this branch. You merge into it. When the epic is done, o
 
 **Multi-repo:** one integration branch **per repo that has a sub-issue**, same name in each, created from that repo's default branch inside its checkout (`git -C ../pinch-backend switch -c "$BRANCH" origin/main`). A brief never crosses a repo boundary: a worker gets one ticket in one repo.
 
-Record the branch name (and, in multi-repo mode, the list of repos) in the plan comment if it is not there.
+Record the branch in the plan comment with `scripts/sync-progress.sh plan <epic> --branch "$BRANCH"` (call the Skill tool with "sync-progress"; the script is in its base directory). In multi-repo mode the plan already carries the repos.
 
 ## 2. Ready queue
 
@@ -70,7 +70,7 @@ Tickets that are open but still blocked form the later layers; held tickets (the
 
 ## 3. Parallel safety check
 
-Before a wave, run the check in [PARALLEL-SAFETY-CHECK.md](./PARALLEL-SAFETY-CHECK.md) over the ready tickets' **Files owned** and **Interfaces**. Two ready tickets that touch the same file, the same migration series, a shared lockfile or a producer/consumer interface pair do not run together: add the missing `--add-blocked-by` edge (and note it in the plan comment) or pick one for this wave and hold the other. File overlap is checked **per repo**; interface pairs are checked **across repos** too, since an API route produced in the backend and consumed in the frontend is the commonest cross-repo edge.
+Before a wave, run the check in [PARALLEL-SAFETY-CHECK.md](./PARALLEL-SAFETY-CHECK.md) over the ready tickets' **Files owned** and **Interfaces**. Two ready tickets that touch the same file, the same migration series, a shared lockfile or a producer/consumer interface pair do not run together: add the missing `--add-blocked-by` edge (it goes on the wave's `--edges`) or pick one for this wave and hold the other. File overlap is checked **per repo**; interface pairs are checked **across repos** too, since an API route produced in the backend and consumed in the frontend is the commonest cross-repo edge.
 
 ## 4. Wave plan, then approval
 
@@ -87,7 +87,7 @@ For each ticket in the wave:
 1. Write the brief from [WORKER-BRIEF.md](./WORKER-BRIEF.md). The brief is the ticket body verbatim plus the Laws slot (sources, not a paraphrase), the branch mechanics, and the report format. Workers get nothing from this conversation, so the brief is complete or the worker fails.
 2. Dispatch the brief to **one isolated worker per ticket, in its own worktree of that ticket's repo, branched from that repo's integration branch, with the whole wave running concurrently**. The concrete call depends on the harness: see [HARNESS-DISPATCH.md](./HARNESS-DISPATCH.md). The worker calls the Skill tool with "implement-issue" for the ticket's URL, inside that worktree. In multi-repo mode the brief names the checkout the worker starts from; a worker never guesses which repo a ticket belongs to.
 
-Then upsert the wave comment on the epic under `<!-- sdd-wave -->` (call the Skill tool with "sync-progress" for the upsert): wave number, tickets, worker names, started-at, and one line `Edges added: <consumer> ← <producer>, …` or `Edges added: none` listing every `--add-blocked-by` the safety check introduced since the plan comment. `close-epic`'s retro reads that line.
+Then record the wave (call the Skill tool with "sync-progress"): `scripts/sync-progress.sh wave <epic> add --n <wave> --tickets <numbers> --workers <names> --started <ISO8601> --edges "<consumer><<producer>,…"`, or `--edges none`, listing every `--add-blocked-by` the safety check introduced since the plan comment. The epic keeps one wave comment holding every wave; `close-epic`'s retro reads its edges.
 
 ### Heartbeat
 
@@ -103,9 +103,9 @@ First read the worker's status; never ignore an escalation, and never re-run the
 
 Then call the Skill tool with "review-pr" for its PR. That skill dispatches a fresh reviewer, runs the ticket's Verify block, and returns two verdicts: **spec** and **quality**, with severities.
 
-- Both pass → merge into the integration branch under the project's merge law (squash unless the law says otherwise). Then close the sub-issue **if it is still open**: `gh issue view "$URL" --json state --jq .state`, and when it says `OPEN`, `gh issue close "$URL" --reason completed --comment "Merged in <PR URL> into \`$BRANCH\`"`. GitHub reads `Closes #N` only on a PR into the default branch, so a merge into `feat/<slug>` closes nothing on its own; the worker's line still links the PR to its ticket, and it does close the ticket in the one-ticket case where the PR targets `main`. The state check makes both cases, and a repo with auto-close switched off, the same step.
+- Both pass → merge into the integration branch under the project's merge law (squash unless the law says otherwise). Record the PR with `scripts/sync-progress.sh wave <epic> pr --ticket <N> --pr <URL>`. Then close the sub-issue **if it is still open**: `gh issue view "$URL" --json state --jq .state`, and when it says `OPEN`, `gh issue close "$URL" --reason completed --comment "Merged in <PR URL> into \`$BRANCH\`"`. GitHub reads `Closes #N` only on a PR into the default branch, so a merge into `feat/<slug>` closes nothing on its own; the worker's line still links the PR to its ticket, and it does close the ticket in the one-ticket case where the PR targets `main`. The state check makes both cases, and a repo with auto-close switched off, the same step.
 - Either fails → the Critical and Important findings go back to the **same worker** (resume it by name; it holds the context). One fix round, then a scoped re-review.
-- Findings still open → either one fresh dispatch on the ceiling tier carrying the brief, the PR and the open findings, or straight to `ready-for-human`: label it, unclaim, leave the PR open, move on. Do not fix it yourself beyond a trivial mechanical nit.
+- Findings still open → either one fresh dispatch on the ceiling tier carrying the brief, the PR and the open findings, or straight to `scripts/sync-progress.sh hand-back <N> ready-for-human --reason "<the open findings>"`, leave the PR open, record it with `wave pr` too, and move on. Do not fix it yourself beyond a trivial mechanical nit.
 
 **Worktree lifetime.** A PR's worker worktree and reviewer worktree both stay until **that** PR merges or goes to `ready-for-human`; merging a sibling PR removes neither. That is what lets the fix round resume the same worker and the scoped re-review resume the same reviewer. If the reviewer cannot be resumed anyway (its session ended, the harness lost it), dispatch a fresh reviewer and give it the earlier review as posted: the findings by id (verbatim, with their file:line) and the head SHA it reviewed. It runs `review-pr`'s scoped re-review from that SHA to the new head, not a full review.
 
@@ -119,7 +119,7 @@ Either way the reviewer marks Q1, Q2 ADDRESSED / NOT ADDRESSED and re-runs Verif
 
 **Merging.** Merge in dependency order, one PR at a time. If a merge conflicts, abort it (`git merge --abort` or close the attempt), do not hand-resolve: silently picking a side discards one ticket's intent. Instead resume that worker with "rebase onto the current integration branch and re-run Verify", then re-gate. After each merge, run the merged ticket's Verify block (or the repo's suite if the law names one) on the integration branch before merging the next; a red tree stops the wave until it is diagnosed.
 
-**Interface deviations.** When a merged PR's body carries an `Interfaces changed:` line, record each **Interface deviation** before the next dispatch: rewrite the producer ticket's Produces line and every consumer ticket's Consumes line to the shipped signature (`gh issue edit "$URL" --body-file …`), then add one entry to the `**Deviated:**` line of the epic's `<!-- sdd-plan -->` comment (ticket, old signature, new signature) and upsert the comment. No user approval is needed: `review-pr` already judged the deviation needed. Every Consumes line has a blocking edge to its producer, so no consumer is in flight while you do this.
+**Interface deviations.** When a merged PR's body carries an `Interfaces changed:` line, record each **Interface deviation** before the next dispatch: rewrite the producer ticket's Produces line and every consumer ticket's Consumes line to the shipped signature (`gh issue edit "$URL" --body-file …`), then record it with `scripts/sync-progress.sh plan <epic> --add-deviation "<ticket> <old signature> → <new signature>"`. No user approval is needed: `review-pr` already judged the deviation needed. Every Consumes line has a blocking edge to its producer, so no consumer is in flight while you do this.
 
 Merges move the frontier. After each merge, recompute the ready queue (step 2) and dispatch the newly unblocked tickets as the next wave.
 
@@ -142,7 +142,7 @@ More than ~8 independent tickets, or the user wants scripted verify → merge or
 ## Guardrails
 
 - Readiness is derived from open state, blockers, the claim mark and `ready-for-agent`, never from a workflow status label (`todo`, `in-progress`, `done`).
-- Every comment you write sits under a marker and is rewritten in place.
+- Every comment you write goes through `sync-progress`, which keeps it under its marker and rewrites it in place.
 - One team primitive per session: worktree waves and Agent Teams are mutually exclusive. This skill uses worktree waves; leave the Agent Teams flag unset.
 - You do not write code. You do not merge to `main`.
 - In multi-repo mode, tickets are URLs, briefs are single-repo, and a cross-repo blocker is cleared by availability, not by a closed link.

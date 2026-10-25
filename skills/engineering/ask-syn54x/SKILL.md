@@ -51,7 +51,7 @@ For a repo where `/setup-syn54x-skills` switched the SDD pipeline on (GitHub onl
    - **`M` / `L`** → **`/build-epic <epic>`**: waves of workers in their own worktrees, a fresh reviewer on every PR, merges in dependency order onto an integration branch, then a panel review of the PR to `main`. More than about eight independent tickets → `/build-epic <epic> --workflow`.
 4. **You merge to `main`.** The agent never does. Then the epic closes with a retro (`build-epic` does it, or ask for it in any later session).
 
-Underneath, `implement-issue`, `review-pr`, `review-panel`, `close-epic` and `sync-progress` are model-invoked: the entry points above reach them, and you rarely type them.
+Underneath, `implement-issue`, `review-pr`, `review-panel`, `close-epic` and `sync-progress` are model-invoked: the entry points above reach them, and you rarely type them. `sync-progress` owns every marker comment (progress, plan, wave, summary, retro), the claim mark and the hand-back of a stuck ticket, so no other skill writes those comments by hand.
 
 ## On-ramps
 
