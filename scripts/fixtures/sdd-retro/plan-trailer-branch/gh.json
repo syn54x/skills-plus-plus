@@ -1,0 +1,109 @@
+{
+ "issues": {
+  "https://github.com/acme/eap/issues/1": {
+   "url": "https://github.com/acme/eap/issues/1",
+   "labels": [],
+   "closedByPullRequestsReferences": [],
+   "subIssues": {
+    "nodes": [
+     {
+      "url": "https://github.com/acme/eap/issues/2"
+     },
+     {
+      "url": "https://github.com/acme/eap/issues/3"
+     }
+    ]
+   }
+  },
+  "https://github.com/acme/eap/issues/2": {
+   "url": "https://github.com/acme/eap/issues/2",
+   "labels": [
+    {
+     "name": "size:S"
+    }
+   ],
+   "closedByPullRequestsReferences": [],
+   "subIssues": {
+    "nodes": []
+   }
+  },
+  "https://github.com/acme/eap/issues/3": {
+   "url": "https://github.com/acme/eap/issues/3",
+   "labels": [
+    {
+     "name": "size:S"
+    }
+   ],
+   "closedByPullRequestsReferences": [],
+   "subIssues": {
+    "nodes": []
+   }
+  }
+ },
+ "prs": {
+  "https://github.com/acme/eap/pull/5": {
+   "url": "https://github.com/acme/eap/pull/5",
+   "number": 5,
+   "state": "MERGED",
+   "baseRefName": "feat/x",
+   "headRefName": "sdd/2-a",
+   "body": "closes #2\n",
+   "createdAt": "2026-01-01T01:00:00Z",
+   "reviews": [
+    {
+     "body": "## Spec: PASS\n\n## Quality: PASS\n",
+     "submittedAt": "2026-01-01T02:00:00Z"
+    }
+   ],
+   "comments": []
+  },
+  "https://github.com/acme/eap/pull/6": {
+   "url": "https://github.com/acme/eap/pull/6",
+   "number": 6,
+   "state": "MERGED",
+   "baseRefName": "feat/x",
+   "headRefName": "sdd/3-b",
+   "body": "closes #3\n",
+   "createdAt": "2026-01-01T01:00:00Z",
+   "reviews": [
+    {
+     "body": "## Spec: PASS\n\n## Quality: PASS\n",
+     "submittedAt": "2026-01-01T02:00:00Z"
+    }
+   ],
+   "comments": []
+  },
+  "https://github.com/acme/eap/pull/9": {
+   "url": "https://github.com/acme/eap/pull/9",
+   "number": 9,
+   "state": "MERGED",
+   "baseRefName": "main",
+   "headRefName": "feat/x",
+   "body": "Closes #1\n",
+   "createdAt": "2026-01-01T01:00:00Z",
+   "reviews": [],
+   "comments": []
+  }
+ },
+ "events": {
+  "acme/eap#2": [
+   {
+    "event": "assigned",
+    "created_at": "2026-01-01T00:00:00Z"
+   }
+  ],
+  "acme/eap#3": [
+   {
+    "event": "assigned",
+    "created_at": "2026-01-01T00:00:00Z"
+   }
+  ]
+ },
+ "comments": {
+  "acme/eap#1": [
+   {
+    "body": "<!-- sdd-plan -->\n## Plan\n<!-- sdd-data: eyJnb2FsIjoiZyIsImNvbnN0cmFpbnRzIjoiIiwiYnJhbmNoIjoiZmVhdC94IiwicmVwb3MiOltdLCJuYXJyb3dlZCI6W10sImRldmlhdGVkIjpbXSwidGFibGUiOiIifQ== -->"
+   }
+  ]
+ }
+}
