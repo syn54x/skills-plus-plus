@@ -1,0 +1,2 @@
+{"exit":0,"stdout":"https://github.com/fixture/comment/1","stderr":""}
+{"data":{"goal":"G","constraints":"","branch":"feat/x","repos":[],"narrowed":["#104 lists invoices without pagination"],"deviated":[],"table":"| Layer | Ticket |\n| --- | --- |\n| 0 | #101 |\n"}}

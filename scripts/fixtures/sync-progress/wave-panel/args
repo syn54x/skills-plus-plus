@@ -1,0 +1,1 @@
+wave 200 panel --round 1 --verdict MERGE --report U --severity critical=0,important=1,minor=2 --persona correctness=1

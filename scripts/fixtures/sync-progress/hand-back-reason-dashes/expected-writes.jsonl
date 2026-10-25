@@ -1,0 +1,3 @@
+{"cmd":"issue edit","issue":"103","add_label":["ready-for-human"],"remove_label":["ready-for-agent"],"add_blocked_by":[]}
+{"cmd":"issue edit","issue":"103","add_label":[],"remove_label":["claimed"],"add_blocked_by":[]}
+{"method":"PATCH","path":"repos/o/r/issues/comments/501","body":"<!-- sdd-progress -->\n**Status:** handed-back\n**Worker:** sdd-worker-1\n**Branch:** `sdd/103-x`\n**PR:** none\n**Verify:** not run\n**Handed back:** ready-for-human: needs --flag decided\n<!-- sdd-data: eyJzdGF0dXMiOiJoYW5kZWQtYmFjayIsIndvcmtlciI6InNkZC13b3JrZXItMSIsImJyYW5jaCI6InNkZC8xMDMteCIsInByIjpudWxsLCJ2ZXJpZnkiOnsic3RhdGUiOiJub3QtcnVuIiwic2hhIjoiIn0sInJvdXRlIjoicmVhZHktZm9yLWh1bWFuIiwicmVhc29uIjoibmVlZHMgLS1mbGFnIGRlY2lkZWQiLCJub3RlcyI6IiJ9 -->\n"}
