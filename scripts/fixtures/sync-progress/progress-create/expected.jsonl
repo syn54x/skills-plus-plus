@@ -1,0 +1,2 @@
+{"exit":0,"stdout":"https://github.com/fixture/comment/1","stderr":""}
+{"data":{"status":"in-progress","worker":"sdd-worker-1","branch":"sdd/103-x","pr":null,"verify":{"state":"not-run","sha":""},"route":null,"reason":"","notes":""}}
