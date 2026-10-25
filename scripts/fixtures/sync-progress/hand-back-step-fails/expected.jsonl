@@ -1,0 +1,2 @@
+{"exit":1,"stdout":"https://github.com/fixture/comment/501","stderr":"sync-progress: hand-back: step 2 (route labels) failed; re-run to finish"}
+{"data":{"status":"handed-back","worker":"sdd-worker-1","branch":"sdd/103-x","pr":null,"verify":{"state":"not-run","sha":""},"route":"needs-info","reason":"R","notes":""}}

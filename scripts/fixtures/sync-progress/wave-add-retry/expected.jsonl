@@ -1,0 +1,2 @@
+{"exit":0,"stdout":"https://github.com/fixture/comment/701","stderr":""}
+{"data":{"waves":[{"n":1,"tickets":[101,102],"workers":["w1","w2"],"started":"2026-10-25T09:00:00Z","edges":[],"prs":{}},{"n":2,"tickets":["104"],"workers":["w3"],"started":"2026-10-25T11:05:00Z","edges":[["104","103"]],"prs":{"104":"#9"}}],"panel":[]}}

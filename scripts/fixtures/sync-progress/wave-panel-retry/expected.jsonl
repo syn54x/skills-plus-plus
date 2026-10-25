@@ -1,0 +1,2 @@
+{"exit":0,"stdout":"https://github.com/fixture/comment/701","stderr":""}
+{"data":{"waves":[{"n":1,"tickets":[101,102],"workers":["w1","w2"],"started":"2026-10-25T09:00:00Z","edges":[],"prs":{}}],"panel":[{"round":1,"verdict":"MERGE","report":"U2","severity":{},"persona":{},"dropped":0}]}}
