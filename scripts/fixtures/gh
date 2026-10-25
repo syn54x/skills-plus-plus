@@ -1,26 +1,62 @@
 #!/usr/bin/env bash
-# Test double for gh: answers the calls of every fixture check (sdd-retro.sh, the ready-queue check) from "$GH_FIXTURE" (a gh.json file).
+# Test double for gh: answers the calls of every fixture check (scripts/check-sdd.sh) from "$GH_FIXTURE" (a gh.json file).
 # gh.json: { issues: {<url>: obj}, prs: {<url>: obj}, events: {"o/r#n": [...]}, comments: {"o/r#n": [...]} }
+# Writes (api -X PATCH|POST, issue edit, label create) append one JSON line each to "$GH_WRITES" when it is set.
 set -euo pipefail
 F="${GH_FIXTURE:?GH_FIXTURE unset}"
+W="${GH_WRITES:-/dev/null}"
 
-POS=(); JQ=""; REPO=""; BASE=""; HEAD=""; STATE="open"
+POS=(); JQ=""; REPO=""; BASE=""; HEAD=""; STATE="open"; METHOD=""; FIELDS=0; BODY=""
+ADD=(); REMOVE=(); BLOCKED=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --version) echo "gh version 0.0.0-fixture"; exit 0 ;;
     --jq) JQ="$2"; shift 2 ;;
-    --json|--limit) shift 2 ;;
+    --json|--limit|--color|--description) shift 2 ;;
     -R|--repo) REPO="$2"; shift 2 ;;
     --base) BASE="$2"; shift 2 ;;
     --head) HEAD="$2"; shift 2 ;;
     --state) STATE="$2"; shift 2 ;;
-    --paginate) shift ;;
+    --paginate|--force) shift ;;
+    -X|--method) METHOD="$2"; shift 2 ;;
+    -F|-f|--field|--raw-field)
+      FIELDS=1
+      case "$2" in
+        body=@*) BODY=$(cat "${2#body=@}"; printf x); BODY=${BODY%x} ;;  # keep trailing newlines
+        body=*) BODY="${2#body=}" ;;
+      esac
+      shift 2 ;;
+    --add-label) IFS=, read -r -a V <<<"$2"; ADD+=("${V[@]}"); shift 2 ;;
+    --remove-label) IFS=, read -r -a V <<<"$2"; REMOVE+=("${V[@]}"); shift 2 ;;
+    --add-blocked-by) IFS=, read -r -a V <<<"$2"; BLOCKED+=("${V[@]}"); shift 2 ;;
     *) POS+=("$1"); shift ;;
   esac
 done
+# Like gh: a field without -X makes the call a POST.
+[ -n "$METHOD" ] || { [ "$FIELDS" = 1 ] && METHOD=POST || METHOD=GET; }
 
 miss() { echo "fixture gh: no answer for: ${POS[*]}" >&2; exit 1; }
+arr() { jq -c -n '$ARGS.positional' --args "$@"; }
+reply() { if [ -n "$JQ" ]; then printf '%s' "$1" | jq -r "$JQ"; else printf '%s\n' "$1"; fi; }
+
+if [ "${POS[0]:-}" = api ] && [ "$METHOD" != GET ]; then
+  jq -c -n --arg m "$METHOD" --arg p "${POS[1]}" --arg b "$BODY" '{method: $m, path: $p, body: $b}' >>"$W"
+  # A PATCH names its comment id; a POST gets the write log's line count as a fresh id.
+  ID="${POS[1]##*/}"
+  case "$ID" in ''|*[!0-9]*) ID=$(wc -l <"$W" | tr -d ' '); [ "$ID" -gt 0 ] || ID=1 ;; esac
+  reply "$(jq -c -n --argjson id "$ID" '{id: $id, html_url: "https://github.com/fixture/comment/\($id)"}')"
+  exit 0
+fi
+
 case "${POS[0]} ${POS[1]:-}" in
+  "issue edit")
+    jq -c -n --arg i "${POS[2]}" \
+      --argjson a "$(arr ${ADD[@]+"${ADD[@]}"})" --argjson r "$(arr ${REMOVE[@]+"${REMOVE[@]}"})" \
+      --argjson b "$(arr ${BLOCKED[@]+"${BLOCKED[@]}"})" \
+      '{cmd: "issue edit", issue: $i, add_label: $a, remove_label: $r, add_blocked_by: $b}' >>"$W"
+    echo "https://github.com/fixture/issues/${POS[2]##*/}"; exit 0 ;;
+  "label create")
+    jq -c -n --arg n "${POS[2]}" '{cmd: "label create", name: $n}' >>"$W"; exit 0 ;;
   "issue view") OUT=$(jq -c --arg u "${POS[2]}" '.issues[$u] // empty' "$F") ;;
   "pr view")    OUT=$(jq -c --arg u "${POS[2]}" '.prs[$u] // empty' "$F") ;;
   "pr list")
@@ -35,4 +71,4 @@ case "${POS[0]} ${POS[1]:-}" in
   *) miss ;;
 esac
 [ -n "$OUT" ] || miss
-if [ -n "$JQ" ]; then printf '%s' "$OUT" | jq -r "$JQ"; else printf '%s\n' "$OUT"; fi
+reply "$OUT"
