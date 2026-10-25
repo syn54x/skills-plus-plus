@@ -34,7 +34,7 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 if ! git notes --ref=sdd-verify show HEAD >/dev/null 2>&1; then
-  echo "sdd verify gate: no Verify record on HEAD of $BRANCH. Run the ticket's Verify block (green), then: git notes --ref=sdd-verify add -f -m verified HEAD. If you are stopping because you are BLOCKED: unclaim per sync-progress, push what is committed, then record the state instead: git notes --ref=sdd-verify add -f -m blocked HEAD" >&2
+  echo "sdd verify gate: no Verify record on HEAD of $BRANCH. Run the ticket's Verify block (green), then: git notes --ref=sdd-verify add -f -m verified HEAD. If you are stopping because you are BLOCKED: hand the ticket back per sync-progress (sync-progress.sh hand-back <issue> <route> --reason ...), push what is committed, then record the state instead: git notes --ref=sdd-verify add -f -m blocked HEAD" >&2
   exit 2
 fi
 
