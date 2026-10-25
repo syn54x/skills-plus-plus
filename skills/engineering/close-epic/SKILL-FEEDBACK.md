@@ -15,7 +15,7 @@ The routing block's `Upstream feedback:` line names a **profile**. A line that s
 | `Upstream feedback: detailed` | the detailed template; all six guard rules, unchanged |
 | `Upstream feedback: attributed` | the attributed template; rules 1 and 2 relaxed for the user's own repo only, rules 3 to 6 unchanged |
 | any profile but `off`, interactive session | preview each body; user approves / edits / skips each one |
-| any profile but `off`, non-interactive (Actions, headless) | never file; write drafts under `<!-- sdd-feedback-draft -->` on the epic |
+| any profile but `off`, non-interactive (Actions, headless) | never file; write every draft into one `<!-- sdd-feedback-draft -->` comment on the epic |
 | repo is private (`gh repo view --json isPrivate`) | confirmation mandatory; drafts by default when nobody can confirm. Under `attributed`, the confirmation names the repo and says that its name and the epic, ticket and PR links become public |
 | `--dry-run` | print the bodies and stop |
 
@@ -109,11 +109,27 @@ Title format: `<skill> §<step>: <category> (<count>)`. Under `attributed` the t
 
 ## Drafts
 
-When nobody can confirm, each body goes on the epic as its own comment starting with `<!-- sdd-feedback-draft -->`. To file later:
+When nobody can confirm, every body goes into **one** comment on the epic, written with `sync-progress.sh upsert <epic> '<!-- sdd-feedback-draft -->' <drafts-file>`. `upsert` rewrites the comment in place, so the file always carries every draft, never only the newest. Each draft is one section: a `## Draft <n>: <title>` heading, then the body in a four-backtick fenced block, so a body's own fences cannot close it early.
+
+`````markdown
+<!-- sdd-feedback-draft -->
+## Draft 1: to-tickets §1: verify-block-wrong (2/6 tickets)
+
+````markdown
+<the body, exactly as the template built it>
+````
+
+## Draft 2: …
+`````
+
+To file later, one section at a time:
 
 ```bash
 gh api "repos/$REPO/issues/$EPIC/comments" --paginate --jq '.[] | select(.body | startswith("<!-- sdd-feedback-draft -->")) | .body' > /tmp/drafts.md
-# review, then file each with the command above; delete the draft comment afterwards
+N=1   # the draft to file
+awk -v n="$N" '$0 ~ "^## Draft " n ":" {f=1; next} f && /^````/ {if (b) exit; b=1; next} f && b' /tmp/drafts.md > "/tmp/feedback-$N.md"
+# review, run the guard, then file it with the command above, using the section's title
+# once every draft is filed or discarded, delete the draft comment
 ```
 
 Drafts are the user's to file or discard; nothing else reads them.

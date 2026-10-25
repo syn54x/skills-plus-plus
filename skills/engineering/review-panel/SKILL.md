@@ -125,7 +125,7 @@ Verify: passed | failed on `<sha7>` (`<command>`).
 
 Verdict rule: any Critical, or Spec FAIL, or Verify red → **FIX FIRST**. Only Important findings, or a Coherence disagreement that needs a product call → **HUMAN DECISION**. Otherwise **MERGE**.
 
-After the comment is posted, record the round (call the Skill tool with "sync-progress"): `scripts/sync-progress.sh wave <epic> panel --round <r> --verdict "<verdict>" --report <comment URL> --severity critical=<n>,important=<n>,minor=<n> --persona <name>=<count>,… --dropped <n>`, using the counts the report already computes. The wave comment keeps every round.
+After the comment is posted, record the round (call the Skill tool with "sync-progress"): `scripts/sync-progress.sh wave <epic> panel --round <r> --verdict "<verdict>" --report <comment URL> --severity critical=<n>,important=<n>,minor=<n> --persona <name>=<count>,… --dropped <n>`, using the counts the report already computes. `--persona` names every persona that ran, with `0` for one that found nothing, so it matches the report's `Personas:` coverage line. The wave comment keeps every round.
 
 ## 7. Route
 

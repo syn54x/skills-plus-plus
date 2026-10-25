@@ -2,7 +2,7 @@
 
 `close-epic` closes an SDD epic once every sub-issue is closed and its PR to `main` has merged. It posts one summary comment with the ticket-to-PR table, computes a **retro** from GitHub state alone (tickets by size, escalations, blocking edges added mid-build, fix rounds and the **Law** each fix-round finding cited, Verify blocks that had to be corrected, panel findings), tags each learning as `[repo]`, `[reusable]` or `[skill]`, and closes the epic.
 
-With your consent, and only then, a `[skill]` learning can become a `skill-feedback` issue on `syn54x/skills-plus-plus` so the skills themselves improve. Those issues are built from the allowlist of the feedback profile you chose, previewed one by one, checked by a guard script, and never filed from a non-interactive run.
+With your consent, and only then, a `[skill]` learning can become a `skill-feedback` issue on `syn54x/skills-plus-plus` so the skills themselves improve. Those issues are built from the allowlist of the feedback profile you chose, previewed one by one, checked by a guard script, and never filed from a non-interactive run. A non-interactive run leaves them on the epic instead, as drafts in one comment with a section per draft, for you to file or discard later.
 
 ## When to reach for it
 

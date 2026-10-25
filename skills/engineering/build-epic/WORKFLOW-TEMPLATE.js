@@ -50,7 +50,7 @@ const implementPrompt = (t) =>
   `You are worker-${t.n}, implementing sub-issue #${t.n} of epic #${EPIC}. Integration branch: ${INTEGRATION_BRANCH}. ` +
   `Run \`gh issue view ${t.n}\` then call the Skill tool with "implement-issue" for issue ${t.n} and follow it exactly: claim, branch sdd/${t.n}-<slug> ` +
   `from ${INTEGRATION_BRANCH}, TDD, run the ticket's Verify block, open a PR into ${INTEGRATION_BRANCH} with "Closes #${t.n}", ` +
-  `update the <!-- sdd-progress --> comment. ` +
+  `update the <!-- sdd-progress --> comment with sync-progress.sh progress. ` +
   `Claim #${t.n} with the claimed label as implement-issue §2 says; write worker-${t.n} on the Worker line. Never merge. Return the report as structured output.`
 
 const reviewPrompt = (r) =>
@@ -90,7 +90,7 @@ for (let i = 0; i < LAYERS.length; i++) {
   }
 
   // A layer with a non-mergeable ticket blocks its dependants. Stop here rather than build on air;
-  // the orchestrator merges what passed, labels the rest ready-for-human, and re-runs for the remaining layers.
+  // the orchestrator merges what passed, runs hand-back ready-for-human on the rest, and re-runs for the remaining layers.
   if (results.some((x) => !x || x.outcome !== 'merge')) {
     log(`Layer ${i} incomplete; stopping before layer ${i + 1}`)
     break
