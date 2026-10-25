@@ -11,19 +11,25 @@ EPIC_URL=https://github.com/owner/repo/issues/42
 EPIC_REPO=$(printf '%s' "$EPIC_URL" | sed -E 's#https://github.com/([^/]+/[^/]+)/issues/.*#\1#')
 EPIC_N=${EPIC_URL##*/}
 TICKETS=$(gh issue view "$EPIC_URL" --json subIssues --jq '.subIssues.nodes[].url')
-BRANCH=$(gh api "repos/$EPIC_REPO/issues/$EPIC_N/comments" --paginate \
+# Marker comments end with `<!-- sdd-data: <base64 of JSON> -->` (ADR 0007). Read the trailer first; a missing
+# or undecodable trailer (epics built before it, or a damaged line) falls back to the prose regex.
+trailer() { jq -r '.[-1:][] | split("\n") | map(capture("^<!-- sdd-data: (?<t>[^ ]+) -->$")? | .t) | last // empty' | base64 -d 2>/dev/null; }
+PLAN=$(gh api "repos/$EPIC_REPO/issues/$EPIC_N/comments" --paginate \
+  --jq '[.[] | select(.body | startswith("<!-- sdd-plan -->")) | .body]' | trailer)
+BRANCH=$(jq -r '.branch // empty' <<<"$PLAN")
+[ -n "$BRANCH" ] || BRANCH=$(gh api "repos/$EPIC_REPO/issues/$EPIC_N/comments" --paginate \
   --jq '.[] | select(.body | startswith("<!-- sdd-plan -->")) | .body | capture("\\*\\*Integration branch:\\*\\* *`(?<b>[^`]+)`")? | .b')
 INT_PR=$(gh pr list -R "$EPIC_REPO" --head "$BRANCH" --state all --json url --jq '.[0].url')   # the PR to main
 ```
 
-No `**Integration branch:**` line means a one-ticket epic whose PR targets `main`; `BRANCH` and `INT_PR` stay empty.
+The plan trailer's `branch` wins; the `**Integration branch:**` line is the fallback. Neither means a one-ticket epic whose PR targets `main`; `BRANCH` and `INT_PR` stay empty.
 
 ## Ticket PRs
 
 Every PR-derived measure starts from the ticket-to-PR map. GitHub fills an issue's closed-by references only when a PR merges into the default branch, and slice PRs merge into the integration branch, so those references are the fallback, not the source. Per ticket, its PRs are the first of these that finds any:
 
 1. PRs whose base is `$BRANCH`, in the ticket's repo, whose body carries a closing line for the ticket (`Closes #<N>`, as `implement-issue` writes it; `owner/repo#<N>` or the issue URL also match).
-2. PRs the `<!-- sdd-wave -->` comments record (a pull URL, or `#<n>` in the epic's repo), with the same closing line. This catches a slice PR stacked on another slice's branch.
+2. PRs the `<!-- sdd-wave -->` comment records: the trailer's `waves[].prs` values, then any pull URL or `#<n>` in the epic's repo found in its prose, with the same closing line. This catches a slice PR stacked on another slice's branch.
 3. The ticket's `closedByPullRequestsReferences`: the one-ticket epic whose PR targets `main`.
 
 A ticket with no PR from any source is listed under `not_found` as `ticket PR: <url>`.
@@ -41,11 +47,11 @@ A real zero and a missing input look different. A measure whose input does not e
 | `escalations.needs_info` | timeline `labeled` events for `needs-info` on sub-issues | ticket quality (`to-tickets` SDD pass) |
 | `escalations.ready_for_human` | same, `ready-for-human` | worker or reviewer quality |
 | `escalations.blocked` | same, `blocked` | plan edges / cross-repo availability |
-| `edges_added` | `Edges added:` line in the `<!-- sdd-wave -->` comment on the epic (`null` with no wave comment) | safety-check misses (`to-tickets` SDD pass, `build-epic` §3) |
+| `edges_added` | edge pairs across `waves[].edges` in the wave trailer; else the `Edges added:` lines in the `<!-- sdd-wave -->` comment on the epic (`null` with no wave comment) | safety-check misses (`to-tickets` SDD pass, `build-epic` §3) |
 | `fix_rounds.total`, `fix_rounds.prs_with_rounds`, `fix_rounds.max` | reviews on the ticket PRs whose body contains `## Spec: FAIL` or `## Quality: FAIL` (`review-pr`); one review is one round | worker quality vs brief quality |
 | `fix_rounds.by_cause` | every finding line (`- Critical`, `- Important`, `- Minor`, any severity) in those FAIL reviews, keyed by its **Law tag** source (`review-pr` §4): a repo path keeps its path with the id dropped (`AGENTS.md`, `ADR-0009`), `ticket` keeps its section (`ticket#Interfaces`), `epic`, `cited`, `skill` and `none` collapse to one key each, an untagged finding counts as `none`; `ADDRESSED` / `NOT ADDRESSED` lines never count; `null` exactly when `fix_rounds` is | which **Law** the fix rounds enforced, and whether the worker had it on the **Laws line** (the skill's §4 cross-check) |
 | `verify_corrections` | ticket PR bodies containing `Verify block corrected: yes` | Verify blocks that lied (`to-tickets` SDD pass) |
-| `panel.rounds`, `panel.personas`, `panel.critical`, `panel.important`, `panel.minor`, `panel.dropped` | every `review-panel` report on the integration PR, as a comment or a review: the first report plus each round-marked re-review report | panel calibration |
+| `panel.rounds`, `panel.personas`, `panel.critical`, `panel.important`, `panel.minor`, `panel.dropped` | the wave trailer's `panel` rounds; else every `review-panel` report on the integration PR, as a comment or a review: the first report plus each round-marked re-review report | panel calibration |
 | `cycle.median_hours_claim_to_pr` | the first `labeled` event for the `claimed` label (else the first `assigned` event, for epics built before the mark) → its earliest ticket PR's `createdAt`, per ticket | brief completeness, ticket size |
 
 ## Queries
@@ -94,12 +100,17 @@ Verify corrections:
 for PR in $PRS; do gh pr view "$PR" --json body --jq '.body | test("Verify block corrected: yes") | if . then 1 else 0 end'; done
 ```
 
-Edges added (the wave comment lists them; `build-epic` writes `Edges added: <consumer> ← <producer>, …` or `Edges added: none`):
+Edges added (the wave trailer's `waves[].edges` lists them, an empty list counting zero; `sync-progress` renders the same pairs as `Edges added: <consumer> ← <producer>, …` or `Edges added: none`). Trailer first, prose when there is none:
 
 ```bash
+WAVE=$(gh api "repos/$EPIC_REPO/issues/$EPIC_N/comments" --paginate \
+  --jq '[.[] | select(.body | startswith("<!-- sdd-wave -->")) | .body]' | trailer)
+[ -n "$WAVE" ] && jq '[.waves[].edges | length] | add // 0' <<<"$WAVE" ||
 gh api "repos/$EPIC_REPO/issues/$EPIC_N/comments" --paginate \
   --jq '[.[] | select(.body | startswith("<!-- sdd-wave -->")) | .body | capture("Edges added: (?<e>[^\n]*)") | .e] | map(select(. != "none") | split(",") | length) | add // 0'
 ```
+
+Panel, from the wave trailer when it has `panel` rounds: the latest entry per `round` counts as that round; `panel.rounds` is how many distinct rounds, `critical`, `important`, `minor` and `dropped` sum `severity` and `dropped` across them, and `personas` lists the keys of every round's `persona` map. With none, the report comments below are the fallback. A trailer that does not decode is treated as absent and named in `not_found` as `wave trailer: unreadable` (`plan trailer: unreadable` for the plan).
 
 Panel reports (`review-panel` posts its report as a PR comment once the user says to; older runs posted a review, so read both):
 

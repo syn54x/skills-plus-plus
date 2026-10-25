@@ -22,6 +22,20 @@ num_of()  { printf '%s' "${1##*/}"; }
 api_all() { local out; out=$(gh api "$1" --paginate 2>/dev/null) || out=""; printf '%s' "$out" | jq -s 'add // []' 2>/dev/null || echo '[]'; }
 NOT_FOUND=""
 not_found() { NOT_FOUND="$NOT_FOUND$1"$'\n'; }
+# Marker comments carry `<!-- sdd-data: <base64 of JSON> -->` as their last line (ADR 0007).
+# decode_trailers <bodies json array> <label> sets DECODED to the array of decoded objects. A trailer that
+# does not decode to a JSON object counts as absent and is named "<label> trailer: unreadable".
+b64d() { printf '%s' "$1" | base64 -d 2>/dev/null || printf '%s' "$1" | base64 -D 2>/dev/null; }
+decode_trailers() {
+  DECODED='[]'; local t j
+  for t in $(jq -r '.[] | split("\n") | map(capture("^<!-- sdd-data: (?<t>[^ ]+) -->$")? | .t) | last // empty' <<<"$1"); do
+    if j=$(b64d "$t" | jq -ce 'select(type=="object")' 2>/dev/null) && [ -n "$j" ]; then
+      DECODED=$(jq -c --argjson j "$j" '. + [$j]' <<<"$DECODED")
+    else
+      not_found "$2 trailer: unreadable"
+    fi
+  done
+}
 
 EPIC_REPO=$(repo_of "$EPIC_URL"); EPIC_N=$(num_of "$EPIC_URL")
 TICKETS=$(gh issue view "$EPIC_URL" --json subIssues --jq '.subIssues.nodes[].url' 2>/dev/null)
@@ -42,6 +56,10 @@ NREPOS=$(printf '%s\n' "$REPOS" | grep -c .)
 # ---- epic comments: plan (integration branch), waves -------------------------
 EPIC_COMMENTS=$(api_all "repos/$EPIC_REPO/issues/$EPIC_N/comments")
 WAVES=$(jq '[.[] | select(.body | startswith("<!-- sdd-wave -->")) | .body]' <<<"$EPIC_COMMENTS")
+PLAN_BODIES=$(jq '[.[] | select(.body | startswith("<!-- sdd-plan -->")) | .body]' <<<"$EPIC_COMMENTS")
+decode_trailers "$PLAN_BODIES" plan
+[ -n "$BRANCH" ] || BRANCH=$(jq -r '[.[].branch // empty | select(. != "")] | last // empty' <<<"$DECODED")
+decode_trailers "$WAVES" wave; WAVE_DATA=$DECODED
 if [ -z "$BRANCH" ]; then
   BRANCH=$(jq -r '[.[] | select(.body | startswith("<!-- sdd-plan -->")) | .body
     | capture("\\*\\*Integration branch:\\*\\* *`(?<b>[^`]+)`")? | .b] | last // empty' <<<"$EPIC_COMMENTS")
@@ -62,9 +80,11 @@ if [ -n "$BRANCH" ]; then
     CANDS=$(printf '%s\n%s' "$CANDS" "${LIST:-[]}" | jq -s 'add | unique_by(.url)')
   done
 fi
-# 2. PRs the wave comments record: pull URLs, or #N in the epic's repo (issue numbers fail pr view and drop out).
-for U in $(jq -r --arg r "$EPIC_REPO" '.[] | ([scan("https://github\\.com/[^/\\s]+/[^/\\s]+/pull/[0-9]+")]
-    + [scan("(?<![\\w/])#([0-9]+)") | "https://github.com/\($r)/pull/\(.[0])"]) | .[]' <<<"$WAVES" | sort -u); do
+# 2. PRs the wave comments record: the trailer's waves[].prs, then pull URLs, or #N in the epic's repo
+#    (issue numbers fail pr view and drop out).
+for U in $( { jq -r --arg r "$EPIC_REPO" '.[].waves[]?.prs[]? | if startswith("#") then "https://github.com/\($r)/pull/\(.[1:])" else . end' <<<"$WAVE_DATA"
+  jq -r --arg r "$EPIC_REPO" '.[] | ([scan("https://github\\.com/[^/\\s]+/[^/\\s]+/pull/[0-9]+")]
+    + [scan("(?<![\\w/])#([0-9]+)") | "https://github.com/\($r)/pull/\(.[0])"]) | .[]' <<<"$WAVES"; } | sort -u); do
   P=$(gh pr view "$U" --json url,body 2>/dev/null) || continue
   [ -n "$P" ] || continue
   CANDS=$(printf '%s\n[%s]' "$CANDS" "$P" | jq -s 'add | unique_by(.url)')
@@ -131,13 +151,23 @@ fi
 VC=$(jq 'if length == 0 then null else map(select((.body // "") | test("Verify block corrected: yes"))) | length end' <<<"$PRDATA")
 
 # ---- edges added (wave comments) --------------------------------------------
+if [ "$WAVE_DATA" != '[]' ]; then
+  EDGES=$(jq '[.[].waves[]?.edges | length] | add // 0' <<<"$WAVE_DATA")
+else
 EDGES=$(jq 'if length == 0 then null else
   [.[] | capture("Edges added: (?<e>[^\n]*)")? | .e // empty] | map(select(. != "none" and . != "") | split(",") | length) | add // 0 end' <<<"$WAVES")
+fi
 [ "$EDGES" = null ] && not_found "wave comment"
 
 # ---- panel (every report on the integration PR, reviews and comments) --------
 PANEL=null
-if [ -z "$INT_PR" ]; then
+if [ "$(jq '[.[].panel[]?] | length' <<<"$WAVE_DATA")" -gt 0 ]; then
+  # the latest entry per round wins; severity and dropped are summed across rounds
+  PANEL=$(jq -c '[.[].panel[]?] | reduce .[] as $r ({}; .[$r.round | tostring] = $r) | [.[]] as $rs | {
+    rounds: ($rs | length), personas: (reduce ($rs[].persona // {} | keys_unsorted[]) as $x ([]; if index($x) then . else . + [$x] end)),
+    critical: ([$rs[].severity.critical // 0] | add), important: ([$rs[].severity.important // 0] | add),
+    minor: ([$rs[].severity.minor // 0] | add), dropped: ([$rs[].dropped // 0] | add)}' <<<"$WAVE_DATA")
+elif [ -z "$INT_PR" ]; then
   not_found "integration PR"
 else
   RAW=$(gh pr view "$INT_PR" --json reviews,comments 2>/dev/null) || RAW=""
