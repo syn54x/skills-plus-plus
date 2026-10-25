@@ -1,0 +1,5 @@
+---
+"mattpocock-skills": patch
+---
+
+`sync-progress` now has one script, `sync-progress.sh`, with a subcommand per operation (`upsert`, `progress`, `plan`, `wave add|pr|panel`, `claim`, `unclaim`, `hand-back`), and owns the shapes of the progress, plan and wave comments (ADR 0007). A caller names the comment and the fields it sets; the script reads the existing comment, keeps every field not passed, appends to list fields, renders the lines humans read and stores the state as a base64 JSON trailer on the last line (`<!-- sdd-data: … -->`), so two writers of one comment no longer erase each other's lines. The wave comment keeps every wave and every panel round instead of only the latest write. `hand-back` replaces the three-step stop: it sets the route label (`needs-info` or `ready-for-human` also removes `ready-for-agent`; `blocked` adds the native blocked-by edge), clears the `claimed` mark, and records status `handed-back` with the route and reason. The GitLab and local-tracker claim adapters leave the skill, since the SDD pipeline runs on GitHub Issues alone. `progress-comment.sh` is removed. `GLOSSARY.md` gains **Marker comment** and **Hand-back**.

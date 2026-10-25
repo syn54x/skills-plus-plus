@@ -87,6 +87,14 @@ The line of the **Routing block** naming the repo documents that bind workers an
 The token on a `review-pr` finding naming the **Law** it cites by source. The **Retro** counts fix-round findings by it.
 _Avoid_: rule id, cause label
 
+**Marker comment**:
+An issue comment the SDD skills own, found by the hidden marker on its first line and rewritten in place: the progress comment on a **Sub-issue**, the plan and wave comments on an **Epic**. Its rendered lines are for humans; its data trailer is what skills read back.
+_Avoid_: progress note, status comment, sticky comment
+
+**Hand-back**:
+A worker stopping on a **Sub-issue** without a PR: it clears the **Claim mark**, routes the issue (`needs-info`, `ready-for-human` or `blocked`) and records why on the progress comment, as one operation.
+_Avoid_: escalation (an auto-grill term), unclaim (only the mark half), stop
+
 ### Design
 
 **Depth check**:
@@ -149,6 +157,7 @@ An optional **Feature matrix** row chosen in discovery. Python: `cli`, `api`, `d
 - A **Proxy** asks and answers, or raises an **Escalation**; only a **Principal** settles an **Escalation** or a **Challenge**
 - A **Depth check** that fires at a **Slice gate / main gate** is a finding; the same check in an `improve-` skill yields a **Deepening opportunity**
 - A **Law tag** names one **Law**; the **Retro** counts fix-round findings by **Law tag** source
+- A **Hand-back** clears a **Claim mark** and returns the **Sub-issue** to the **Ready queue** or to a human; the **Retro** counts them by route
 
 ## Flagged ambiguities
 
