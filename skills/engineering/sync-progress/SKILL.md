@@ -25,7 +25,7 @@ S=<this skill's base directory>/scripts/sync-progress.sh
 | `<!-- sdd-retro -->` | the epic | `close-epic` (numbers from GitHub state; stays in the repo) | raw: `upsert` |
 | `<!-- sdd-feedback-draft -->` | the epic (one comment holding every draft) | `close-epic`, only when nobody can approve an upstream filing | raw: `upsert` |
 
-The marker is the **first line** of the comment body; nothing else identifies the comment. An owned comment's **last line** is `<!-- sdd-data: <base64 of compact JSON> -->`. Base64 because `--` ends an HTML comment and reasons carry flags like `--add-blocked-by`. To read an owned comment's fields, fetch the comment through `gh api` and decode that line; `claude-code-action` strips HTML comments from the context it hands a model, so never read a marker or trailer from that context. The script drops carriage returns before it looks for the trailer (a comment edited in the web UI comes back CRLF), and when an `sdd-data:` line is there but does not decode it exits 1, naming the marker and the issue, and writes nothing, because rendering fresh would erase the state.
+The marker is the **first line** of the comment body; nothing else identifies the comment. An owned comment's **last line** is `<!-- sdd-data: <base64 of compact JSON> -->`. Base64 because `--` ends an HTML comment and reasons carry flags like `--add-blocked-by`. To read an owned comment's fields, fetch the comment through `gh api` and decode that line; `claude-code-action` strips HTML comments from the context it hands a model, so never read a marker or trailer from that context. The script drops carriage returns and trailing whitespace before it reads the trailer (a comment edited in the web UI comes back CRLF), and when an `sdd-data:` line is there but does not match `<!-- sdd-data: <base64> -->`, decode, or parse as a JSON object, it exits 1, naming the marker and the issue, and writes nothing, because rendering fresh would erase the state.
 
 ## Subcommands
 
@@ -35,7 +35,7 @@ sync-progress.sh progress  <issue> [--status in-progress|pr-open|verify-passed|c
                                    [--worker TEXT] [--branch NAME] [--pr N|URL]
                                    [--verify "not-run" | "passed <sha7>" | "failed <sha7>"] [--notes TEXT]
 sync-progress.sh plan      <issue> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d]
-                                   [--narrowed TEXT]... [--add-deviation TEXT] [--table-file FILE]
+                                   [--narrowed TEXT]... | [--narrowed none] [--add-deviation TEXT] [--table-file FILE]
 sync-progress.sh wave      <issue> add   --n N --tickets 101,owner/repo#7 --workers w1,w2 --started ISO8601
                                          --edges "104<103,owner/repo#7<101" | --edges none
 sync-progress.sh wave      <issue> pr    --ticket 101|owner/repo#7 --pr URL|#n
@@ -51,7 +51,7 @@ sync-progress.sh hand-back <issue> needs-info|ready-for-human|blocked --reason T
 Merge rules for the owned shapes:
 
 - A field you do not pass keeps its previous value, so pass only what changed: `progress 103 --status pr-open --pr 57 --verify "passed abc1234"` keeps the Worker and Branch.
-- `--add-deviation` appends to the plan's Deviated list. `--narrowed` replaces the Narrowed list with every `--narrowed` on the call, so re-pinning the plan never duplicates a line and a withdrawn narrowing drops; a call with no `--narrowed` keeps the stored list.
+- `--add-deviation` appends to the plan's Deviated list. `--narrowed` replaces the Narrowed list with every `--narrowed` on the call, so re-pinning the plan never duplicates a line and a withdrawn narrowing drops. A call with no `--narrowed` keeps the stored list, so a caller that re-pins a plan with no narrowings left (`to-tickets` re-running its SDD pass, say) passes `--narrowed none`, which clears it.
 - `wave add` adds a wave, or replaces the one with the same `--n` (keeping the PRs already recorded on it); `wave panel` adds a round, or replaces the one with the same `--round`. A retried call therefore never duplicates an entry, and the retro's edge count stays right.
 - `wave pr` sets the PR of the named ticket on the last wave whose tickets hold it; a ticket no wave holds is a usage error.
 - A comment with no trailer (written before this script) is rendered fresh from the fields you pass; nothing else of the old prose survives.

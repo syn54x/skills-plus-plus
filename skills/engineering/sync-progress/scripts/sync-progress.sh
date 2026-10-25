@@ -15,7 +15,7 @@ usage: sync-progress.sh upsert    <issue> <marker> <body-file>
                                           [--worker TEXT] [--branch NAME] [--pr N|URL]
                                           [--verify "not-run" | "passed <sha7>" | "failed <sha7>"] [--notes TEXT]
        sync-progress.sh plan      <issue> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d]
-                                          [--narrowed TEXT]... [--add-deviation TEXT] [--table-file FILE]
+                                          [--narrowed TEXT]... | [--narrowed none] [--add-deviation TEXT] [--table-file FILE]
        sync-progress.sh wave      <issue> add   --n N --tickets 101,owner/repo#7 --workers w1,w2 --started ISO8601
                                                 --edges "104<103,owner/repo#7<101" | --edges none
        sync-progress.sh wave      <issue> pr    --ticket 101|owner/repo#7 --pr URL|#n
@@ -26,7 +26,8 @@ usage: sync-progress.sh upsert    <issue> <marker> <body-file>
        sync-progress.sh hand-back <issue> needs-info|ready-for-human|blocked --reason TEXT [--blocked-by <issue>]
 --blocked-by is optional and goes only with the blocked route, where it adds the blocked-by edge and keeps
 ready-for-agent; every other hand-back, blocked without --blocked-by included, removes ready-for-agent.
---narrowed replaces the stored list with every --narrowed of the call; --add-deviation appends.
+--narrowed replaces the stored list with every --narrowed of the call, --narrowed none clears it, and a
+call without --narrowed keeps it; --add-deviation appends.
 wave add replaces the wave with the same --n; wave panel replaces the entry with the same --round;
 wave pr records the PR on the last wave whose tickets hold --ticket.
 <issue> is an issue number in the current repo (GH_REPO, else gh repo view) or a GitHub issue URL.
@@ -74,12 +75,14 @@ write_comment() {
 }
 
 # The decoded data trailer of OLD: {} when it has none (rendered fresh), null when an sdd-data line is
-# there but does not decode. CRs are dropped first: a comment edited in the web UI comes back CRLF.
+# there but does not match, decode or parse. CRs are dropped first (a comment edited in the web UI comes
+# back CRLF) and trailing whitespace is tolerated; anything else on the line is refused.
 old_data() {
   printf '%s' "$OLD" | jq -Rsc '
     [gsub("\r"; "") | split("\n")[] | select(startswith("<!-- sdd-data:"))] | last
     | if . == null then {}
-      else (try (capture("^<!-- sdd-data: (?<d>[A-Za-z0-9+/=]+) -->$").d | @base64d | fromjson) catch null)
+      else (first(sub("\\s+$"; "") | capture("^<!-- sdd-data: (?<d>[A-Za-z0-9+/=]+) -->$").d) // null)
+        | if . == null then null else (try (@base64d | fromjson) catch null) end
         | if type == "object" then . else null end
       end'
 }
@@ -162,7 +165,8 @@ cmd_plan() {
       --constraints) patch '.constraints = $v' "$2" ;;
       --branch) patch '.branch = $v' "$2" ;;
       --repos) patch '.repos = ($v | split(","))' "$2" ;;
-      --narrowed) patch '.narrowed += [$v]' "$2" ;;  # every --narrowed of this call, which replace the stored list
+      # Every --narrowed of this call replaces the stored list; --narrowed none clears it.
+      --narrowed) if [ "$2" = none ]; then patch '.narrowed = []'; else patch '.narrowed += [$v]' "$2"; fi ;;
       --add-deviation) patch '.deviated += [$v]' "$2" ;;
       --table-file) [ -f "$2" ] || usage "no table file: $2"; patch '.table = $v' "$(cat "$2")" ;;
       *) usage "plan: unknown flag $1" ;;

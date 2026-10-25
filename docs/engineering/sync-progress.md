@@ -39,7 +39,10 @@ The progress comment then reads `**Status:** handed-back` with a `**Handed back:
 They were removed. The SDD pipeline runs on GitHub Issues alone, so the claim had one real adapter; extending it beyond GitHub is tracked in [#4](https://github.com/syn54x/skills-plus-plus/issues/4). The claim itself is unchanged: the `claimed` label, never an assignee.
 
 **What is the `<!-- sdd-data: … -->` line at the bottom of a comment?**
-The comment's state, base64-encoded JSON, for the SDD skills to read back. GitHub hides HTML comments, so you only see it in the raw body. Leave it alone. Editing the rest of the comment in the web UI is safe, but if an edit breaks that line, the next write stops with an error naming the comment rather than erase the state; restore the line or delete it to let the next write render the comment fresh.
+The comment's state, base64-encoded JSON, for the SDD skills to read back. GitHub hides HTML comments, so you only see it in the raw body. Leave it alone. Editing the rest of the comment in the web UI is safe, and so is stray whitespace at the end of that line. If an edit changes anything else on it, the next write stops with an error naming the comment rather than erase the state; restore the line or delete it to let the next write render the comment fresh.
+
+**How do I take back a narrowing on the plan?**
+Re-pin the plan with the narrowings that still hold: each `--narrowed` call replaces the whole list. To drop the last one, pass `--narrowed none`; a call that leaves out `--narrowed` keeps the list as it was.
 
 **My epic spans two repos. Can a wave list tickets from the other one?**
 Yes. A wave's tickets and blocked-by edges accept `owner/repo#N` or an issue URL as well as a bare number, and the wave comment shows them as written: `Wave 1: #101, acme/api#7`.
