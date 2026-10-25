@@ -46,6 +46,8 @@ sync-progress.sh unclaim   <issue>
 sync-progress.sh hand-back <issue> needs-info|ready-for-human|blocked --reason TEXT [--blocked-by <issue>]
 ```
 
+`--blocked-by` is optional and goes only with the `blocked` route; on `needs-info` or `ready-for-human` it is a usage error (exit 2).
+
 Merge rules for the owned shapes:
 
 - A field you do not pass keeps its previous value, so pass only what changed: `progress 103 --status pr-open --pr 57 --verify "passed abc1234"` keeps the Worker and Branch.
@@ -114,6 +116,6 @@ A worker that stops on a sub-issue without a PR hands it back in one call, with 
 |---|---|---|---|
 | The ticket is ambiguous or contradicts the code | `needs-info` | adds `needs-info`, removes `ready-for-agent` | |
 | A human decision or secret is needed | `ready-for-human` | adds `ready-for-human`, removes `ready-for-agent` | |
-| A blocker the tracker does not know about | `blocked` | adds `blocked`, removes nothing | `--blocked-by <issue>` adds the native blocked-by edge |
+| A blocker the tracker does not know about | `blocked` | adds `blocked`, removes nothing | optional `--blocked-by <issue>` adds the native blocked-by edge; pass it whenever you know the blocker. It is refused on the other two routes |
 
 Every route then removes `claimed` and sets the progress comment's status to `handed-back` with the route and the reason, which render as `**Handed back:** <route>: <reason>`. The reason may carry anything, `--` included.

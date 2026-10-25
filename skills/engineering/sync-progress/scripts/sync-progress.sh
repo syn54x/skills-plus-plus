@@ -24,6 +24,7 @@ usage: sync-progress.sh upsert    <issue> <marker> <body-file>
        sync-progress.sh claim     <issue>
        sync-progress.sh unclaim   <issue>
        sync-progress.sh hand-back <issue> needs-info|ready-for-human|blocked --reason TEXT [--blocked-by <issue>]
+--blocked-by is optional and goes only with the blocked route, where it adds the blocked-by edge.
 <issue> is an issue number in the current repo (GH_REPO, else gh repo view) or a GitHub issue URL.
 EOF
   exit 2
@@ -244,8 +245,11 @@ cmd_hand_back() {
   done
   [ -n "$reason" ] || usage "hand-back needs --reason"
   if [ "$route" = blocked ]; then
-    [ -n "$blocked_by" ] || usage "hand-back blocked needs --blocked-by <issue>"
-    gh issue edit "$NUM" -R "$REPO" --add-label blocked --add-blocked-by "$blocked_by" >/dev/null
+    if [ -n "$blocked_by" ]; then
+      gh issue edit "$NUM" -R "$REPO" --add-label blocked --add-blocked-by "$blocked_by" >/dev/null
+    else
+      gh issue edit "$NUM" -R "$REPO" --add-label blocked >/dev/null
+    fi
   else
     [ -z "$blocked_by" ] || usage "--blocked-by goes only with the blocked route"
     gh issue edit "$NUM" -R "$REPO" --add-label "$route" --remove-label ready-for-agent >/dev/null

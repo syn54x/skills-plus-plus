@@ -25,7 +25,7 @@ A worker that cannot finish a ticket without guessing stops and hands it back, w
 | --- | --- | --- |
 | `needs-info` | the ticket is ambiguous or contradicts the code | adds `needs-info`, removes `ready-for-agent` |
 | `ready-for-human` | a human decision or a secret is needed | adds `ready-for-human`, removes `ready-for-agent` |
-| `blocked` | a blocker the tracker did not know about | adds `blocked` and the native blocked-by edge |
+| `blocked` | a blocker the tracker did not know about | adds `blocked`, plus the native blocked-by edge when the worker names the blocker |
 
 The progress comment then reads `**Status:** handed-back` with a `**Handed back:** <route>: <reason>` line, and the ticket's `claimed` label is gone, so it is visibly back in a queue rather than silently held.
 
