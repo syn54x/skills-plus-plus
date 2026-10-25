@@ -105,7 +105,7 @@
     "body": "<!-- sdd-plan -->\n**Integration branch:** `feat/x`\n"
    },
    {
-    "body": "<!-- sdd-wave -->\nWave 1: #2\nEdges added: 104 <- 103, 105 <- 103\nWave 2: #3\nEdges added: none\nPanel round 1: MERGE (https://x/1)\n<!-- sdd-data: eyJ3YXZlcyI6W3sibiI6MSwidGlja2V0cyI6WzJdLCJ3b3JrZXJzIjpbIncxIl0sInN0YXJ0ZWQiOiIyMDI2LTAxLTAxVDAwOjAwOjAwWiIsImVkZ2VzIjpbWzEwNCwxMDNdLFsxMDUsMTAzXV0sInBycyI6e319LHsibiI6MiwidGlja2V0cyI6WzNdLCJ3b3JrZXJzIjpbIncyIl0sInN0YXJ0ZWQiOiIyMDI2LTAxLTAxVDAwOjMwOjAwWiIsImVkZ2VzIjpbXSwicHJzIjp7fX1dLCJwYW5lbCI6W3sicm91bmQiOjEsInZlcmRpY3QiOiJNRVJHRSIsInJlcG9ydCI6Imh0dHBzOi8veC8xIiwic2V2ZXJpdHkiOnt9LCJwZXJzb25hIjp7fSwiZHJvcHBlZCI6MH1dfQ== -->"
+    "body": "<!-- sdd-wave -->\nWave 1: #2\nEdges added: none\nWave 2: #3\nEdges added: none\nPanel round 1: MERGE (https://x/1)\n<!-- sdd-data: eyJ3YXZlcyI6W3sibiI6MSwidGlja2V0cyI6WzJdLCJ3b3JrZXJzIjpbIncxIl0sInN0YXJ0ZWQiOiIyMDI2LTAxLTAxVDAwOjAwOjAwWiIsImVkZ2VzIjpbWzEwNCwxMDNdLFsxMDUsMTAzXV0sInBycyI6e319LHsibiI6MiwidGlja2V0cyI6WzNdLCJ3b3JrZXJzIjpbIncyIl0sInN0YXJ0ZWQiOiIyMDI2LTAxLTAxVDAwOjMwOjAwWiIsImVkZ2VzIjpbXSwicHJzIjp7fX1dLCJwYW5lbCI6W3sicm91bmQiOjEsInZlcmRpY3QiOiJNRVJHRSIsInJlcG9ydCI6Imh0dHBzOi8veC8xIiwic2V2ZXJpdHkiOnt9LCJwZXJzb25hIjp7fSwiZHJvcHBlZCI6MH1dfQ== -->"
    }
   ]
  }

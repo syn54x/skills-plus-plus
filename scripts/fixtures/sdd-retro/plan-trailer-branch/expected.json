@@ -1,0 +1,34 @@
+{
+  "cycle": {
+    "median_hours_claim_to_pr": 1.0
+  },
+  "edges_added": null,
+  "epic": "https://github.com/acme/eap/issues/1",
+  "escalations": {
+    "blocked": 0,
+    "needs_info": 0,
+    "ready_for_human": 0
+  },
+  "fix_rounds": {
+    "by_cause": {},
+    "max": 0,
+    "prs_with_rounds": 0,
+    "total": 0
+  },
+  "not_found": [
+    "wave comment",
+    "panel report"
+  ],
+  "panel": null,
+  "schema": "sdd-retro/3",
+  "tickets": {
+    "by_size": {
+      "L": 0,
+      "M": 0,
+      "S": 2
+    },
+    "repos": 1,
+    "total": 2
+  },
+  "verify_corrections": 0
+}
