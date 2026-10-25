@@ -28,8 +28,8 @@ usage: sync-progress.sh upsert    <issue> <marker> <body-file>
 ready-for-agent; every other hand-back, blocked without --blocked-by included, removes ready-for-agent.
 --narrowed replaces the stored list with every --narrowed of the call, --narrowed none clears it, and a
 call without --narrowed keeps it; --add-deviation appends.
-wave add replaces the wave with the same --n; wave panel replaces the entry with the same --round;
-wave pr records the PR on the last wave whose tickets hold --ticket.
+wave add replaces every wave with the same --n; wave panel replaces the entry with the same --round;
+wave pr records the PR on the last wave whose tickets hold --ticket, given in the form wave add stored.
 <issue> is an issue number in the current repo (GH_REPO, else gh repo view) or a GitHub issue URL.
 A wave ticket is a number, owner/repo#N or an issue URL, stored and rendered as given.
 EOF

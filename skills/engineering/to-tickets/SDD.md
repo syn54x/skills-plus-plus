@@ -102,7 +102,7 @@ scripts/sync-progress.sh plan <epic> --goal "<one line from the epic>" \
   --repos a/b,c/d --narrowed "<approved narrowing>" --table-file <file>
 ```
 
-The script owns the marker, the layout and the data trailer; the rendered comment is shown once, in sync-progress's SKILL.md under **Plan comment**. `--repos` goes only on a multi-repo epic. Pass `--narrowed` once per approved narrowing, in the same words as the ticket's `**Narrows:**` line, and on every re-pin pass every narrowing that still stands: a call with `--narrowed` replaces the stored list, so a narrowing you leave out disappears, while a call with no `--narrowed` keeps the list. Leave `--branch` and `--add-deviation` to `build-epic`, which sets the integration branch and adds one entry per **Interface deviation**; a later `plan` call keeps both.
+The script owns the marker, the layout and the data trailer; the rendered comment is shown once, in sync-progress's SKILL.md under **Plan comment**. `--repos` goes only on a multi-repo epic. Pass `--narrowed` once per approved narrowing, in the same words as the ticket's `**Narrows:**` line, and on every re-pin pass every narrowing that still stands: a call with `--narrowed` replaces the stored list, so a narrowing you leave out disappears, while a call with no `--narrowed` keeps the list. When no narrowing still stands, pass `--narrowed none`, which clears the list; leaving the flag off would keep a withdrawn narrowing. Leave `--branch` and `--add-deviation` to `build-epic`, which sets the integration branch and adds one entry per **Interface deviation**; a later `plan` call keeps both.
 
 The table has one row per ticket, with these columns:
 
