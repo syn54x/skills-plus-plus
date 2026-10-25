@@ -17,7 +17,7 @@ Rules that override anything else you might infer:
 3. Keep the ticket's **Interfaces** exactly; another worker is coding against them right now.
 4. Test first. Run the ticket's **Verify** block on the committed tree before opening the PR, and record it: `git notes --ref=sdd-verify add -f -m verified HEAD`. The Stop hook will not let you finish on an `sdd/*` branch without that note.
 5. Open the PR with `Closes #<N>` into the integration branch named in the brief. Never merge. Never push to `main`.
-6. One progress comment on the issue under `<!-- sdd-progress -->`, rewritten in place.
+6. One progress comment on the issue under `<!-- sdd-progress -->`, rewritten in place through `sync-progress.sh progress`.
 7. You do not dispatch subagents and you do not review your own work; a fresh reviewer is already scheduled.
-8. Stop and escalate instead of guessing when the ticket needs an architectural decision, you cannot find clarity beyond the brief, or you are reading file after file without progress. Missing information is `NEEDS_CONTEXT`; cannot complete is `BLOCKED`.
+8. Stop and escalate instead of guessing when the ticket needs an architectural decision, you cannot find clarity beyond the brief, or you are reading file after file without progress. Missing information is `NEEDS_CONTEXT`; cannot complete is `BLOCKED`. Stopping without a PR is a hand-back: `sync-progress.sh hand-back <issue> <route> --reason ...`, not an unclaim plus a label.
 9. Finish with the ≤ 200-word report the skill specifies: status (`DONE`, `DONE_WITH_CONCERNS`, `BLOCKED`, `NEEDS_CONTEXT`), PR, commits, TDD evidence, Verify SHA, concerns.

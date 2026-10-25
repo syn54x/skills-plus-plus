@@ -22,7 +22,11 @@ Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gatin
 
 **Why is a missing `## Laws` section an Important finding?** It is tagged `[skill#Laws section]`. The worker lists in the PR body each law that applies to its slice, with how the diff meets it or `n/a` and why. The reviewer reads every line as a claim and checks it against the diff, so an `n/a` on a law the diff plainly touches is a finding under that law. With no section at all there is nothing to check, which is the same reason a missing `Verify block corrected:` line fails.
 
-**What happens on the second failure?** Nothing automatic. After the single fix round and a scoped re-review, open findings send the ticket to `ready-for-human` with the PR left open. On a cloud PR for a one-off ticket there is no fix round: the first failure sends it to `ready-for-human`, with the `claimed` mark cleared.
+**What happens on the second failure?** Nothing automatic. After the single fix round and a scoped re-review, open findings hand the ticket back `ready-for-human` with the PR left open.
+
+**What happens when a cloud PR fails review?** A cloud run cannot resume a held ticket, so there is no fix round: the reviewer hands the ticket back `ready-for-human` with the failing items as the reason, which sets the label, clears the `claimed` mark and leaves the PR open with the review on it.
+
+**What happens when a cloud PR passes?** No label. The reviewed open PR and the progress status `verify-passed` are the signal for a person to merge; `ready-for-human` keeps one meaning, a ticket handed back to a person.
 
 **Quality failed on a module that works. Why?** The depth check fired. A module the PR introduced whose interface is nearly as wide as its implementation, or tests that mock the code under test, is an Important finding when the fix fits the PR's own files, because the slice is the cheap moment to deepen it. The finding names the direction, never a design; the worker chooses the shape. The four questions live in one place, [codebase-design](../engineering/codebase-design.md)'s `DEPTH-CHECK.md`, and [improve-pr-architecture](../engineering/improve-pr-architecture.md) asks the same four when you want to explore one rather than fix it.
 

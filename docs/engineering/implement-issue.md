@@ -25,9 +25,11 @@ The issue must be open, unblocked, not held and labelled `ready-for-agent`. Held
 
 ## Common questions
 
-**What does claimed mean?** The worker holds the ticket by adding the `claimed` label before any work starts, and removes it when it stops without a PR. The label stays through `pr-open`. A ticket with the label, or with any assignee, is held and not ready; the Worker line in the progress comment says who holds it, and a run that finds another worker named there stops and reports "held by <name>".
+**What does claimed mean?** The worker holds the ticket by adding the `claimed` label before any work starts, and clears it when it stops without a PR, through one `sync-progress` **hand-back** call that also routes the ticket and records why. The label stays through `pr-open`. A ticket with the label, or with any assignee, is held and not ready; the Worker line in the progress comment says who holds it, and a run that finds another worker named there stops and reports "held by <name>".
 
-**Why can't it stop?** The Stop hook is doing its job: the tree is dirty or there is no Verify note on `HEAD`. Run the Verify block and record it, or, if the ticket is blocked, unclaim it and record a `blocked` note instead.
+**What happens when the worker gets stuck?** It hands the ticket back in one call: `sync-progress.sh hand-back <issue> needs-info|ready-for-human|blocked --reason ...`. The call sets the route label, clears the `claimed` mark and writes the reason on the progress comment, so nothing is left half done. The worker then pushes what it committed and reports `BLOCKED` or `NEEDS_CONTEXT`.
+
+**Why can't it stop?** The Stop hook is doing its job: the tree is dirty or there is no Verify note on `HEAD`. Run the Verify block and record it, or, if the ticket cannot be built, hand it back (`needs-info`, `ready-for-human` or `blocked`, with a reason) and record a `blocked` note instead.
 
 **The ticket's Produces signature can't work. Does the worker stop?** Only for a contract another repo or the epic itself states (a route and its shapes, an event payload, a generated-client method): that is `NEEDS_CONTEXT`. An in-repo code signature (a function, type, enum or struct) may change as a declared **Interface deviation**: the worker ships the signature that works, writes an `Interfaces changed:` line in the PR body with the old signature, the new one and why the old one could not work, and reports `DONE_WITH_CONCERNS`. [review-pr](../engineering/review-pr.md) then judges whether the change was needed.
 
