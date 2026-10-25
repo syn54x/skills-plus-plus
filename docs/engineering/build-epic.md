@@ -42,7 +42,7 @@ The PR to `main` goes to [review-panel](../engineering/review-panel.md). A **FIX
 
 **The epic closed the moment I merged the PR to `main`. Did I skip something?** No, that is the intended path: the integration PR says `Closes #<epic>` so the epic closes when the work lands. [close-epic](../engineering/close-epic.md) still runs afterwards and posts the summary and retro against the closed epic. In a multi-repo epic only the PR in the epic's own repo carries that line, so a repo that holds tasks but no epic closes nothing.
 
-**A merged slice shipped a different signature from its ticket. Who fixes the consumers?** The orchestrator, before it dispatches any of them. When a worker declares an **Interface deviation** and the PR merges, the producer ticket's Produces line and every consumer ticket's Consumes line are rewritten to the shipped signature, and the change is recorded under `Deviated:` in the epic's plan comment, so the main gate knows it was accepted. No consumer is running yet, because every Consumes line is blocked by its producer.
+**A merged slice shipped a different signature from its ticket. Who fixes the consumers?** The orchestrator, before it dispatches any of them. When a worker declares an **Interface deviation** and the PR merges, the producer ticket's Produces line and every consumer ticket's Consumes line are rewritten to the shipped signature, and the change is recorded under `Deviated:` in the epic's plan comment (`sync-progress plan --add-deviation`), so the main gate knows it was accepted. No consumer is running yet, because every Consumes line is blocked by its producer.
 
 **My workers branched from `main`, not the integration branch.** A harness worktree can start on the default branch whatever your own checkout is on. The brief's first step fetches the integration branch, cuts `sdd/<N>-<slug>` from `origin/<integration branch>` and checks the merge base before any code is written, so the worker lands on the right base by following the brief alone.
 
@@ -54,9 +54,9 @@ The PR to `main` goes to [review-panel](../engineering/review-panel.md). A **FIX
 
 - Each worker's PR touches only its ticket's Files owned, and says `Closes #N`.
 - Each sub-issue is closed right after its PR merges into the integration branch, with a comment naming the PR, and the next wave's tickets unblock from that.
-- The epic carries one `<!-- sdd-wave -->` comment that updates in place, with an `Edges added:` line.
+- The epic carries one `<!-- sdd-wave -->` comment that updates in place and holds every wave (its tickets, workers, `Edges added:` line and PRs) and every panel round, all written through `sync-progress`.
 - Nothing is merged to `main` by the agent, and every slice PR has a review comment with separate Spec and Quality verdicts.
-- A worker that could not finish shows up as `ready-for-human` with its PR left open, not as a silent stop.
+- A worker that could not finish shows up as `ready-for-human` with its PR left open and the reason on its progress comment (a hand-back), not as a silent stop.
 
 ## Where it fits
 

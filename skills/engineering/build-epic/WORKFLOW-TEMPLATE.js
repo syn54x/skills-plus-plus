@@ -98,5 +98,5 @@ for (let i = 0; i < LAYERS.length; i++) {
 }
 
 // The orchestrator merges `mergeOrder` into INTEGRATION_BRANCH in this sequence (it is already topological),
-// then handles `needsHuman` (label ready-for-human, unclaim) and re-runs `/build-epic` if layers remain.
+// then handles `needsHuman` (`sync-progress.sh hand-back <N> ready-for-human --reason …`) and re-runs `/build-epic` if layers remain.
 return { epic: EPIC, mergeOrder, needsHuman }

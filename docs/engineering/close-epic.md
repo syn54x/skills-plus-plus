@@ -46,7 +46,7 @@ On a private repo under `attributed`, the confirmation says that the repo name a
 
 ## It's working if
 
-- The epic has one `<!-- sdd-summary -->` and one `<!-- sdd-retro -->` comment, and every `[skill]` learning has a number behind it.
+- The epic has one `<!-- sdd-summary -->` and one `<!-- sdd-retro -->` comment (each written with `sync-progress upsert`), and every `[skill]` learning has a number behind it.
 - The retro's fix-rounds row lists the findings by cause whenever it lists a fix-round count, and says **not found** for the causes only when the fix rounds are not found either.
 - It refused to run while a sub-issue or the PR to `main` was still open, and running it twice on the same epic posted nothing new.
 - No feedback issue appeared without you seeing its full body first.
