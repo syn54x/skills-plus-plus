@@ -92,7 +92,7 @@ An issue comment the SDD skills own, found by the hidden marker on its first lin
 _Avoid_: progress note, status comment, sticky comment
 
 **Hand-back**:
-A worker stopping on a **Sub-issue** without a PR: it clears the **Claim mark**, routes the issue (`needs-info`, `ready-for-human` or `blocked`) and records why on the progress comment, as one operation.
+Any SDD skill returning a **Sub-issue** to a person or a queue: a worker stopping without a PR, or a gate routing one whose PR stays open. It records why on the progress comment, routes the issue (`needs-info`, `ready-for-human` or `blocked`) and clears the **Claim mark** if one is set, as one operation.
 _Avoid_: escalation (an auto-grill term), unclaim (only the mark half), stop
 
 ### Design

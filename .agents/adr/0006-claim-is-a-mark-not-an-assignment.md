@@ -21,3 +21,7 @@ The SDD skills claimed a **Sub-issue** by assigning yourself, and `build-epic`'s
 
 - `setup-syn54x-skills` creates the label and rewrites the routing block's readiness line; `ready.sh` gains a `claimed` boolean; the cloud guard checks the label and fires on either of `ready-for-agent` and `size:S`, so label order no longer matters.
 - The readiness predicate still lives in three places (`ready.sh`, `implement-issue` §1, the workflow `if:`), as it did with assignment. Noted, not fixed here.
+
+## Update, 2026-10-25
+
+The claim mark is now GitHub-only: the label `claimed`, set and cleared through `sync-progress`. [ADR 0007](./0007-marker-comments-carry-a-data-trailer.md) removed the GitLab and local-tracker adapters, because the SDD pipeline runs on GitHub Issues alone and that seam had one real adapter, so the first decision's "one adapter per tracker" no longer holds. The §9 unclaim is replaced by the **Hand-back**: one `sync-progress` call that records why on the progress comment, routes the issue, then clears the mark. The lifecycle above stands: the mark is set before any work and cleared only when the ticket goes back to a person or a queue.

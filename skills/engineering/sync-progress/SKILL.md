@@ -1,6 +1,6 @@
 ---
 name: sync-progress
-description: Write an SDD marker comment on a GitHub issue (progress, plan, wave, or a raw upsert), claim or unclaim the issue with the claim mark, or hand a sub-issue back (route label, clear the claim, reason on the progress comment) in one call. Use when an SDD skill records status on a sub-issue or epic (sdd-progress, sdd-plan, sdd-wave, sdd-summary, sdd-retro) without posting a second comment, or when a worker stops without a PR.
+description: Write an SDD marker comment on a GitHub issue (progress, plan, wave, or a raw upsert), claim or unclaim the issue with the claim mark, or hand a sub-issue back (route label, clear the claim, reason on the progress comment) in one call. Use when an SDD skill records status on a sub-issue or epic (sdd-progress, sdd-plan, sdd-wave, sdd-summary, sdd-retro) without posting a second comment, or when a worker stops without a PR or a gate routes a sub-issue back.
 ---
 
 # Sync Progress
@@ -12,7 +12,7 @@ S=<this skill's base directory>/scripts/sync-progress.sh
 "$S" progress 103 --status in-progress --worker sdd-worker-1 --branch sdd/103-invoice-endpoint
 ```
 
-`<issue>` is an issue number in the current repo (`GH_REPO` when set, else `gh repo view`) or a GitHub issue URL; use the URL whenever the epic spans repos. The comment subcommands print the comment's URL; `claim` and `unclaim` print nothing. Exit 0 on success, 1 on a `gh` failure, 2 on usage (unknown subcommand, missing or malformed flag), with the usage on stderr.
+`<issue>` is an issue number in the current repo (`GH_REPO` when set, else `gh repo view`) or a GitHub issue URL; use the URL whenever the epic spans repos. The comment subcommands print the comment's URL; `claim` and `unclaim` print nothing. Exit 0 on success, 1 on a `gh` failure or a trailer that does not decode, 2 on usage (unknown subcommand, missing or malformed flag, a `wave pr` ticket no wave holds), with the reason on stderr.
 
 ## Markers
 
@@ -23,9 +23,9 @@ S=<this skill's base directory>/scripts/sync-progress.sh
 | `<!-- sdd-wave -->` | the epic | `build-epic`, `review-panel` | owned: `wave add\|pr\|panel` |
 | `<!-- sdd-summary -->` | the epic | `close-epic` | raw: `upsert` |
 | `<!-- sdd-retro -->` | the epic | `close-epic` (numbers from GitHub state; stays in the repo) | raw: `upsert` |
-| `<!-- sdd-feedback-draft -->` | the epic (one per draft) | `close-epic`, only when nobody can approve an upstream filing | raw: `upsert` |
+| `<!-- sdd-feedback-draft -->` | the epic (one comment holding every draft) | `close-epic`, only when nobody can approve an upstream filing | raw: `upsert` |
 
-The marker is the **first line** of the comment body; nothing else identifies the comment. An owned comment's **last line** is `<!-- sdd-data: <base64 of compact JSON> -->`. Base64 because `--` ends an HTML comment and reasons carry flags like `--add-blocked-by`. To read an owned comment's fields, fetch the comment through `gh api` and decode that line; `claude-code-action` strips HTML comments from the context it hands a model, so never read a marker or trailer from that context.
+The marker is the **first line** of the comment body; nothing else identifies the comment. An owned comment's **last line** is `<!-- sdd-data: <base64 of compact JSON> -->`. Base64 because `--` ends an HTML comment and reasons carry flags like `--add-blocked-by`. To read an owned comment's fields, fetch the comment through `gh api` and decode that line; `claude-code-action` strips HTML comments from the context it hands a model, so never read a marker or trailer from that context. The script drops carriage returns before it looks for the trailer (a comment edited in the web UI comes back CRLF), and when an `sdd-data:` line is there but does not decode it exits 1, naming the marker and the issue, and writes nothing, because rendering fresh would erase the state.
 
 ## Subcommands
 
@@ -36,9 +36,9 @@ sync-progress.sh progress  <issue> [--status in-progress|pr-open|verify-passed|c
                                    [--verify "not-run" | "passed <sha7>" | "failed <sha7>"] [--notes TEXT]
 sync-progress.sh plan      <issue> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d]
                                    [--narrowed TEXT]... [--add-deviation TEXT] [--table-file FILE]
-sync-progress.sh wave      <issue> add   --n N --tickets 101,102 --workers w1,w2 --started ISO8601
-                                         --edges "104<103,105<103" | --edges none
-sync-progress.sh wave      <issue> pr    --ticket 101 --pr URL|#n
+sync-progress.sh wave      <issue> add   --n N --tickets 101,owner/repo#7 --workers w1,w2 --started ISO8601
+                                         --edges "104<103,owner/repo#7<101" | --edges none
+sync-progress.sh wave      <issue> pr    --ticket 101|owner/repo#7 --pr URL|#n
 sync-progress.sh wave      <issue> panel --round R --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE --report URL
                                          [--severity critical=1,important=2,minor=3] [--persona name=count,...] [--dropped D]
 sync-progress.sh claim     <issue>
@@ -51,7 +51,9 @@ sync-progress.sh hand-back <issue> needs-info|ready-for-human|blocked --reason T
 Merge rules for the owned shapes:
 
 - A field you do not pass keeps its previous value, so pass only what changed: `progress 103 --status pr-open --pr 57 --verify "passed abc1234"` keeps the Worker and Branch.
-- A list field is appended to, never replaced: `--narrowed` and `--add-deviation` on the plan, each `wave add` and each `wave panel`. `wave pr` sets the PR of the named ticket on the latest wave.
+- `--add-deviation` appends to the plan's Deviated list. `--narrowed` replaces the Narrowed list with every `--narrowed` on the call, so re-pinning the plan never duplicates a line and a withdrawn narrowing drops; a call with no `--narrowed` keeps the stored list.
+- `wave add` adds a wave, or replaces the one with the same `--n` (keeping the PRs already recorded on it); `wave panel` adds a round, or replaces the one with the same `--round`. A retried call therefore never duplicates an entry, and the retro's edge count stays right.
+- `wave pr` sets the PR of the named ticket on the last wave whose tickets hold it; a ticket no wave holds is a usage error.
 - A comment with no trailer (written before this script) is rendered fresh from the fields you pass; nothing else of the old prose survives.
 - `upsert` is for the one-writer comments only. The body file's first line must be the marker; it is written verbatim, with no trailer.
 
@@ -90,13 +92,15 @@ Data: `{"goal":"","constraints":"","branch":"","repos":[],"narrowed":[],"deviate
 One wave comment per epic; waves and panel rounds are lists inside its data:
 
 ```json
-{"waves":[{"n":1,"tickets":[101,102],"workers":["w1","w2"],"started":"2026-10-25T09:00:00Z",
-           "edges":[[104,103]],"prs":{"101":"https://github.com/o/r/pull/9"}}],
+{"waves":[{"n":1,"tickets":["101","acme/api#7"],"workers":["w1","w2"],"started":"2026-10-25T09:00:00Z",
+           "edges":[["acme/api#7","101"]],"prs":{"101":"https://github.com/o/r/pull/9"}}],
  "panel":[{"round":1,"verdict":"MERGE","report":"https://…","severity":{"critical":0,"important":1,"minor":2},
            "persona":{"correctness":1},"dropped":0}]}
 ```
 
-Rendered, per wave: `Wave <n>: #101, #102 (w1, w2), started <ISO>`, `Edges added: 104 ← 103, …` or `Edges added: none`, and `PRs: #101 → <url>, …` once a PR is recorded; then per panel round `Panel round <r>: <VERDICT> (<report>)`. `--edges` lists every `--add-blocked-by` the safety check introduced since the plan comment, as `consumer<producer`.
+A ticket, and each side of an edge, is a bare number, `owner/repo#N` or an issue URL, so `build-epic`'s multi-repo mode records its cross-repo tickets; each is stored as the string given, and `prs` is keyed by that same string. Waves written before tickets were strings hold numbers, which render the same.
+
+Rendered, per wave: `Wave <n>: #101, acme/api#7 (w1, w2), started <ISO>` (a bare number gains `#`, anything else renders as given), `Edges added: acme/api#7 ← 101, …` or `Edges added: none`, and `PRs: #101 → <url>, …` once a PR is recorded; then per panel round `Panel round <r>: <VERDICT> (<report>)`. `--edges` lists every `--add-blocked-by` the safety check introduced since the plan comment, as `consumer<producer`.
 
 ## Claim and unclaim
 
@@ -106,7 +110,7 @@ A ticket is **held** when it carries the `claimed` label or an assignee. A held 
 
 ## Hand-back
 
-A worker that stops on a sub-issue without a PR hands it back in one call, with the reason:
+A **Hand-back** is any SDD skill returning a sub-issue to a person or a queue: a worker stopping without a PR, or a gate (`review-pr`, `build-epic`'s safety check) routing one whose PR stays open. It is one call, with the reason:
 
 ```bash
 "$S" hand-back 103 needs-info --reason "ticket cites src/billing/tax.ts, which does not exist"
@@ -116,6 +120,9 @@ A worker that stops on a sub-issue without a PR hands it back in one call, with 
 |---|---|---|---|
 | The ticket is ambiguous or contradicts the code | `needs-info` | adds `needs-info`, removes `ready-for-agent` | |
 | A human decision or secret is needed | `ready-for-human` | adds `ready-for-human`, removes `ready-for-agent` | |
-| A blocker the tracker does not know about | `blocked` | adds `blocked`, removes nothing | optional `--blocked-by <issue>` adds the native blocked-by edge; pass it whenever you know the blocker. It is refused on the other two routes |
+| A blocker the tracker does not know about, named | `blocked` with `--blocked-by <issue>` | adds `blocked`, keeps `ready-for-agent` | adds the native blocked-by edge, which keeps the ticket out of the ready queue until the blocker closes |
+| A blocker the tracker does not know about, unnamed | `blocked` | adds `blocked`, removes `ready-for-agent` | `ready.sh` never reads the `blocked` label, so without an edge the ticket must leave the queue by label or it is re-dispatched every wave |
 
-Every route then removes `claimed` and sets the progress comment's status to `handed-back` with the route and the reason, which render as `**Handed back:** <route>: <reason>`. The reason may carry anything, `--` included.
+Pass `--blocked-by` whenever you know the blocker; it is refused on the other two routes.
+
+The call writes in this order: the progress comment first (status `handed-back`, rendered as `**Handed back:** <route>: <reason>`), then the route labels, then it removes `claimed`. A failure part-way leaves the ticket held, never released without a route, and prints `sync-progress: hand-back: step <n> (<what>) failed; re-run to finish`; re-running the same call finishes it. The reason may carry anything, `--` included.
