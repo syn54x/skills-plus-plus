@@ -87,7 +87,7 @@ For each ticket in the wave:
 1. Write the brief from [WORKER-BRIEF.md](./WORKER-BRIEF.md). The brief is the ticket body verbatim plus the Laws slot (sources, not a paraphrase), the branch mechanics, and the report format. Workers get nothing from this conversation, so the brief is complete or the worker fails.
 2. Dispatch the brief to **one isolated worker per ticket, in its own worktree of that ticket's repo, branched from that repo's integration branch, with the whole wave running concurrently**. The concrete call depends on the harness: see [HARNESS-DISPATCH.md](./HARNESS-DISPATCH.md). The worker calls the Skill tool with "implement-issue" for the ticket's URL, inside that worktree. In multi-repo mode the brief names the checkout the worker starts from; a worker never guesses which repo a ticket belongs to.
 
-Then record the wave (call the Skill tool with "sync-progress"): `scripts/sync-progress.sh wave <epic> add --n <wave> --tickets <numbers> --workers <names> --started <ISO8601> --edges "<consumer><<producer>,…"`, or `--edges none`, listing every `--add-blocked-by` the safety check introduced since the plan comment. The epic keeps one wave comment holding every wave; `close-epic`'s retro reads its edges.
+Then record the wave (call the Skill tool with "sync-progress"): `scripts/sync-progress.sh wave <epic> add --n <wave> --tickets <numbers> --workers <names> --started <ISO8601> --edges "<consumer><<producer>,…"`, or `--edges none`, listing every `--add-blocked-by` the safety check introduced since the plan comment; in multi-repo mode tickets and edges may be `owner/repo#N` or issue URLs. The epic keeps one wave comment holding every wave; `close-epic`'s retro reads its edges.
 
 ### Heartbeat
 
