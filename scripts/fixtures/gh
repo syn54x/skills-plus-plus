@@ -2,12 +2,13 @@
 # Test double for gh: answers the calls of every fixture check (scripts/check-sdd.sh) from "$GH_FIXTURE" (a gh.json file).
 # gh.json: { issues: {<url>: obj}, prs: {<url>: obj}, events: {"o/r#n": [...]}, comments: {"o/r#n": [...]} }
 # Writes (api -X PATCH|POST, issue edit, label create) append one JSON line each to "$GH_WRITES" when it is set.
+# gh.json may carry fail_after_writes: N, which makes every write after the first N fail silently with exit 1.
 set -euo pipefail
 F="${GH_FIXTURE:?GH_FIXTURE unset}"
 W="${GH_WRITES:-/dev/null}"
 
 POS=(); JQ=""; REPO=""; BASE=""; HEAD=""; STATE="open"; METHOD=""; FIELDS=0; BODY=""
-ADD=(); REMOVE=(); BLOCKED=()
+ADD=(); REMOVE=(); BLOCKED=(); FORCE=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --version) echo "gh version 0.0.0-fixture"; exit 0 ;;
@@ -17,7 +18,8 @@ while [ $# -gt 0 ]; do
     --base) BASE="$2"; shift 2 ;;
     --head) HEAD="$2"; shift 2 ;;
     --state) STATE="$2"; shift 2 ;;
-    --paginate|--force) shift ;;
+    --paginate) shift ;;
+    --force) FORCE=true; shift ;;
     -X|--method) METHOD="$2"; shift 2 ;;
     -F|-f|--field|--raw-field)
       FIELDS=1
@@ -37,9 +39,12 @@ done
 
 miss() { echo "fixture gh: no answer for: ${POS[*]}" >&2; exit 1; }
 arr() { jq -c -n '$ARGS.positional' --args "$@"; }
+# True when a write should fail: the log already holds fail_after_writes lines.
+injected() { local n; n=$(jq -r '.fail_after_writes // empty' "$F"); [ -n "$n" ] && [ "$(wc -l <"$W" | tr -d ' ')" -ge "$n" ]; }
 reply() { if [ -n "$JQ" ]; then printf '%s' "$1" | jq -r "$JQ"; else printf '%s\n' "$1"; fi; }
 
 if [ "${POS[0]:-}" = api ] && [ "$METHOD" != GET ]; then
+  ! injected || exit 1
   jq -c -n --arg m "$METHOD" --arg p "${POS[1]}" --arg b "$BODY" '{method: $m, path: $p, body: $b}' >>"$W"
   # A PATCH names its comment id; a POST gets the write log's line count as a fresh id.
   ID="${POS[1]##*/}"
@@ -50,13 +55,15 @@ fi
 
 case "${POS[0]} ${POS[1]:-}" in
   "issue edit")
+    ! injected || exit 1
     jq -c -n --arg i "${POS[2]}" \
       --argjson a "$(arr ${ADD[@]+"${ADD[@]}"})" --argjson r "$(arr ${REMOVE[@]+"${REMOVE[@]}"})" \
       --argjson b "$(arr ${BLOCKED[@]+"${BLOCKED[@]}"})" \
       '{cmd: "issue edit", issue: $i, add_label: $a, remove_label: $r, add_blocked_by: $b}' >>"$W"
     echo "https://github.com/fixture/issues/${POS[2]##*/}"; exit 0 ;;
   "label create")
-    jq -c -n --arg n "${POS[2]}" '{cmd: "label create", name: $n}' >>"$W"; exit 0 ;;
+    ! injected || exit 1
+    jq -c -n --arg n "${POS[2]}" --argjson f "$FORCE" '{cmd: "label create", name: $n, force: $f}' >>"$W"; exit 0 ;;
   "issue view") OUT=$(jq -c --arg u "${POS[2]}" '.issues[$u] // empty' "$F") ;;
   "pr view")    OUT=$(jq -c --arg u "${POS[2]}" '.prs[$u] // empty' "$F") ;;
   "pr list")

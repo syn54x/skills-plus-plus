@@ -15,17 +15,23 @@ usage: sync-progress.sh upsert    <issue> <marker> <body-file>
                                           [--worker TEXT] [--branch NAME] [--pr N|URL]
                                           [--verify "not-run" | "passed <sha7>" | "failed <sha7>"] [--notes TEXT]
        sync-progress.sh plan      <issue> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d]
-                                          [--narrowed TEXT]... [--add-deviation TEXT] [--table-file FILE]
-       sync-progress.sh wave      <issue> add   --n N --tickets 101,102 --workers w1,w2 --started ISO8601
-                                                --edges "104<103,105<103" | --edges none
-       sync-progress.sh wave      <issue> pr    --ticket 101 --pr URL|#n
+                                          [--narrowed TEXT]... | [--narrowed none] [--add-deviation TEXT] [--table-file FILE]
+       sync-progress.sh wave      <issue> add   --n N --tickets 101,owner/repo#7 --workers w1,w2 --started ISO8601
+                                                --edges "104<103,owner/repo#7<101" | --edges none
+       sync-progress.sh wave      <issue> pr    --ticket 101|owner/repo#7 --pr URL|#n
        sync-progress.sh wave      <issue> panel --round R --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE --report URL
                                                 [--severity critical=1,important=2,minor=3] [--persona name=count,...] [--dropped D]
        sync-progress.sh claim     <issue>
        sync-progress.sh unclaim   <issue>
        sync-progress.sh hand-back <issue> needs-info|ready-for-human|blocked --reason TEXT [--blocked-by <issue>]
---blocked-by is optional and goes only with the blocked route, where it adds the blocked-by edge.
+--blocked-by is optional and goes only with the blocked route, where it adds the blocked-by edge and keeps
+ready-for-agent; every other hand-back, blocked without --blocked-by included, removes ready-for-agent.
+--narrowed replaces the stored list with every --narrowed of the call, --narrowed none clears it, and a
+call without --narrowed keeps it; --add-deviation appends.
+wave add replaces the wave with the same --n; wave panel replaces the entry with the same --round;
+wave pr records the PR on the last wave whose tickets hold --ticket.
 <issue> is an issue number in the current repo (GH_REPO, else gh repo view) or a GitHub issue URL.
+A wave ticket is a number, owner/repo#N or an issue URL, stored and rendered as given.
 EOF
   exit 2
 }
@@ -34,6 +40,9 @@ EOF
 gh() { command gh "$@" || exit 1; }
 
 need() { [ "$1" -ge 2 ] || usage "$2 needs a value"; }
+
+# A wave ticket or edge side: a bare number, owner/repo#N, or an issue URL (build-epic's multi-repo mode).
+TICKET='[0-9]+|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+|https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/issues/[0-9]+'
 
 resolve() {
   case "$1" in
@@ -65,12 +74,17 @@ write_comment() {
   fi
 }
 
-# The decoded data trailer of OLD, or {} when it has none or it does not decode (rendered fresh).
+# The decoded data trailer of OLD: {} when it has none (rendered fresh), null when an sdd-data line is
+# there but does not match, decode or parse. CRs are dropped first (a comment edited in the web UI comes
+# back CRLF) and trailing whitespace is tolerated; anything else on the line is refused.
 old_data() {
   printf '%s' "$OLD" | jq -Rsc '
-    [split("\n")[] | capture("^<!-- sdd-data: (?<d>[A-Za-z0-9+/=]+) -->$")? | .d] | last
-    | if . == null then {} else ((@base64d | fromjson)? // {}) end
-    | if type == "object" then . else {} end'
+    [gsub("\r"; "") | split("\n")[] | select(startswith("<!-- sdd-data:"))] | last
+    | if . == null then {}
+      else (first(sub("\\s+$"; "") | capture("^<!-- sdd-data: (?<d>[A-Za-z0-9+/=]+) -->$").d) // null)
+        | if . == null then null else (try (@base64d | fromjson) catch null) end
+        | if type == "object" then . else null end
+      end'
 }
 
 # PATCH collects the fields a subcommand sets: patch <jq program over PATCH, with $v> [value].
@@ -78,10 +92,16 @@ PATCH='{}'
 patch() { PATCH=$(jq -c --arg v "${2-}" "$1" <<<"$PATCH"); }
 
 # save <marker> <default data> <jq merge, old data as . and the fields as $p> <jq render, data as .>
+# A merge that halts with exit 2 (halt_error(2)) is a usage error; any other jq failure exits 1.
 save() {
-  local data
+  local old data rc
   find_comment "$1"
-  data=$(old_data | jq -c --argjson d "$2" --argjson p "$PATCH" "\$d + . | $3") || exit 1
+  old=$(old_data)
+  if [ "$old" = null ]; then
+    echo "sync-progress: $1 on $REPO#$NUM has an sdd-data trailer that does not decode; refusing to overwrite it" >&2
+    exit 1
+  fi
+  data=$(jq -c --argjson d "$2" --argjson p "$PATCH" "\$d + . | $3" <<<"$old") || { rc=$?; [ "$rc" = 2 ] && exit 2; exit 1; }
   {
     printf '%s\n' "$1"
     jq -r "$4" <<<"$data"
@@ -145,16 +165,17 @@ cmd_plan() {
       --constraints) patch '.constraints = $v' "$2" ;;
       --branch) patch '.branch = $v' "$2" ;;
       --repos) patch '.repos = ($v | split(","))' "$2" ;;
-      --narrowed) patch '.narrowed += [$v]' "$2" ;;
+      # Every --narrowed of this call replaces the stored list; --narrowed none clears it.
+      --narrowed) if [ "$2" = none ]; then patch '.narrowed = []'; else patch '.narrowed += [$v]' "$2"; fi ;;
       --add-deviation) patch '.deviated += [$v]' "$2" ;;
-      --table-file) [ -f "$2" ] || usage "no table file: $2"; patch '.table = $v' "$(cat "$2"; printf x)"; patch '.table |= rtrimstr("x")' ;;
+      --table-file) [ -f "$2" ] || usage "no table file: $2"; patch '.table = $v' "$(cat "$2")" ;;
       *) usage "plan: unknown flag $1" ;;
     esac
     shift 2
   done
   save '<!-- sdd-plan -->' \
     '{"goal":"","constraints":"","branch":"","repos":[],"narrowed":[],"deviated":[],"table":""}' \
-    '. + ($p | del(.narrowed, .deviated)) | .narrowed += ($p.narrowed // []) | .deviated += ($p.deviated // [])' '
+    '. + ($p | del(.deviated)) | .deviated += ($p.deviated // [])' '
     "## Plan", "",
     "**Goal:** \(.goal)",
     "**Constraints:** \(.constraints)",
@@ -184,20 +205,24 @@ cmd_wave() {
   case "$op" in
     add)
       [[ $n =~ ^[0-9]+$ ]] || usage "wave add needs --n N"
-      [[ $tickets =~ ^[0-9]+(,[0-9]+)*$ ]] || usage "wave add needs --tickets 101,102"
+      [[ $tickets =~ ^($TICKET)(,($TICKET))*$ ]] || usage "wave add needs --tickets 101,owner/repo#7,..."
       [ -n "$workers" ] || usage "wave add needs --workers w1,w2"
       [ -n "$started" ] || usage "wave add needs --started ISO8601"
-      [[ $edges =~ ^(none|[0-9]+<[0-9]+(,[0-9]+<[0-9]+)*)$ ]] || usage 'wave add needs --edges "104<103,..." or --edges none'
+      local edge="($TICKET)<($TICKET)"  # in a variable: a bare < inside [[ ]] is the string comparison
+      [[ $edges =~ ^(none|$edge(,$edge)*)$ ]] || usage 'wave add needs --edges "104<103,..." or --edges none'
       PATCH=$(jq -c -n --arg n "$n" --arg t "$tickets" --arg w "$workers" --arg s "$started" --arg e "$edges" \
-        '{n: ($n | tonumber), tickets: ($t | split(",") | map(tonumber)), workers: ($w | split(",")), started: $s,
-          edges: (if $e == "none" then [] else $e | split(",") | map(split("<") | map(tonumber)) end), prs: {}}')
-      merge='.waves += [$p]' ;;
+        '{n: ($n | tonumber), tickets: ($t | split(",")), workers: ($w | split(",")), started: $s,
+          edges: (if $e == "none" then [] else $e | split(",") | map(split("<")) end), prs: {}}')
+      # A retried add replaces the wave with the same n and keeps the PRs already recorded on it.
+      merge='(first(.waves[] | select(.n == $p.n)).prs // {}) as $prs
+             | .waves = ([.waves[] | select(.n != $p.n)] + [$p + {prs: $prs}] | sort_by(.n))' ;;
     pr)
-      [[ $ticket =~ ^[0-9]+$ ]] || usage "wave pr needs --ticket N"
+      [[ $ticket =~ ^($TICKET)$ ]] || usage "wave pr needs --ticket N|owner/repo#N|URL"
       [ -n "$pr" ] || usage "wave pr needs --pr URL|#n"
       PATCH=$(jq -c -n --arg t "$ticket" --arg pr "$pr" '{ticket: $t, pr: $pr}')
-      merge='if .waves == [] then error("sync-progress: wave pr: no wave recorded yet")
-             else .waves[(.waves | length) - 1].prs[$p.ticket] = $p.pr end' ;;
+      merge='([.waves | to_entries[] | select(any(.value.tickets[]; tostring == $p.ticket)) | .key] | last) as $i
+             | if $i == null then "sync-progress: wave pr: no wave holds ticket \($p.ticket)\n" | halt_error(2)
+               else .waves[$i].prs[$p.ticket] = $p.pr end' ;;
     panel)
       [[ $round =~ ^[0-9]+$ ]] || usage "wave panel needs --round R"
       case "$verdict" in "FIX FIRST"|"HUMAN DECISION"|MERGE) ;; *) usage 'wave panel needs --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE' ;; esac
@@ -208,13 +233,16 @@ cmd_wave() {
       PATCH=$(jq -c -n --arg r "$round" --arg v "$verdict" --arg u "$report" --arg s "$severity" --arg p "$persona" --arg d "$dropped" '
         def counts: if . == "" then {} else split(",") | map(split("=") | {(.[0]): (.[1] | tonumber)}) | add end;
         {round: ($r | tonumber), verdict: $v, report: $u, severity: ($s | counts), persona: ($p | counts), dropped: ($d | tonumber)}')
-      merge='.panel += [$p]' ;;
+      # A retried round replaces the entry with the same round.
+      merge='.panel = ([.panel[] | select(.round != $p.round)] + [$p] | sort_by(.round))' ;;
     *) usage "wave takes add, pr or panel" ;;
   esac
+  # A ticket renders as given, a bare number with "#"; waves written before tickets were strings hold numbers.
   save '<!-- sdd-wave -->' '{"waves":[],"panel":[]}' "$merge" '
-    (.waves[] | "Wave \(.n): \(.tickets | map("#\(.)") | join(", ")) (\(.workers | join(", "))), started \(.started)",
+    def ref: tostring | if test("^[0-9]+$") then "#\(.)" else . end;
+    (.waves[] | "Wave \(.n): \(.tickets | map(ref) | join(", ")) (\(.workers | join(", "))), started \(.started)",
       "Edges added: \(if .edges == [] then "none" else .edges | map("\(.[0]) ← \(.[1])") | join(", ") end)",
-      (select(.prs != {}) | "PRs: \(.prs | to_entries | map("#\(.key) → \(.value)") | join(", "))")),
+      (select(.prs != {}) | "PRs: \(.prs | to_entries | map("\(.key | ref) → \(.value)") | join(", "))")),
     (.panel[] | "Panel round \(.round): \(.verdict) (\(.report))")'
 }
 
@@ -244,27 +272,33 @@ cmd_hand_back() {
     shift 2
   done
   [ -n "$reason" ] || usage "hand-back needs --reason"
-  if [ "$route" = blocked ]; then
-    if [ -n "$blocked_by" ]; then
-      gh issue edit "$NUM" -R "$REPO" --add-label blocked --add-blocked-by "$blocked_by" >/dev/null
-    else
-      gh issue edit "$NUM" -R "$REPO" --add-label blocked >/dev/null
-    fi
-  else
-    [ -z "$blocked_by" ] || usage "--blocked-by goes only with the blocked route"
-    gh issue edit "$NUM" -R "$REPO" --add-label "$route" --remove-label ready-for-agent >/dev/null
-  fi
-  gh issue edit "$NUM" -R "$REPO" --remove-label claimed >/dev/null
+  [ "$route" = blocked ] || [ -z "$blocked_by" ] || usage "--blocked-by goes only with the blocked route"
+  # Why first, then the route, then release the claim: a failure part-way leaves the ticket held, never
+  # released unrouted. The EXIT trap names the step that failed.
+  STEP="1 (progress comment)"
   patch '.status = "handed-back" | .route = $v' "$route"
   patch '.reason = $v' "$reason"
   save_progress
+  STEP="2 (route labels)"
+  if [ -n "$blocked_by" ]; then
+    # The blocked-by edge keeps the ticket out of the ready queue, so ready-for-agent stays for when it clears.
+    gh issue edit "$NUM" -R "$REPO" --add-label blocked --add-blocked-by "$blocked_by" >/dev/null
+  else
+    # ready.sh never reads the blocked label, so an edgeless blocked hand-back must leave the queue too.
+    gh issue edit "$NUM" -R "$REPO" --add-label "$route" --remove-label ready-for-agent >/dev/null
+  fi
+  STEP="3 (clear claimed)"
+  gh issue edit "$NUM" -R "$REPO" --remove-label claimed >/dev/null
+  STEP=""
 }
 
 [ $# -ge 2 ] || usage
 SUB=$1; shift
 case "$SUB" in upsert|progress|plan|wave|claim|unclaim|hand-back) ;; *) usage "unknown subcommand: $SUB" ;; esac
 resolve "$1"; shift
-TMP=$(mktemp); trap 'rm -f "$TMP"' EXIT
+STEP=""
+TMP=$(mktemp)
+trap 'rc=$?; rm -f "$TMP"; [ "$rc" = 0 ] || [ -z "$STEP" ] || echo "sync-progress: hand-back: step $STEP failed; re-run to finish" >&2' EXIT
 case "$SUB" in
   hand-back) cmd_hand_back "$@" ;;
   *) "cmd_$SUB" "$@" ;;
