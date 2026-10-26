@@ -1,0 +1,2 @@
+{"exit":0,"stdout":"https://github.com/fixture/comment/501","stderr":""}
+{"data":{"status":"handed-back","worker":"sdd-worker-1","branch":"sdd/103-x","pr":null,"verify":{"state":"not-run","sha":""},"route":"needs-info","reason":"ticket cites a file that does not exist","notes":""}}

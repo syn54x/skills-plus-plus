@@ -10,7 +10,7 @@ Written into `CLAUDE.md` (or `AGENTS.md`) below the `## Agent skills` block. Rep
 - Plan with `/grill-with-docs` → `/to-spec` → `/to-tickets`. Build with `/build-epic <epic#>` (M/L/XL) or `/implement <N>` (one ticket).
 - Do not use brainstorming, writing-plans, ce-plan or any other plan-writing skill. `/to-spec` owns the spec; `/to-tickets` owns the plan.
 - Workers: TDD, run the issue's **Verify** block, open a PR with `Closes #N`, never merge.
-- Readiness = open + not blocked + not held (no claim mark, no assignee) + `ready-for-agent`. Claim by adding `claimed`. Unclaim if you stop without a PR.
+- Readiness = open + not blocked + not held (no claim mark, no assignee) + `ready-for-agent`. Claim by adding `claimed`. Hand back (route, clear the claim mark, record why) if you stop without a PR.
 - Progress is one comment per issue under `<!-- sdd-progress -->`, rewritten in place. Never post a second one.
 - Mode: <org | labels-only>. Sizes: <`size:S/M/L` labels | issue field `Effort`>. Priority: <none | issue field `Priority`>.
 - Upstream feedback: <off | counts | detailed | attributed>. Unless off, `close-epic` may propose skill-defect issues on syn54x/skills-plus-plus, the profile's allowlisted fields only, each one shown and approved by a human before filing; never from a non-interactive run.

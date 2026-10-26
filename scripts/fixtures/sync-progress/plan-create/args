@@ -1,0 +1,1 @@
+plan 200 --goal G --branch feat/x --table-file scripts/fixtures/sync-progress/plan-create/table.md --narrowed "#104 lists invoices without pagination"

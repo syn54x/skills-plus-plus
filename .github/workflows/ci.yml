@@ -18,10 +18,8 @@ jobs:
         run: scripts/check-plugin-skills.sh
       - name: invocation flags agree and no skill calls a user-invoked skill
         run: python3 scripts/check-invocation.py
-      - name: close-epic retro matches its fixtures
-        run: bash scripts/check-sdd-retro.sh
-      - name: build-epic ready queue matches its fixtures
-        run: scripts/check-sdd-ready.sh
+      - name: sdd scripts match their fixtures and in-skill checks pass
+        run: bash scripts/check-sdd.sh
       - name: plugin.json version tracks package.json
         run: node scripts/sync-plugin-version.mjs --check
       - uses: astral-sh/setup-uv@v10.2.0

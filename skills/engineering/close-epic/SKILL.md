@@ -47,11 +47,11 @@ Compute the epic's numbers per [RETRO.md](./RETRO.md): tickets by size, escalati
 - **The panel** is every report on the PR to `main`, read from its comments and its reviews. The first report is round 1; each re-review report carries `Round 2` or `Round 3` on its `## Verdict:` line. Count each round, sum the findings across rounds, and write `panel (N rounds)` when there is more than one.
 - **Not found is not 0.** A measure whose input is missing (no PR for a ticket, no wave comment, no panel report posted) is `null` and listed under `not_found`; the table says **not found** for it.
 
-Upsert it on the epic under `<!-- sdd-retro -->` (call the Skill tool with "sync-progress" for the upsert): a short table for humans, then the JSON in a fenced block. This comment stays in the user's repo; it may contain URLs and titles.
+Write it on the epic with `scripts/sync-progress.sh upsert <epic> '<!-- sdd-retro -->' <body-file>` (call the Skill tool with "sync-progress"): a short table for humans, then the JSON in a fenced block. This comment stays in the user's repo; it may contain URLs and titles.
 
 ## 4. Summary comment
 
-Call the Skill tool with `writing-for-humans` before drafting the comment's prose. Upsert on the epic under `<!-- sdd-summary -->`:
+Call the Skill tool with `writing-for-humans` before drafting the comment's prose. Write it with `scripts/sync-progress.sh upsert <epic> '<!-- sdd-summary -->' <body-file>`:
 
 ```markdown
 <!-- sdd-summary -->
@@ -97,7 +97,7 @@ Read each key against RETRO.md's Reading-it table for the step it points at. The
 1. **Read the profile.** The routing block in `CLAUDE.md` / `AGENTS.md` says `Upstream feedback: <off | counts | detailed | attributed>`; a legacy `on` reads as `counts`. `off`, anything else, or no line means skip this step entirely and say so in one line.
 2. **Allowlist, not redaction.** The issue body is built from the profile's template in the reference. `counts`: skill, step, a failure category from the closed enum, the relevant retro counts, harness and `gh` version, and one sentence the user types at confirmation. `detailed`: the same, with an **Observed** of several sentences on the mechanism (what the skill said, what the agent did, what the user did by hand). `attributed`: `detailed` plus the user's own repo name and links to the epic, its sub-issues and PRs. Never another repo's or the org's name, other URLs, ticket titles, file paths, code, commit messages or error text. Only `attributed` may put the repo name in the issue title.
 3. **Preview and confirm, every time.** Show the complete body. The user approves, edits, or skips each one. `--dry-run` stops here and prints the bodies.
-4. **No human, no filing.** In a non-interactive run (Actions, a headless worker), do not file. Write each would-be body as a draft under `<!-- sdd-feedback-draft -->` on the epic; the user files later with one command from the reference.
+4. **No human, no filing.** In a non-interactive run (Actions, a headless worker), do not file. Write every would-be body into **one** draft comment, one `## Draft <n>: <title>` section per draft with its body in a fenced block, and post it with `scripts/sync-progress.sh upsert <epic> '<!-- sdd-feedback-draft -->' <drafts-file>`; `upsert` rewrites that one comment in place, so a second call replaces the first. The user files later, one section at a time, with the command in the reference.
 5. **Private repos always confirm.** `gh repo view --json isPrivate`; if true, the draft path is the default for any run that cannot ask. Under `attributed`, the confirmation names the repo and says its name and the epic, ticket and PR links become public.
 6. **Guard before filing.** Run the outbound check (`scripts/feedback-guard.sh <body-file> --profile <profile>` in this skill's base directory, plus `--own <owner/repo>` under `attributed`; or the checks listed in the reference by hand): any GitHub URL, the repo or org name, a path that exists in the checkout, or a fenced code block blocks the filing. Under `attributed` only the own repo's issue and PR links and its name pass. The guard refuses; it never rewrites.
 7. **File as the user, visibly.** `gh issue create -R syn54x/skills-plus-plus --label skill-feedback` under the user's own account, or `--web` if they prefer to file from a browser. Tell them the issue is public and carries their GitHub identity.

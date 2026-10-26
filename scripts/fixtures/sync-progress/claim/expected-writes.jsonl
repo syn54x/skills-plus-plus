@@ -1,0 +1,2 @@
+{"cmd":"label create","name":"claimed","force":true}
+{"cmd":"issue edit","issue":"103","add_label":["claimed"],"remove_label":[],"add_blocked_by":[]}

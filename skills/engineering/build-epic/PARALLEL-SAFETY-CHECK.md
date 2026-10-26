@@ -12,7 +12,7 @@ Build the map path → tickets from every `Files owned` list, expanding globs ag
 - A path under `Create` in one ticket and `Modify` in another → **conflict**, same resolution; the modifier depends on the creator.
 - Two tickets that each `Create` a *different* path in the same directory → fine.
 - The same path under `Create` in two tickets → the plan is wrong; report it, do not pick one.
-- A ticket with no `Files owned` section, or an untagged flat list → not ready. Label `needs-info`, remove `ready-for-agent`, report.
+- A ticket with no `Files owned` section, or an untagged flat list → not ready. Hand it back with `scripts/sync-progress.sh hand-back <N> needs-info --reason "<what is missing>"` (call the Skill tool with "sync-progress"), and report.
 
 ## 2. Shared-state files
 

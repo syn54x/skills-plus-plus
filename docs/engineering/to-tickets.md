@@ -64,7 +64,7 @@ When [setup-syn54x-skills](../engineering/setup-syn54x-skills.md) has switched t
 | **Test scenarios** and a runnable **Verify** block | what the worker turns into tests, and the command whose green means done |
 | A size (`size:S`, `M` or `L`) | how much worker `build-epic` gives the ticket; every size builds in its local waves |
 | Native parent and blocked-by links, created with each issue | the ready queue is computed by `gh`, not read from prose |
-| One `<!-- sdd-plan -->` comment on the epic | the dependency layers at a glance, rewritten in place when tickets change; [build-epic](../engineering/build-epic.md) later adds a `Deviated:` line for each declared **Interface deviation** |
+| One `<!-- sdd-plan -->` comment on the epic, written through `sync-progress` | the dependency layers at a glance, rewritten in place when tickets change; [build-epic](../engineering/build-epic.md) later adds a `Deviated:` line for each declared **Interface deviation** |
 | A **narrowing** check, and a `Narrows:` line where one is approved | a ticket that quietly delivers less than the epic states is caught here, not by the reviewer of the final PR |
 | **Code checks** read against the repo: every Test scenario's data exists, output pins and callers of a changed signature are in Files owned, every Verify command resolves and its pre-existing commands are green on the default branch | what would otherwise surface mid-build as a ruling, an edit outside Files owned, or a worker quietly fixing the Verify block |
 | `ready-for-agent` taken off the epic once its Sub-issues are published | only the Sub-issues are claimable; the readiness rule would otherwise match the epic itself |

@@ -42,7 +42,7 @@ One concurrent dispatch of 3 to 5 workers over the current **Ready queue**, one 
 Marking a **Sub-issue** as held by whoever is building it, with the tracker's **Claim mark**. Removes it from the **Ready queue**; undone by unclaiming, which clears the mark.
 
 **Claim mark**:
-The tracker's record that a **Sub-issue** is claimed. Set by the holder before any work and cleared by the holder on stopping without a PR, so it has the lifecycle of an assignee, not of a workflow status.
+The tracker's record that a **Sub-issue** is claimed. Set by the holder before any work and cleared by a **Hand-back**: the holder's own, on stopping without a PR, or a gate's, which leaves the PR open. Otherwise it stays through `pr-open`, so it has the lifecycle of an assignee, not of a workflow status.
 
 **Verify block**:
 The fenced commands in a **Sub-issue**'s `## Verify`; green means done. Recorded on the commit as `git notes --ref=sdd-verify`.
@@ -92,7 +92,7 @@ An issue comment the SDD skills own, found by the hidden marker on its first lin
 _Avoid_: progress note, status comment, sticky comment
 
 **Hand-back**:
-A worker stopping on a **Sub-issue** without a PR: it clears the **Claim mark**, routes the issue (`needs-info`, `ready-for-human` or `blocked`) and records why on the progress comment, as one operation.
+Any SDD skill returning a **Sub-issue** to a person or a queue: a worker stopping without a PR, a gate routing one whose PR stays open, or `build-epic`'s safety check returning an unclaimed one that has no PR yet. It records why on the progress comment, routes the issue (`needs-info`, `ready-for-human` or `blocked`) and clears the **Claim mark** if one is set, as one operation.
 _Avoid_: escalation (an auto-grill term), unclaim (only the mark half), stop
 
 ### Design
@@ -157,7 +157,7 @@ An optional **Feature matrix** row chosen in discovery. Python: `cli`, `api`, `d
 - A **Proxy** asks and answers, or raises an **Escalation**; only a **Principal** settles an **Escalation** or a **Challenge**
 - A **Depth check** that fires at a **Slice gate / main gate** is a finding; the same check in an `improve-` skill yields a **Deepening opportunity**
 - A **Law tag** names one **Law**; the **Retro** counts fix-round findings by **Law tag** source
-- A **Hand-back** clears a **Claim mark** and returns the **Sub-issue** to the **Ready queue** or to a human; the **Retro** counts them by route
+- A **Hand-back** clears the **Claim mark** if one is set and returns the **Sub-issue** to the **Ready queue** or to a human; the **Retro** counts them by route
 
 ## Flagged ambiguities
 

@@ -92,37 +92,28 @@ Step 5's real-tracker branch applies, with these specifics:
 
 ## 3. Pin the plan on the epic
 
-Compute dependency layers from the native links: layer *n* holds every ticket whose blockers all sit in layers below *n*, and layer 0 is the initial ready queue. Upsert **one** comment on the epic whose first line is `<!-- sdd-plan -->`, and rewrite it whenever tickets change. Test paths are left out of the table; the build's safety check reads them from the bodies.
+Compute dependency layers from the native links: layer *n* holds every ticket whose blockers all sit in layers below *n*, and layer 0 is the initial ready queue. Pin **one** plan comment on the epic and rewrite it whenever tickets change. Test paths are left out of the table; the build's safety check reads them from the bodies.
+
+Write the table to a file and call the Skill tool with "sync-progress", then run:
+
+```bash
+scripts/sync-progress.sh plan <epic> --goal "<one line from the epic>" \
+  --constraints "<stack, conventions, anything the epic's Implementation Decisions fix>" \
+  --repos a/b,c/d --narrowed "<approved narrowing>" --table-file <file>
+```
+
+The script owns the marker, the layout and the data trailer; the rendered comment is shown once, in sync-progress's SKILL.md under **Plan comment**. `--repos` goes only on a multi-repo epic. Pass `--narrowed` once per approved narrowing, in the same words as the ticket's `**Narrows:**` line, and on every re-pin pass every narrowing that still stands: a call with `--narrowed` replaces the stored list, so a narrowing you leave out disappears, while a call with no `--narrowed` keeps the list. When no narrowing still stands, pass `--narrowed none`, which clears the list; leaving the flag off would keep a withdrawn narrowing. Leave `--branch` and `--add-deviation` to `build-epic`, which sets the integration branch and adds one entry per **Interface deviation**; a later `plan` call keeps both.
+
+The table has one row per ticket, with these columns:
 
 ```markdown
-<!-- sdd-plan -->
-## Plan
-
-**Goal:** <one line from the epic>
-**Constraints:** <stack, conventions, anything the epic's Implementation Decisions fix>
-**Integration branch:** `feat/<slug>` (created by build-epic)
-
 | Layer | Repo | Ticket | Size | Blocked by | Files owned (C/M) |
 | --- | --- | --- | --- | --- | --- |
 | 0 | pinch-backend | #101 add invoice status column | S | none | C: `db/migrations/…`; M: `src/billing/schema.ts` |
-| 0 | pinch-backend | #102 invoice events | S | none | C: `src/events/invoice.ts` |
-| 1 | pinch-backend | #103 create invoice endpoint | M | #101, #102 | M: `src/billing/invoice.ts`, … |
 | 2 | pinch-frontend | #104 invoice UI | M | pinch-backend#103 | M: `src/invoices/**` |
-
-**Repos:** pinch-frontend (epic), pinch-backend.
-**Narrowed:** #104 delivers the invoice list without pagination (epic: paginated at 50); approved by the user.
-**Deviated:** #103 `createInvoice(input: InvoiceInput): Promise<Invoice>` → `createInvoice(input: InvoiceInput): Promise<Result<Invoice, InvoiceError>>`.
 ```
 
-Leave out the Repo column and the Repos line for a single-repo epic, and the Narrowed line when no ticket narrows the epic; otherwise one Narrowed entry per approved narrowing, in the same words as the ticket's `**Narrows:**` line. Leave out the Deviated line when you publish: `build-epic` adds it, one entry per **Interface deviation** (ticket, old signature, new signature), when a merged slice ships an in-repo signature that differs from its ticket; any later rewrite of this comment carries it forward unchanged. To upsert:
-
-```bash
-REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
-ID=$(gh api "repos/$REPO/issues/$EPIC/comments" --paginate \
-  --jq '.[] | select(.body | startswith("<!-- sdd-plan -->")) | .id' | head -n1)
-if [ -n "$ID" ]; then gh api -X PATCH "repos/$REPO/issues/comments/$ID" -F body=@/tmp/plan.md
-else gh api -X POST "repos/$REPO/issues/$EPIC/comments" -F body=@/tmp/plan.md; fi
-```
+Leave out the Repo column for a single-repo epic.
 
 Optional: if the epic lacks a `## Spec deltas` section (ADDED / MODIFIED / REMOVED behaviours), offer to add one so the epic doubles as the change record. An approved narrowing from step 1 is a MODIFIED behaviour: offer to add it there as well. Change nothing else in the epic body; `to-spec` owns it.
 

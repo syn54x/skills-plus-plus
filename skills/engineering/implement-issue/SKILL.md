@@ -23,7 +23,7 @@ Confirm you are standing in a checkout of the **ticket's** repo: the `url` field
 
 The issue must be **open**, labelled `ready-for-agent`, have **no open blockers** (`blockedBy.nodes[] | select(.state=="OPEN")` is empty), and be **not held, or held by you**. Held means it carries the `claimed` label or has an assignee; held by you means the existing progress comment's **Worker** line names you (your agent name, this run's URL in the cloud, your login). Anything else: stop and report which condition failed, and for a ticket held by someone else, report "held by <name>" from the Worker line (or the assignee). Do not "just start".
 
-The body must carry `## What to build`, `## Acceptance criteria`, `## Files owned` (Create / Modify / Test), `## Interfaces` (Consumes / Produces), `## Test scenarios` and `## Verify`. A missing or placeholder section (`TBD`, empty, "add appropriate error handling", "similar to #N") means the ticket is not buildable: add `needs-info`, remove `ready-for-agent`, write one progress comment saying what is missing, and stop.
+The body must carry `## What to build`, `## Acceptance criteria`, `## Files owned` (Create / Modify / Test), `## Interfaces` (Consumes / Produces), `## Test scenarios` and `## Verify`. A missing or placeholder section (`TBD`, empty, "add appropriate error handling", "similar to #N") means the ticket is not buildable: hand it back with `sync-progress.sh hand-back "$N" needs-info --reason "<what is missing>"` (see *If you get stuck* for how to call the script) and stop.
 
 Read the laws the gate will cite, all three layers, before any code exists:
 
@@ -35,9 +35,9 @@ Note each law that states a trigger (the moment it applies) and the check that d
 
 ## 2. Claim
 
-Call the Skill tool with "sync-progress" and claim through it: it creates the `claimed` label (with force) and adds it, which is the **Claim mark**. Never add it over a held ticket that is not yours. Resuming a ticket already held by you (a fix round) skips the claim.
+Call the Skill tool with "sync-progress" and claim through it: `scripts/sync-progress.sh claim "$N"` in its base directory creates the `claimed` label (with force) and adds it, which is the **Claim mark**. Never add it over a held ticket that is not yours. Resuming a ticket already held by you (a fix round) skips the claim.
 
-Then write the first progress comment (marker `<!-- sdd-progress -->`, status `in-progress`) with the **Worker** line naming you, so a twin run can tell whose mark it is.
+Then write the first progress comment with `sync-progress.sh progress "$N" --status in-progress --worker <you> --branch sdd/<N>-<slug>`, so the **Worker** line names you and a twin run can tell whose mark it is.
 
 ## 3. Branch
 
@@ -143,7 +143,7 @@ A `## Laws` section has this shape:
 
 **Claims**, against the pushed branch: every test named in the TDD evidence, and every file or pin the report or PR body says was added or changed, is in `git diff "origin/$BASE...HEAD"`; every test whose file changed after its RED run was run again, and GREEN comes from the final committed state (the Verify SHA equals the pushed `HEAD`, `git rev-parse "origin/sdd/$N-$SLUG"`); `git status --porcelain` is empty, so nothing the report relies on is only uncommitted. Fix a failing claim (commit, re-run Verify, push) or remove it from the report and PR body.
 
-Update the progress comment (status `pr-open`, PR number, Verify SHA). Then reply in ≤ 200 words:
+Update the progress comment with `sync-progress.sh progress "$N" --status pr-open --pr <PR number> --verify "passed <sha7>"`. Then reply in ≤ 200 words:
 
 - **Status:** `DONE` | `DONE_WITH_CONCERNS` | `BLOCKED` | `NEEDS_CONTEXT`
 - PR link; commits (short SHA + subject)
@@ -154,4 +154,4 @@ Update the progress comment (status `pr-open`, PR number, Verify SHA). Then repl
 
 ## If you get stuck
 
-Stopping is allowed; a wrong PR is not. Missing information → `NEEDS_CONTEXT`; cannot complete → `BLOCKED`. In both cases: Unclaim through `sync-progress` (call the Skill tool with "sync-progress"; its Claim and unclaim section removes the mark), set `needs-info` or `ready-for-human` per `sync-progress`, write why in the progress comment, push whatever is committed on your branch, record the state on the commit (`git notes --ref=sdd-verify add -f -m blocked HEAD`, so the verify gate lets you stop), and report with the status and the specifics in the message itself; the orchestrator acts on that directly.
+Stopping is allowed; a wrong PR is not. Missing information → `NEEDS_CONTEXT`; cannot complete → `BLOCKED`. In both cases: hand the ticket back through `sync-progress` (call the Skill tool with "sync-progress"; its Hand-back section has the routes): `scripts/sync-progress.sh hand-back "$N" <route> --reason "<why>"` in its base directory, with `needs-info` when the ticket is ambiguous or contradicts the code, `ready-for-human` when a human decision or secret is needed, `blocked` (plus `--blocked-by <issue>` when you know it) for a blocker the tracker does not know about. One call sets the label, clears the claim and writes the reason on the progress comment. Then push whatever is committed on your branch, record the state on the commit (`git notes --ref=sdd-verify add -f -m blocked HEAD`, so the verify gate lets you stop), and report with the status and the specifics in the message itself; the orchestrator acts on that directly.
