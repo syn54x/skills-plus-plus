@@ -25,7 +25,9 @@ S=<this skill's base directory>/scripts/sync-progress.sh
 | `<!-- sdd-retro -->` | the epic | `close-epic` (numbers from GitHub state; stays in the repo) | raw: `upsert` |
 | `<!-- sdd-feedback-draft -->` | the epic (one comment holding every draft) | `close-epic`, only when nobody can approve an upstream filing | raw: `upsert` |
 
-The marker is the **first line** of the comment body; nothing else identifies the comment. An owned comment's **last line** is `<!-- sdd-data: <base64 of compact JSON> -->`. Base64 because `--` ends an HTML comment and reasons carry flags like `--add-blocked-by`. To read an owned comment's fields, fetch the comment through `gh api` and decode that line; `claude-code-action` strips HTML comments from the context it hands a model, so never read a marker or trailer from that context. The script drops carriage returns and trailing whitespace before it reads the trailer (a comment edited in the web UI comes back CRLF), and when an `sdd-data:` line is there but does not match `<!-- sdd-data: <base64> -->`, decode, or parse as a JSON object, it exits 1, naming the marker and the issue, and writes nothing, because rendering fresh would erase the state.
+The marker is the **first line** of the comment body; nothing else identifies the comment. An owned comment's **last line** is `<!-- sdd-data: <base64 of compact JSON> -->`. Base64 because `--` ends an HTML comment and reasons carry flags like `--add-blocked-by`. To read an owned comment's fields, fetch the comment through `gh api` and decode that line; `claude-code-action` strips HTML comments from the context it hands a model, so never read a marker or trailer from that context.
+
+The trailer line grammar is stated here once; this script and `close-epic`'s retro both read by it. Drop every carriage return (a comment edited in the web UI comes back CRLF). The trailer is the last line that, trimmed at both ends, starts with `<!-- sdd-data:`; a body with no such line has no trailer. That line must then match `<!-- sdd-data: <base64> -->` exactly, trailing whitespace aside, so a leading space or anything else on the line fails. A trailer that fails the match, the base64 decode, or the parse as a JSON object **does not decode**: this script exits 1, naming the marker and the issue, and writes nothing, because rendering fresh would erase the state; the retro treats it as absent and names it in `not_found` as `wave trailer: unreadable` or `plan trailer: unreadable`.
 
 ## Subcommands
 
@@ -52,7 +54,7 @@ Merge rules for the owned shapes:
 
 - A field you do not pass keeps its previous value, so pass only what changed: `progress 103 --status pr-open --pr 57 --verify "passed abc1234"` keeps the Worker and Branch.
 - `--add-deviation` appends to the plan's Deviated list. `--narrowed` replaces the Narrowed list with every `--narrowed` on the call, so re-pinning the plan never duplicates a line and a withdrawn narrowing drops. A call with no `--narrowed` keeps the stored list, so a caller that re-pins a plan with no narrowings left (`to-tickets` re-running its SDD pass, say) passes `--narrowed none`, which clears it.
-- `wave add` adds a wave, or replaces the one with the same `--n` (keeping the PRs already recorded on it); `wave panel` adds a round, or replaces the one with the same `--round`. A retried call therefore never duplicates an entry, and the retro's edge count stays right.
+- `wave add` adds a wave, or replaces every wave with the same `--n` (keeping the PRs recorded on any of them); `wave panel` adds a round, or replaces the one with the same `--round`. A retried call therefore never duplicates an entry, and the retro's edge count stays right.
 - `wave pr` sets the PR of the named ticket on the last wave whose tickets hold it; a ticket no wave holds is a usage error.
 - A comment with no trailer (written before this script) is rendered fresh from the fields you pass; nothing else of the old prose survives.
 - `upsert` is for the one-writer comments only. The body file's first line must be the marker; it is written verbatim, with no trailer.
@@ -98,7 +100,7 @@ One wave comment per epic; waves and panel rounds are lists inside its data:
            "persona":{"correctness":1},"dropped":0}]}
 ```
 
-A ticket, and each side of an edge, is a bare number, `owner/repo#N` or an issue URL, so `build-epic`'s multi-repo mode records its cross-repo tickets; each is stored as the string given, and `prs` is keyed by that same string. Waves written before tickets were strings hold numbers, which render the same.
+A ticket, and each side of an edge, is a bare number, `owner/repo#N` or an issue URL, so `build-epic`'s multi-repo mode records its cross-repo tickets; each is stored as the string given, and `prs` is keyed by that same string. `wave pr --ticket` matches that stored string, so pass it in exactly the form given to `wave add` (the `owner/repo#N` or issue URL in multi-repo mode): a bare `7` matches neither `acme/api#7` nor its URL. Waves written before tickets were strings hold numbers, which render the same.
 
 Rendered, per wave: `Wave <n>: #101, acme/api#7 (w1, w2), started <ISO>` (a bare number gains `#`, anything else renders as given), `Edges added: acme/api#7 ← 101, …` or `Edges added: none`, and `PRs: #101 → <url>, …` once a PR is recorded; then per panel round `Panel round <r>: <VERDICT> (<report>)`. `--edges` lists every `--add-blocked-by` the safety check introduced since the plan comment, as `consumer<producer`.
 
@@ -110,7 +112,7 @@ A ticket is **held** when it carries the `claimed` label or an assignee. A held 
 
 ## Hand-back
 
-A **Hand-back** is any SDD skill returning a sub-issue to a person or a queue: a worker stopping without a PR, or a gate (`review-pr`, `build-epic`'s safety check) routing one whose PR stays open. It is one call, with the reason:
+A **Hand-back** is any SDD skill returning a sub-issue to a person or a queue: a worker stopping without a PR, a gate (`review-pr`, `build-epic`) routing one whose PR stays open, or `build-epic`'s safety check returning an unclaimed ticket that has no PR yet. It is one call, with the reason:
 
 ```bash
 "$S" hand-back 103 needs-info --reason "ticket cites src/billing/tax.ts, which does not exist"
@@ -125,4 +127,4 @@ A **Hand-back** is any SDD skill returning a sub-issue to a person or a queue: a
 
 Pass `--blocked-by` whenever you know the blocker; it is refused on the other two routes.
 
-The call writes in this order: the progress comment first (status `handed-back`, rendered as `**Handed back:** <route>: <reason>`), then the route labels, then it removes `claimed`. A failure part-way leaves the ticket held, never released without a route, and prints `sync-progress: hand-back: step <n> (<what>) failed; re-run to finish`; re-running the same call finishes it. The reason may carry anything, `--` included.
+The call writes in this order: the progress comment first (status `handed-back`, rendered as `**Handed back:** <route>: <reason>`), then the route labels, then it removes `claimed`. A failure part-way leaves the ticket held, never released without a route, and prints `sync-progress: hand-back: step <n> (<what>) failed; re-run to finish`; re-running the same call finishes it. A progress comment whose trailer does not decode stops the call at step 1 with only the trailer message and no re-run hint, since a re-run refuses the same way: repair the comment first with `upsert` (a body that starts with the marker and carries no trailer), then re-run the hand-back, which renders the comment fresh. The reason may carry anything, `--` included.

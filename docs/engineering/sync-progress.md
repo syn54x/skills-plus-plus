@@ -31,7 +31,7 @@ A hand-back returns a ticket to a person or a queue, with a reason. A worker han
 
 The unnamed `blocked` route drops `ready-for-agent` because the ready queue only looks at blocked-by edges, not the `blocked` label; without that, the ticket would be picked up again every wave.
 
-The progress comment then reads `**Status:** handed-back` with a `**Handed back:** <route>: <reason>` line, and the ticket's `claimed` label is gone, so it is visibly back in a queue rather than silently held. The comment is written first and the claim cleared last, so a hand-back that fails part-way leaves the ticket held and names the step that failed; running the same call again finishes it.
+The progress comment then reads `**Status:** handed-back` with a `**Handed back:** <route>: <reason>` line, and the ticket's `claimed` label is gone, so it is visibly back in a queue rather than silently held. The comment is written first and the claim cleared last, so a hand-back that fails part-way leaves the ticket held and names the step that failed; running the same call again finishes it. The one exception is a progress comment whose hidden data line is damaged: the call stops before writing anything, with only that error, because running it again would stop the same way. Rewrite the comment with `upsert` (the marker line and no data line), then run the hand-back again.
 
 ## Common questions
 
@@ -45,7 +45,7 @@ The comment's state, base64-encoded JSON, for the SDD skills to read back. GitHu
 Re-pin the plan with the narrowings that still hold: each `--narrowed` call replaces the whole list. To drop the last one, pass `--narrowed none`; a call that leaves out `--narrowed` keeps the list as it was.
 
 **My epic spans two repos. Can a wave list tickets from the other one?**
-Yes. A wave's tickets and blocked-by edges accept `owner/repo#N` or an issue URL as well as a bare number, and the wave comment shows them as written: `Wave 1: #101, acme/api#7`.
+Yes. A wave's tickets and blocked-by edges accept `owner/repo#N` or an issue URL as well as a bare number, and the wave comment shows them as written: `Wave 1: #101, acme/api#7`. When you record a PR with `wave pr`, give `--ticket` in the same form the wave used: a bare `7` does not find `acme/api#7`.
 
 **A comment written before this change has no trailer. Does that break anything?**
 No. The first write through the script renders it fresh from the fields that write passes. An epic built across the upgrade can lose earlier prose on its wave comment; the retro keeps reading the old line format as a fallback.

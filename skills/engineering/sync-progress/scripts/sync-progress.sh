@@ -28,8 +28,8 @@ usage: sync-progress.sh upsert    <issue> <marker> <body-file>
 ready-for-agent; every other hand-back, blocked without --blocked-by included, removes ready-for-agent.
 --narrowed replaces the stored list with every --narrowed of the call, --narrowed none clears it, and a
 call without --narrowed keeps it; --add-deviation appends.
-wave add replaces the wave with the same --n; wave panel replaces the entry with the same --round;
-wave pr records the PR on the last wave whose tickets hold --ticket.
+wave add replaces every wave with the same --n; wave panel replaces the entry with the same --round;
+wave pr records the PR on the last wave whose tickets hold --ticket, given in the form wave add stored.
 <issue> is an issue number in the current repo (GH_REPO, else gh repo view) or a GitHub issue URL.
 A wave ticket is a number, owner/repo#N or an issue URL, stored and rendered as given.
 EOF
@@ -75,11 +75,12 @@ write_comment() {
 }
 
 # The decoded data trailer of OLD: {} when it has none (rendered fresh), null when an sdd-data line is
-# there but does not match, decode or parse. CRs are dropped first (a comment edited in the web UI comes
-# back CRLF) and trailing whitespace is tolerated; anything else on the line is refused.
+# there but does not match, decode or parse. The line grammar is SKILL.md's trailer paragraph: CRs are
+# dropped (a comment edited in the web UI comes back CRLF), the last line that starts with
+# `<!-- sdd-data:` once trimmed is the trailer, and only trailing whitespace is tolerated on it.
 old_data() {
   printf '%s' "$OLD" | jq -Rsc '
-    [gsub("\r"; "") | split("\n")[] | select(startswith("<!-- sdd-data:"))] | last
+    [gsub("\r"; "") | split("\n")[] | select(gsub("^\\s+|\\s+$"; "") | startswith("<!-- sdd-data:"))] | last
     | if . == null then {}
       else (first(sub("\\s+$"; "") | capture("^<!-- sdd-data: (?<d>[A-Za-z0-9+/=]+) -->$").d) // null)
         | if . == null then null else (try (@base64d | fromjson) catch null) end
@@ -98,6 +99,7 @@ save() {
   find_comment "$1"
   old=$(old_data)
   if [ "$old" = null ]; then
+    STEP=""  # a re-run refuses the same way, so the hand-back's re-run hint would mislead
     echo "sync-progress: $1 on $REPO#$NUM has an sdd-data trailer that does not decode; refusing to overwrite it" >&2
     exit 1
   fi
@@ -213,8 +215,9 @@ cmd_wave() {
       PATCH=$(jq -c -n --arg n "$n" --arg t "$tickets" --arg w "$workers" --arg s "$started" --arg e "$edges" \
         '{n: ($n | tonumber), tickets: ($t | split(",")), workers: ($w | split(",")), started: $s,
           edges: (if $e == "none" then [] else $e | split(",") | map(split("<")) end), prs: {}}')
-      # A retried add replaces the wave with the same n and keeps the PRs already recorded on it.
-      merge='(first(.waves[] | select(.n == $p.n)).prs // {}) as $prs
+      # A retried add replaces every wave with the same n and keeps the PRs recorded on any of them,
+      # a later duplicate winning a ticket both record.
+      merge='([.waves[] | select(.n == $p.n) | .prs] | add // {}) as $prs
              | .waves = ([.waves[] | select(.n != $p.n)] + [$p + {prs: $prs}] | sort_by(.n))' ;;
     pr)
       [[ $ticket =~ ^($TICKET)$ ]] || usage "wave pr needs --ticket N|owner/repo#N|URL"

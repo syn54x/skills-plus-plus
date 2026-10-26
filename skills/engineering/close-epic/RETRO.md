@@ -12,8 +12,10 @@ EPIC_REPO=$(printf '%s' "$EPIC_URL" | sed -E 's#https://github.com/([^/]+/[^/]+)
 EPIC_N=${EPIC_URL##*/}
 TICKETS=$(gh issue view "$EPIC_URL" --json subIssues --jq '.subIssues.nodes[].url')
 # Marker comments end with `<!-- sdd-data: <base64 of JSON> -->` (ADR 0007). Read the trailer first; a missing
-# or undecodable trailer (epics built before it, or a damaged line) falls back to the prose regex.
-trailer() { jq -r '.[-1:][] | split("\n") | map(capture("^<!-- sdd-data: (?<t>[^ ]+) -->$")? | .t) | last // empty' | base64 -d 2>/dev/null; }
+# or undecodable trailer (epics built before it, or a damaged line) falls back to the prose regex. The line
+# grammar (CRs dropped, trailing whitespace allowed) is the one in sync-progress SKILL.md's trailer paragraph.
+trailer() { jq -r '.[-1:][] | gsub("\r"; "") | [split("\n")[] | select(gsub("^\\s+|\\s+$"; "") | startswith("<!-- sdd-data:"))]
+  | last // empty | sub("\\s+$"; "") | capture("^<!-- sdd-data: (?<t>[A-Za-z0-9+/=]+) -->$").t' | base64 -d 2>/dev/null; }
 PLAN=$(gh api "repos/$EPIC_REPO/issues/$EPIC_N/comments" --paginate \
   --jq '[.[] | select(.body | startswith("<!-- sdd-plan -->")) | .body]' | trailer)
 BRANCH=$(jq -r '.branch // empty' <<<"$PLAN")

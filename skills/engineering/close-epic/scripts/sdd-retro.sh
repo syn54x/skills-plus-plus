@@ -23,12 +23,15 @@ api_all() { local out; out=$(gh api "$1" --paginate 2>/dev/null) || out=""; prin
 NOT_FOUND=""
 not_found() { NOT_FOUND="$NOT_FOUND$1"$'\n'; }
 # Marker comments carry `<!-- sdd-data: <base64 of JSON> -->` as their last line (ADR 0007).
-# decode_trailers <bodies json array> <label> sets DECODED to the array of decoded objects. A trailer that
-# does not decode to a JSON object counts as absent and is named "<label> trailer: unreadable".
+# The line grammar is the one in sync-progress SKILL.md's trailer paragraph, shared with the writer.
+# decode_trailers <bodies json array> <label> sets DECODED to the array of decoded objects. A trailer line
+# that does not match or decode to a JSON object counts as absent and is named "<label> trailer: unreadable".
 b64d() { printf '%s' "$1" | base64 -d 2>/dev/null || printf '%s' "$1" | base64 -D 2>/dev/null; }
 decode_trailers() {
   DECODED='[]'; local t j
-  for t in $(jq -r '.[] | split("\n") | map(capture("^<!-- sdd-data: (?<t>[^ ]+) -->$")? | .t) | last // empty' <<<"$1"); do
+  # "!" stands in for a trailer line that does not match: it never decodes, so it lands on unreadable.
+  for t in $(jq -r '.[] | gsub("\r"; "") | [split("\n")[] | select(gsub("^\\s+|\\s+$"; "") | startswith("<!-- sdd-data:"))]
+      | last // empty | (sub("\\s+$"; "") | capture("^<!-- sdd-data: (?<t>[A-Za-z0-9+/=]+) -->$").t) // "!"' <<<"$1"); do
     if j=$(b64d "$t" | jq -ce 'select(type=="object")' 2>/dev/null) && [ -n "$j" ]; then
       DECODED=$(jq -c --argjson j "$j" '. + [$j]' <<<"$DECODED")
     else
