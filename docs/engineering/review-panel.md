@@ -22,10 +22,13 @@ Type `/review-panel <pr#>`, or the agent reaches for it when a PR to `main` need
 
 **Does it check our ADRs and invariants?** Yes: the standards-and-invariants persona reads your laws and flags where the diff breaks one. The panel takes them from the `Laws:` line of the `<!-- sdd-routing -->` block in `CLAUDE.md` or `AGENTS.md`, the same list the worker and the slice gate read, and a directory on the line is read whole. With no such line it falls back to `CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`, `CONCEPTS.md`, `CODING_STANDARDS.md`, `CONTRIBUTING.md` and the ADR directory. Candidate new ADRs and terminology drift go into [close-epic](../engineering/close-epic.md)'s Learnings.
 
+**Does it read our CI?** Yes. It reads the PR's checks once, on the head it reviews, and the Coverage block gives the counts on that sha. A failing check (a cancelled one counts as failing) blocks **MERGE** the way a red Verify does, so the verdict is **FIX FIRST**. A check that is still pending, with nothing stronger open, comes to you as **HUMAN DECISION**, because the checks have not finished. A repo with no checks is unaffected. The re-review reads the checks again on the new head.
+
 ## It's working if
 
 - The persona set is announced, with a reason for each conditional one, before any reviewer runs.
 - The report has one verdict, findings with `F` numbers, file and line, and a Coverage section saying what was dropped and why.
+- The Coverage block has a `Checks:` line naming the pass, fail and pending counts on the reviewed sha, or `none configured`.
 - Nothing is posted to the PR until you approve it.
 - After a fix round, a separate `Round 2` report says `ADDRESSED` or `NOT ADDRESSED` for each earlier `F` number and lists only the new findings.
 
