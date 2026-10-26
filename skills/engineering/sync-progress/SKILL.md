@@ -112,7 +112,7 @@ A ticket is **held** when it carries the `claimed` label or an assignee. A held 
 
 ## Hand-back
 
-A **Hand-back** is any SDD skill returning a sub-issue to a person or a queue: a worker stopping without a PR, a gate (`review-pr` after the fix round, `build-epic` after the ceiling dispatch) routing one whose PR stays open, or `build-epic`'s safety check returning an unclaimed ticket that has no PR yet. It is one call, with the reason:
+A **Hand-back** is any SDD skill returning a sub-issue to a person or a queue: a worker stopping without a PR, a gate (`review-pr`, `build-epic`) routing one whose PR stays open, or `build-epic`'s safety check returning an unclaimed ticket that has no PR yet. It is one call, with the reason:
 
 ```bash
 "$S" hand-back 103 needs-info --reason "ticket cites src/billing/tax.ts, which does not exist"
