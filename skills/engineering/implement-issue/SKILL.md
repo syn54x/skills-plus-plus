@@ -57,6 +57,16 @@ Work only inside **Files owned** (its Create, Modify and Test paths). If the sli
 
 Call the Skill tool with "tdd" for the loop's rules; if it is unavailable, run the same loop by hand: failing test → minimal code → green → refactor. Start from the ticket's **Test scenarios**: one test per line, in the order given, and add any case you discover under the same category headings in the PR body. Follow the in-repo pattern the brief names. Keep the **Produces** signatures in **Interfaces** exactly as the ticket states them; another ticket, possibly in another repo, is coded against those names. The one exit is a declared **Interface deviation**: when an in-repo code signature (function, type, enum, struct) cannot work as written, ship the signature that works, add one `Interfaces changed:` line per deviation to the PR body, and report `DONE_WITH_CONCERNS`. A cross-repo contract (a route and its request/response shapes, an event payload, a generated-client method) and any interface the epic body states never deviate: stop with `NEEDS_CONTEXT`. Import what you **Consume** by the names the producing ticket published; if a name differs in the merged code, stop and report rather than adapt silently. A **Consumes** line from another repo carries an *Available when* clause: if that thing is not reachable from your checkout (the route 404s, the client method is missing), you are `BLOCKED`, not creative.
 
+**Prose-only tickets.** When every Test scenario resolves to a command in the Verify block rather than a test file (the Files owned are a `SKILL.md`, a reference file or a docs page), there is no test runner, so the Verify block is the test. RED is the Verify block run before any edit, with each failing command recorded; those commands are the scenarios. GREEN is the edit that turns each one, in the order the scenarios are given. A Verify command that already passes before any edit has no RED: list it under **Notes for the reviewer** as `No RED: <command>`, still make the edit its scenario describes, and the reviewer reads that pin as weak rather than as proof of the change. A ticket that mixes a test file and prose follows the `tdd` loop for the test file, and only the prose scenarios use the Verify-run RED. The PR body's TDD line then reads, with the weak pin under Notes for the reviewer:
+
+```markdown
+TDD: RED `grep -q 'No RED:' skills/engineering/implement-issue/SKILL.md` failed before the edit (no hit); GREEN the same command passed after it (3/3 Verify commands).
+
+## Notes for the reviewer
+
+No RED: `prek run --all-files`
+```
+
 **Check a law at its trigger.** A law that states a trigger is checked at the trigger, before the line that would do the thing the law names: before a second copy of a derivation or markup, before a component mounted in a second host, before an assertion that an affordance shows. The check is usually a search (the existing copy, the other host, the test that exercises the affordance), and its result is acted on in this PR: extract the one copy, exercise the affordance. A law with no trigger is checked once, in the §6 self-review.
 
 When the ticket touches a docs page or a docstring, call the Skill tool with `writing-for-humans` before writing its prose.
