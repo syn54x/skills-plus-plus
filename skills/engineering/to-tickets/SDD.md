@@ -70,6 +70,8 @@ Without the line, the narrowing is a defect, and `review-pr` and `review-panel` 
 | `size:M` | its sections need careful reading; one worker, one worktree | an epic's ticket: `/build-epic`; a one-off: `/implement <N>` |
 | `size:L` | cross-cutting, touches migrations or shared contracts | an epic's ticket: `/build-epic`, ceiling-tier worker; a one-off: `/implement <N>` |
 
+A one-off whose Files owned includes any path under `.github/workflows/` is at least `size:M`, whatever its file count: the cloud worker's token cannot push workflow files, so the cloud workflow can never deliver it, and its brief says so. Other `.github/` paths are sized as above.
+
 ## 2. Publish natively
 
 Step 5's real-tracker branch applies, with these specifics:
