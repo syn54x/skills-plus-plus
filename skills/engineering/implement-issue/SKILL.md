@@ -41,12 +41,17 @@ Then write the first progress comment with `sync-progress.sh progress "$N" --sta
 
 ## 3. Branch
 
-The brief names the base branch. If the brief's first step, or whatever started you, already put you on a branch for this ticket, whatever its name, stay on it only when it descends from the **remote** base: after `git fetch origin <base>`, `test "$(git merge-base HEAD origin/<base>)" = "$(git rev-parse origin/<base>)"` holds. A pre-made branch that fails that test is `BLOCKED` (see *If you get stuck*): report it rather than build on it, because a worktree may start on the default branch. Otherwise create `sdd/<N>-<slug>` from `origin/<base>`, never from `HEAD`, for the same reason:
+Set `BASE` from the brief (the base branch it names; the default branch when it names none) and fetch it:
 
 ```bash
-BASE=feat/invoices                                  # from the brief; default main
+BASE=feat/invoices; git fetch origin "$BASE"
+```
+
+If the brief's first step, or whatever started you, already put you on `sdd/<N>-<slug>` cut from `origin/<base>`, stay on it. Otherwise create it from the **remote** ref `origin/<base>`, never from `HEAD`, because a worktree may start on the default branch:
+
+```bash
 SLUG=$(gh issue view "$N" --json title --jq '.title | ascii_downcase | gsub("[^a-z0-9]+";"-") | .[0:40]')
-git fetch origin "$BASE" && git switch -c "sdd/$N-$SLUG" "origin/$BASE"
+git switch -c "sdd/$N-$SLUG" "origin/$BASE"
 ```
 
 Either way, resolve the branch once with `BRANCH=$(git branch --show-current)`; every later step names `"$BRANCH"`. The PR targets the brief's base (the default branch when the brief names none). Then record it on the progress comment with `sync-progress.sh progress "$N" --branch "$BRANCH"`; every field you do not pass, the Worker line among them, keeps its value.
