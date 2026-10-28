@@ -26,6 +26,9 @@ The spec as one GitHub **Issue** (type `Epic` on org repos), written by `to-spec
 **Sub-issue**:
 One tracer-bullet **Issue** under an **Epic**, linked natively (`--parent`, `--blocked-by`). `to-tickets`' SDD pass gives it **Files owned** (Create / Modify / Test), **Interfaces** (Consumes / Produces), **Test scenarios** and a **Verify block**.
 
+**One-off**:
+An **Issue** with no **Epic**, hardened by triage to carry what a **Sub-issue** carries plus one size, and built through `/implement`, never `build-epic`.
+
 **Routing block**:
 The `<!-- sdd-routing -->` block `setup-syn54x-skills` writes into `CLAUDE.md` or `AGENTS.md`. Its presence is what switches a repo onto the SDD flow.
 
@@ -52,7 +55,7 @@ A **Sub-issue**'s declared departure from its own Produces line, stated in its P
 _Avoid_: interface drift (the undeclared kind is a defect), signature change
 
 **Size ladder**:
-Under `build-epic` every size (`size:S`, `M` and `L`) builds in local **Waves**, XL as a dynamic workflow. The cloud path (`claude-code-action`) is for a one-off `size:S` ticket outside an **Epic**.
+Under `build-epic` every size (`size:S`, `M` and `L`) builds in local **Waves**, XL as a dynamic workflow; a **One-off** builds through `/implement` at every size.
 
 **Multi-repo epic**:
 An **Epic** whose **Sub-issues** live in more than one repo. Sub-issues are named by URL; each repo gets its own integration branch, worktrees and PRs; a cross-repo blocker must be merged **and available** before its consumer is ready.

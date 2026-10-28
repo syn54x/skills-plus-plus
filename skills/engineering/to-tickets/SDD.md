@@ -66,11 +66,9 @@ Without the line, the narrowing is a defect, and `review-pr` and `review-panel` 
 
 | Size | Meaning | Builds via |
 | --- | --- | --- |
-| `size:S` | one context window, at most 3 files, no schema or cross-package change | an epic's ticket: `/build-epic`, in a local wave like M and L; a one-off: `/implement <N>`, or the cloud workflow if installed |
+| `size:S` | one context window, at most 3 files, no schema or cross-package change | an epic's ticket: `/build-epic`, in a local wave like M and L; a one-off: `/implement <N>` |
 | `size:M` | its sections need careful reading; one worker, one worktree | an epic's ticket: `/build-epic`; a one-off: `/implement <N>` |
 | `size:L` | cross-cutting, touches migrations or shared contracts | an epic's ticket: `/build-epic`, ceiling-tier worker; a one-off: `/implement <N>` |
-
-A one-off whose Files owned includes any path under `.github/workflows/` is at least `size:M`, whatever its file count: the cloud worker's token cannot push workflow files, so the cloud workflow can never deliver it, and its brief says so. Other `.github/` paths are sized as above.
 
 ## 2. Publish natively
 
