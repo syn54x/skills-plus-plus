@@ -37,19 +37,19 @@ Note each law that states a trigger (the moment it applies) and the check that d
 
 Call the Skill tool with "sync-progress" and claim through it: `scripts/sync-progress.sh claim "$N"` in its base directory creates the `claimed` label (with force) and adds it, which is the **Claim mark**. Never add it over a held ticket that is not yours. Resuming a ticket already held by you (a fix round) skips the claim.
 
-Then write the first progress comment with `sync-progress.sh progress "$N" --status in-progress --worker <you> --branch sdd/<N>-<slug>`, so the **Worker** line names you and a twin run can tell whose mark it is.
+Then write the first progress comment with `sync-progress.sh progress "$N" --status in-progress --worker <you>`, so the **Worker** line names you the moment the mark exists and a twin run can tell whose mark it is. §3 adds the branch once it is known.
 
 ## 3. Branch
 
-If the brief's first step, or whatever started you, already put you on a branch for this ticket, whatever its name, stay on it. Otherwise the brief names the base branch: create `sdd/<N>-<slug>` from the **remote** ref `origin/<base>`, never from `HEAD`, because a worktree may start on the default branch. The code block is that otherwise case.
-
-The PR targets the brief's base (the default branch when the brief names none).
+The brief names the base branch. If the brief's first step, or whatever started you, already put you on a branch for this ticket, whatever its name, stay on it only when it descends from the **remote** base: after `git fetch origin <base>`, `test "$(git merge-base HEAD origin/<base>)" = "$(git rev-parse origin/<base>)"` holds. A pre-made branch that fails that test is `BLOCKED` (see *If you get stuck*): report it rather than build on it, because a worktree may start on the default branch. Otherwise create `sdd/<N>-<slug>` from `origin/<base>`, never from `HEAD`, for the same reason:
 
 ```bash
 BASE=feat/invoices                                  # from the brief; default main
 SLUG=$(gh issue view "$N" --json title --jq '.title | ascii_downcase | gsub("[^a-z0-9]+";"-") | .[0:40]')
 git fetch origin "$BASE" && git switch -c "sdd/$N-$SLUG" "origin/$BASE"
 ```
+
+Either way, resolve the branch once with `BRANCH=$(git branch --show-current)`; every later step names `"$BRANCH"`. The PR targets the brief's base (the default branch when the brief names none). Then record it on the progress comment with `sync-progress.sh progress "$N" --branch "$BRANCH"`; every field you do not pass, the Worker line among them, keeps its value.
 
 ## 4. Build, test-first
 
@@ -105,7 +105,7 @@ This self-review does not replace the reviewer; it makes the review shorter.
 ## 7. Open the PR
 
 ```bash
-git push -u origin "sdd/$N-$SLUG"
+git push -u origin "$BRANCH"
 gh pr create --base "$BASE" --title "<type>: <ticket title> (#$N)" --body-file /tmp/pr.md
 ```
 
@@ -151,7 +151,7 @@ A `## Laws` section has this shape:
 
 ## 8. Check the claims, then report
 
-**Claims**, against the pushed branch: every test named in the TDD evidence, and every file or pin the report or PR body says was added or changed, is in `git diff "origin/$BASE...HEAD"`; every test whose file changed after its RED run was run again, and GREEN comes from the final committed state (the Verify SHA equals the pushed `HEAD`, `git rev-parse "origin/sdd/$N-$SLUG"`); `git status --porcelain` is empty, so nothing the report relies on is only uncommitted. Fix a failing claim (commit, re-run Verify, push) or remove it from the report and PR body.
+**Claims**, against the pushed branch: every test named in the TDD evidence, and every file or pin the report or PR body says was added or changed, is in `git diff "origin/$BASE...HEAD"`; every test whose file changed after its RED run was run again, and GREEN comes from the final committed state (the Verify SHA equals the pushed `HEAD`, `git rev-parse "origin/$BRANCH"`); `git status --porcelain` is empty, so nothing the report relies on is only uncommitted. Fix a failing claim (commit, re-run Verify, push) or remove it from the report and PR body.
 
 Update the progress comment with `sync-progress.sh progress "$N" --status pr-open --pr <PR number> --verify "passed <sha7>"`. Then reply in ≤ 200 words:
 
