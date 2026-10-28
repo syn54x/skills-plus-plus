@@ -11,7 +11,7 @@ You invoke this by typing `/ask-syn54x`; the agent won't reach for it on its own
 | Your situation | What the router gives back |
 | --- | --- |
 | An idea, and no idea where to start | The head of the main flow, and whether the build is small enough to skip the spec |
-| A spec to build on a repo with the SDD pipeline on | The SDD flow: [to-tickets](../engineering/to-tickets.md) hardens the epic's sub-issues, then [build-epic](../engineering/build-epic.md) at every size; the cloud workflow builds only a one-off `size:S` ticket outside an epic |
+| A spec to build on a repo with the SDD pipeline on | The SDD flow: [to-tickets](../engineering/to-tickets.md) hardens the epic's sub-issues, then [build-epic](../engineering/build-epic.md) at every size; a one-off outside an epic goes to [implement](../engineering/implement.md) |
 | Bugs and requests arriving from other people | The [triage](../engineering/triage.md) on-ramp, and why tickets you generated yourself don't belong on it |
 | Two skills that look interchangeable | The line between them, and it is usually one concrete test rather than a matter of taste. [grill-me](../productivity/grill-me.md) or [grill-with-docs](../engineering/grill-with-docs.md) turns on whether you are in a working directory; [grill-with-docs](../engineering/grill-with-docs.md) or [wayfinder](../engineering/wayfinder.md) turns on whether the effort fits one session |
 | A long session and a decision about the context | The ordered tree over the five options at a phase boundary |
