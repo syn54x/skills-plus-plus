@@ -10,8 +10,8 @@ We give each step of the pipeline exactly one user-invoked entry point, and make
 | `to-spec`, `to-tickets` | user | the human (the SDD pass lives inside `to-tickets`, see ADR 0003) |
 | `build-epic` | user | the human; the orchestrator |
 | `implement` | user | the human; hands an SDD sub-issue to `implement-issue` |
-| `implement-issue` | model | `build-epic` workers, the `sdd-worker` agent's preload, `implement`, the cloud workflow |
-| `review-pr` | model | `build-epic`, the `sdd-reviewer` agent, `review-panel`, the cloud workflow |
+| `implement-issue` | model | `build-epic` workers, the `sdd-worker` agent's preload, `implement` |
+| `review-pr` | model | `build-epic`, the `sdd-reviewer` agent, `review-panel` |
 | `review-panel` | model | `build-epic`, or the human asking for a panel on a PR to `main` |
 | `close-epic` | model | `build-epic` after the human merges, or the human in any later session |
 | `sync-progress` | model | every SDD skill that writes a marker comment |
@@ -24,3 +24,7 @@ We give each step of the pipeline exactly one user-invoked entry point, and make
 - **`sync-progress`**: a reference skill; it only writes when another skill asks it to.
 
 `scripts/check-invocation.py` enforces the rule in CI: a `Call the Skill tool with "x"` line or an agent's `skills:` preload that names a user-invoked skill fails the build.
+
+## Update, 2026-10-27
+
+The cloud workflow is no longer a caller. `implement-issue` and `review-pr` lost their cloud routes, and the two workflow templates that started them are gone from the pack, so the table's rows for those skills no longer name it. Both skills stay model-invoked: `build-epic`, the two agents, `implement` and `review-panel` still start them. Why the cloud path was dropped, and what anyone writing their own workflow should know, is recorded in [`.out-of-scope/cloud-workflow-templates.md`](../../.out-of-scope/cloud-workflow-templates.md).
