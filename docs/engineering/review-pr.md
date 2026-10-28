@@ -1,12 +1,12 @@
 ## What it does
 
-`review-pr` gates one PR that closes an SDD sub-issue. A fresh reviewer, never the worker, re-runs the ticket's **Verify** block on the PR head and returns two verdicts kept apart: **Spec** (does the diff do what the sub-issue says, classed as Missing, Extra or Misunderstood?) and **Quality** (is it code the repo wants, judged against its **Laws**: the documents the routing block's `Laws:` line names, or a fixed fallback list when the repo has none, with a Fowler smell baseline where the repo documents nothing, plus the **depth check**: did the PR add a shallow module, extract pure functions while the bugs stay at the call site, test past an interface, or touch an already-shallow module without deepening it). When the integration branch has moved since the PR branched, it also runs Verify on a local trial merge of the PR into the current branch, never pushed, and Spec passes only if both trees are green. It posts both verdicts as one PR review comment and routes a failure to one fix round (none in the cloud), then to `ready-for-human`.
+`review-pr` gates one PR that closes an SDD sub-issue. A fresh reviewer, never the worker, re-runs the ticket's **Verify** block on the PR head and returns two verdicts kept apart: **Spec** (does the diff do what the sub-issue says, classed as Missing, Extra or Misunderstood?) and **Quality** (is it code the repo wants, judged against its **Laws**: the documents the routing block's `Laws:` line names, or a fixed fallback list when the repo has none, with a Fowler smell baseline where the repo documents nothing, plus the **depth check**: did the PR add a shallow module, extract pure functions while the bugs stay at the call site, test past an interface, or touch an already-shallow module without deepening it). When the integration branch has moved since the PR branched, it also runs Verify on a local trial merge of the PR into the current branch, never pushed, and Spec passes only if both trees are green. It posts both verdicts as one PR review comment and routes a failure to one fix round, then to `ready-for-human`. A PASS on both verdicts sets no label: the reviewed open PR and the progress status `verify-passed` are the signal to merge, and `ready-for-human` keeps one meaning, a ticket handed back to a person.
 
 It trusts nothing the worker says. The PR body and the worker's report are claims to check against the diff, and a finding is reported only when the reviewer can name the line, the failure, and is at least 80% sure.
 
 ## When to reach for it
 
-Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gating. Usually something else starts it: [build-epic](../engineering/build-epic.md) after each worker reports, the `sdd-review.yml` cloud workflow on every non-draft `sdd/*` PR the cloud worker opened, and [review-panel](../engineering/review-panel.md), which uses its full-epic mode for the spec verdict on the PR to `main`.
+Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gating. Usually something else starts it: [build-epic](../engineering/build-epic.md) after each worker reports, and [review-panel](../engineering/review-panel.md), which uses its full-epic mode for the spec verdict on the PR to `main`.
 
 | The PR is… | Reach for |
 | --- | --- |
@@ -24,9 +24,7 @@ Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gatin
 
 **What happens on the second failure?** Nothing automatic. After the single fix round and a scoped re-review, open findings hand the ticket back `ready-for-human` with the PR left open.
 
-**What happens when a cloud PR fails review?** A cloud run cannot resume a held ticket, so there is no fix round: the reviewer hands the ticket back `ready-for-human` with the failing items as the reason, which sets the label, clears the `claimed` mark and leaves the PR open with the review on it.
-
-**What happens when a cloud PR passes?** No label. The reviewed open PR and the progress status `verify-passed` are the signal for a person to merge; `ready-for-human` keeps one meaning, a ticket handed back to a person.
+**What happens when a PR fails review and nobody can resume the worker?** There is no fix round: the reviewer hands the ticket back `ready-for-human` with the failing items as the reason, which sets the label, clears the `claimed` mark and leaves the PR open with the review on it. A one-off reviewed on its own is the usual case.
 
 **Quality failed on a module that works. Why?** The depth check fired. A module the PR introduced whose interface is nearly as wide as its implementation, or tests that mock the code under test, is an Important finding when the fix fits the PR's own files, because the slice is the cheap moment to deepen it. The finding names the direction, never a design; the worker chooses the shape. The four questions live in one place, [codebase-design](../engineering/codebase-design.md)'s `DEPTH-CHECK.md`, and [improve-pr-architecture](../engineering/improve-pr-architecture.md) asks the same four when you want to explore one rather than fix it.
 

@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Gate a pull request that closes an SDD sub-issue with a fresh reviewer (re-run the ticket's Verify block, judge spec and quality separately, post both verdicts, route failures). Use when build-epic gates a worker's PR, the cloud review workflow runs, or review-panel needs the full-epic spec verdict.
+description: Gate a pull request that closes an SDD sub-issue with a fresh reviewer (re-run the ticket's Verify block, judge spec and quality separately, post both verdicts, route failures). Use when build-epic gates a worker's PR, a one-off PR needs gating, or review-panel needs the full-epic spec verdict.
 ---
 
 # Review PR
@@ -15,7 +15,7 @@ Use the URL when the epic spans repos; `gh pr view`, `gh pr diff` and `gh pr che
 
 ## 1. Fresh eyes
 
-If you are already that fresh reviewer (the `sdd-reviewer` agent, a cloud run, or any session that did not write the code), skip to step 2. Otherwise, if the harness has subagents, dispatch **one fresh reviewer** per PR with this skill and the PR number as its whole context (Claude Code: the `sdd-reviewer` agent from the plugin, or a general-purpose agent with read-only tools plus `gh`). The reviewer must not be the worker and must not inherit the orchestrator's conversation. Without subagents, do the review yourself but only after clearing context of the implementation.
+If you are already that fresh reviewer (the `sdd-reviewer` agent, or any session that did not write the code), skip to step 2. Otherwise, if the harness has subagents, dispatch **one fresh reviewer** per PR with this skill and the PR number as its whole context (Claude Code: the `sdd-reviewer` agent from the plugin, or a general-purpose agent with read-only tools plus `gh`). The reviewer must not be the worker and must not inherit the orchestrator's conversation. Without subagents, do the review yourself but only after clearing context of the implementation.
 
 ## 2. Gather
 
@@ -114,8 +114,8 @@ Update the sub-issue's progress comment (call the Skill tool with "sync-progress
 
 ## 6. Route
 
-- **PASS / PASS** → tell the orchestrator. In the cloud path set no label: the reviewed open PR and the status `verify-passed` are the signal for a person to merge.
-- **Any FAIL, first time** → the Critical and Important findings go back to the **same worker** for exactly one fix round (orchestrator resumes it by name). Cloud, on a one-off ticket (the issue has no parent; `gh issue view "$N" --json parent --jq .parent` is empty): there is no fix round, because a cloud run cannot resume a held ticket today (its Worker line is the run URL, and the trigger skips a claimed issue). Hand the ticket back with `sync-progress.sh hand-back "$N" ready-for-human --reason "<the failing items>"`, which sets the label, clears the `claimed` mark and records the reason; leave the PR open with the review on it. Stop.
+- **PASS / PASS** → tell the orchestrator and set no label: the reviewed open PR and the status `verify-passed` are the signal to merge.
+- **Any FAIL, first time** → the Critical and Important findings go back to the **same worker** for exactly one fix round (orchestrator resumes it by name). When no orchestrator can resume the worker (a one-off ticket reviewed on its own: the issue has no parent, `gh issue view "$N" --json parent --jq .parent` is empty), there is no fix round. Hand the ticket back with `sync-progress.sh hand-back "$N" ready-for-human --reason "<the failing items>"`, which sets the label, clears the `claimed` mark and records the reason; leave the PR open with the review on it. Stop.
 - **When the PR updates** → a **scoped re-review**, not a fresh one: diff only from the head you reviewed to the new head; verdict every finding `ADDRESSED` / `NOT ADDRESSED` with file:line ("attempted" is not addressed; the defect must be gone), with no Law tag since the finding it answers already carries one; flag new Critical/Important breakage in the fix diff as findings with their Law tag; anything you notice outside the fix diff goes under *Out-of-scope observations* and does not block. Re-run Verify by step 2's rule: on the new head, and on a fresh trial merge if the base has moved since the new head's merge base.
 - **Findings still open after the fix round** → `sync-progress.sh hand-back "$N" ready-for-human --reason "<the open findings>"` (call the Skill tool with "sync-progress"; its Hand-back section sets the label and clears the mark); leave the PR open with the review on it. Stop. (The orchestrator may choose one ceiling-tier re-dispatch before that; see `build-epic`.)
 
