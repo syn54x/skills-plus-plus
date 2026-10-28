@@ -37,7 +37,7 @@ Note each law that states a trigger (the moment it applies) and the check that d
 
 Call the Skill tool with "sync-progress" and claim through it: `scripts/sync-progress.sh claim "$N"` in its base directory creates the `claimed` label (with force) and adds it, which is the **Claim mark**. Never add it over a held ticket that is not yours. Resuming a ticket already held by you (a fix round) skips the claim.
 
-The first progress comment follows at the end of §3, once the branch is known.
+Then write the first progress comment with `sync-progress.sh progress "$N" --status in-progress --worker <you>`, so the **Worker** line names you the moment the mark exists and a twin run can tell whose mark it is. §3 adds the branch once it is known.
 
 ## 3. Branch
 
@@ -49,7 +49,7 @@ SLUG=$(gh issue view "$N" --json title --jq '.title | ascii_downcase | gsub("[^a
 git fetch origin "$BASE" && git switch -c "sdd/$N-$SLUG" "origin/$BASE"
 ```
 
-Either way, resolve the branch once with `BRANCH=$(git branch --show-current)`; every later step names `"$BRANCH"`. The PR targets the brief's base (the default branch when the brief names none). Then write the first progress comment with `sync-progress.sh progress "$N" --status in-progress --worker <you> --branch "$BRANCH"`, so the **Worker** line names you and a twin run can tell whose mark it is.
+Either way, resolve the branch once with `BRANCH=$(git branch --show-current)`; every later step names `"$BRANCH"`. The PR targets the brief's base (the default branch when the brief names none). Then record it on the progress comment with `sync-progress.sh progress "$N" --branch "$BRANCH"`; every field you do not pass, the Worker line among them, keeps its value.
 
 ## 4. Build, test-first
 
