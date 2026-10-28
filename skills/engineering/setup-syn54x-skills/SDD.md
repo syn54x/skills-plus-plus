@@ -6,7 +6,7 @@ Ask one question first:
 
 > Set up the SDD pipeline for this repo (epics as issues, parallel builds, gated review)? (recommended: **yes** for a repo you build features in)
 
-On **no**, skip the rest of this file. On **yes**, work through D1 to D5, one answer at a time, leading each with the recommended answer.
+On **no**, skip the rest of this file. On **yes**, work through D1 to D4, one answer at a time, leading each with the recommended answer.
 
 ## D1. Preflight
 
@@ -21,7 +21,7 @@ gh repo view --json nameWithOwner,owner --jq '{repo: .nameWithOwner, ownerType: 
 - `ownerType` is `User`: **labels-only mode**. Personal repos have no issue types or fields; sizes and priority are labels.
 - `ownerType` is `null`: some `gh` versions hide it; fall back to `gh api repos/<owner>/<repo> --jq .owner.type`.
 
-Also note whether the chosen `CLAUDE.md` / `AGENTS.md` already contains `<!-- sdd-routing -->`, and whether `.github/workflows/` exists.
+Also note whether the chosen `CLAUDE.md` / `AGENTS.md` already contains `<!-- sdd-routing -->`, and whether `.github/workflows/sdd-implement.yml` or `.github/workflows/sdd-review.yml` already exists.
 
 ## D2. Labels
 
@@ -38,7 +38,7 @@ gh label create blocked         --color 5319E7 --description "Waiting on a depen
 gh label create claimed         --color FBCA04 --description "Held by a worker; set before work, cleared on stopping without a PR" --force
 gh label create size:S          --color C2E0C6 --description "One context window, <= 3 files" --force
 gh label create size:M          --color BFD4F2 --description "Needs a plan; one or two local workers" --force
-gh label create size:L          --color F9D0C4 --description "Cross-cutting or multi-worker; local waves only" --force
+gh label create size:L          --color F9D0C4 --description "Cross-cutting or multi-worker; local waves" --force
 ```
 
 ## D3. Org mode extras (skip in labels-only mode)
@@ -86,22 +86,8 @@ The block **disables competing planners** on purpose: `to-spec` owns the spec an
 
 Show the rendered block alongside the `## Agent skills` draft in step 3, and write it in step 4 directly below `## Agent skills`. If `<!-- sdd-routing -->` is already present, replace everything between the markers in place; never append a duplicate.
 
-## D5. GitHub Actions (optional)
-
-Ask whether the user wants the **cloud path**: it builds a one-off ticket outside an epic, the kind `triage` sizes and hardens (#82), while every sub-issue of an epic builds locally in `build-epic`'s waves. On yes, copy both templates from [workflows/](./workflows/) into `.github/workflows/` during step 4:
-
-- `sdd-implement.yml`: runs `/implement-issue <N>` in `claude-code-action` when an issue completes the pair `ready-for-agent` and `size:S`, in either order; the issue must be open, not held (no `claimed` label, no assignee), and have no parent.
-- `sdd-review.yml`: runs `/review-pr <N>` on every non-draft pull request the cloud worker opened from an `sdd/*` branch (the PR's author is a bot). Locally built PRs, epic slices and local one-offs alike, are not reviewed by CI; `build-epic`'s reviewer or a person gates them.
-- Both templates grant the worker unrestricted Bash through `--allowedTools`, because `/implement-issue` runs `gh`, `git` and the repo's test command and `/review-pr` re-runs the Verify block; the action allows no Bash by default. The runner is isolated and the token is scoped to the repo. A repo that wants a narrower list edits that line after copying.
-- The review template sets `allowed_bots: claude`: every PR the gate reviews is opened by the `sdd-implement` worker, which GitHub reports as the `claude` bot, and the action allows no bots by default.
-- A green `sdd-implement` job does not mean the ticket was built. The fast check is `permission_denials_count` in the run's result block: 0 on a healthy run, anything else means the worker was denied a tool and quit.
-- The cloud path takes a hardened one-off: the six SDD sections `triage` writes and one `size:S` label. A raw report labelled `ready-for-agent` is moved to `needs-info` by the worker's readiness check, as designed; run `/triage` on it first.
-
-Then tell the user what to add, and don't do it for them:
-
-- A repository secret `ANTHROPIC_API_KEY`, **or** the OIDC workload-identity inputs the templates mark in comments. Which one is a project decision; the templates default to the secret.
-- The `plugin_marketplaces` input points at `syn54x/skills-plus-plus`; change it if the repo installs from a fork.
-
 ## Report
 
-In step 5, add one table for Section D: what existed, what was created, what was skipped and why. Point at the next step: `/grill-with-docs` → `/to-spec` → `/to-tickets`, then `/build-epic <epic#>`, or a `ready-for-agent` label on a one-off `size:S` issue outside an epic.
+In step 5, add one table for Section D: what existed, what was created, what was skipped and why. Point at the next step: `/grill-with-docs` → `/to-spec` → `/to-tickets` → `/build-epic <epic#>`.
+
+When D1 found `sdd-implement.yml` or `sdd-review.yml`, add a line to the report that names each file found, says an earlier version of this pack wrote it, and points at `.out-of-scope/cloud-workflow-templates.md` in syn54x/skills-plus-plus for why the pack dropped it. Leave the files in place: setup never deletes a user's files.

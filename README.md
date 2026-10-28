@@ -47,7 +47,7 @@ In your agent, run it once per repo. It will:
 - Ask you which issue tracker you want to use (GitHub, Linear, or local files)
 - Ask you what labels you apply to tickets when you triage them (`/triage` uses labels)
 - Ask you where you want to save any docs we create
-- On GitHub, offer to switch on the SDD pipeline: labels, the routing block, and optional cloud workflows
+- On GitHub, offer to switch on the SDD pipeline: labels, the routing block
 
 ### 3. Bam - you're ready to go.
 
@@ -80,11 +80,11 @@ A ticket is ready when it is open, has no open blockers, is not held (no `claime
 
 ### Size ladder
 
-`to-tickets` sets the size. Under `build-epic` every size builds locally; the size picks how many workers and how much review. The cloud path builds only a one-off `size:S` ticket outside an epic (it fires when an issue completes the pair `ready-for-agent` and `size:S`, in either order; the issue must be open, not held, and have no parent). `implement-issue` is the worker in every row.
+`to-tickets` sets the size. Under `build-epic` every size builds locally; the size picks how many workers and how much review. `implement-issue` is the worker in every row.
 
 | Size | Ticket shape | Trigger | Runs where | Reviewer |
 | --- | --- | --- | --- | --- |
-| S | one context window, at most 3 files | `/build-epic`, or label a one-off `ready-for-agent` | a local wave, like M and L; a one-off outside an epic: cloud `claude-code-action` (`sdd-implement.yml`) | fresh reviewer subagent; `sdd-review.yml` on a cloud PR |
+| S | one context window, at most 3 files | `/build-epic`, or `/implement <N>` for a one-off | a local wave, like M and L; a one-off: a local worktree | fresh reviewer subagent |
 | M | needs its plan sections; 1 or 2 workers | `/build-epic` or `/implement` | local worker in its own worktree | fresh reviewer subagent |
 | L | cross-cutting, or 3 or more sub-issues | `/build-epic` | local waves, 3 to 5 workers, one worktree each | reviewer per slice PR; `review-panel` on the PR to `main` |
 | XL | 8 or more independent sub-issues | `/build-epic --workflow` | dynamic workflow (Claude Code, on opt-in) | scripted verify, then merge order; `review-panel` on the PR to `main` |

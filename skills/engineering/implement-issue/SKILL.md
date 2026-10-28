@@ -1,6 +1,6 @@
 ---
 name: implement-issue
-description: Implement one ready SDD sub-issue end to end (claim, branch, TDD, run its Verify block, open a PR that closes it, keep the progress comment current). Use when a build-epic worker, the cloud workflow, or implement is handed an issue that carries Files owned, Interfaces and a Verify block.
+description: Implement one ready SDD sub-issue end to end (claim, branch, TDD, run its Verify block, open a PR that closes it, keep the progress comment current). Use when a build-epic worker, the sdd-worker preload, or implement is handed an issue that carries Files owned, Interfaces and a Verify block.
 ---
 
 # Implement Issue
@@ -21,7 +21,7 @@ gh issue view "$N" --comments
 
 Confirm you are standing in a checkout of the **ticket's** repo: the `url` field's `owner/repo` must equal `gh repo view --json nameWithOwner --jq .nameWithOwner`. If it does not, stop and report; the PR must be opened in the repo the ticket lives in, so that `Closes #N` closes it.
 
-The issue must be **open**, labelled `ready-for-agent`, have **no open blockers** (`blockedBy.nodes[] | select(.state=="OPEN")` is empty), and be **not held, or held by you**. Held means it carries the `claimed` label or has an assignee; held by you means the existing progress comment's **Worker** line names you (your agent name, this run's URL in the cloud, your login). Anything else: stop and report which condition failed, and for a ticket held by someone else, report "held by <name>" from the Worker line (or the assignee). Do not "just start".
+The issue must be **open**, labelled `ready-for-agent`, have **no open blockers** (`blockedBy.nodes[] | select(.state=="OPEN")` is empty), and be **not held, or held by you**. Held means it carries the `claimed` label or has an assignee; held by you means the existing progress comment's **Worker** line names you (your agent name locally, your login for a human). Anything else: stop and report which condition failed, and for a ticket held by someone else, report "held by <name>" from the Worker line (or the assignee). Do not "just start".
 
 The body must carry `## What to build`, `## Acceptance criteria`, `## Files owned` (Create / Modify / Test), `## Interfaces` (Consumes / Produces), `## Test scenarios` and `## Verify`. A missing or placeholder section (`TBD`, empty, "add appropriate error handling", "similar to #N") means the ticket is not buildable: hand it back with `sync-progress.sh hand-back "$N" needs-info --reason "<what is missing>"` (see *If you get stuck* for how to call the script) and stop.
 
@@ -37,19 +37,24 @@ Note each law that states a trigger (the moment it applies) and the check that d
 
 Call the Skill tool with "sync-progress" and claim through it: `scripts/sync-progress.sh claim "$N"` in its base directory creates the `claimed` label (with force) and adds it, which is the **Claim mark**. Never add it over a held ticket that is not yours. Resuming a ticket already held by you (a fix round) skips the claim.
 
-Then write the first progress comment with `sync-progress.sh progress "$N" --status in-progress --worker <you> --branch sdd/<N>-<slug>`, so the **Worker** line names you and a twin run can tell whose mark it is.
+Then write the first progress comment with `sync-progress.sh progress "$N" --status in-progress --worker <you>`, so the **Worker** line names you the moment the mark exists and a twin run can tell whose mark it is. §3 adds the branch once it is known.
 
 ## 3. Branch
 
-Determine where you are:
+Set `BASE` from the brief (the base branch it names; the default branch when it names none) and fetch it:
 
-- **Local / worktree worker** (`GITHUB_ACTIONS` unset): the brief names the integration branch. Create `sdd/<N>-<slug>` from the **remote** ref `origin/<integration branch>`, never from `HEAD`: a worktree may start on the default branch. If the brief's first step already put you on `sdd/<N>-<slug>` cut from that ref, stay on it.
-  ```bash
-  BASE=feat/invoices                                  # from the brief; default main
-  SLUG=$(gh issue view "$N" --json title --jq '.title | ascii_downcase | gsub("[^a-z0-9]+";"-") | .[0:40]')
-  git fetch origin "$BASE" && git switch -c "sdd/$N-$SLUG" "origin/$BASE"
-  ```
-- **Cloud** (`GITHUB_ACTIONS=true`): claude-code-action already created the branch and checked it out. Do not create another. The PR targets the repository default branch unless the issue body names an integration branch. The same skill text runs here: the Worker line is this run's URL, and a second run that finds the mark already there stops at §1. A cloud run does not resume a held ticket: a FAIL on a cloud PR routes to `ready-for-human` (see `review-pr` §6), and the stable cloud name that would allow a resume is tracked in [#110](https://github.com/syn54x/skills-plus-plus/issues/110).
+```bash
+BASE=feat/invoices; git fetch origin "$BASE"
+```
+
+If the brief's first step, or whatever started you, already put you on `sdd/<N>-<slug>` cut from `origin/<base>`, stay on it. Otherwise create it from the **remote** ref `origin/<base>`, never from `HEAD`, because a worktree may start on the default branch:
+
+```bash
+SLUG=$(gh issue view "$N" --json title --jq '.title | ascii_downcase | gsub("[^a-z0-9]+";"-") | .[0:40]')
+git switch -c "sdd/$N-$SLUG" "origin/$BASE"
+```
+
+Either way, resolve the branch once with `BRANCH=$(git branch --show-current)`; every later step names `"$BRANCH"`. The PR targets the brief's base (the default branch when the brief names none). Then record it on the progress comment with `sync-progress.sh progress "$N" --branch "$BRANCH"`; every field you do not pass, the Worker line among them, keeps its value.
 
 ## 4. Build, test-first
 
@@ -105,7 +110,7 @@ This self-review does not replace the reviewer; it makes the review shorter.
 ## 7. Open the PR
 
 ```bash
-git push -u origin "sdd/$N-$SLUG"
+git push -u origin "$BRANCH"
 gh pr create --base "$BASE" --title "<type>: <ticket title> (#$N)" --body-file /tmp/pr.md
 ```
 
@@ -151,7 +156,7 @@ A `## Laws` section has this shape:
 
 ## 8. Check the claims, then report
 
-**Claims**, against the pushed branch: every test named in the TDD evidence, and every file or pin the report or PR body says was added or changed, is in `git diff "origin/$BASE...HEAD"`; every test whose file changed after its RED run was run again, and GREEN comes from the final committed state (the Verify SHA equals the pushed `HEAD`, `git rev-parse "origin/sdd/$N-$SLUG"`); `git status --porcelain` is empty, so nothing the report relies on is only uncommitted. Fix a failing claim (commit, re-run Verify, push) or remove it from the report and PR body.
+**Claims**, against the pushed branch: every test named in the TDD evidence, and every file or pin the report or PR body says was added or changed, is in `git diff "origin/$BASE...HEAD"`; every test whose file changed after its RED run was run again, and GREEN comes from the final committed state (the Verify SHA equals the pushed `HEAD`, `git rev-parse "origin/$BRANCH"`); `git status --porcelain` is empty, so nothing the report relies on is only uncommitted. Fix a failing claim (commit, re-run Verify, push) or remove it from the report and PR body.
 
 Update the progress comment with `sync-progress.sh progress "$N" --status pr-open --pr <PR number> --verify "passed <sha7>"`. Then reply in ≤ 200 words:
 
