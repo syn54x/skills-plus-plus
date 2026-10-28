@@ -1,5 +1,39 @@
 # mattpocock-skills
 
+## 1.6.0
+
+### Minor Changes
+
+- [#164](https://github.com/syn54x/skills-plus-plus/pull/164) [`905989e`](https://github.com/syn54x/skills-plus-plus/commit/905989e99d77af3b128831039b61a57743c029a7) Thanks [@0x054](https://github.com/0x054)! - The cloud path through the SDD skills is removed. Every ticket, a One-off at any size included, is now built locally with `/build-epic` or `/implement`. The pack no longer ships `claude-code-action` workflows, and the skills no longer carry a branch for running under them. Why, and four lessons for anyone who writes their own workflow, are in `.out-of-scope/cloud-workflow-templates.md`.
+
+  Breaking for anyone who used the old pieces:
+
+  - The `sdd-implement.yml` and `sdd-review.yml` workflow templates are gone.
+  - `setup-syn54x-skills` no longer offers to install them.
+  - `implement-issue` and `review-pr` no longer have a cloud route: no `GITHUB_ACTIONS` check, no run-URL Worker line, no cloud review routing.
+  - The sizing rule that made a One-off touching `.github/workflows/` at least `size:M` is gone from `to-tickets` and `triage`.
+
+  A workflow you already copied into your repo goes on working as it is; setup never deletes it. It now calls skills that no longer know they are running in the cloud, so it is yours to maintain.
+
+- [#138](https://github.com/syn54x/skills-plus-plus/pull/138) [`8dd0296`](https://github.com/syn54x/skills-plus-plus/commit/8dd02966fd7a096c1e11a116678f1a58ee518543) Thanks [@0x054](https://github.com/0x054)! - `sync-progress` now has one script, `sync-progress.sh`, with a subcommand per operation (`upsert`, `progress`, `plan`, `wave add|pr|panel`, `claim`, `unclaim`, `hand-back`), and owns the shapes of the progress, plan and wave comments (ADR 0007). A caller names the comment and the fields it sets; the script reads the existing comment, keeps every field not passed, renders the lines humans read and stores the state as a base64 JSON trailer on the last line (`<!-- sdd-data: … -->`), so two writers of one comment no longer erase each other's lines. A trailer that is present but does not decode stops the write with an error instead of being overwritten. The wave comment keeps every wave and every panel round; a retried `wave add` or `wave panel` replaces its entry instead of duplicating it, and wave tickets and edges accept `owner/repo#N` or an issue URL for multi-repo epics. `hand-back` replaces the three-step stop: it records status `handed-back` with the route and reason, sets the route label (`needs-info`, `ready-for-human`, and `blocked` without `--blocked-by` also remove `ready-for-agent`; `blocked --blocked-by` adds the native blocked-by edge and keeps it), then clears the `claimed` mark.
+
+  Breaking for anyone who used the old pieces:
+
+  - The `progress-comment` upsert script is removed; call `sync-progress.sh upsert` instead.
+  - The GitLab and local-tracker claim adapters are removed. The claim mark is GitHub-only, since the SDD pipeline runs on GitHub Issues alone (see the 2026-10-25 update to ADR 0006).
+  - The progress status `done` is gone, and `blocked` folds into `handed-back` with a route and a reason.
+  - A cloud PASS no longer labels the ticket `ready-for-human`; the reviewed open PR and the status `verify-passed` are the signal.
+
+  `GLOSSARY.md` gains **Marker comment** and **Hand-back**.
+
+### Patch Changes
+
+- [#138](https://github.com/syn54x/skills-plus-plus/pull/138) [`8dd0296`](https://github.com/syn54x/skills-plus-plus/commit/8dd02966fd7a096c1e11a116678f1a58ee518543) Thanks [@0x054](https://github.com/0x054)! - `close-epic`'s retro (`sdd-retro.sh`) now reads each epic-level measure from the **Marker comment**'s data trailer when one is present: the integration branch from the plan trailer's `branch`, edges added and the second source of the ticket-to-PR map from the wave trailer's `waves`, and the panel block from its `panel` rounds. A comment with no trailer, or one that does not decode, falls back to the prose regexes as before (an undecodable one is named in `not_found` as `wave trailer: unreadable` or `plan trailer: unreadable`), so epics built before the trailer report the same numbers. The retro JSON keys and shapes are unchanged. `RETRO.md` shows the trailer read first and names the fallback.
+
+- [#138](https://github.com/syn54x/skills-plus-plus/pull/138) [`8dd0296`](https://github.com/syn54x/skills-plus-plus/commit/8dd02966fd7a096c1e11a116678f1a58ee518543) Thanks [@0x054](https://github.com/0x054)! - The orchestrator skills write their comments through `sync-progress.sh`. `to-tickets` pins the plan with `plan`, `build-epic` sets the branch and appends **Interface deviations** with `plan`, records each wave with `wave add` and each gated PR with `wave pr`, and hands a ticket back with `hand-back` (`ready-for-human` after the ceiling dispatch, `needs-info` from the parallel safety check). `review-panel` records each round with `wave panel`, and `close-epic` writes its summary, retro and feedback drafts with `upsert`. The epic keeps one wave comment holding every wave and panel round. The four docs pages and `ask-syn54x` describe the new wiring.
+
+- [#138](https://github.com/syn54x/skills-plus-plus/pull/138) [`8dd0296`](https://github.com/syn54x/skills-plus-plus/commit/8dd02966fd7a096c1e11a116678f1a58ee518543) Thanks [@0x054](https://github.com/0x054)! - `implement-issue` and `review-pr` write the progress comment through `sync-progress.sh` (`claim`, `progress`, `hand-back`), and every stop without a PR is a hand-back with a route and a reason instead of a label pair, an unclaim and a comment. A cloud PASS in `review-pr` now sets no label (the reviewed open PR and the status `verify-passed` are the signal), and its unreachable "cloud, on an epic slice" branch is gone. The verify-gate hook's stop text and the `sdd-worker` rules say hand-back.
+
 ## 1.5.1
 
 ### Patch Changes
