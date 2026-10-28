@@ -20,7 +20,7 @@ For work that is not an SDD sub-issue (a spec, a plain ticket, the conversation)
 
 ## Prerequisites
 
-The issue must be open, unblocked, not held and labelled `ready-for-agent`. Held means it carries the `claimed` label or has an assignee, unless the progress comment's Worker line names this worker, which resumes. On a local run, the skills-plus-plus plugin's Stop hook refuses to let the session finish on an `sdd/*` branch until the Verify run is recorded as a git note on `HEAD`.
+The issue must be open, unblocked, not held and labelled `ready-for-agent`. Held means it carries the `claimed` label or has an assignee, unless the progress comment's Worker line names this worker, which resumes. The skills-plus-plus plugin's Stop hook refuses to let the session finish on an `sdd/*` branch until the Verify run is recorded as a git note on `HEAD`.
 
 ## Common questions
 
@@ -42,7 +42,7 @@ The issue must be open, unblocked, not held and labelled `ready-for-agent`. Held
 
 **Why is it model-invoked when `implement` is not?** Workers have to start it without a human typing it. A user-invoked skill cannot be reached by another skill or agent at all.
 
-**Which branch does it start from?** The remote integration branch named in the brief (`origin/<integration branch>`), never whatever the worktree happened to be checked out on, which is often the default branch.
+**Which branch does it start from?** If the brief's first step or the harness already created a branch for the ticket, whatever its name, it stays on that branch. Otherwise it cuts `sdd/<N>-<slug>` from the remote base the brief names, never from whatever the worktree happened to be on.
 
 ## It's working if
 

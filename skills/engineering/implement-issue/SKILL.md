@@ -41,7 +41,9 @@ Then write the first progress comment with `sync-progress.sh progress "$N" --sta
 
 ## 3. Branch
 
-If the brief's first step, or whatever started you, already put you on a branch for this ticket (`sdd/<N>-<slug>`), stay on it. Otherwise the brief names the base branch: create `sdd/<N>-<slug>` from the **remote** ref `origin/<base>`, never from `HEAD`, because a worktree may start on the default branch. The PR targets that base.
+If the brief's first step, or whatever started you, already put you on a branch for this ticket, whatever its name, stay on it. Otherwise the brief names the base branch: create `sdd/<N>-<slug>` from the **remote** ref `origin/<base>`, never from `HEAD`, because a worktree may start on the default branch. The code block is that otherwise case.
+
+The PR targets the brief's base (the default branch when the brief names none).
 
 ```bash
 BASE=feat/invoices                                  # from the brief; default main
