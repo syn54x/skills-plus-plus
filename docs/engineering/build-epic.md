@@ -15,7 +15,6 @@ You invoke this by typing `/build-epic <epic#>`; the agent won't reach for it on
 | Size M or L: several tickets, some parallelisable | `/build-epic <epic#>` |
 | More than about eight independent tickets, or you want scripted verify and merge ordering | `/build-epic <epic#> --workflow` (Claude Code only, and only when you opt into a workflow) |
 | A single ticket | [implement](../engineering/implement.md) on that issue |
-| A one-off `size:S` ticket outside an epic, on a repo with the cloud workflow installed | nothing: label it `ready-for-agent` and the Action builds it. An epic's `size:S` tickets build in its local waves like M and L |
 | Not yet cut into tickets | [to-tickets](../engineering/to-tickets.md) first |
 
 ## Prerequisites
