@@ -38,7 +38,7 @@ gh label create blocked         --color 5319E7 --description "Waiting on a depen
 gh label create claimed         --color FBCA04 --description "Held by a worker; set before work, cleared on stopping without a PR" --force
 gh label create size:S          --color C2E0C6 --description "One context window, <= 3 files" --force
 gh label create size:M          --color BFD4F2 --description "Needs a plan; one or two local workers" --force
-gh label create size:L          --color F9D0C4 --description "Cross-cutting or multi-worker; local waves only" --force
+gh label create size:L          --color F9D0C4 --description "Cross-cutting or multi-worker; local waves" --force
 ```
 
 ## D3. Org mode extras (skip in labels-only mode)
