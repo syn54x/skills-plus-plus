@@ -42,7 +42,7 @@ The issue must be open, unblocked, not held and labelled `ready-for-agent`. Held
 
 **Why is it model-invoked when `implement` is not?** Workers have to start it without a human typing it. A user-invoked skill cannot be reached by another skill or agent at all.
 
-**Which branch does it start from?** If the brief's first step or the harness already created a branch for the ticket, whatever its name, it stays on that branch. Otherwise it cuts `sdd/<N>-<slug>` from the remote base the brief names, never from whatever the worktree happened to be on.
+**Which branch does it start from?** If the brief's first step or the harness already created a branch for the ticket, whatever its name, it stays on that branch, as long as the branch descends from the remote base the brief names. A worktree often starts on the default branch, so a pre-made branch that fails that check stops the worker as blocked rather than carrying the default branch's commits into the PR. Otherwise it cuts `sdd/<N>-<slug>` from that remote base, never from whatever the worktree happened to be on.
 
 ## It's working if
 
