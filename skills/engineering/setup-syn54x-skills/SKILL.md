@@ -11,7 +11,7 @@ Scaffold the per-repo configuration that the engineering skills assume:
 - **Issue tracker**: where issues live (GitHub by default; local markdown is also supported out of the box)
 - **Triage labels**: the strings used for the five canonical triage roles
 - **Domain docs**: where `GLOSSARY.md` and ADRs live, and the consumer rules for reading them
-- **SDD pipeline** (GitHub only, optional): labels, issue types, the routing block, and the cloud workflows the spec-driven build skills assume
+- **SDD pipeline** (GitHub only, optional): labels, issue types, and the routing block the spec-driven build skills assume
 
 This is a prompt-driven skill, not a deterministic script. Explore, present what you found, confirm with the user, then write.
 
@@ -69,7 +69,7 @@ Show the user a draft of:
 
 - The `## Agent skills` block to add to whichever of `CLAUDE.md` / `AGENTS.md` is being edited (see step 4 for selection rules)
 - The contents of `docs/agents/issue-tracker.md`, `docs/agents/domain.md`, and `docs/agents/triage-labels.md` (the last only when `triage` is installed)
-- The SDD routing block, and which labels, issue types and workflows will be created (only when Section D ran)
+- The SDD routing block, and which labels and issue types will be created (only when Section D ran)
 
 Let them edit before writing.
 
@@ -117,7 +117,7 @@ Then write the docs files using the seed templates in this skill folder as a sta
 
 For "other" issue trackers, write `docs/agents/issue-tracker.md` from scratch using the user's description.
 
-When Section D ran, apply it now as [SDD.md](./SDD.md) describes: labels, issue types, the routing block below `## Agent skills`, and any workflows.
+When Section D ran, apply it now as [SDD.md](./SDD.md) describes: labels, issue types, and the routing block below `## Agent skills`.
 
 ### 5. Done
 
