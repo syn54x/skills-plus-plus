@@ -25,7 +25,7 @@ S=<this skill's base directory>/scripts/sync-progress.sh
 | `<!-- sdd-retro -->` | the epic | `close-epic` (numbers from GitHub state; stays in the repo) | raw: `upsert` |
 | `<!-- sdd-feedback-draft -->` | the epic (one comment holding every draft) | `close-epic`, only when nobody can approve an upstream filing | raw: `upsert` |
 
-The marker is the **first line** of the comment body; nothing else identifies the comment. An owned comment's **last line** is `<!-- sdd-data: <base64 of compact JSON> -->`. Base64 because `--` ends an HTML comment and reasons carry flags like `--add-blocked-by`. To read an owned comment's fields, fetch the comment through `gh api` and decode that line; `claude-code-action` strips HTML comments from the context it hands a model, so never read a marker or trailer from that context.
+The marker is the **first line** of the comment body; nothing else identifies the comment. An owned comment's **last line** is `<!-- sdd-data: <base64 of compact JSON> -->`. Base64 because `--` ends an HTML comment and reasons carry flags like `--add-blocked-by`. To read an owned comment's fields, fetch the comment through `gh api` and decode that line; some harnesses strip HTML comments from the context they hand a model, so never read a marker or trailer from that context.
 
 The trailer line grammar is stated here once; this script and `close-epic`'s retro both read by it. Drop every carriage return (a comment edited in the web UI comes back CRLF). The trailer is the last line that, trimmed at both ends, starts with `<!-- sdd-data:`; a body with no such line has no trailer. That line must then match `<!-- sdd-data: <base64> -->` exactly, trailing whitespace aside, so a leading space or anything else on the line fails. A trailer that fails the match, the base64 decode, or the parse as a JSON object **does not decode**: this script exits 1, naming the marker and the issue, and writes nothing, because rendering fresh would erase the state; the retro treats it as absent and names it in `not_found` as `wave trailer: unreadable` or `plan trailer: unreadable`.
 
@@ -73,7 +73,7 @@ Rendered:
 ```markdown
 <!-- sdd-progress -->
 **Status:** in-progress | pr-open | verify-passed | changes-requested | handed-back
-**Worker:** <agent name locally, the Actions run URL in the cloud, the login for a human>
+**Worker:** <agent name locally, login for a human>
 **Branch:** `sdd/<N>-<slug>`
 **PR:** #<n> | none
 **Verify:** not run | passed <sha7> | failed <sha7>

@@ -13,7 +13,6 @@ Type `/implement-issue <N>`, or the agent reaches for it when it is handed an SD
 | Started by | How |
 | --- | --- |
 | [build-epic](../engineering/build-epic.md) | each worker calls it for its ticket, inside its own worktree |
-| The cloud workflow | `sdd-implement.yml` runs it when a one-off `size:S` issue outside an epic completes the pair `ready-for-agent` and `size:S`, in either order, and is open, not held and without a parent |
 | [implement](../engineering/implement.md) | `/implement #N` hands off to it when the issue is an SDD sub-issue |
 | You | `/implement-issue <N>` for a single ticket outside a wave |
 
@@ -41,7 +40,7 @@ The issue must be open, unblocked, not held and labelled `ready-for-agent`. Held
 
 **Why does the self-review come before the PR opens?** So the reviewer reads a diff that has already been reviewed once and is no longer changing. The claims check is the one part that runs after the push, because it compares the report with what is on the remote branch.
 
-**Why is it model-invoked when `implement` is not?** Workers and the cloud workflow have to start it without a human typing it. A user-invoked skill cannot be reached by another skill or agent at all.
+**Why is it model-invoked when `implement` is not?** Workers have to start it without a human typing it. A user-invoked skill cannot be reached by another skill or agent at all.
 
 **Which branch does it start from?** The remote integration branch named in the brief (`origin/<integration branch>`), never whatever the worktree happened to be checked out on, which is often the default branch.
 
@@ -59,4 +58,4 @@ The issue must be open, unblocked, not held and labelled `ready-for-agent`. Held
 
 ## Where it fits
 
-`implement-issue` is the **worker step** under [build-epic](../engineering/build-epic.md), and the cloud path's builder. Its output goes straight to [review-pr](../engineering/review-pr.md). [ask-syn54x](../engineering/ask-syn54x.md) routes the whole set.
+`implement-issue` is the **worker step** under [build-epic](../engineering/build-epic.md). Its output goes straight to [review-pr](../engineering/review-pr.md). [ask-syn54x](../engineering/ask-syn54x.md) routes the whole set.
