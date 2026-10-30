@@ -160,6 +160,26 @@
      "createdAt": "2026-01-03T00:00:00Z"
     }
    ]
+  },
+  "https://github.com/acme/app/pull/15": {
+   "url": "https://github.com/acme/app/pull/15",
+   "number": 15,
+   "state": "MERGED",
+   "baseRefName": "feat/invoices",
+   "headRefName": "sdd/3-fix",
+   "body": "Refs #3\n\nPanel finding F1 on #30\n",
+   "createdAt": "2026-01-01T04:00:00Z",
+   "reviews": [
+    {
+     "body": "## Spec: PASS\n\n## Quality: FAIL\n- Important \u00b7 [ADR-0007] \u00b7 src/invoices/totals.ts:40 at def5678 \u00b7 rounding still per line \u00b7 the panel finding asked for one rounding on the invoice total \u00b7 round once in total()\n",
+     "submittedAt": "2026-01-02T02:00:00Z"
+    },
+    {
+     "body": "## Spec: PASS\n\n## Quality: PASS\n",
+     "submittedAt": "2026-01-02T03:00:00Z"
+    }
+   ],
+   "comments": []
   }
  },
  "events": {

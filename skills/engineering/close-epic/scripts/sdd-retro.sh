@@ -98,7 +98,7 @@ PRS=""; TICKET_PRS=""
 for URL in $TICKETS; do
   R=$(repo_of "$URL"); N=$(num_of "$URL")
   TPRS=$(jq -r --arg r "$R" --arg n "$N" '
-    ($r | gsub("\\."; "\\.")) as $re | "(?i)\\b(close[sd]?|fix(e[sd])?|resolve[sd]?):? +" as $kw |
+    ($r | gsub("\\."; "\\.")) as $re | "(?i)\\b(close[sd]?|fix(e[sd])?|resolve[sd]?|refs?):? +" as $kw |
     .[] | (.body // "") as $b | select(
       ($b | test($kw + "(" + $re + "#|https://github\\.com/" + $re + "/issues/)" + $n + "(?![0-9])"))
       or ((.url | startswith("https://github.com/" + $r + "/pull/")) and ($b | test($kw + "#" + $n + "(?![0-9])")))
