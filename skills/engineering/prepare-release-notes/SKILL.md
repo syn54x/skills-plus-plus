@@ -61,13 +61,18 @@ From `justfile`, `AGENTS.md`, and the last few `gh release view` tags:
 
 Shape:
 
-1. **Headline**: `## <optional emoji> <plain-language win>`
+1. **Headline**: `## <kind emoji> <plain-language win>`, where the kind emoji
+   is ✨ for a feature, 🛠️ for a fix and ♻️ for a refactor (other kinds follow
+   gitmoji: ⚡ `perf`, 📝 `docs`, 👷 `ci`). The kind is the headliner's
+   conventional-commit type; a headliner with no type gets no emoji. Never an
+   emoji chosen for the headline's subject.
 2. **Lead**: 1–3 sentences: what the user can do now / what broke and is fixed.
    Anchor on a concrete API/example when the change is a feature.
 3. **Body**: short sections or tight prose; code samples when they clarify the
    win; link issues/PRs and docs.
-4. **Optional**: `## Also in this release` for secondary items; `## What's next`
-   only if prior releases set that expectation and there is a real follow-up.
+4. **Optional**: `## Also in this release` for secondary items, with no emoji;
+   `## What's next` only if prior releases set that expectation and there is a
+   real follow-up.
 5. **Stop**: do not include a `## vX.Y.Z` changelog section (release tooling
    adds it).
 
