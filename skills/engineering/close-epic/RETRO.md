@@ -112,7 +112,7 @@ gh api "repos/$EPIC_REPO/issues/$EPIC_N/comments" --paginate \
   --jq '[.[] | select(.body | startswith("<!-- sdd-wave -->")) | .body | capture("Edges added: (?<e>[^\n]*)") | .e] | map(select(startswith("none") | not) | [scan("\u2190")] | length) | add // 0'
 ```
 
-Panel, from the wave trailer when it has `panel` rounds: the latest entry per `round` counts as that round; `panel.rounds` is how many distinct rounds, `critical`, `important`, `minor` and `dropped` sum `severity` and `dropped` across them, and `personas` lists the keys of every round's `persona` map. With none, the report comments below are the fallback. A trailer that does not decode is treated as absent and named in `not_found` as `wave trailer: unreadable` (`plan trailer: unreadable` for the plan).
+Panel, from the wave trailer when it has `panel` rounds: the latest entry per `round` counts as that round, an unposted one (`report` null) like any other; `panel.rounds` is how many distinct rounds, `critical`, `important`, `minor` and `dropped` sum `severity` and `dropped` across them, and `personas` lists the keys of every round's `persona` map. With none, the report comments below are the fallback. A trailer that does not decode is treated as absent and named in `not_found` as `wave trailer: unreadable` (`plan trailer: unreadable` for the plan).
 
 Panel reports (`review-panel` posts its report as a PR comment once the user says to; older runs posted a review, so read both):
 

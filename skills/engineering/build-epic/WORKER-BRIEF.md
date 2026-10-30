@@ -58,7 +58,11 @@ When a reviewer sends the worker back, append to the same brief (or message the 
 
 <the reviewer's Critical and Important findings, verbatim, one per bullet, grouped under Spec and Quality>
 
+Cross-cutting class: <ids>, spanning <files>; you own every file listed for this round, including files outside your ticket's Files owned, and the fix is one shared mechanism, not one patch per file.
+
 Address every item or explain in the PR why not. Re-run the tests that cover the amended code and name them; re-run Verify. Append a fix report to the PR body: what changed, the covering tests, the command, the output. Update the progress comment. Report again in the same format.
 ```
+
+The `Cross-cutting class:` line is optional: include it only on a panel fix round whose class `review-panel` §7 routed whole to this worker, one line per class.
 
 There is one fix round with the same worker. If the re-review still leaves findings open, the orchestrator may make **one** fresh dispatch on the ceiling tier carrying the brief, the PR, and the open findings ("a prior worker attempted this twice; you own it now"); after that it goes to `ready-for-human`.
