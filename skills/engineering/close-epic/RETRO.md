@@ -94,7 +94,7 @@ for PR in $PRS; do gh pr view "$PR" --json reviews --jq '[.reviews[].body]'; don
   jq -s 'add // []' | python3 scripts/sdd-by-cause.py
 ```
 
-It prints `null` for an empty array; with ticket PRs found but no review on any of them, write `{}`, so `by_cause` is `null` exactly when `fix_rounds` is.
+It prints `null` for an empty array; with ticket PRs found but no review on any of them, write `{}`, so `by_cause` is `null` exactly when `fix_rounds` is. The helper takes the array of review bodies that the `jq -s 'add // []'` line builds, never the retro JSON: anything else exits 2 with one line on stderr and nothing on stdout, because a wrong shape would otherwise print the same `{}` as "no failing review". The skill's Laws-line cross-check reads `by_cause` from the retro output rather than re-running the helper.
 
 Verify corrections:
 

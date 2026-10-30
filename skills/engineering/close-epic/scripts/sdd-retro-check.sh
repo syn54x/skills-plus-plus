@@ -14,6 +14,18 @@ check() {
   if [ "$got" = "$want" ]; then echo "ok   $name"; else echo "FAIL $name (want $want, got ${got:-nothing})"; FAILS=$((FAILS + 1)); fi
 }
 
+# Malformed stdin is a failure, never an empty result: exit 2, one stderr line naming the contract, nothing on stdout.
+ERR=$(mktemp); trap 'rm -f "$ERR"' EXIT
+reject() {
+  local name="$1" out rc
+  out=$(python3 "$COUNTER" 2>"$ERR"); rc=$?
+  if [ "$rc" -eq 2 ] && [ -z "$out" ] && [ "$(wc -l <"$ERR")" -eq 1 ] && grep -q 'array of review bodies' "$ERR"; then
+    echo "ok   $name"
+  else
+    echo "FAIL $name (want exit 2, empty stdout, one stderr line; got exit $rc, stdout ${out:-nothing}, stderr $(tr -d '\n' <"$ERR"))"; FAILS=$((FAILS + 1))
+  fi
+}
+
 FAIL_SPEC='## Spec: FAIL
 - Important · [AGENTS.md#I-5] · src/a.py:10 at abc1234 · Missing · no retry · the ticket asks for one
 - Critical · [ticket#Interfaces] · src/a.py:3 at abc1234 · Misunderstood · wrong name · Produces says load()
@@ -64,6 +76,8 @@ check "an untagged finding counts as none" '{"none": 1}' < <(jq -n --arg a "$UNT
 check "scoped re-review: ADDRESSED lines skipped" '{"ADR-0009": 1}' < <(jq -n --arg a "$RE_REVIEW" '[$a]')
 check "an empty array is null" 'null' <<<'[]'
 check "PASS reviews only: nothing counted" '{}' < <(jq -n --arg c "$PASS_REVIEW" '[$c]')
+reject "a JSON object (the retro output itself) is rejected, not counted as empty" <<<'{"fix_rounds":{}}'
+reject "an array holding a number is rejected" <<<'[null, "## Quality: PASS", 3]'
 
 [ "$FAILS" -eq 0 ] && echo "sdd-retro-check: all passed" || echo "sdd-retro-check: $FAILS failed"
 [ "$FAILS" -eq 0 ]
