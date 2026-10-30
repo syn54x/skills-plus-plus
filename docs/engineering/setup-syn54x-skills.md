@@ -62,7 +62,7 @@ No. GitHub, GitLab and local markdown under `.scratch/` all ship as ready-made t
 
 **Do I need to re-run it after updating the skills?**
 
-The direct answer after v1.1 was yes. The skill's own closing message is softer. It tells you to re-run only to switch trackers or start over. Both are defensible. The seed templates change between versions, so a `docs/agents/issue-tracker.md` from an older release can go out of date against the skills that now read it. If a downstream skill does something different from what the docs describe, re-run setup. It is cheap. A re-run also catches a repo set up before 1.3.0: it finds the legacy `CONTEXT.md` / `CONTEXT-MAP.md` and offers to `git mv` it to `GLOSSARY.md` / `GLOSSARY-MAP.md` and rewrite `docs/agents/domain.md` to match.
+The direct answer after v1.1 was yes. The skill's own closing message is softer. It tells you to re-run only to switch trackers or start over. Both are defensible. The seed templates change between versions, so a `docs/agents/issue-tracker.md` from an older release can go out of date against the skills that now read it. If a downstream skill does something different from what the docs describe, re-run setup. It is cheap. A re-run also catches a repo set up before 1.3.0: it finds the legacy `CONTEXT.md` / `CONTEXT-MAP.md` and offers to `git mv` it to `GLOSSARY.md` / `GLOSSARY-MAP.md` and rewrite `docs/agents/domain.md` and the `### Domain docs` line of the `## Agent skills` block to match. The repair also runs when there is no legacy file and only the references are stale, which is common because the glossary is created lazily: setup then skips the rename and offers the rewrite alone. Say no and nothing is written; the stale names are listed in the summary.
 
 **It wrote to `CLAUDE.md`, but I'm on Codex.**
 
@@ -98,6 +98,7 @@ One long-standing complaint says yes, in these words: *"having a skill to set up
 - The tracker it proposed matches the remote you use, and the label strings match labels that exist in your tracker.
 - Afterwards, `/to-tickets` publishes without asking you where issues live, and `/triage` applies labels rather than inventing them.
 - With the SDD pipeline on: the routing block sits below `## Agent skills`, `gh label list` shows the `size:*`, readiness and `claimed` labels, the routing block carries the readiness line above, and a re-run replaces the block rather than adding a second one. A re-run over an older `Upstream feedback: on` line rewrites it to `counts` and tells you. A re-run keeps every entry of an existing Laws line and proposes only additions.
+- After a re-run, nothing under `docs/agents/` or in the `## Agent skills` block names `CONTEXT.md`.
 - Nothing in the skill files themselves changed. If setup edited a `SKILL.md`, something went wrong.
 
 ## Where it fits

@@ -23,7 +23,7 @@ Look at the current repo to understand its starting state. Read whatever exists;
 
 - `git remote -v` and `.git/config`: is this a GitHub repo? Which one?
 - `AGENTS.md` and `CLAUDE.md` at the repo root: does either exist? Is there already an `## Agent skills` section in either?
-- `GLOSSARY.md` and `GLOSSARY-MAP.md` at the repo root, and the legacy `CONTEXT.md` / `CONTEXT-MAP.md`. If a legacy file exists, offer to `git mv` it to its `GLOSSARY` name and rewrite those names in `docs/agents/domain.md`.
+- `GLOSSARY.md` and `GLOSSARY-MAP.md` at the repo root, and the legacy `CONTEXT.md` / `CONTEXT-MAP.md`. Record two findings separately, since a repo can show either without the other: whether a legacy file exists, and whether `docs/agents/domain.md` or the `## Agent skills` block of `CLAUDE.md` / `AGENTS.md` still names `CONTEXT.md` or `CONTEXT-MAP.md` (stale references).
 - `docs/adr/` and any `src/*/docs/adr/` directories
 - `docs/agents/`: does this skill's prior output already exist?
 - `.scratch/`: a sign that a local-markdown issue tracker convention is already in use
@@ -34,7 +34,7 @@ Look at the current repo to understand its starting state. Read whatever exists;
 
 Summarise what's present and what's missing. Then take the sections in order. One section, one answer, then the next.
 
-Lead each section with the recommended answer so the user can accept it in a word. Give a one-line explainer only when the choice genuinely branches; skip the section entirely when exploration already settled it (Section B when `triage` isn't installed, Section C when there's no monorepo).
+Lead each section with the recommended answer so the user can accept it in a word. Give a one-line explainer only when the choice genuinely branches; skip the section entirely when exploration already settled it (Section B when `triage` isn't installed, Section C when there's no monorepo, no legacy file and no stale references).
 
 **Section A: Issue tracker.**
 
@@ -60,6 +60,8 @@ The defaults are the five canonical roles, each label string equal to its name: 
 **Section C: Domain docs.** Default to **single-context** (one `GLOSSARY.md` + `docs/adr/` at the repo root). This fits almost every repo; write it without asking.
 
 Offer **multi-context** (a root `GLOSSARY-MAP.md` pointing to per-context `GLOSSARY.md` files) only when exploration found monorepo signals. Then confirm which layout they want.
+
+Section C also runs when exploration found a legacy file or stale references, monorepo or not. Ask one yes-or-no, leading with yes: `git mv` the legacy file to its `GLOSSARY` name (only when the file exists) and rewrite the stale names, by re-seeding `docs/agents/domain.md` from [domain.md](./domain.md) in the layout exploration found and rewriting the `### Domain docs` summary line of the `## Agent skills` block; step 4 does the writing. With no legacy file, the rename is omitted and the rewrite is still offered. On no, write nothing and name the stale references in the step 5 summary.
 
 **Section D: SDD pipeline.** Only when Section A chose GitHub. Read [SDD.md](./SDD.md) and follow it.
 
