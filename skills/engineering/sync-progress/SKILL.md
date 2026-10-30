@@ -41,7 +41,7 @@ sync-progress.sh plan      <issue> [--goal TEXT] [--constraints TEXT] [--branch 
 sync-progress.sh wave      <issue> add   --n N --tickets 101,owner/repo#7 --workers w1,w2 --started ISO8601
                                          --edges "104<103,owner/repo#7<101" | --edges none
 sync-progress.sh wave      <issue> pr    --ticket 101|owner/repo#7 --pr URL|#n
-sync-progress.sh wave      <issue> panel --round R --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE --report URL
+sync-progress.sh wave      <issue> panel --round R --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE [--report URL]
                                          [--severity critical=1,important=2,minor=3] [--persona name=count,...] [--dropped D]
 sync-progress.sh claim     <issue>
 sync-progress.sh unclaim   <issue>
@@ -54,7 +54,7 @@ Merge rules for the owned shapes:
 
 - A field you do not pass keeps its previous value, so pass only what changed: `progress 103 --status pr-open --pr 57 --verify "passed abc1234"` keeps the Worker and Branch.
 - `--add-deviation` appends to the plan's Deviated list. `--narrowed` replaces the Narrowed list with every `--narrowed` on the call, so re-pinning the plan never duplicates a line and a withdrawn narrowing drops. A call with no `--narrowed` keeps the stored list, so a caller that re-pins a plan with no narrowings left (`to-tickets` re-running its SDD pass, say) passes `--narrowed none`, which clears it.
-- `wave add` adds a wave, or replaces every wave with the same `--n` (keeping the PRs recorded on any of them); `wave panel` adds a round, or replaces the one with the same `--round`. A retried call therefore never duplicates an entry, and the retro's edge count stays right.
+- `wave add` adds a wave, or replaces every wave with the same `--n` (keeping the PRs recorded on any of them); `wave panel` adds a round, or replaces the one with the same `--round`. A retried call therefore never duplicates an entry, and the retro's edge count stays right. A round recorded without `--report` (shown, not yet posted) stores `report: null`; the same `--round` re-sent with `--report URL` once it is posted replaces it.
 - `wave pr` sets the PR of the named ticket on the last wave whose tickets hold it; a ticket no wave holds is a usage error.
 - A comment with no trailer (written before this script) is rendered fresh from the fields you pass; nothing else of the old prose survives.
 - `upsert` is for the one-writer comments only. The body file's first line must be the marker; it is written verbatim, with no trailer.
@@ -102,7 +102,7 @@ One wave comment per epic; waves and panel rounds are lists inside its data:
 
 A ticket, and each side of an edge, is a bare number, `owner/repo#N` or an issue URL, so `build-epic`'s multi-repo mode records its cross-repo tickets; each is stored as the string given, and `prs` is keyed by that same string. `wave pr --ticket` matches that stored string, so pass it in exactly the form given to `wave add` (the `owner/repo#N` or issue URL in multi-repo mode): a bare `7` matches neither `acme/api#7` nor its URL. Waves written before tickets were strings hold numbers, which render the same.
 
-Rendered, per wave: `Wave <n>: #101, acme/api#7 (w1, w2), started <ISO>` (a bare number gains `#`, anything else renders as given), `Edges added: acme/api#7 ← 101, …` or `Edges added: none`, and `PRs: #101 → <url>, …` once a PR is recorded; then per panel round `Panel round <r>: <VERDICT> (<report>)`. `--edges` lists every `--add-blocked-by` the safety check introduced since the plan comment, as `consumer<producer`.
+Rendered, per wave: `Wave <n>: #101, acme/api#7 (w1, w2), started <ISO>` (a bare number gains `#`, anything else renders as given), `Edges added: acme/api#7 ← 101, …` or `Edges added: none`, and `PRs: #101 → <url>, …` once a PR is recorded; then per panel round `Panel round <r>: <VERDICT> (<report>)`, or `(unposted)` when `report` is null. `--edges` lists every `--add-blocked-by` the safety check introduced since the plan comment, as `consumer<producer`.
 
 ## Claim and unclaim
 

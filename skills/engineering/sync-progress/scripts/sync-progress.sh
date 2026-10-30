@@ -19,7 +19,7 @@ usage: sync-progress.sh upsert    <issue> <marker> <body-file>
        sync-progress.sh wave      <issue> add   --n N --tickets 101,owner/repo#7 --workers w1,w2 --started ISO8601
                                                 --edges "104<103,owner/repo#7<101" | --edges none
        sync-progress.sh wave      <issue> pr    --ticket 101|owner/repo#7 --pr URL|#n
-       sync-progress.sh wave      <issue> panel --round R --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE --report URL
+       sync-progress.sh wave      <issue> panel --round R --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE [--report URL]
                                                 [--severity critical=1,important=2,minor=3] [--persona name=count,...] [--dropped D]
        sync-progress.sh claim     <issue>
        sync-progress.sh unclaim   <issue>
@@ -28,7 +28,8 @@ usage: sync-progress.sh upsert    <issue> <marker> <body-file>
 ready-for-agent; every other hand-back, blocked without --blocked-by included, removes ready-for-agent.
 --narrowed replaces the stored list with every --narrowed of the call, --narrowed none clears it, and a
 call without --narrowed keeps it; --add-deviation appends.
-wave add replaces every wave with the same --n; wave panel replaces the entry with the same --round;
+wave add replaces every wave with the same --n; wave panel replaces the entry with the same --round
+(a round shown but never posted has no --report and renders unposted);
 wave pr records the PR on the last wave whose tickets hold --ticket, given in the form wave add stored.
 <issue> is an issue number in the current repo (GH_REPO, else gh repo view) or a GitHub issue URL.
 A wave ticket is a number, owner/repo#N or an issue URL, stored and rendered as given.
@@ -229,13 +230,12 @@ cmd_wave() {
     panel)
       [[ $round =~ ^[0-9]+$ ]] || usage "wave panel needs --round R"
       case "$verdict" in "FIX FIRST"|"HUMAN DECISION"|MERGE) ;; *) usage 'wave panel needs --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE' ;; esac
-      [ -n "$report" ] || usage "wave panel needs --report URL"
       [[ $severity =~ ^([A-Za-z0-9_-]+=[0-9]+(,[A-Za-z0-9_-]+=[0-9]+)*)?$ ]] || usage "--severity takes name=count,..."
       [[ $persona =~ ^([A-Za-z0-9_-]+=[0-9]+(,[A-Za-z0-9_-]+=[0-9]+)*)?$ ]] || usage "--persona takes name=count,..."
       [[ $dropped =~ ^[0-9]+$ ]] || usage "--dropped takes a count"
       PATCH=$(jq -c -n --arg r "$round" --arg v "$verdict" --arg u "$report" --arg s "$severity" --arg p "$persona" --arg d "$dropped" '
         def counts: if . == "" then {} else split(",") | map(split("=") | {(.[0]): (.[1] | tonumber)}) | add end;
-        {round: ($r | tonumber), verdict: $v, report: $u, severity: ($s | counts), persona: ($p | counts), dropped: ($d | tonumber)}')
+        {round: ($r | tonumber), verdict: $v, report: (if $u == "" then null else $u end), severity: ($s | counts), persona: ($p | counts), dropped: ($d | tonumber)}')
       # A retried round replaces the entry with the same round.
       merge='.panel = ([.panel[] | select(.round != $p.round)] + [$p] | sort_by(.round))' ;;
     *) usage "wave takes add, pr or panel" ;;
@@ -246,7 +246,7 @@ cmd_wave() {
     (.waves[] | "Wave \(.n): \(.tickets | map(ref) | join(", ")) (\(.workers | join(", "))), started \(.started)",
       "Edges added: \(if .edges == [] then "none" else .edges | map("\(.[0]) ← \(.[1])") | join(", ") end)",
       (select(.prs != {}) | "PRs: \(.prs | to_entries | map("\(.key | ref) → \(.value)") | join(", "))")),
-    (.panel[] | "Panel round \(.round): \(.verdict) (\(.report))")'
+    (.panel[] | "Panel round \(.round): \(.verdict) (\(.report // "unposted"))")'
 }
 
 cmd_claim() {
