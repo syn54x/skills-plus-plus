@@ -76,7 +76,7 @@ No RED: `prek run --all-files`
 
 When the ticket touches a docs page or a docstring, call the Skill tool with `writing-for-humans` before writing its prose.
 
-Run the type checker and the single test file you are working in often; run the full suite once, at the end, before Verify. Commit as you go with conventional messages. Do not squash history yourself; the merge does that.
+Run the type checker and the single test file you are working in often, and the ticket's Verify block (scoped to the ticket) before the PR. The full suite is CI's run on the PR head, not yours. Commit as you go with conventional messages. Do not squash history yourself; the merge does that.
 
 **Stop and escalate** (see *If you get stuck*) rather than guess when: the ticket needs an architectural decision with more than one valid approach; you need to understand code beyond what the brief and ticket gave you and cannot find clarity; you are unsure your approach is right; the work needs restructuring the plan did not anticipate; or you have been reading file after file without progress.
 

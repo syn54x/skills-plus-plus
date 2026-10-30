@@ -42,6 +42,16 @@ git log --oneline "$MB..origin/$BASE"     # empty: the base has not moved, one V
 
 If that lists commits, run Verify a second time on a local trial merge of the PR head into the current base, in the same throwaway worktree: `git switch --detach && git merge --no-edit "origin/$BASE"`, then the Verify block again. The trial merge is never pushed; discard the worktree when you are done. A textual conflict is a result, not a task: record the conflicting files (`git diff --name-only --diff-filter=U`), `git merge --abort`, and do not resolve it, since picking a side discards one ticket's intent. This applies to slice PRs; full-epic mode below is unchanged.
 
+**CI checks.** Verify runs the ticket's scoped tests; the full suite is CI's run on the PR head. After Verify, read the PR's checks on the head you reviewed:
+
+```bash
+HEAD=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)   # the head your Verify ran on
+gh pr checks "$PR" --json name,bucket,link > /tmp/review-pr-$PR-checks.json || true   # exit 8: pending; exit 1: a failure, or no checks
+[ "$(gh pr view "$PR" --json headRefOid --jq .headRefOid)" = "$HEAD" ]   # head moved? re-checkout, re-run Verify, and read the checks again
+```
+
+`bucket` is the reading: `pass`, `fail`, `pending`, `skipping` or `cancel`. `cancel` counts as fail; `skipping` is not counted. The exit code is part of the reading, not a failure of the step: 8 means a check is pending, 1 means one failed or the PR has no checks (`no checks reported` on stderr and an empty file), which is `none configured`. A pending check, when no Critical or Important finding is already open, is waited for with `gh pr checks "$PR" --watch` and then read again; one still pending when the rest of the review is done stays pending in the report. Full-epic mode skips this step, because `review-panel` reads the checks itself.
+
 **Do not trust the report.** The PR body, the progress comment and the worker's message are unverified claims about the code. Verify each against the diff. A stated rationale ("kept it simple per YAGNI", "left it out deliberately") is the worker grading its own work; it never downgrades a finding.
 
 **The diff is your view.** Read it once, with its context lines. Look outside the diff only to check a concrete risk you can name (a changed contract, lock ordering, shared mutable state → check the call sites), one focused check per named risk, and say what you checked. The one standing carve-out is step 4's depth check. Do not crawl the codebase. Your checkout is read-only: no edits, no staging, no branch changes beyond the checkout itself and the unpushed trial merge.
@@ -70,6 +80,7 @@ Against the repo's **Laws**: the documents on the `Laws:` line of the `<!-- sdd-
 - Commit history readable; PR body honest.
 - The Verify the worker ran (the PR body and progress comment) matches the ticket's block, or the PR body says `Verify block corrected: yes` with what was wrong. A difference under `Verify block corrected: no`, or a PR body with no such line, is an **Important** finding: a silent correction hides a ticket that lied.
 - The PR body's `## Laws` section is a set of claims, one line per Law: verify each against the diff. A line the diff contradicts is a finding tagged with that Law. An `n/a` on a Law whose trigger the diff hits is a finding tagged with that Law. A PR body with no `## Laws` section is an **Important** finding tagged `[skill#Laws section]`, by the same rule as a missing `Verify block corrected:` line: an absent claim cannot be checked.
+- The PR's checks on the head (step 2): a failing check (`fail` or `cancel`) is a **Critical** finding tagged `[none]` naming the check and its link. A check still pending when you finish is no finding: the verdict stands on the other findings, the report counts it on the `Checks:` line and names it on a `Pending check:` line, and the orchestrator reads the checks again before merging. No checks configured changes nothing.
 - Nothing in the diff the ticket did not ask for.
 - Every declared **Interface deviation** was **needed**: the PR's reason shows the ticket's signature could not work as written. An unneeded one is an Important finding whose fix is reverting to the ticket's signature.
 
@@ -103,6 +114,8 @@ Cannot verify: <items, or none>
 
 Verify: PR head `<short sha>` passed | failed (`<command that failed>`)
 Trial merge: not run (base unchanged) | `<short sha>` into `<base>` at `<short sha>` passed | failed (`<command that failed>`) | conflict (`<files>`)
+Checks: <n> pass, <n> fail (<names>), <n> pending on <sha7> | none configured
+Pending check: <name> (<link>)      (one per check still pending; omitted when none is)
 ```
 
 Every line is a verdict, a finding, or a check you ran. No preamble, no narration, no closing summary.
