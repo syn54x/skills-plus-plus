@@ -167,7 +167,7 @@ A `## Ticket` section has this shape:
 
 ## 8. Check the claims, then report
 
-**Claims**, against the pushed branch: every test named in the TDD evidence, and every file or pin the report or PR body says was added or changed, and every test and hunk the `## Ticket` section names, is in `git diff "origin/$BASE...HEAD"`; every test whose file changed after its RED run was run again, and GREEN comes from the final committed state (the Verify SHA equals the pushed `HEAD`, `git rev-parse "origin/$BRANCH"`); `git status --porcelain` is empty, so nothing the report relies on is only uncommitted. Fix a failing claim (commit, re-run Verify, push) or remove it from the report and PR body.
+**Claims**, against the pushed branch: every test named in the TDD evidence, and every file or pin the report or PR body says was added or changed, and every test and hunk the `## Ticket` section names, is in `git diff "origin/$BASE...HEAD"`; every acceptance criterion and every Test scenario has its line in `## Ticket`, since a missing line fails like a named test absent from the diff; every test whose file changed after its RED run was run again, and GREEN comes from the final committed state (the Verify SHA equals the pushed `HEAD`, `git rev-parse "origin/$BRANCH"`); `git status --porcelain` is empty, so nothing the report relies on is only uncommitted. Fix a failing claim (commit, re-run Verify, push) or remove it from the report and PR body.
 
 Update the progress comment with `sync-progress.sh progress "$N" --status pr-open --pr <PR number> --verify "passed <sha7>"`. Then reply in ≤ 200 words:
 
