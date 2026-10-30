@@ -20,6 +20,12 @@ repos:
         language: script
         pass_filenames: false
         files: ^(scripts/check-sdd\.sh|scripts/fixtures/.+|skills/engineering/(build-epic|close-epic|sync-progress)/scripts/.+)$
+      - id: sync-plugin-version
+        name: plugin.json version tracks package.json
+        entry: node scripts/sync-plugin-version.mjs --check
+        language: system
+        pass_filenames: false
+        files: ^(package\.json|\.(claude|cursor|codex)-plugin/plugin\.json)$
       - id: zensical-build
         name: docs site builds with no broken links (zensical --strict)
         entry: uv run --frozen zensical build --clean --strict

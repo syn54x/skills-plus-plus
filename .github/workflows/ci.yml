@@ -19,7 +19,7 @@ jobs:
       - name: invocation flags agree and no skill calls a user-invoked skill
         run: python3 scripts/check-invocation.py
       - name: sdd scripts match their fixtures and in-skill checks pass
-        run: bash scripts/check-sdd.sh
+        run: scripts/check-sdd.sh
       - name: plugin.json version tracks package.json
         run: node scripts/sync-plugin-version.mjs --check
       - uses: astral-sh/setup-uv@v10.2.0
