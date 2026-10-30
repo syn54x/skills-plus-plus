@@ -97,7 +97,7 @@ source  = a path as written on the Laws line | ADR-<nnnn> | epic | ticket | cite
 id      = the rule's own id or heading (I-5, Failure law, Interfaces, Register doors, Laws section); omitted after none
 ```
 
-A repo rule takes its file as prefix (`[AGENTS.md#I-6]`); `epic` carries the decision's name (`[epic#Failure law]`); `ticket` the section (`[ticket#Interfaces]`, `[ticket#Test scenarios]`, `[ticket#Acceptance criteria]`, `[ticket#Files owned]`); `cited` the document the ticket names (`[cited#Register doors]`); `skill` a rule of the SDD skills themselves, by the skill's own name for it (`[skill#Laws section]`, `[skill#Verify block corrected]`, `[skill#Verify]` for Verify not run on the head). Plain logic and test gaps that no document and no skill rule names are `[none]`.
+A repo rule takes its file as prefix (`[AGENTS.md#I-6]`); `epic` carries the decision's name (`[epic#Failure law]`); `ticket` the section (`[ticket#Interfaces]`, `[ticket#Test scenarios]`, `[ticket#Acceptance criteria]`, `[ticket#Files owned]`); `cited` the document the ticket names (`[cited#Register doors]`); `skill` a rule of the SDD skills themselves, by the skill's own name for it (`[skill#Laws section]`, `[skill#Verify block corrected]`, `[skill#Verify]` for Verify not run on the head). Plain logic and test gaps that no document and no skill rule names are `[none]`. `[none]` is a verdict that no Law names the rule, never the absence of a tag; the §5 gate refuses an untagged line.
 
 ## 5. Post
 
@@ -118,6 +118,14 @@ Pending check: <name> (<link>)      (one per check still pending; omitted when n
 ```
 
 Every line is a verdict, a finding, or a check you ran. No preamble, no narration, no closing summary.
+
+Gate the tags before posting. Every finding line carries its Law tag right after the severity; run this over the review file, and post only when it prints nothing:
+
+```bash
+grep -nE '^- (Critical|Important|Minor) · [^[]' /tmp/review.md      # a hit is an untagged finding
+```
+
+Fix each hit first: name the Law the finding enforces, or write `[none]` only after checking that no document on the Laws line, the epic, the ticket, a cited document or an SDD skill states the rule. Scoped re-review rows (`| F1 | ADDRESSED | … |`) do not match.
 
 ```bash
 gh pr review "$PR" --comment --body-file /tmp/review.md      # never --approve or --request-changes; the merge decision is the orchestrator's
