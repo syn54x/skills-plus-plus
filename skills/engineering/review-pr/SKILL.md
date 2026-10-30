@@ -50,6 +50,7 @@ If that lists commits, run Verify a second time on a local trial merge of the PR
 
 Against the sub-issue body only. Ignore how nice the code is. Classify each gap as **Missing** (asked for, not done, or claimed without doing), **Extra** (not asked for: scope creep, over-engineering), or **Misunderstood** (right feature, wrong way).
 
+- The PR body's `## Ticket` section first: it is a set of claims, one line per acceptance criterion and per Test scenario, each naming a test or a `file:line` hunk. Check each line against the diff. A line whose named test does not exercise its criterion or scenario, or whose hunk does not do what the line says, is a Spec finding tagged `[ticket#Acceptance criteria]` or `[ticket#Test scenarios]`. A PR body with no `## Ticket` section is an **Important** Spec finding tagged `[skill#PR body]`: an absent claim cannot be checked. Then read the criteria and scenarios the section skipped.
 - Every **acceptance criterion** is met and has a test that would fail without the change.
 - Every **Test scenario** line has a corresponding test; a scenario with no test is a spec failure even if the code happens to work.
 - **Files owned** respected; anything outside it is declared in the PR body with a reason you accept.
