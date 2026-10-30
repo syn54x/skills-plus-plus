@@ -29,7 +29,7 @@ gh pr diff "$PR"
 
 No `Closes #N` → spec verdict fails immediately (the PR is not linked to its ticket, and the orchestrator cannot tell which sub-issue the merge completes). Report and stop.
 
-Check out the PR head in a clean worktree (`gh pr checkout "$PR"` in a throwaway worktree, or the Actions checkout) and run the ticket's `## Verify` block yourself. Also check the Verify note, if the worker pushed one: `git notes --ref=sdd-verify show HEAD`.
+Check out the PR head in a clean worktree (`gh pr checkout "$PR"` in a throwaway worktree, or the Actions checkout), note its sha (`HEAD=$(git rev-parse HEAD)`), and run the ticket's `## Verify` block yourself. Also check the Verify note, if the worker pushed one: `git notes --ref=sdd-verify show HEAD`.
 
 **Trial merge.** Two slices can each be green on their own heads and red together. Check whether the base moved since the PR branched:
 
@@ -45,7 +45,6 @@ If that lists commits, run Verify a second time on a local trial merge of the PR
 **CI checks.** Verify runs the ticket's scoped tests; the full suite is CI's run on the PR head. After Verify, read the PR's checks on the head you reviewed:
 
 ```bash
-HEAD=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)   # the head your Verify ran on
 gh pr checks "$PR" --json name,bucket,link > /tmp/review-pr-$PR-checks.json || true   # exit 8: pending; exit 1: a failure, or no checks
 [ "$(gh pr view "$PR" --json headRefOid --jq .headRefOid)" = "$HEAD" ]   # head moved? re-checkout, re-run Verify, and read the checks again
 ```
