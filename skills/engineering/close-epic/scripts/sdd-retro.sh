@@ -195,13 +195,14 @@ for r in sorted(latest):
     p=re.search(r"Personas: ([^\n]*)",t); d=re.search(r"Dropped below confidence 80: (\d+)",t)
     # The list is human prose: it ends at the first ";" or ". " outside parentheses, a parenthetical
     # belongs to the name before it, and a "plus ..." entry is an extra check, not a persona.
-    s=p.group(1) if p else ""; depth=0; entries=[""]
+    s=p.group(1).rstrip() if p else ""; depth=0; entries=[""]
     for i,ch in enumerate(s):
-        depth+=(ch=="(")-(ch==")" and depth>0)
-        if depth==0 and (ch==";" or (ch=="." and s[i+1:i+2] in ("", " "))): break
+        if ch=="(": depth+=1
+        elif ch==")": depth=max(depth-1,0)
+        elif depth==0 and (ch==";" or (ch=="." and s[i+1:i+2] in ("", " "))): break
         if depth==0 and ch==",": entries.append("")
         else: entries[-1]+=ch
-    for x in (e.strip().split(" ")[0] for e in entries):
+    for x in (re.split(r"[ (]",e.strip())[0] for e in entries):
         if x=="plus": break
         if re.fullmatch(r"[a-z0-9-]+",x) and x not in personas: personas.append(x)
     dropped+=int(d.group(1)) if d else 0
