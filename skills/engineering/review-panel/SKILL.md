@@ -44,11 +44,11 @@ Run the epic's aggregate Verify (each merged ticket's Verify block, or the repo'
 Read the PR's own checks once, beside it:
 
 ```bash
-gh pr checks "$PR" --json name,bucket,link > /tmp/review-panel/$PR/checks.json || true   # exit 8: pending; exit 1: a failure, or no checks
+gh pr checks "$PR" --json name,bucket,link > /tmp/review-panel/$PR/checks.json || true   # exit 1 with an empty file: no checks
 [ "$(gh pr view "$PR" --json headRefOid --jq .headRefOid)" = "$HEAD" ]   # head moved? re-checkout, recompute $HEAD, and read the checks again
 ```
 
-`bucket` is the reading: `pass`, `fail`, `pending`, `skipping` or `cancel`. `cancel` counts as fail; `skipping` is not counted. The exit code is part of the reading, not a failure of the step: 8 means a check is pending, 1 means one failed or the PR has no checks (`no checks reported` on stderr and an empty file), which is `none configured`. If the head test fails, re-checkout, recompute `$HEAD` and read the checks again. The checks and the diff must describe the same commit, so a head that moved between checkout and this read is re-read for the new head. The panel reads once per head and never waits on pending checks.
+`bucket` is the reading: `pass`, `fail`, `pending`, `skipping` or `cancel`. `cancel` counts as fail; `skipping` is not counted. Under `--json` the exit code is not the reading (a pending check still exits 0), so pending, failing and passing all come from `bucket`; the one exit that matters is 1 with an empty file and `no checks reported` on stderr, which is `none configured`. If the head test fails, re-checkout, recompute `$HEAD` and read the checks again. The checks and the diff must describe the same commit, so a head that moved between checkout and this read is re-read for the new head. The panel reads once per head and never waits on pending checks.
 
 ## 2. Spec and Coherence first
 
