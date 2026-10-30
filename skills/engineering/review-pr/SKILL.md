@@ -45,11 +45,11 @@ If that lists commits, run Verify a second time on a local trial merge of the PR
 **CI checks.** Verify runs the ticket's scoped tests; the full suite is CI's run on the PR head. After Verify, read the PR's checks on the head you reviewed:
 
 ```bash
-gh pr checks "$PR" --json name,bucket,link > /tmp/review-pr-$PR-checks.json || true   # exit 8: pending; exit 1: a failure, or no checks
+gh pr checks "$PR" --json name,bucket,link > /tmp/review-pr-$PR-checks.json || true   # exit 1 with an empty file: no checks
 [ "$(gh pr view "$PR" --json headRefOid --jq .headRefOid)" = "$HEAD" ]   # head moved? re-checkout, re-run Verify, and read the checks again
 ```
 
-`bucket` is the reading: `pass`, `fail`, `pending`, `skipping` or `cancel`. `cancel` counts as fail; `skipping` is not counted. The exit code is part of the reading, not a failure of the step: 8 means a check is pending, 1 means one failed or the PR has no checks (`no checks reported` on stderr and an empty file), which is `none configured`. A pending check, when no Critical or Important finding is already open, is waited for with `gh pr checks "$PR" --watch` and then read again; one still pending when the rest of the review is done stays pending in the report. Full-epic mode skips this step, because `review-panel` reads the checks itself.
+`bucket` is the reading: `pass`, `fail`, `pending`, `skipping` or `cancel`. `cancel` counts as fail; `skipping` is not counted. Under `--json` the exit code is not the reading (a pending check still exits 0), so pending, failing and passing all come from `bucket`; the one exit that matters is 1 with an empty file and `no checks reported` on stderr, which is `none configured`. A pending check, when no Critical or Important finding is already open, is waited for with `gh pr checks "$PR" --watch` and then read again; one still pending when the rest of the review is done stays pending in the report. Full-epic mode skips this step, because `review-panel` reads the checks itself.
 
 **Do not trust the report.** The PR body, the progress comment and the worker's message are unverified claims about the code. Verify each against the diff. A stated rationale ("kept it simple per YAGNI", "left it out deliberately") is the worker grading its own work; it never downgrades a finding.
 
