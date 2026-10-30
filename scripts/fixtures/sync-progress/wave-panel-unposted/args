@@ -1,1 +1,1 @@
-wave 200 panel --round 1 --verdict MERGE --severity critical=0,important=1,minor=2 --persona correctness=1
+wave 200 panel --round 1 --verdict "HUMAN DECISION" --severity critical=0,important=1,minor=2 --persona correctness=1
