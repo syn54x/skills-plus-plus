@@ -158,7 +158,7 @@ if [ "$WAVE_DATA" != '[]' ]; then
   EDGES=$(jq '[.[].waves[]?.edges | length] | add // 0' <<<"$WAVE_DATA")
 else
 EDGES=$(jq 'if length == 0 then null else
-  [.[] | capture("Edges added: (?<e>[^\n]*)")? | .e // empty] | map(select(. != "none" and . != "") | split(",") | length) | add // 0 end' <<<"$WAVES")
+  [.[] | capture("Edges added: (?<e>[^\n]*)")? | .e // empty] | map(select(startswith("none") | not) | [scan("\u2190")] | length) | add // 0 end' <<<"$WAVES")
 fi
 [ "$EDGES" = null ] && not_found "wave comment"
 
@@ -193,9 +193,18 @@ for r in sorted(latest):
         if line.startswith("## "): sec=None
         if sec and re.match(r"^- (?:F|#)\d+ ",line): c[sec]+=1
     p=re.search(r"Personas: ([^\n]*)",t); d=re.search(r"Dropped below confidence 80: (\d+)",t)
-    for x in (p.group(1).split(",") if p else []):
-        x=x.strip().split(" ")[0].rstrip(".")
-        if x and x not in personas: personas.append(x)
+    # The list is human prose: it ends at the first ";" or ". " outside parentheses, a parenthetical
+    # belongs to the name before it, and a "plus ..." entry is an extra check, not a persona.
+    s=p.group(1).rstrip() if p else ""; depth=0; entries=[""]
+    for i,ch in enumerate(s):
+        if ch=="(": depth+=1
+        elif ch==")": depth=max(depth-1,0)
+        elif depth==0 and (ch==";" or (ch=="." and s[i+1:i+2] in ("", " "))): break
+        if depth==0 and ch==",": entries.append("")
+        else: entries[-1]+=ch
+    for x in (re.split(r"[ (]",e.strip())[0] for e in entries):
+        if x=="plus": break
+        if re.fullmatch(r"[a-z0-9-]+",x) and x not in personas: personas.append(x)
     dropped+=int(d.group(1)) if d else 0
 print(json.dumps({"rounds":len(latest),"personas":personas,
   "critical":c["Critical"],"important":c["Important"],"minor":c["Minor"],"dropped":dropped}))' <<<"$REPORTS")

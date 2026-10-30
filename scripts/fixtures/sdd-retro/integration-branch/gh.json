@@ -142,7 +142,7 @@
    "createdAt": "2026-01-02T00:00:00Z",
    "reviews": [
     {
-     "body": "## Verdict: FIX FIRST\nOne Critical in the totals.\n\n## Spec: PASS\nAll stories present.\n\n## Coherence\nNo disagreements.\n\n## Findings\n### Critical\n- F1 `correctness` \u00b7 `src/a.ts:3` @ `abc1234` \u00b7 conf 90 \u00b7 wrong total\n  The sum skips the last line.\n### Important\n- F2 `testing` \u00b7 `src/a.test.ts:5` @ `abc1234` \u00b7 conf 85 \u00b7 test asserts nothing\n- F3 `maintainability` \u00b7 `src/b.ts:9` @ `abc1234` \u00b7 conf 82 \u00b7 duplicated block\n### Minor\n- F4 `history` \u00b7 `src/c.ts:1` @ `abc1234` \u00b7 conf 80 \u00b7 stale comment\n\n## Coverage\nPersonas: correctness, testing, maintainability, standards-and-invariants, history, depth, api-contract (routes changed).\nDropped below confidence 80: 2. Cannot verify from diff: none.\nVerify: passed on `abc1234` (`npm test`).\n",
+     "body": "## Verdict: FIX FIRST\nOne Critical in the totals.\n\n## Spec: PASS\nAll stories present.\n\n## Coherence\nNo disagreements.\n\n## Findings\n### Critical\n- F1 `correctness` \u00b7 `src/a.ts:3` @ `abc1234` \u00b7 conf 90 \u00b7 wrong total\n  The sum skips the last line.\n### Important\n- F2 `testing` \u00b7 `src/a.test.ts:5` @ `abc1234` \u00b7 conf 85 \u00b7 test asserts nothing\n- F3 `maintainability` \u00b7 `src/b.ts:9` @ `abc1234` \u00b7 conf 82 \u00b7 duplicated block\n### Minor\n- F4 `history` \u00b7 `src/c.ts:1` @ `abc1234` \u00b7 conf 80 \u00b7 stale comment\n\n## Coverage\nPersonas: correctness, testing, maintainability, standards-and-invariants, history, depth (scoped to src/a.ts, src/b.ts; no migrations), api-contract (routes changed). Plus the per-finding check (correctness) and the review-pr full-epic re-run.\nDropped below confidence 80: 2. Cannot verify from diff: none.\nVerify: passed on `abc1234` (`npm test`).\n",
      "submittedAt": "2026-01-02T01:00:00Z"
     }
    ],
@@ -152,11 +152,11 @@
      "createdAt": "2026-01-02T00:30:00Z"
     },
     {
-     "body": "## Verdict: FIX FIRST\nOne Critical in the totals.\n\n## Spec: PASS\nAll stories present.\n\n## Coherence\nNo disagreements.\n\n## Findings\n### Critical\n- F1 `correctness` \u00b7 `src/a.ts:3` @ `abc1234` \u00b7 conf 90 \u00b7 wrong total\n  The sum skips the last line.\n### Important\n- F2 `testing` \u00b7 `src/a.test.ts:5` @ `abc1234` \u00b7 conf 85 \u00b7 test asserts nothing\n- F3 `maintainability` \u00b7 `src/b.ts:9` @ `abc1234` \u00b7 conf 82 \u00b7 duplicated block\n### Minor\n- F4 `history` \u00b7 `src/c.ts:1` @ `abc1234` \u00b7 conf 80 \u00b7 stale comment\n\n## Coverage\nPersonas: correctness, testing, maintainability, standards-and-invariants, history, depth, api-contract (routes changed).\nDropped below confidence 80: 2. Cannot verify from diff: none.\nVerify: passed on `abc1234` (`npm test`).\n",
+     "body": "## Verdict: FIX FIRST\nOne Critical in the totals.\n\n## Spec: PASS\nAll stories present.\n\n## Coherence\nNo disagreements.\n\n## Findings\n### Critical\n- F1 `correctness` \u00b7 `src/a.ts:3` @ `abc1234` \u00b7 conf 90 \u00b7 wrong total\n  The sum skips the last line.\n### Important\n- F2 `testing` \u00b7 `src/a.test.ts:5` @ `abc1234` \u00b7 conf 85 \u00b7 test asserts nothing\n- F3 `maintainability` \u00b7 `src/b.ts:9` @ `abc1234` \u00b7 conf 82 \u00b7 duplicated block\n### Minor\n- F4 `history` \u00b7 `src/c.ts:1` @ `abc1234` \u00b7 conf 80 \u00b7 stale comment\n\n## Coverage\nPersonas: correctness, testing, maintainability, standards-and-invariants, history, depth (scoped to src/a.ts, src/b.ts; no migrations), api-contract (routes changed). Plus the per-finding check (correctness) and the review-pr full-epic re-run.\nDropped below confidence 80: 2. Cannot verify from diff: none.\nVerify: passed on `abc1234` (`npm test`).\n",
      "createdAt": "2026-01-02T02:00:00Z"
     },
     {
-     "body": "## Verdict: HUMAN DECISION \u00b7 Round 2\nEarlier Critical addressed; one new Important from the fix slices together.\n\n## Earlier findings\n| Id | Status | Evidence |\n|---|---|---|\n| F1 | ADDRESSED | `src/a.ts:3` |\n| F2 | ADDRESSED | `src/a.test.ts:5` |\n| F3 | ADDRESSED | `src/b.ts:9` |\n\n## Spec: PASS\nAll stories present.\n\n## Coherence\nNo disagreements.\n\n## New findings\n### Important\n- F5 `correctness` \u00b7 `src/a.ts:7` @ `def5678` \u00b7 conf 88 \u00b7 fix broke rounding\n\n## Coverage\nPersonas: correctness, testing, maintainability, standards-and-invariants, history.\nDropped below confidence 80: 1. Cannot verify from diff: none.\nVerify: passed on `def5678` (`npm test`).\n",
+     "body": "## Verdict: HUMAN DECISION \u00b7 Round 2\nEarlier Critical addressed; one new Important from the fix slices together.\n\n## Earlier findings\n| Id | Status | Evidence |\n|---|---|---|\n| F1 | ADDRESSED | `src/a.ts:3` |\n| F2 | ADDRESSED | `src/a.test.ts:5` |\n| F3 | ADDRESSED | `src/b.ts:9` |\n\n## Spec: PASS\nAll stories present.\n\n## Coherence\nNo disagreements.\n\n## New findings\n### Important\n- F5 `correctness` \u00b7 `src/a.ts:7` @ `def5678` \u00b7 conf 88 \u00b7 fix broke rounding\n\n## Coverage\nPersonas: correctness, testing, maintainability, standards-and-invariants, history; `depth` dropped (the fix diff is tests and fixtures).\nDropped below confidence 80: 1. Cannot verify from diff: none.\nVerify: passed on `def5678` (`npm test`).\n",
      "createdAt": "2026-01-03T00:00:00Z"
     }
    ]
@@ -195,7 +195,7 @@
     "body": "<!-- sdd-plan -->\n**Integration branch:** `feat/invoices`\n"
    },
    {
-    "body": "<!-- sdd-wave -->\nWave 1: #2 (PR #10), #3 (PR #11), #4 (https://github.com/acme/app/pull/13)\nEdges added: #4 \u2190 #3\n"
+    "body": "<!-- sdd-wave -->\nWave 1: #2 (PR #10), #3 (PR #11), #4 (https://github.com/acme/app/pull/13)\nEdges added: #4 \u2190 #3. Files owned amended: #3 gained `src/shared.ts` (Modify).\n"
    }
   ]
  }
