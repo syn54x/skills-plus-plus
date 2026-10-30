@@ -14,10 +14,13 @@ Type `/prepare-release-notes`, or the agent reaches for it when you are preparin
 
 **My release command takes no notes argument.** It still drafts the highlights and prints the project's release command, plus where to paste the notes; it does not invent a flag.
 
+**Why does every feature release open with the same emoji?** The headline's emoji marks the kind of change that leads the release (✨ feature, 🛠️ fix, ♻️ refactor), so a reader learns it once and can scan the releases page by it. The subject of the release is the words after the emoji, and the skill never picks an emoji to illustrate it.
+
 ## It's working if
 
 - A notes file exists under `/tmp` and the terminal shows the exact release command, unrun.
 - Chore and CI noise is gone unless it was the whole release.
+- The headline's emoji matches the headliner's commit kind, not its subject, and the `## Also in this release` section has none.
 
 ## Where it fits
 
