@@ -102,14 +102,14 @@ Verify corrections:
 for PR in $PRS; do gh pr view "$PR" --json body --jq '.body | test("Verify block corrected: yes") | if . then 1 else 0 end'; done
 ```
 
-Edges added (the wave trailer's `waves[].edges` lists them, an empty list counting zero; `sync-progress` renders the same pairs as `Edges added: <consumer> ← <producer>, …` or `Edges added: none`). Trailer first, prose when there is none:
+Edges added (the wave trailer's `waves[].edges` lists them, an empty list counting zero; `sync-progress` renders the same pairs as `Edges added: <consumer> ← <producer>, …` or `Edges added: none`). Trailer first, prose when there is none. The prose line may carry more after the list (`none. Files owned amended: ...`), so a value that begins with `none` is zero and any other counts its `←` pairs, not its commas:
 
 ```bash
 WAVE=$(gh api "repos/$EPIC_REPO/issues/$EPIC_N/comments" --paginate \
   --jq '[.[] | select(.body | startswith("<!-- sdd-wave -->")) | .body]' | trailer)
 [ -n "$WAVE" ] && jq '[.waves[].edges | length] | add // 0' <<<"$WAVE" ||
 gh api "repos/$EPIC_REPO/issues/$EPIC_N/comments" --paginate \
-  --jq '[.[] | select(.body | startswith("<!-- sdd-wave -->")) | .body | capture("Edges added: (?<e>[^\n]*)") | .e] | map(select(. != "none") | split(",") | length) | add // 0'
+  --jq '[.[] | select(.body | startswith("<!-- sdd-wave -->")) | .body | capture("Edges added: (?<e>[^\n]*)") | .e] | map(select(startswith("none") | not) | [scan("\u2190")] | length) | add // 0'
 ```
 
 Panel, from the wave trailer when it has `panel` rounds: the latest entry per `round` counts as that round; `panel.rounds` is how many distinct rounds, `critical`, `important`, `minor` and `dropped` sum `severity` and `dropped` across them, and `personas` lists the keys of every round's `persona` map. With none, the report comments below are the fallback. A trailer that does not decode is treated as absent and named in `not_found` as `wave trailer: unreadable` (`plan trailer: unreadable` for the plan).
@@ -122,7 +122,7 @@ gh pr view "$INT_PR" --json reviews,comments --jq '
   | map(select(.body | startswith("## Verdict:"))) | sort_by(.at) | map(.body)'
 ```
 
-Each report is one **round**: the first report has no marker and is round 1; a re-review report after a FIX FIRST fix round carries `Round 2` or `Round 3` on its `## Verdict:` line. When the same round was posted twice, keep the latest copy. `panel.rounds` counts the rounds; `critical`, `important`, `minor` and `dropped` sum across them (a re-review report lists only its new findings, so nothing counts twice); `personas` is the union. Count Critical / Important / Minor by the heading each `- Fn` line sits under, and `- #n` from reports posted before that id change. The script does this with a small state machine. No report → `panel: null`.
+Each report is one **round**: the first report has no marker and is round 1; a re-review report after a FIX FIRST fix round carries `Round 2` or `Round 3` on its `## Verdict:` line. When the same round was posted twice, keep the latest copy. `panel.rounds` counts the rounds; `critical`, `important`, `minor` and `dropped` sum across them (a re-review report lists only its new findings, so nothing counts twice); `personas` is the union of each report's `Personas:` list. That line is prose, so the list ends at the first `;` or `. ` outside parentheses, a parenthetical belongs to the name before it, an entry starting `plus` ends it, and each remaining comma-separated entry gives its first word when that word is a lowercase identifier (`a-z`, digits, hyphens). Count Critical / Important / Minor by the heading each `- Fn` line sits under, and `- #n` from reports posted before that id change. The script does this with a small state machine. No report → `panel: null`.
 
 Claim-to-PR hours per ticket:
 

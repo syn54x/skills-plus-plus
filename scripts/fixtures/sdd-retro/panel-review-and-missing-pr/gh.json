@@ -67,7 +67,7 @@
    "createdAt": "2026-01-02T00:00:00Z",
    "reviews": [
     {
-     "body": "## Verdict: HUMAN DECISION\nOne Important.\n\n## Findings\n### Important\n- F1 `testing` \u00b7 `src/a.test.ts:5` @ `abc1234` \u00b7 conf 85 \u00b7 test asserts nothing\n### Minor\n- F2 `correctness` \u00b7 `src/a.ts:1` @ `abc1234` \u00b7 conf 80 \u00b7 naming\n\n## Coverage\nPersonas: correctness, testing.\nDropped below confidence 80: 0. Cannot verify from diff: none.\n",
+     "body": "## Verdict: HUMAN DECISION\nOne Important.\n\n## Findings\n### Important\n- F1 `testing` \u00b7 `src/a.test.ts:5` @ `abc1234` \u00b7 conf 85 \u00b7 test asserts nothing\n### Minor\n- F2 `correctness` \u00b7 `src/a.ts:1` @ `abc1234` \u00b7 conf 80 \u00b7 naming\n\n## Coverage\nPersonas: correctness, testing (scoped to the one script), plus the per-finding check. No conditional seated: 40 executable lines, no auth or routes touched.\nDropped below confidence 80: 0. Cannot verify from diff: none.\n",
      "submittedAt": "2026-01-02T01:00:00Z"
     }
    ],
@@ -94,7 +94,7 @@
     "body": "<!-- sdd-plan -->\n**Integration branch:** `feat/x`\n"
    },
    {
-    "body": "<!-- sdd-wave -->\nWave 1: #2, #3\nEdges added: none\n"
+    "body": "<!-- sdd-wave -->\nWave 1: #2, #3\nEdges added: none. Files owned amended: #2 and #3 each gained `src/shared.ts` (Modify).\n"
    }
   ]
  }
