@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """sdd-by-cause.py: count fix-round findings by Law tag source for the retro's fix_rounds.by_cause.
 
-stdin:  a JSON array of review bodies (strings), every review on the epic's ticket PRs.
+stdin:  a JSON array of review bodies (strings or null), every review on the epic's ticket PRs.
 stdout: the by_cause object, {"<key>": <count>}, or null for an empty array.
+exit 2: stdin is anything else (the retro JSON, say), with one line on stderr and nothing on stdout,
+        so a mis-fed run never passes as "no failing review".
 
 A FAIL review is one whose body contains "## Spec: FAIL" or "## Quality: FAIL". Every line in it
 that starts "- Critical", "- Important" or "- Minor" is one finding, keyed by its Law tag
@@ -46,5 +48,17 @@ def by_cause(bodies):
     return counts
 
 
+def read_bodies(stream):
+    """Return the review bodies on stream, or exit 2 when stream is not an array of strings or null."""
+    try:
+        bodies = json.load(stream)
+    except ValueError:
+        bodies = None
+    if not isinstance(bodies, list) or not all(b is None or isinstance(b, str) for b in bodies):
+        print("sdd-by-cause.py: stdin must be a JSON array of review bodies (see RETRO.md)", file=sys.stderr)
+        sys.exit(2)
+    return bodies
+
+
 if __name__ == "__main__":
-    print(json.dumps(by_cause(json.load(sys.stdin)), sort_keys=True))
+    print(json.dumps(by_cause(read_bodies(sys.stdin)), sort_keys=True))
