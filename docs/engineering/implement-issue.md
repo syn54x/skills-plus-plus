@@ -40,6 +40,8 @@ The issue must be open, unblocked, not held and labelled `ready-for-agent`. Held
 
 **What does test-first mean when the ticket only changes prose?** When the Files owned are a `SKILL.md`, a reference file or a docs page, the Test scenarios resolve to commands in the Verify block, so the Verify block is the test. The worker runs it before any edit and records which commands fail; that is RED. The edit that turns each one is GREEN, in scenario order. A command that already passes before the edit has no RED, so the worker lists it under Notes for the reviewer as `No RED: <command>` and the reviewer reads it as a weak pin. A ticket that also has a test file follows the normal [tdd](../engineering/tdd.md) loop for that file.
 
+**Does the worker run the full suite?** No. It runs the test file it is working in as it goes, and the ticket's Verify block, which is scoped to the ticket's own tests, before the PR opens. The full suite is CI's run on the PR head, and [review-pr](../engineering/review-pr.md) reads that result. A slice gate used to run the whole suite three or four times on agents' clocks (the worker, each fix round, the reviewer), and with several agents running it at once those runs dominated an epic's wall-clock time.
+
 **Why does the self-review come before the PR opens?** So the reviewer reads a diff that has already been reviewed once and is no longer changing. The claims check is the one part that runs after the push, because it compares the report with what is on the remote branch.
 
 **Why is it model-invoked when `implement` is not?** Workers have to start it without a human typing it. A user-invoked skill cannot be reached by another skill or agent at all.
