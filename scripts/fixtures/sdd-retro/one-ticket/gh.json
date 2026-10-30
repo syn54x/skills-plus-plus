@@ -40,7 +40,7 @@
    "createdAt": "2026-01-01T04:00:00Z",
    "reviews": [
     {
-     "body": "## Spec: PASS\n\n## Quality: FAIL\nImportant: swallowed error.\n",
+     "body": "## Spec: PASS\n\n## Quality: FAIL\n- Important · [AGENTS.md#I-2] · src/a.ts:12 at abc1234 · swallowed error · the caller never learns the write failed · rethrow\n",
      "submittedAt": "2026-01-01T05:00:00Z"
     }
    ],
