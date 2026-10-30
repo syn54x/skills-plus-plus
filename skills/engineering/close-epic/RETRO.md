@@ -30,8 +30,8 @@ The plan trailer's `branch` wins; the `**Integration branch:**` line is the fall
 
 Every PR-derived measure starts from the ticket-to-PR map. GitHub fills an issue's closed-by references only when a PR merges into the default branch, and slice PRs merge into the integration branch, so those references are the fallback, not the source. Per ticket, its PRs are the first of these that finds any:
 
-1. PRs whose base is `$BRANCH`, in the ticket's repo, whose body carries a closing line for the ticket (`Closes #<N>`, as `implement-issue` writes it; `owner/repo#<N>` or the issue URL also match).
-2. PRs the `<!-- sdd-wave -->` comment records: the trailer's `waves[].prs` values, then any pull URL or `#<n>` in the epic's repo found in its prose, with the same closing line. This catches a slice PR stacked on another slice's branch.
+1. PRs whose base is `$BRANCH`, in the ticket's repo, whose body carries a closing line for the ticket (`Closes #<N>`, as `implement-issue` writes it; `Fixes` and `Resolves` also match) or a `Refs #<N>` line (a panel fix slice, which refers to its already-closed ticket, as `build-epic` §7 writes it); `owner/repo#<N>` or the issue URL also match.
+2. PRs the `<!-- sdd-wave -->` comment records: the trailer's `waves[].prs` values, then any pull URL or `#<n>` in the epic's repo found in its prose, with the same closing or `Refs` line. This catches a slice PR stacked on another slice's branch.
 3. The ticket's `closedByPullRequestsReferences`: the one-ticket epic whose PR targets `main`.
 
 A ticket with no PR from any source is listed under `not_found` as `ticket PR: <url>`.
@@ -75,7 +75,7 @@ Ticket PRs (source 1 of the map above; add the wave comment's PRs and, per ticke
 PRS=$(for URL in $TICKETS; do
   R=$(repo_of "$URL"); N=${URL##*/}
   gh pr list -R "$R" --base "$BRANCH" --state all --limit 1000 --json url,body |
-    jq -r --arg n "$N" '.[] | select(.body | test("(?i)\\bclose[sd]?:? +#" + $n + "(?![0-9])")) | .url'
+    jq -r --arg n "$N" '.[] | select(.body | test("(?i)\\b(close[sd]?|fix(e[sd])?|resolve[sd]?|refs?):? +#" + $n + "(?![0-9])")) | .url'
 done | sort -u)
 ```
 
@@ -172,6 +172,7 @@ This block is the **local** retro. It names the epic and stays in the user's rep
 | `by_cause` `ticket#Interfaces` high | `implement-issue` §6: the Interfaces claim, the diff's public symbols matched against the Produces lines |
 | `by_cause` `ticket#Test scenarios` high | `to-tickets` SDD §1: scenarios that a worker could not map one test to each |
 | `by_cause` `epic` high | the ticket did not carry the epic's decision (`to-tickets` consistency pass, the brief's Laws section) |
+| `by_cause` `skill` high | `implement-issue` itself, the step the tag names (§6 Laws lines, §7 PR body claims): the rule was read and not followed. File it as skill feedback for this repository (category `law-read-not-checked`), not as a fix in the user's repo |
 | `by_cause` `none` high | logic and test gaps no Law names: the tier rubric (`build-epic` §4–5), or `review-pr` calibration |
 | `escalations.blocked` in a multi-repo epic | cross-repo *Available when* clauses missing |
 | `panel.dropped` much larger than findings | persona prompts too eager; raise specificity before raising the gate |
