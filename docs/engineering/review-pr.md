@@ -18,7 +18,7 @@ Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gatin
 
 **Why doesn't it approve or request changes?** The merge decision belongs to the orchestrator or a human; the review is a comment with verdicts, never `--approve` or `--request-changes`.
 
-**What is the `[AGENTS.md#I-5]` at the start of every finding?** The **Law tag**: the rule the finding cites, as source and id. The source is a document from the `Laws:` line, an ADR, the epic, a section of the ticket, a document the ticket cites, a rule of the SDD skills themselves (`skill`, as in `[skill#Laws section]`), or `none` for a plain logic or test gap no document or skill rule names. It costs the reviewer nothing extra and lets [close-epic](../engineering/close-epic.md)'s retro count fix rounds by which law keeps getting broken.
+**What is the `[AGENTS.md#I-5]` at the start of every finding?** The **Law tag**: the rule the finding cites, as source and id. The source is a document from the `Laws:` line, an ADR, the epic, a section of the ticket, a document the ticket cites, a rule of the SDD skills themselves (`skill`, as in `[skill#Laws section]`), or `none` for a plain logic or test gap no document or skill rule names. It costs the reviewer nothing extra and lets [close-epic](../engineering/close-epic.md)'s retro count fix rounds by which law keeps getting broken. The reviewer cannot post a finding without one: a check over the review file catches any finding line missing its tag before the review goes up. `[none]` is a decision that no law names the rule, made after looking, never what an untagged finding defaults to.
 
 **Why is a missing `## Laws` section an Important finding?** It is tagged `[skill#Laws section]`. The worker lists in the PR body each law that applies to its slice, with how the diff meets it or `n/a` and why. The reviewer reads every line as a claim and checks it against the diff, so an `n/a` on a law the diff plainly touches is a finding under that law. With no section at all there is nothing to check, which is the same reason a missing `Verify block corrected:` line fails.
 
@@ -44,6 +44,7 @@ Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gatin
 
 - Every slice PR has one review comment with `## Spec: PASS | FAIL`, `## Quality: PASS | FAIL`, a `Verify:` line naming the commit it ran on, and a `Trial merge:` line naming the base commit it merged into, or saying the base had not moved.
 - Every finding names a severity, a Law tag such as `[ticket#Interfaces]` or `[none]`, and a file and line at a commit; there are no "consider…" items.
+- An untagged finding never appears in a posted review; every finding line has a tag, even if it is `[none]`.
 - A `depth` finding points at the line that declares an interface and says what callers must know, which bug the tests miss, or which refactor they would not survive.
 - A re-review verdicts each earlier finding `ADDRESSED` or `NOT ADDRESSED` instead of starting over, and only its new findings carry a Law tag.
 
