@@ -17,10 +17,12 @@
  },
  "edges_added": 1,
  "fix_rounds": {
-  "total": 3,
-  "prs_with_rounds": 2,
+  "total": 4,
+  "prs_with_rounds": 3,
   "max": 2,
-  "by_cause": {}
+  "by_cause": {
+   "ADR-0007": 1
+  }
  },
  "verify_corrections": 1,
  "panel": {
