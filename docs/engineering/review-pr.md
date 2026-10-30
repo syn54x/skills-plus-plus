@@ -22,6 +22,8 @@ Type `/review-pr <pr#>`, or the agent reaches for it when a slice PR needs gatin
 
 **Why is a missing `## Laws` section an Important finding?** It is tagged `[skill#Laws section]`. The worker lists in the PR body each law that applies to its slice, with how the diff meets it or `n/a` and why. The reviewer reads every line as a claim and checks it against the diff, so an `n/a` on a law the diff plainly touches is a finding under that law. With no section at all there is nothing to check, which is the same reason a missing `Verify block corrected:` line fails.
 
+**Where does the spec verdict start?** At the PR body's Ticket section, where the worker names the test or diff hunk behind each acceptance criterion and Test scenario. The reviewer checks each line against the diff: a named test that does not exercise its criterion is a finding tagged `[ticket#Acceptance criteria]` or `[ticket#Test scenarios]`, and a PR body with no Ticket section is an Important finding tagged `[skill#PR body]`, for the same reason as a missing Laws section.
+
 **What happens on the second failure?** Nothing automatic. After the single fix round and a scoped re-review, open findings hand the ticket back `ready-for-human` with the PR left open.
 
 **What happens when a PR fails review and nobody can resume the worker?** There is no fix round: the reviewer hands the ticket back `ready-for-human` with the failing items as the reason, which sets the label, clears the `claimed` mark and leaves the PR open with the review on it. A one-off reviewed on its own is the usual case.

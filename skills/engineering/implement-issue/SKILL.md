@@ -98,11 +98,11 @@ Never open the PR with Verify red or un-run.
 
 Before the PR opens, read your own diff (`git diff "origin/$BASE...HEAD"`) once with fresh eyes and fix what you find. A fix is committed, and §5 runs again on the new `HEAD`.
 
-- **Completeness**: every acceptance criterion and every Test scenario has a test; no edge case from the ticket left out.
 - **Discipline**: nothing built that was not asked for (YAGNI); in-repo patterns followed; nothing outside Files owned that is not declared.
 - **Tests**: they assert behaviour, not mocks; test output is pristine (no stray warnings or noise).
 - **Names**: say what things do, not how they work.
 - **Laws**: every law from §1, each checked against the diff, including those §4 already checked at their trigger. Write the PR body's `## Laws` section now, from the diff: one line per law that applies, grouped by source (a Laws-line document by rule id where the document has ids, an epic decision by its name, a cited document by the heading it binds), and one `n/a: <reason>` line per source with nothing applying.
+- **Ticket**: every acceptance criterion and every Test scenario has a test, and no edge case from the ticket is left out. Re-read each criterion and each scenario line, name the test (`file::test name`) or the diff hunk (`file:line`) that satisfies it, read from the diff, and write the PR body's `## Ticket` section now: one line per criterion and per scenario, in the ticket's order, each ending in its test or hunk. A line with nothing to point at is a gap, never an `n/a`: close it before the PR opens (add the test, or make the change).
 - **Interfaces**: list every public symbol the diff adds, removes or re-signs inside Files owned, and match each against the ticket's Produces lines. Each mismatch is either changed back or declared as an **Interface deviation** on its own `Interfaces changed:` line (§4); a mismatch without that line is a failing claim. The line reads `none` only when the list matches the Produces lines exactly.
 
 This self-review does not replace the reviewer; it makes the review shorter.
@@ -129,6 +129,10 @@ Ran the ticket's Verify block on `<short sha>`: passed.
 TDD: RED `<command>` failed as expected (<one line>); GREEN `<command>` passed (<n/n>).
 Verify block corrected: no   <!-- required, never omitted: `no`, or `yes:` plus what was wrong and the command you ran instead -->
 
+## Ticket
+
+<!-- required, no default: the §6 Ticket lines, one per acceptance criterion and per Test scenario, in the ticket's order, each ending in its test or `file:line` -->
+
 ## Interfaces
 
 Interfaces changed:   <!-- required, no default: from the §6 symbol list, `none` when every symbol matches a Produces line, else one line per Interface deviation: `<old signature>` → `<new signature>`: <why the ticket's signature could not work as written> -->
@@ -152,11 +156,18 @@ A `## Laws` section has this shape:
 - cited#Register doors: Save sits in the plate's foot, violet
 ```
 
+A `## Ticket` section has this shape:
+
+```markdown
+- AC2: tests/test_invoice.py::test_duplicate_ref
+- Scenario, edge case duplicate externalRef: tests/test_invoice.py::test_duplicate_ref
+```
+
 `Closes #N` is what links the PR to its ticket, and it closes the ticket when the PR targets the default branch; on an integration branch the orchestrator closes the ticket after the merge. Do not omit the line, and do not close the issue by hand.
 
 ## 8. Check the claims, then report
 
-**Claims**, against the pushed branch: every test named in the TDD evidence, and every file or pin the report or PR body says was added or changed, is in `git diff "origin/$BASE...HEAD"`; every test whose file changed after its RED run was run again, and GREEN comes from the final committed state (the Verify SHA equals the pushed `HEAD`, `git rev-parse "origin/$BRANCH"`); `git status --porcelain` is empty, so nothing the report relies on is only uncommitted. Fix a failing claim (commit, re-run Verify, push) or remove it from the report and PR body.
+**Claims**, against the pushed branch: every test named in the TDD evidence, and every file or pin the report or PR body says was added or changed, and every test and hunk the `## Ticket` section names, is in `git diff "origin/$BASE...HEAD"`; every acceptance criterion and every Test scenario has its line in `## Ticket`, since a missing line fails like a named test absent from the diff; every test whose file changed after its RED run was run again, and GREEN comes from the final committed state (the Verify SHA equals the pushed `HEAD`, `git rev-parse "origin/$BRANCH"`); `git status --porcelain` is empty, so nothing the report relies on is only uncommitted. Fix a failing claim (commit, re-run Verify, push) or remove it from the report and PR body.
 
 Update the progress comment with `sync-progress.sh progress "$N" --status pr-open --pr <PR number> --verify "passed <sha7>"`. Then reply in ≤ 200 words:
 
