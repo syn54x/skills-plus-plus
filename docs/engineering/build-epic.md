@@ -29,7 +29,7 @@ Each worker is an isolated subagent in its own worktree, branched from the integ
 
 A worker's PR goes to [review-pr](../engineering/review-pr.md). A failing review sends the findings back to the same worker for exactly one fix round; findings still open after that go to `ready-for-human`. A merge conflict is never hand-resolved: the worker rebases and re-runs Verify.
 
-The PR to `main` goes to [review-panel](../engineering/review-panel.md). A **FIX FIRST** verdict sends its findings to the workers that own the files. Each fix slice's PR refers to its ticket with `Refs #N` rather than closing it, because the ticket is already closed, and names the panel finding it fixes. Once those fix slices merge, the panel re-reviews the new head: each earlier finding checked by id, the Spec and Coherence verdicts re-run, and a **Composition pass** over the fix slices together. That loop runs at most twice; still FIX FIRST after the second fix round, it comes to you as **HUMAN DECISION**.
+The PR to `main` goes to [review-panel](../engineering/review-panel.md). A **FIX FIRST** verdict sends its findings to the workers that own the files. Each fix slice's PR refers to its ticket with `Refs #N` rather than closing it, because the ticket is already closed, and names the panel finding it fixes. Once those fix slices merge, the panel re-reviews the new head: each earlier finding checked by id, the Spec and Coherence verdicts re-run, and a **Composition pass** over the fix slices together. That loop runs at most twice; still FIX FIRST after the second fix round, it comes to you as **HUMAN DECISION**. If you answer that with a fix, you get one **overtime** round per answer, re-reviewed as `Round 4`, `Round 5` and on.
 
 ## Common questions
 
