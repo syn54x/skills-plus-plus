@@ -98,7 +98,17 @@ While workers run, report one line per worker whenever you surface: ticket → l
 First read the worker's status; never ignore an escalation, and never re-run the same worker unchanged:
 
 - `DONE_WITH_CONCERNS` → read the concerns. Correctness or scope doubts get resolved (answer, or send the worker back) before review; observations are noted and review proceeds.
-- `NEEDS_CONTEXT` → supply the missing context and resume the worker.
+- `NEEDS_CONTEXT` → the report names its kind first:
+  - a **missing fact** (a path, a value, a name the code or the user knows) → supply it and resume the worker.
+  - an **unsettled design** (more than one valid approach and the epic does not choose, or the epic's decision contradicts the code) → the worker stays stopped while you settle it, in order:
+    1. Call the Skill tool with "grilling" on the question. The user decides; you supply the facts from the code and the epic.
+    2. When the decision is hard to reverse, call the Skill tool with "domain-modeling" to record it as an ADR.
+    3. Write the decision into the epic body as one `## Spec deltas` item in `to-tickets`'s shape: MODIFIED or ADDED, or REMOVED when the user drops the behaviour. Create the section when the epic lacks it.
+    4. Rewrite the affected tickets' What to build, Interfaces and Test scenarios (`gh issue edit "$URL" --body-file …`): the stopped ticket, and every ticket whose Consumes or Produces line the decision changes. A dropped behaviour closes its ticket instead: `gh issue close "$URL" --reason "not planned"`.
+    5. Record it with `scripts/sync-progress.sh plan <epic> --add-deviation "<ticket>: <decision in one line>"`.
+    6. Resume the worker with the rewritten ticket (a closed ticket ends its worker instead).
+
+    The Spec deltas item is the amendment, and `close-epic` already confirms it shipped; the epic gains no other section and the tickets carry no amendment marks.
 - `BLOCKED` → decide what changes: more context (resume), more capability (fresh dispatch on the ceiling tier), a smaller ticket (split it, new sub-issues, edges), or a wrong plan (fix the ticket body, record the ruling in the plan comment, re-dispatch).
 
 Then call the Skill tool with "review-pr" for its PR. That skill dispatches a fresh reviewer, runs the ticket's Verify block, and returns two verdicts: **spec** and **quality**, with severities.
