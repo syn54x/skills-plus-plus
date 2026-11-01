@@ -1,5 +1,13 @@
 # mattpocock-skills
 
+## 1.7.1
+
+### Patch Changes
+
+- [#195](https://github.com/syn54x/skills-plus-plus/pull/195) [`75438b3`](https://github.com/syn54x/skills-plus-plus/commit/75438b3a1bef0aab337a02b84f219934367a148c) Thanks [@0x054](https://github.com/0x054)! - `build-epic` in multi-repo mode no longer guesses where the other repos live or switches their branches. It asks once per session for each other repo's checkout path, creates that repo's integration branch in a dedicated worktree of the checkout (reusing one an earlier session left), runs its local Verify and full-suite runs there, and removes the worktree once that repo's PR to `main` merges. Local paths never go to GitHub.
+
+- [#194](https://github.com/syn54x/skills-plus-plus/pull/194) [`15d9967`](https://github.com/syn54x/skills-plus-plus/commit/15d9967a1363e2ad5fbd982d33b169df42940497) Thanks [@0x054](https://github.com/0x054)! - `implement-issue` writes the PR body to a per-run `mktemp` file instead of a fixed path, so parallel workers never open a PR with each other's body.
+
 ## 1.7.0
 
 ### Minor Changes
