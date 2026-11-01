@@ -109,9 +109,13 @@ This self-review does not replace the reviewer; it makes the review shorter.
 
 ## 7. Open the PR
 
+Write the PR body to a file made for this run alone: parallel workers share the temp directory, so a fixed path lets one worker open its PR with another's body.
+
 ```bash
+BODY="$(mktemp "${TMPDIR:-/tmp}/pr-XXXXXX")"
+# write the PR body below to "$BODY"
 git push -u origin "$BRANCH"
-gh pr create --base "$BASE" --title "<type>: <ticket title> (#$N)" --body-file /tmp/pr.md
+gh pr create --base "$BASE" --title "<type>: <ticket title> (#$N)" --body-file "$BODY"
 ```
 
 PR body:
