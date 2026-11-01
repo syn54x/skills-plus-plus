@@ -28,7 +28,7 @@ Stop and say why if: the epic is closed; it has no sub-issues (tell the user to 
 gh issue view "$EPIC" --json subIssues --jq '[.subIssues.nodes[].repository.nameWithOwner] | unique'
 ```
 
-More than one → **multi-repo mode**. You need a local checkout of every repo listed. Default: sibling directories named after the repo (`../pinch-backend` next to `../pinch-frontend`); if one is missing, ask for its path or clone it. Every repo must have run `/setup-syn54x-skills` (labels, routing block). From here on, identify tickets by **URL**, never by bare number: `gh issue view`, `gh issue edit` and `gh pr view` all accept URLs, and a bare `#12` is ambiguous across repos.
+More than one → **multi-repo mode**. You need a local checkout of every repo listed. For each repo other than the one you stand in, use the checkout path the session already provides, or ask the user once per session for it (or for where to clone it). Never derive it from where your own checkout sits: from a linked worktree, a relative sibling path lands somewhere unexpected, sometimes on the user's own working copy. Local paths stay local: never write one to GitHub, in the plan, wave or progress comments or a PR body. Every repo must have run `/setup-syn54x-skills` (labels, routing block). From here on, identify tickets by **URL**, never by bare number: `gh issue view`, `gh issue edit` and `gh pr view` all accept URLs, and a bare `#12` is ambiguous across repos.
 
 Read the plan comment and the epic body once. Read each repo's Laws line once (the `Laws:` line of the `<!-- sdd-routing -->` block in `CLAUDE.md` or `AGENTS.md`, or the fallback list: `CLAUDE.md`, `AGENTS.md`, `GLOSSARY.md`, `CONCEPTS.md`, `CODING_STANDARDS.md`, `CONTRIBUTING.md`, and the ADR directory (`docs/adr/`, or the path the repo's domain docs name)). You should be able to write every brief without opening another file.
 
@@ -43,7 +43,19 @@ git push -u origin "$BRANCH"
 
 Every worker PR targets this branch. You merge into it. When the epic is done, one PR takes it to `main` and that merge is the user's. A one-ticket epic (size M standalone) may skip the integration branch and target `main`; then the final merge is also the user's.
 
-**Multi-repo:** one integration branch **per repo that has a sub-issue**, same name in each, created from that repo's default branch inside its checkout (`git -C ../pinch-backend switch -c "$BRANCH" origin/main`). A brief never crosses a repo boundary: a worker gets one ticket in one repo.
+**Multi-repo:** one integration branch **per repo that has a sub-issue**, same name in each, created from that repo's default branch. The block above runs only in the repo you stand in. Every other repo's checkout is the user's, so never change its branch: create the integration branch in a dedicated worktree of that checkout (the pattern [HARNESS-DISPATCH.md](./HARNESS-DISPATCH.md) uses for worker worktrees) and push it. A resumed epic whose branch already has a worktree, as `git worktree list` shows, reuses that one instead of adding a second.
+
+```bash
+C=<that repo's checkout path, from step 0>
+WT="../<repo>-${BRANCH#feat/}"                  # relative to $C, so beside the checkout
+git -C "$C" fetch origin
+git -C "$C" worktree list | grep -qF "[$BRANCH]" ||
+  git -C "$C" worktree add "$WT" "$BRANCH" 2>/dev/null ||
+  git -C "$C" worktree add "$WT" -b "$BRANCH" origin/main   # that repo's default branch
+git -C "$C" push -u origin "$BRANCH"
+```
+
+Every later local step on that repo's integration branch runs in this worktree, at the path `git -C "$C" worktree list` prints for `[$BRANCH]`. A brief never crosses a repo boundary: a worker gets one ticket in one repo.
 
 Record the branch in the plan comment with `scripts/sync-progress.sh plan <epic> --branch "$BRANCH"` (call the Skill tool with "sync-progress"; the script is in its base directory). In multi-repo mode the plan already carries the repos.
 
@@ -134,7 +146,7 @@ gh run list --commit "$(git rev-parse "origin/$BRANCH")" --json databaseId,headS
 gh run watch <databaseId> --exit-status   # while a run's status is not completed
 ```
 
-Merge the next slice only when every run on that commit has completed with `success` (or `skipped`). A run listed for the commit but still queued or in progress is waited for, never read as green. When no run appears for the merge commit after a short wait (a minute or two, re-listing), treat it as the no-push-trigger case: CI does not run on the integration branch (no workflow has a push trigger that matches it). Say so once in the plan comment's Constraints, and keep one local full-suite run after each merge in place of CI's. A red tree stops the wave until it is diagnosed.
+Merge the next slice only when every run on that commit has completed with `success` (or `skipped`). A run listed for the commit but still queued or in progress is waited for, never read as green. When no run appears for the merge commit after a short wait (a minute or two, re-listing), treat it as the no-push-trigger case: CI does not run on the integration branch (no workflow has a push trigger that matches it). Say so once in the plan comment's Constraints, and keep one local full-suite run after each merge in place of CI's. A red tree stops the wave until it is diagnosed. For a ticket in another repo, both local runs (the scoped Verify after the merge and the no-push-trigger full suite) happen in the worktree step 1 made for that repo, never in its checkout.
 
 **Interface deviations.** When a merged PR's body carries an `Interfaces changed:` line, record each **Interface deviation** before the next dispatch: rewrite the producer ticket's Produces line and every consumer ticket's Consumes line to the shipped signature (`gh issue edit "$URL" --body-file …`), then record it with `scripts/sync-progress.sh plan <epic> --add-deviation "<ticket> <old signature> → <new signature>"`. No user approval is needed: `review-pr` already judged the deviation needed. Every Consumes line has a blocking edge to its producer, so no consumer is in flight while you do this.
 
@@ -148,7 +160,7 @@ When every sub-issue is closed, open the integration-branch PR to `main`. Its bo
 
 Once the user has merged the PR to `main` (every repo's, in a multi-repo epic), call the Skill tool with "close-epic" for the epic: it posts the summary comment, the retro and the `## Learnings` (candidate ADRs and terminology drift from the panel report go there), and closes the epic if the merge has not already. It refuses to run for an epic whose PR to `main` has not merged, so never run it earlier. If the session ends before the user merges, say so in the report: `close-epic` can run in any later session, from GitHub state alone.
 
-**Multi-repo:** one integration-branch PR **per repo**, each gated with `review-panel`, handed to the user in dependency order (usually backend before frontend, so the API exists before the UI that calls it lands). Say explicitly which merges depend on which. Each PR closes only an epic in its own repo: a repo that holds tasks but no epic writes no closing keyword at all, and a repo with its own epic closes that one. The epic in the other repo is a plain `Epic: owner/repo#N` reference, since a closing keyword there would close it while that repo's PR is still open.
+**Multi-repo:** one integration-branch PR **per repo**, each gated with `review-panel`, handed to the user in dependency order (usually backend before frontend, so the API exists before the UI that calls it lands). Say explicitly which merges depend on which. Once the user has merged a repo's PR to `main`, and before calling `close-epic`, remove the worktree step 1 created for that repo with `git worktree remove` (`git -C "$C" worktree remove "$WT"`); branches are left to the merge setting, as for any other branch. If the session ends before a repo's merge, the report names each worktree left behind and its path, for the user to remove; that report is chat, so the path still never reaches GitHub. Each PR closes only an epic in its own repo: a repo that holds tasks but no epic writes no closing keyword at all, and a repo with its own epic closes that one. The epic in the other repo is a plain `Epic: owner/repo#N` reference, since a closing keyword there would close it while that repo's PR is still open.
 
 Report with one table: ticket → tier → PR → state (merged / ready-for-human / open), plus anything cut, deferred, or edited in the plan.
 
@@ -162,4 +174,4 @@ More than ~8 independent tickets, or the user wants scripted verify → merge or
 - Every comment you write goes through `sync-progress`, which keeps it under its marker and rewrites it in place.
 - One team primitive per session: worktree waves and Agent Teams are mutually exclusive. This skill uses worktree waves; leave the Agent Teams flag unset.
 - You do not write code. You do not merge to `main`.
-- In multi-repo mode, tickets are URLs, briefs are single-repo, and a cross-repo blocker is cleared by availability, not by a closed link.
+- In multi-repo mode, tickets are URLs, briefs are single-repo, and a cross-repo blocker is cleared by availability, not by a closed link. Another repo's checkout never changes branch, and its local path never goes to GitHub.

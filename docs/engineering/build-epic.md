@@ -21,7 +21,7 @@ You invoke this by typing `/build-epic <epic#>`; the agent won't reach for it on
 
 - [setup-syn54x-skills](../engineering/setup-syn54x-skills.md) has run with the SDD pipeline on, so the repo carries the `<!-- sdd-routing -->` block and the labels.
 - The epic has sub-issues and a `<!-- sdd-plan -->` comment, both written by `to-tickets`'s SDD pass.
-- `gh` 2.94 or newer. For a multi-repo epic, a local checkout of every repo involved.
+- `gh` 2.94 or newer. For a multi-repo epic, a local checkout of every repo involved: the orchestrator asks you once per session for each other repo's checkout path (unless the session already gives it), and works on that repo's integration branch in a worktree of the checkout.
 
 ## Waves, not a team
 
@@ -48,6 +48,8 @@ The PR to `main` goes to [review-panel](../engineering/review-panel.md). A **FIX
 **My workers branched from `main`, not the integration branch.** A harness worktree can start on the default branch whatever your own checkout is on. The brief's first step fetches the integration branch, cuts `sdd/<N>-<slug>` from `origin/<integration branch>` and checks the merge base before any code is written, so the worker lands on the right base by following the brief alone.
 
 **A re-review went to a fresh reviewer that redid the whole review.** A PR's worker and reviewer worktrees now stay until that PR merges or goes to `ready-for-human`, so a sibling's merge no longer removes the reviewer you need to resume. When a reviewer cannot be resumed anyway, the fresh one gets the earlier findings by id and the head SHA they were reviewed at, and runs only the scoped re-review.
+
+**Why does a multi-repo epic ask for my other checkouts, and leave their branches alone?** The orchestrator often runs from a worktree, such as one under `<repo>/.claude/worktrees/`, so a path like `../pinch-backend` can resolve to nothing, or to your own backend checkout. Switching that checkout to the integration branch would pull your working copy off `main` under you. So it asks for each path instead of guessing, adds a worktree on the integration branch beside your checkout, and runs its local Verify and full-suite runs there. Once you merge that repo's PR to `main`, it removes the worktree; if the session ends first, its report names each one left behind. The paths you give it stay in the session and never go into an issue, comment or PR.
 
 **Can I use Agent Teams instead of worktree waves?** Not in the same session. Teammates get no worktree isolation and cost several times the tokens; the skill stops if the Agent Teams flag is set.
 
