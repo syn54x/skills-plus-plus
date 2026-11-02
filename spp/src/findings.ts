@@ -44,6 +44,26 @@ export function parsePersonaFindings(json: unknown, where: string): PersonaFindi
   return { persona: o.persona as string, findings };
 }
 
+export type PanelVerdict = "MERGE" | "FIX FIRST" | "HUMAN DECISION";
+export type Reading = "pass" | "fail";
+// What the panel read besides the findings: the review skill's Spec and Coherence verdicts, Verify on the head, the
+// checks, and the Personas that never reported. `round` is 1 for the first panel and one more for each look after a fix.
+export type Readings = { round: number; spec: Reading; coherence: Reading; verify: Reading; checks: Reading | "pending" | "none"; missing: string[] };
+
+// Fix rounds allowed before a person decides: the verdict of round 3 or later is never FIX FIRST.
+export const CAP_ROUND = 3;
+
+// The first row that holds wins (skills/review-panel/VERDICT.md). A finding titled `ticket-mandated:` is what the
+// ticket asked for, so it never sends a worker to undo it: it is a person's call at any severity.
+export function panelVerdict(result: MergeResult, r: Readings): PanelVerdict {
+  const mandated = result.findings.filter((f) => /^ticket-mandated:/i.test(f.title));
+  const critical = result.findings.filter((f) => f.severity === "critical" && !mandated.includes(f));
+  const broken = r.spec === "fail" || r.coherence === "fail" || r.verify === "fail" || r.checks === "fail" || r.missing.length > 0 || critical.length > 0;
+  if (broken) return r.round >= CAP_ROUND ? "HUMAN DECISION" : "FIX FIRST";
+  const open = result.findings.some((f) => f.severity === "important") || r.checks === "pending" || mandated.length > 0;
+  return open ? "HUMAN DECISION" : "MERGE";
+}
+
 type Candidate = Finding & { persona: string };
 
 export function mergeFindings(inputs: PersonaFindings[]): MergeResult {

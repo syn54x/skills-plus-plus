@@ -5,8 +5,8 @@ export const meta = {
   phases: [{ title: 'Fan out', detail: 'one reviewer per Persona, all at once' }],
 }
 
-// args: { pr: number, personas: string[] }
-const { pr, personas } = args ?? {}
+// args: { pr: number, personas: string[] }. Depending on the invoking runtime it arrives parsed or as the raw JSON string.
+const { pr, personas } = (typeof args === 'string' ? JSON.parse(args) : args) ?? {}
 if (!Number.isInteger(pr) || pr < 1) throw new Error('args.pr must be a pull request number')
 const valid = Array.isArray(personas) && personas.length > 0 && personas.every((p) => /^[a-z][a-z-]*$/.test(p))
 if (!valid || new Set(personas).size !== personas.length) throw new Error('args.personas must be distinct Persona names, such as correctness')

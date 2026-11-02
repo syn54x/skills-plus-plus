@@ -18,18 +18,18 @@ Done when every Critical and Important finding has one owner and the fixes sit o
 
 `LAST` is the head the previous round reviewed and `NEW` is the head now. Save the round's combined fix diff to `$PANEL_DIR/fix-<round>.patch` with `git diff -U8 "$LAST" "$NEW"`, rewrite `context.md` so the Personas' view is that patch and its head is `NEW`, and run steps 3 to 6 of `SKILL.md` on `NEW` in this shape:
 
-1. **Each earlier finding.** One Persona, the one that raised it or `correctness`, answers `ADDRESSED` or `NOT ADDRESSED` for every open Critical and Important id against the fix diff, with a line or a test as evidence. A change that tries and leaves the failure in place is not addressed.
+1. **Each earlier finding.** One Persona, the one that raised it or `correctness`, answers `ADDRESSED` or `NOT ADDRESSED` for every open Critical and Important id against the fix diff, with a line or a test as evidence. A change that tries and leaves the failure in place is not addressed. It also reports each `NOT ADDRESSED` finding again, at its original severity and in the findings JSON shape, so it joins the merge below and counts toward the verdict.
 2. **Spec and Coherence again.** `review` on `NEW`, then Verify and `spp checks`, read again.
 3. **The Composition pass.** The always-on Personas, plus each conditional Persona the fix diff touches (one it does not touch is dropped, even if round one ran it), run once over the whole fix diff, never slice by slice. This is where defects appear that exist only because two fixes met.
 
-Merge as before and write the report in the later-round shape from `VERDICT.md`. The verdict follows the same rule over what is still open: each `NOT ADDRESSED` finding, each new one, and the re-run Spec, Coherence, Verify and checks. Record it with `spp wave "$EPIC" panel --round <R>` as `SKILL.md` step 6 says, `<R>` being 2 after the first fix round and 3 after the second.
+Merge as before and write the report in the later-round shape from `VERDICT.md`. The merge command takes the round as its `--verdict` value, so the same rule runs over what is still open: each `NOT ADDRESSED` finding, each new one, and the re-run Spec, Coherence, Verify and checks. Record it with `spp wave "$EPIC" panel --round <R>` as `SKILL.md` step 6 says, `<R>` being 2 after the first fix round and 3 after the second.
 
 Done when the round's write-up is shown and recorded.
 
 ## 3. The cap
 
-Round 3 is the last. When its verdict would be FIX FIRST (a Critical or a Spec FAIL still open, Verify red, or a check failing), write HUMAN DECISION instead and hand the person every open finding. A third fix round never starts by itself.
+Round 3 is the last. When its verdict would be FIX FIRST (a Critical or a Spec FAIL still open, Verify red, or a check failing), the merge command already prints HUMAN DECISION; hand the person every open finding. A third fix round never starts by itself.
 
-The person may still decide to fix. When they name the findings to fix, or ask for another round, run one **overtime** round: route as in step 1, look again as in step 2, number it on (Round 4, Round 5) and record it the same way. An overtime round's FIX FIRST also becomes HUMAN DECISION, so every round past the cap is one decision the person made.
+The person may still decide to fix. When they name the findings to fix, or ask for another round, run one **overtime** round: route as in step 1, look again as in step 2, number it on (Round 4, Round 5) and record it the same way. An overtime round's FIX FIRST also prints as HUMAN DECISION, so every round past the cap is one decision the person made.
 
 HUMAN DECISION and MERGE hand the report to the person. Minor `depth` findings, candidate ADRs and terminology drift go to `/close-epic`'s Learnings.

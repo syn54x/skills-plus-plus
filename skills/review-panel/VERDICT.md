@@ -1,18 +1,20 @@
 # The verdict and the panel's write-up
 
-One write-up per round. Every part is read off the inputs, so the same merge output, the same Spec and Coherence sections and the same evidence give the same text.
+One write-up per round. The finding list and the verdict come from `spp findings merge` and nothing else; what you write around them is a sentence, the Coverage lines and Residual risk.
 
 ## The verdict
 
-Read the first row that holds; do not weigh the rest.
+`spp findings merge --verdict` computes it, and the last line of its output, `Verdict: <verdict>`, is the verdict. Copy that line; never re-decide it. The table below is what the command implements, so you can say why it chose as it did. The first row that holds wins.
 
 | Verdict | When |
 | --- | --- |
-| FIX FIRST | Spec FAIL, Coherence FAIL, Verify failed, a check failing on the head, a Persona that did not report, or at least one `critical` finding. |
-| HUMAN DECISION | No row above holds, and there is at least one `important` finding, a check still pending, or a `ticket-mandated` finding for a person to settle. |
+| FIX FIRST | Spec FAIL, Coherence FAIL, Verify failed, a check failing on the head, a Persona that did not report, or at least one `critical` finding that is not `ticket-mandated`. |
+| HUMAN DECISION | No row above holds, and there is at least one `important` finding, a check still pending, or a finding titled `ticket-mandated:` (at any severity), which the ticket asked for and a person settles. |
 | MERGE | None of the above. No checks configured changes nothing. |
 
-The one sentence under the verdict names the first thing that decided it: `F3 is critical`, `Verify failed on a1b2c3d`, `2 important findings and no critical one`. A Spec FAIL is never softened by a clean panel.
+From round 3 on, a FIX FIRST is printed as HUMAN DECISION: two fix rounds are all the panel starts by itself.
+
+Your part is the one sentence under the verdict. It names the first row's cause: `F3 is critical`, `Verify failed on a1b2c3d`, `2 important findings and no critical one`. A Spec FAIL is never softened by a clean panel.
 
 ## Layout
 

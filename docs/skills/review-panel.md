@@ -2,7 +2,7 @@
 
 `review-panel` reviews the pull request that takes a big Epic to the base branch. It first gets the Epic's spec and coherence verdicts from [review](review.md), then fans out a panel of **Personas**: reviewers that each read the same diff with one fixed focus, such as correctness, testing, security or history. It ends in one report with one verdict: MERGE, FIX FIRST or HUMAN DECISION.
 
-The Personas only find things. They never rank, merge or judge. `spp findings merge` combines their findings, and the verdict is read off a fixed rule over the result, so the same findings always give the same report. The panel edits no code and never merges; you do.
+The Personas only find things. They never rank, merge or judge. `spp findings merge` combines their findings and, given the round and the Spec, Coherence, Verify and checks readings, prints the verdict from a fixed rule, so the same findings and readings always give the same list and the same verdict. The panel edits no code and never merges; you do.
 
 ## When to reach for it
 
@@ -57,5 +57,5 @@ No. The skill shows the report and asks before posting. Every round is recorded 
 - The report opens with one verdict and one sentence naming the first thing that decided it.
 - Each finding has an id such as `F3`, a file and line, the Personas that raised it and, where a rule applies, its Law tag.
 - The Coverage section lists the Personas that ran, any dropped for the cap of nine, how many findings fell under 80% confidence, and the Verify and checks readings on the head.
-- Running the merge again on the same Persona files prints the same list.
+- Running the merge again on the same Persona files and readings prints the same list and the same `Verdict:` line, and the report's verdict is that line.
 - The Epic's wave comment lists the round with its verdict.

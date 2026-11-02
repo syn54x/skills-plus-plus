@@ -13,7 +13,7 @@ Usage: `/review-panel <pull request number | URL>`
 ## 1. Check the target
 
 ```bash
-PR=60   # or its URL
+PR=$(gh pr view 60 --json number --jq .number)   # 60, or its URL, resolved once to the number every later step uses
 gh pr view "$PR" --json state,isDraft,baseRefName,headRefOid,body,additions,deletions,files
 gh repo view --json defaultBranchRef --jq .defaultBranchRef.name
 ```
@@ -35,7 +35,7 @@ Make the **panel directory** and fill it; every Persona reads from here and noth
 PANEL_DIR="${TMPDIR:-/tmp}/spp-panel-$PR"; mkdir -p "$PANEL_DIR"
 ```
 
-Check the head out detached in a throwaway worktree, never in the checkout you stand in, then write into `$PANEL_DIR`: `diff.patch` (`git diff -U8 "$MERGE_BASE" "$HEAD"`, three-dot meaning, so only what the pull request adds), `stat.txt`, `commits.txt`, `spec.md` (the Epic body, plus the plan comment's text, plus each Sub-issue's `## Interfaces` and `## Files owned` from `spp status "$EPIC" --json`), `laws.txt` (the paths of the documents on the Routing block's Laws line, a directory listed file by file) and a copy of this skill's `PERSONAS.md`.
+Check the head out detached in a throwaway worktree, never in the checkout you stand in, then write into `$PANEL_DIR`: `diff.patch` (`git diff -U8 "$MERGE_BASE" "$HEAD"`, three-dot meaning, so only what the pull request adds), `stat.txt`, `commits.txt`, `spec.md` (the Epic body, plus the plan comment's text, plus each Sub-issue's `## Interfaces` and `## Files owned`: the Sub-issue urls come from `spp status "$EPIC" --json`, which carries no bodies, so read each with `gh issue view <url> --json body`), `laws.txt` (the paths of the documents on the Routing block's Laws line, a directory listed file by file) and a copy of this skill's `PERSONAS.md`.
 
 Then run the evidence once, on `HEAD`:
 
@@ -49,7 +49,7 @@ Done when `$PANEL_DIR` holds all of it and `HEAD` is the head GitHub shows now.
 
 ## 3. Spec and Coherence
 
-Call the Skill tool with "review" for this pull request. It is an Epic's pull request, so `review` follows its Epic mode: the spec verdict against the Epic and the Coherence verdict where Sub-issues meet. Tell it this is the panel's first section, so it returns the comment text and does not post it. Keep that text verbatim for the report.
+Call the Skill tool with "review" for this pull request. It is an Epic's pull request, so `review` follows its Epic mode: the spec verdict against the Epic and the Coherence verdict where Sub-issues meet. Open the request with `For the panel: return, do not post`, which switches on the mode `EPIC.md` in `review` describes for this case: it posts nothing and returns the comment text. Keep that text verbatim for the report.
 
 A failed Spec does not stop the panel; it makes the verdict FIX FIRST (see `VERDICT.md`).
 
@@ -86,12 +86,13 @@ Done when every Persona has a `persona-<name>.json` or a `did not report` line.
 ## 6. Merge, then report
 
 ```bash
-spp findings merge "$PANEL_DIR"/persona-*.json
+spp findings merge "$PANEL_DIR"/persona-*.json --verdict <R> --spec <pass|fail> --coherence <pass|fail> \
+  --verify <pass|fail> --checks <pass|fail|pending|none> [--missing <name,name>]
 ```
 
-It drops findings under confidence 80, merges the ones on the same file, within five lines, with the same normalised title (keeping the highest severity and every Persona's name), numbers them `F1`, `F2` and on, and prints the three tallies. Do not merge, rank or re-number by hand.
+`<R>` is the round (1 for the first panel); the readings are the ones you hold from steps 2 and 3, and `--missing` names each Persona listed as `did not report`. The command drops findings under confidence 80, merges the ones on the same file, within five lines, with the same normalised title (keeping the highest severity and every Persona's name), numbers them `F1`, `F2` and on, prints the three tallies, and ends with a `Verdict:` line. Do not merge, rank, re-number or re-decide by hand.
 
-Read `VERDICT.md` now and write the report from the merge output, the Spec and Coherence sections, and the evidence. The verdict is read off its rule, not judged.
+Read `VERDICT.md` now and write the report around the merge output: the verdict line is copied, and you add only its one sentence, the Spec and Coherence sections, the Coverage lines and Residual risk.
 
 Show the report, then record the round when the pull request has an Epic:
 
