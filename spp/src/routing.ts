@@ -10,7 +10,7 @@ export type Routing = {
   panel: { tickets: number; sizeL: boolean; lines: number };
 };
 
-export const ROUTING_FILES = ["CLAUDE.md", "AGENTS.md"];
+const ROUTING_FILES = ["CLAUDE.md", "AGENTS.md"];
 const PANEL_DEFAULT = { tickets: 4, sizeL: true, lines: 1000 };
 
 // `Panel: tickets>=6, size:L, lines>=1000`: each token overrides one threshold, the rest keep their defaults.

@@ -101,7 +101,7 @@ function merger(op: string, f: Record<string, string>): (d: WaveData) => void {
 // ---- wave plan: the parallel safety check over the ready tickets ----
 
 export type WavePlan = { wave: string[]; held: { ticket: string; reason: string }[] };
-export type PlanInput = { id: string; number: number; repo: string; layer: number | null; body: string };
+type PlanInput = { id: string; number: number; repo: string; layer: number | null; body: string };
 
 const isGlob = (p: string) => p.includes("*");
 const globPrefix = (p: string) => p.slice(0, p.indexOf("*"));
@@ -132,7 +132,7 @@ const consumes = (a: Parsed, b: Parsed) => a.refs.includes(`${b.repo}#${b.number
 // Considers the tickets by layer, then number: each joins the wave unless it conflicts with a member already in it,
 // so the lower layer and the lower number are the ones kept. Paths are compared per repo; Create counts as well as
 // Modify and Test, since a ticket that modifies what another creates must wait for it.
-export function planWave(tickets: PlanInput[], max: number): WavePlan {
+function planWave(tickets: PlanInput[], max: number): WavePlan {
   const parsed: Parsed[] = tickets.map((t) => {
     const ticket = parseTicket(t.body);
     return { ...t, paths: ticket.filesOwned.flatMap((f) => f.paths), consumes: names(ticket.consumes), produces: names(ticket.produces), refs: references(ticket.consumes, t.repo) };
