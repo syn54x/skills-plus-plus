@@ -1,0 +1,52 @@
+{
+  "epic": { "number": 197, "url": "https://github.com/acme/app/issues/197", "repo": "acme/app", "title": "Epic", "branch": null },
+  "tickets": [
+    {
+      "number": 301,
+      "url": "https://github.com/acme/app/issues/301",
+      "repo": "acme/app",
+      "title": "Producer",
+      "size": "S",
+      "state": "ready",
+      "layer": 0,
+      "blockedBy": [],
+      "landed": false,
+      "claimed": false,
+      "assignees": [],
+      "labels": ["ready-for-agent", "size:S"],
+      "pr": null,
+      "worker": null,
+      "note": null
+    },
+    {
+      "number": 302,
+      "url": "https://github.com/acme/app/issues/302",
+      "repo": "acme/app",
+      "title": "Consumer",
+      "size": "M",
+      "state": "blocked",
+      "layer": 1,
+      "blockedBy": ["https://github.com/acme/app/issues/301"],
+      "landed": false,
+      "claimed": false,
+      "assignees": [],
+      "labels": ["ready-for-agent", "size:M"],
+      "pr": null,
+      "worker": null,
+      "note": null
+    }
+  ],
+  "layers": [["https://github.com/acme/app/issues/301"], ["https://github.com/acme/app/issues/302"]],
+  "cycle": [],
+  "counts": {
+    "blocked": 1,
+    "ready": 1,
+    "claimed": 0,
+    "pr-open": 0,
+    "gate-pass": 0,
+    "gate-fail": 0,
+    "merged": 0,
+    "handed-back": 0,
+    "not-agent": 0
+  }
+}

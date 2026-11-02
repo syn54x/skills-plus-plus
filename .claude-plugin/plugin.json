@@ -1,0 +1,21 @@
+{
+  "name": "spp",
+  "version": "2.0.0-next.0",
+  "description": "Spec-driven delivery on GitHub Issues: grill a plan, write the spec and its tickets, build them in parallel worktrees behind a review gate, and close the epic with a retro.",
+  "author": {
+    "name": "Taylor",
+    "url": "https://github.com/syn54x"
+  },
+  "homepage": "https://skills.x54.sh",
+  "repository": "https://github.com/syn54x/skills-plus-plus",
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "keywords": [
+    "spec-driven-development",
+    "github-issues",
+    "tdd",
+    "code-review",
+    "grilling",
+    "skills"
+  ]
+}

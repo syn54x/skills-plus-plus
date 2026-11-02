@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "failures": [
+    {
+      "rule": "verify-fenced",
+      "detail": "Verify holds no fenced block"
+    }
+  ]
+}

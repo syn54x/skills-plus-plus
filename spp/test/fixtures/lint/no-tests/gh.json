@@ -1,0 +1,15 @@
+{
+  "issue view 12 --json body,labels": {
+    "stdout": {
+      "body": "## Parent\n\n#10\n\n## What to build\n\nA `greet` command that prints a greeting. Quotes like `TBD` in code are not placeholders.\n\n## Acceptance criteria\n\n- [ ] `spp greet` prints `hello`.\n- [ ] It exits 0.\n\n## Files owned\n\n- Create: `src/greet.ts`, `src/greet2.ts`\n- Modify: `bin/spp`\n- Test: `test/greet.test.ts`\n\n## Interfaces\n\n- Consumes: `runGh` from #200.\n- Produces: `greet(name: string): string`, used by #13.\n\n## Test scenarios\n\nTest expectation: none, because docs only\n\n## Verify\n\n```bash\nnpm ci\nnode --test test/greet.test.ts\n```\n\n## Blocked by\n\n- #200\n",
+      "labels": [
+        {
+          "name": "size:S"
+        }
+      ]
+    }
+  },
+  "api repos/{owner}/{repo}/issues/12/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json": {
+    "stdout": "[1,\"<!-- sdd-progress -->\\n**Verify pin:** `33f7bcd13fe3`\\n<!-- sdd-data: eyJ2ZXJpZnlQaW4iOiIzM2Y3YmNkMTNmZTNlNzViYzRjMDdhZTU4MTk3ZmFiMjk3ZGNmMjBhYjVmMTJlOTUzZDZlNTgyNTQyZDcxMjcxIn0= -->\\n\",\"maint\",\"OWNER\"]\n"
+  }
+}

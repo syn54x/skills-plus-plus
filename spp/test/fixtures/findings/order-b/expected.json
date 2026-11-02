@@ -1,0 +1,49 @@
+{
+  "findings": [
+    {
+      "id": "F1",
+      "file": "src/a.ts",
+      "line": 5,
+      "title": "Dropped retry",
+      "severity": "critical",
+      "personas": [
+        "depth",
+        "history"
+      ],
+      "body": "a"
+    },
+    {
+      "id": "F2",
+      "file": "src/c.ts",
+      "line": 1,
+      "title": "Shallow module",
+      "severity": "important",
+      "personas": [
+        "depth"
+      ],
+      "body": "c"
+    },
+    {
+      "id": "F3",
+      "file": "src/b.ts",
+      "line": 3,
+      "title": "Dropped retry",
+      "severity": "minor",
+      "personas": [
+        "history"
+      ],
+      "body": "b"
+    }
+  ],
+  "counts": {
+    "severity": {
+      "critical": 1,
+      "important": 1,
+      "minor": 1
+    },
+    "persona": {
+      "depth": 2,
+      "history": 2
+    }
+  }
+}

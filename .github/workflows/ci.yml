@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main, next]
+
+jobs:
+  checks:
+    name: repo checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: typecheck
+        run: npm run typecheck
+      - name: tests
+        run: npm test
+      - name: the spp command reference matches the commands' TSDoc
+        run: |
+          npm run docs:reference
+          git add --intent-to-add docs/reference
+          git diff --exit-code docs/reference
+      - name: skills stay inside the size budget
+        run: node scripts/check-size.ts
+      - name: invocation flags agree and no skill calls a user-invoked skill
+        run: node scripts/check-invocation.ts
+      - name: README, docs nav, ask-spp and docs pages list every skill
+        run: node scripts/check-registry.ts
+      - name: plugin.json version tracks package.json
+        run: node scripts/sync-version.ts --check
+      # No fallback: a failed install fails the job, so the two steps after it never pass without running.
+      - name: install the claude CLI
+        run: npm install --global @anthropic-ai/claude-code
+      - name: plugin manifest validates
+        run: claude plugin validate .
+      - name: epic board mod tests
+        run: |
+          # claude plugin test takes the plugin root and runs every test file under it, and the node:test suites
+          # cannot load there, so it runs on a copy of the plugin without them.
+          board="$(mktemp -d)"
+          cp -R .claude-plugin hooks types spp bin package.json "$board"/
+          rm -rf "$board/spp/test"
+          claude plugin test "$board"
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - name: docs site builds with no broken links
+        run: uv run --frozen zensical build --clean --strict

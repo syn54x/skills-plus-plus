@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+// The spp command router: `spp <command> [args]` runs `run(args)` from <command>.ts (or .js) in the commands folder,
+// so a new command is one new file there. Its resolved number is the exit code; a thrown error exits 1.
+// `--help` or `-h` as the first argument after the command prints the command's exported USAGE and exits 0 without
+// running it; later in the args it is an ordinary value (a note's text, a reason).
+// The plugin and the repo have spp/src and run the .ts sources, so a leftover dist/ never shadows an edit; an npm install
+// never ships spp/src (Node will not strip types under node_modules) and runs the compiled dist/.
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+
+const src = new URL("../spp/src/commands/", import.meta.url);
+const [commands, ext] = existsSync(src) ? [src, ".ts"] : [new URL("../dist/commands/", import.meta.url), ".js"];
+const [command, ...args] = process.argv.slice(2);
+const usage = () =>
+  "usage: spp <command> [args]\ncommands: " +
+  readdirSync(commands).filter((f) => f.endsWith(ext)).map((f) => f.slice(0, -ext.length)).sort().join(", ") +
+  "\n";
+const file = command && /^[a-z][a-z-]*$/.test(command) ? new URL(`${command}${ext}`, commands) : null;
+
+if (command === "--version") {
+  const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  console.log(`spp ${version}`);
+} else if (command === "--help" || command === "-h") {
+  process.stdout.write(usage());
+} else if (!file || !existsSync(file)) {
+  process.stderr.write(usage());
+  process.exitCode = 2;
+} else {
+  try {
+    const { run, USAGE } = await import(file.href);
+    if (args[0] === "--help" || args[0] === "-h") process.stdout.write(USAGE);
+    else process.exitCode = await run(args);
+  } catch (e) {
+    process.stderr.write(`spp ${command}: ${e instanceof Error ? e.message : e}\n`);
+    process.exitCode = 1;
+  }
+}

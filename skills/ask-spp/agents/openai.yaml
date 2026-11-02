@@ -1,0 +1,5 @@
+interface:
+  display_name: "Ask spp"
+  short_description: "Find the spp path and skill that fit what you are doing"
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,7 @@
+{
+  "issue view 12 --json body": {
+    "stdout": {
+      "body": "## What to build\n\nA greeting.\n\n## Verify\n\n```bash\ntrue\nexit 1\n```\n"
+    }
+  }
+}

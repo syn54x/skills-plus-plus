@@ -1,0 +1,232 @@
+{
+  "api graphql -f query=Snapshot -F owner={owner} -F repo={repo} -F number=197": {
+    "stdout": {
+      "data": {
+        "viewer": {
+          "login": "maint"
+        },
+        "repository": {
+          "issue": {
+            "number": 197,
+            "url": "https://github.com/acme/app/issues/197",
+            "title": "Epic",
+            "repository": {
+              "nameWithOwner": "acme/app"
+            },
+            "subIssues": {
+              "nodes": [
+                {
+                  "number": 301,
+                  "url": "https://github.com/acme/app/issues/301",
+                  "title": "Producer",
+                  "state": "OPEN",
+                  "repository": {
+                    "nameWithOwner": "acme/app"
+                  },
+                  "labels": {
+                    "nodes": [
+                      {
+                        "name": "ready-for-agent"
+                      },
+                      {
+                        "name": "size:S"
+                      }
+                    ]
+                  },
+                  "assignees": {
+                    "nodes": []
+                  },
+                  "blockedBy": {
+                    "nodes": []
+                  },
+                  "closedByPullRequestsReferences": {
+                    "nodes": []
+                  },
+                  "timelineItems": {
+                    "nodes": [
+                      {}
+                    ]
+                  }
+                },
+                {
+                  "number": 302,
+                  "url": "https://github.com/acme/app/issues/302",
+                  "title": "Consumer",
+                  "state": "OPEN",
+                  "repository": {
+                    "nameWithOwner": "acme/app"
+                  },
+                  "labels": {
+                    "nodes": [
+                      {
+                        "name": "ready-for-agent"
+                      },
+                      {
+                        "name": "size:M"
+                      }
+                    ]
+                  },
+                  "assignees": {
+                    "nodes": []
+                  },
+                  "blockedBy": {
+                    "nodes": [
+                      {
+                        "url": "https://github.com/acme/app/issues/301",
+                        "state": "OPEN"
+                      }
+                    ]
+                  },
+                  "closedByPullRequestsReferences": {
+                    "nodes": []
+                  },
+                  "timelineItems": {
+                    "nodes": [
+                      {}
+                    ]
+                  }
+                },
+                {
+                  "number": 303,
+                  "url": "https://github.com/acme/api/issues/303",
+                  "title": "Elsewhere",
+                  "state": "OPEN",
+                  "repository": {
+                    "nameWithOwner": "acme/api"
+                  },
+                  "labels": {
+                    "nodes": [
+                      {
+                        "name": "ready-for-agent"
+                      },
+                      {
+                        "name": "claimed"
+                      }
+                    ]
+                  },
+                  "assignees": {
+                    "nodes": []
+                  },
+                  "blockedBy": {
+                    "nodes": [
+                      {
+                        "url": "https://github.com/acme/app/issues/302",
+                        "state": "OPEN"
+                      }
+                    ]
+                  },
+                  "closedByPullRequestsReferences": {
+                    "nodes": []
+                  },
+                  "timelineItems": {
+                    "nodes": [
+                      {},
+                      {
+                        "source": {
+                          "number": 77,
+                          "url": "https://github.com/acme/api/pull/77",
+                          "state": "OPEN",
+                          "headRefOid": "beef",
+                          "baseRefName": "feat/epic",
+                          "repository": {
+                            "nameWithOwner": "acme/api"
+                          },
+                          "body": "Closes acme/api#303",
+                          "author": {
+                            "login": "maint"
+                          },
+                          "authorAssociation": "OWNER"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "number": 601,
+                  "url": "https://github.com/acme/app/issues/601",
+                  "title": "Left",
+                  "state": "OPEN",
+                  "repository": {
+                    "nameWithOwner": "acme/app"
+                  },
+                  "labels": {
+                    "nodes": [
+                      {
+                        "name": "ready-for-agent"
+                      }
+                    ]
+                  },
+                  "assignees": {
+                    "nodes": []
+                  },
+                  "blockedBy": {
+                    "nodes": [
+                      {
+                        "url": "https://github.com/acme/app/issues/602",
+                        "state": "OPEN"
+                      }
+                    ]
+                  },
+                  "closedByPullRequestsReferences": {
+                    "nodes": []
+                  },
+                  "timelineItems": {
+                    "nodes": [
+                      {}
+                    ]
+                  }
+                },
+                {
+                  "number": 602,
+                  "url": "https://github.com/acme/app/issues/602",
+                  "title": "Right",
+                  "state": "OPEN",
+                  "repository": {
+                    "nameWithOwner": "acme/app"
+                  },
+                  "labels": {
+                    "nodes": [
+                      {
+                        "name": "ready-for-agent"
+                      }
+                    ]
+                  },
+                  "assignees": {
+                    "nodes": []
+                  },
+                  "blockedBy": {
+                    "nodes": [
+                      {
+                        "url": "https://github.com/acme/app/issues/601",
+                        "state": "OPEN"
+                      }
+                    ]
+                  },
+                  "closedByPullRequestsReferences": {
+                    "nodes": []
+                  },
+                  "timelineItems": {
+                    "nodes": [
+                      {}
+                    ]
+                  }
+                }
+              ]
+            },
+            "comments": {
+              "nodes": [
+                {
+                  "body": "<!-- sdd-plan -->\n<!-- sdd-data: eyJicmFuY2giOiJmZWF0L2VwaWMifQ== -->",
+                  "author": {
+                    "login": "maint"
+                  },
+                  "authorAssociation": "OWNER"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "findings": [
+    {
+      "id": "F1",
+      "file": "src/a.ts",
+      "line": 10,
+      "title": "Missing null check",
+      "severity": "important",
+      "personas": [
+        "correctness"
+      ],
+      "body": "x"
+    },
+    {
+      "id": "F2",
+      "file": "src/a.ts",
+      "line": 30,
+      "title": "Missing null check",
+      "severity": "important",
+      "personas": [
+        "testing"
+      ],
+      "body": "y"
+    }
+  ],
+  "counts": {
+    "severity": {
+      "critical": 0,
+      "important": 2,
+      "minor": 0
+    },
+    "persona": {
+      "correctness": 1,
+      "testing": 1
+    }
+  }
+}

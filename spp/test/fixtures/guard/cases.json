@@ -1,0 +1,18 @@
+[
+  { "kind": "Error path", "name": "cp into the main checkout from a worktree", "cwd": "worktree", "command": "cp x ../../main/file", "decision": "deny" },
+  { "kind": "Happy path", "name": "npm test", "cwd": "worktree", "command": "npm test", "decision": "allow" },
+  { "kind": "Error path", "name": "a redirect into the main checkout", "cwd": "worktree", "command": "echo hi > ../../main/notes.txt", "decision": "deny" },
+  { "kind": "Error path", "name": "an append redirect by absolute path", "cwd": "worktree", "command": "date >> {{main}}/log.txt", "decision": "deny" },
+  { "kind": "Error path", "name": "git -C into the main checkout", "cwd": "worktree", "command": "git -C ../../main switch -c other", "decision": "deny" },
+  { "kind": "Error path", "name": "cd into the main checkout, then touch", "cwd": "worktree", "command": "cd ../../main && touch a", "decision": "deny" },
+  { "kind": "Error path", "name": "a quoted path into the main checkout", "cwd": "worktree", "command": "rm -f \"../../main/a b.txt\"", "decision": "deny" },
+  { "kind": "Error path", "name": "sed -i on a main checkout file", "cwd": "worktree", "command": "sed -i '' s/a/b/ ../../main/x.txt", "decision": "deny" },
+  { "kind": "Error path", "name": "a nested worktree writing into the main checkout above it", "cwd": "nested", "command": "touch ../../../file.txt", "decision": "deny" },
+  { "kind": "Happy path", "name": "git -C into the main checkout, read only", "cwd": "worktree", "command": "git -C ../../main log --oneline -3", "decision": "allow" },
+  { "kind": "Happy path", "name": "reading a main checkout file", "cwd": "worktree", "command": "cat ../../main/README.md | head -3", "decision": "allow" },
+  { "kind": "Happy path", "name": "copying out of the main checkout", "cwd": "worktree", "command": "cp ../../main/README.md .", "decision": "allow" },
+  { "kind": "Happy path", "name": "writes inside the worktree", "cwd": "worktree", "command": "mkdir -p out && echo ok > out/a.txt 2>&1", "decision": "allow" },
+  { "kind": "Happy path", "name": "stderr to /dev/null", "cwd": "worktree", "command": "ls 2>/dev/null", "decision": "allow" },
+  { "kind": "Edge case", "name": "a session in the main checkout itself", "cwd": "main", "command": "cp x file", "decision": "allow" },
+  { "kind": "Edge case", "name": "a nested worktree writing its own files", "cwd": "nested", "command": "touch ok.txt", "decision": "allow" }
+]

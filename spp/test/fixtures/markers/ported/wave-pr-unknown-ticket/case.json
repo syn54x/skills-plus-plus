@@ -1,0 +1,5 @@
+{
+  "command": "wave",
+  "code": 2,
+  "stderr": "spp wave pr: no wave holds ticket 999"
+}

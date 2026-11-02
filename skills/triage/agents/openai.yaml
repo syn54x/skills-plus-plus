@@ -1,0 +1,5 @@
+interface:
+  display_name: "Triage"
+  short_description: "Move a filed issue to a triage role and ready it to build"
+policy:
+  allow_implicit_invocation: false

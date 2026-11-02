@@ -1,0 +1,5 @@
+{
+  "api repos/{owner}/{repo}/issues/103/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json": {
+    "stdout": "[502,\"<!-- sdd-progress -->\\n**Status:** in-progress\\n**Worker:** someone\\n\",\"maint\",\"OWNER\"]\n"
+  }
+}

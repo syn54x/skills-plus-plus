@@ -1,0 +1,43 @@
+{
+  "name": "@syn54x/spp",
+  "version": "2.0.0-next.0",
+  "description": "The spp command-line tool and Claude Code plugin: spec-driven delivery on GitHub Issues.",
+  "type": "module",
+  "bin": {
+    "spp": "bin/spp"
+  },
+  "files": [
+    "bin/",
+    "dist/"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/syn54x/skills-plus-plus.git"
+  },
+  "homepage": "https://skills.x54.sh",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc --noEmit",
+    "docs:reference": "typedoc",
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
+    "release": "if [ -n \"$NODE_AUTH_TOKEN\" ]; then changeset publish; else echo \"NPM_TOKEN is not set, skipping npm publish and tagging only\"; changeset tag; fi",
+    "changeset": "changeset",
+    "version": "changeset version && node scripts/sync-version.ts"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^3.0.3",
+    "@types/node": "^22.20.5",
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.14.1",
+    "typescript": "~6.0.3"
+  }
+}

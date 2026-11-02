@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "failures": [
+    {
+      "rule": "section-present",
+      "detail": "missing Interfaces"
+    }
+  ]
+}

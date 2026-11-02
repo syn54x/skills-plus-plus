@@ -1,0 +1,10 @@
+acme/app#197 Epic
+Layer 0
+  ready       #301 Producer
+Layer 1
+  blocked     #302 Consumer
+Layer 2
+  pr-open     acme/api#303 Elsewhere (PR acme/api#77)
+Cycle
+  blocked     #601 Left
+  blocked     #602 Right

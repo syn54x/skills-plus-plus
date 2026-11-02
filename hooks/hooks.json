@@ -1,0 +1,37 @@
+{
+  "description": "spp gates and notes: a worker on an sdd/* branch cannot stop until spp verify has passed on HEAD, a worktree session cannot write into the main checkout, and pull request opens, Verify runs and stops are noted automatically. The module draws the epic board.",
+  "modules": ["./board/register.tsx"],
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/spp\" verify --check", "timeout": 20 },
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/spp\" note --auto", "timeout": 20 }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/spp\" verify --check", "timeout": 20 }]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/spp\" guard worktree", "timeout": 20 }]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/spp\" note --auto", "timeout": 20 }]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/spp\" note --auto", "timeout": 20 }]
+      }
+    ]
+  }
+}

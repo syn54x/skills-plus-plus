@@ -1,0 +1,9 @@
+{
+  "agents --json": {
+    "stdout": [
+      {
+        "name": "worker-5"
+      }
+    ]
+  }
+}

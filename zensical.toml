@@ -1,0 +1,140 @@
+# Site config for docs/ (Zensical). Skill pages live at docs/skills/<name>.md and
+# need a nav entry here, labelled with the skill name, because the pages carry no
+# H1 and the site takes their title from the label (see .agents/writing-docs.md). The pages under docs/reference/spp/
+# are generated from the commands' TSDoc by `npm run docs:reference`; each one needs a nav entry here too.
+# Build: uv run --frozen zensical build --clean --strict   Preview: uv run zensical serve
+
+[project]
+site_name = "spp"
+site_description = "A spec-driven delivery system on GitHub Issues, as a Claude Code plugin and a command-line tool"
+site_url = "https://skills.x54.sh/"
+repo_url = "https://github.com/syn54x/skills-plus-plus"
+repo_name = "syn54x/skills-plus-plus"
+edit_uri = "edit/main/docs/"
+docs_dir = "docs"
+site_dir = "site"
+
+nav = [
+  { "Home" = "index.md" },
+  { "The five paths" = "paths.md" },
+  { "Skills" = [
+    { "Plan" = [
+      { "grill" = "skills/grill.md" },
+      { "auto-grill" = "skills/auto-grill.md" },
+      { "grilling" = "skills/grilling.md" },
+      { "domain-modeling" = "skills/domain-modeling.md" },
+      { "codebase-design" = "skills/codebase-design.md" },
+      { "research" = "skills/research.md" },
+      { "prototype" = "skills/prototype.md" },
+      { "wayfinder" = "skills/wayfinder.md" },
+      { "to-spec" = "skills/to-spec.md" },
+      { "to-tickets" = "skills/to-tickets.md" },
+      { "triage" = "skills/triage.md" },
+      { "harden" = "skills/harden.md" },
+    ] },
+    { "Build" = [
+      { "build" = "skills/build.md" },
+      { "implement-issue" = "skills/implement-issue.md" },
+      { "tdd" = "skills/tdd.md" },
+      { "diagnosing-bugs" = "skills/diagnosing-bugs.md" },
+    ] },
+    { "Review" = [
+      { "review" = "skills/review.md" },
+      { "review-panel" = "skills/review-panel.md" },
+      { "improve-architecture" = "skills/improve-architecture.md" },
+    ] },
+    { "Ship" = [
+      { "pr" = "skills/pr.md" },
+      { "prepare-release-notes" = "skills/prepare-release-notes.md" },
+      { "close-epic" = "skills/close-epic.md" },
+      { "retro" = "skills/retro.md" },
+    ] },
+    { "Write and talk" = [
+      { "writing-for-humans" = "skills/writing-for-humans.md" },
+      { "writing-for-agents" = "skills/writing-for-agents.md" },
+      { "eli5" = "skills/eli5.md" },
+    ] },
+    { "Meta" = [
+      { "setup-spp" = "skills/setup-spp.md" },
+      { "ask-spp" = "skills/ask-spp.md" },
+    ] },
+  ] },
+  { "Epic board" = "epic-board.md" },
+  { "spp command" = [
+    { "Overview" = "spp.md" },
+    { "Reference" = "reference/spp/index.md" },
+    { "spp branch" = "reference/spp/branch.md" },
+    { "spp brief" = "reference/spp/brief.md" },
+    { "spp checks" = "reference/spp/checks.md" },
+    { "spp claim" = "reference/spp/claim.md" },
+    { "spp dispatch" = "reference/spp/dispatch.md" },
+    { "spp feedback" = "reference/spp/feedback.md" },
+    { "spp findings" = "reference/spp/findings.md" },
+    { "spp guard" = "reference/spp/guard.md" },
+    { "spp hand-back" = "reference/spp/hand-back.md" },
+    { "spp kind" = "reference/spp/kind.md" },
+    { "spp lint" = "reference/spp/lint.md" },
+    { "spp merge" = "reference/spp/merge.md" },
+    { "spp next" = "reference/spp/next.md" },
+    { "spp note" = "reference/spp/note.md" },
+    { "spp plan" = "reference/spp/plan.md" },
+    { "spp preflight" = "reference/spp/preflight.md" },
+    { "spp progress" = "reference/spp/progress.md" },
+    { "spp retro" = "reference/spp/retro.md" },
+    { "spp status" = "reference/spp/status.md" },
+    { "spp unclaim" = "reference/spp/unclaim.md" },
+    { "spp upsert" = "reference/spp/upsert.md" },
+    { "spp verdict" = "reference/spp/verdict.md" },
+    { "spp verify" = "reference/spp/verify.md" },
+    { "spp wait" = "reference/spp/wait.md" },
+    { "spp wave" = "reference/spp/wave.md" },
+  ] },
+]
+
+[project.theme]
+language = "en"
+features = [
+  "navigation.tabs",
+  "navigation.sections",
+  "navigation.expand",
+  "navigation.top",
+  "navigation.footer",
+  "toc.follow",
+  "search.suggest",
+  "search.highlight",
+  "content.code.copy",
+  "content.action.edit",
+  "content.action.view",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/syn54x/skills-plus-plus"
+
+[project.markdown_extensions]
+admonition = {}
+attr_list = {}
+md_in_html = {}
+tables = {}
+toc.permalink = true
+pymdownx.details = {}
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.line_spans = "__span"
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.inlinehilite = {}
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+pymdownx.tabbed.alternate_style = true

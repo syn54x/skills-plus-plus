@@ -1,0 +1,5 @@
+{
+  "command": "progress",
+  "code": 2,
+  "stderr": "spp progress: --status must be one of in-progress, pr-open, verify-passed, changes-requested, handed-back"
+}

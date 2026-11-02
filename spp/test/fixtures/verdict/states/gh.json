@@ -1,0 +1,343 @@
+{
+ "api graphql -f query=Snapshot -F owner={owner} -F repo={repo} -F number=197": {
+  "stdout": {
+   "data": {
+    "viewer": {
+     "login": "maint"
+    },
+    "repository": {
+     "issue": {
+      "number": 197,
+      "url": "https://github.com/acme/app/issues/197",
+      "title": "Epic",
+      "repository": {
+       "nameWithOwner": "acme/app"
+      },
+      "comments": {
+       "nodes": [
+        {
+         "body": "<!-- sdd-plan -->\n<!-- sdd-data: eyJicmFuY2giOiJmZWF0L2VwaWMifQ== -->",
+         "author": {
+          "login": "maint"
+         },
+         "authorAssociation": "OWNER"
+        }
+       ]
+      },
+      "subIssues": {
+       "nodes": [
+        {
+         "number": 501,
+         "url": "https://github.com/acme/app/issues/501",
+         "title": "Both pass on the head",
+         "state": "OPEN",
+         "repository": {
+          "nameWithOwner": "acme/app"
+         },
+         "labels": {
+          "nodes": [
+           {
+            "name": "ready-for-agent"
+           },
+           {
+            "name": "claimed"
+           }
+          ]
+         },
+         "assignees": {
+          "nodes": []
+         },
+         "blockedBy": {
+          "nodes": []
+         },
+         "closedByPullRequestsReferences": {
+          "nodes": []
+         },
+         "timelineItems": {
+          "nodes": [
+           {
+            "source": {
+             "number": 601,
+             "url": "https://github.com/acme/app/pull/601",
+             "state": "OPEN",
+             "headRefOid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+             "baseRefName": "feat/epic",
+             "repository": {
+              "nameWithOwner": "acme/app"
+             },
+             "body": "Closes #501",
+             "comments": {
+              "nodes": [
+               {
+                "body": "LGTM",
+                "author": {
+                 "login": "maint"
+                },
+                "authorAssociation": "OWNER"
+               },
+               {
+                "body": "<!-- spp-verdict -->\n**Spec:** pass\n**Quality:** pass\n<!-- sdd-data: eyJ0aWNrZXQiOiI1MDEiLCJoZWFkIjoiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYiIsInNwZWMiOiJwYXNzIiwicXVhbGl0eSI6InBhc3MifQ== -->\n",
+                "author": {
+                 "login": "maint"
+                },
+                "authorAssociation": "OWNER"
+               }
+              ]
+             },
+             "author": {
+              "login": "maint"
+             },
+             "authorAssociation": "OWNER"
+            }
+           }
+          ]
+         }
+        },
+        {
+         "number": 502,
+         "url": "https://github.com/acme/app/issues/502",
+         "title": "Pass on an older head",
+         "state": "OPEN",
+         "repository": {
+          "nameWithOwner": "acme/app"
+         },
+         "labels": {
+          "nodes": [
+           {
+            "name": "ready-for-agent"
+           },
+           {
+            "name": "claimed"
+           }
+          ]
+         },
+         "assignees": {
+          "nodes": []
+         },
+         "blockedBy": {
+          "nodes": []
+         },
+         "closedByPullRequestsReferences": {
+          "nodes": []
+         },
+         "timelineItems": {
+          "nodes": [
+           {
+            "source": {
+             "number": 602,
+             "url": "https://github.com/acme/app/pull/602",
+             "state": "OPEN",
+             "headRefOid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+             "baseRefName": "feat/epic",
+             "repository": {
+              "nameWithOwner": "acme/app"
+             },
+             "body": "Closes #502",
+             "comments": {
+              "nodes": [
+               {
+                "body": "<!-- spp-verdict -->\n**Spec:** pass\n**Quality:** pass\n<!-- sdd-data: eyJ0aWNrZXQiOiI1MDIiLCJoZWFkIjoiYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYSIsInNwZWMiOiJwYXNzIiwicXVhbGl0eSI6InBhc3MifQ== -->\n",
+                "author": {
+                 "login": "maint"
+                },
+                "authorAssociation": "OWNER"
+               }
+              ]
+             },
+             "author": {
+              "login": "maint"
+             },
+             "authorAssociation": "OWNER"
+            }
+           }
+          ]
+         }
+        },
+        {
+         "number": 503,
+         "url": "https://github.com/acme/app/issues/503",
+         "title": "Spec fails",
+         "state": "OPEN",
+         "repository": {
+          "nameWithOwner": "acme/app"
+         },
+         "labels": {
+          "nodes": [
+           {
+            "name": "ready-for-agent"
+           },
+           {
+            "name": "claimed"
+           }
+          ]
+         },
+         "assignees": {
+          "nodes": []
+         },
+         "blockedBy": {
+          "nodes": []
+         },
+         "closedByPullRequestsReferences": {
+          "nodes": []
+         },
+         "timelineItems": {
+          "nodes": [
+           {
+            "source": {
+             "number": 603,
+             "url": "https://github.com/acme/app/pull/603",
+             "state": "OPEN",
+             "headRefOid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+             "baseRefName": "feat/epic",
+             "repository": {
+              "nameWithOwner": "acme/app"
+             },
+             "body": "Closes #503",
+             "comments": {
+              "nodes": [
+               {
+                "body": "<!-- spp-verdict -->\n**Spec:** fail\n**Quality:** pass\n<!-- sdd-data: eyJ0aWNrZXQiOiI1MDMiLCJoZWFkIjoiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYiIsInNwZWMiOiJmYWlsIiwicXVhbGl0eSI6InBhc3MifQ== -->\n",
+                "author": {
+                 "login": "maint"
+                },
+                "authorAssociation": "OWNER"
+               }
+              ]
+             },
+             "author": {
+              "login": "maint"
+             },
+             "authorAssociation": "OWNER"
+            }
+           }
+          ]
+         }
+        },
+        {
+         "number": 504,
+         "url": "https://github.com/acme/app/issues/504",
+         "title": "Quality fails on a short head",
+         "state": "OPEN",
+         "repository": {
+          "nameWithOwner": "acme/app"
+         },
+         "labels": {
+          "nodes": [
+           {
+            "name": "ready-for-agent"
+           },
+           {
+            "name": "claimed"
+           }
+          ]
+         },
+         "assignees": {
+          "nodes": []
+         },
+         "blockedBy": {
+          "nodes": []
+         },
+         "closedByPullRequestsReferences": {
+          "nodes": []
+         },
+         "timelineItems": {
+          "nodes": [
+           {
+            "source": {
+             "number": 604,
+             "url": "https://github.com/acme/app/pull/604",
+             "state": "OPEN",
+             "headRefOid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+             "baseRefName": "feat/epic",
+             "repository": {
+              "nameWithOwner": "acme/app"
+             },
+             "body": "Closes #504",
+             "comments": {
+              "nodes": [
+               {
+                "body": "<!-- spp-verdict -->\n**Spec:** pass\n**Quality:** fail\n<!-- sdd-data: eyJ0aWNrZXQiOiI1MDQiLCJoZWFkIjoiYmJiYmJiYiIsInNwZWMiOiJwYXNzIiwicXVhbGl0eSI6ImZhaWwifQ== -->\n",
+                "author": {
+                 "login": "maint"
+                },
+                "authorAssociation": "OWNER"
+               }
+              ]
+             },
+             "author": {
+              "login": "maint"
+             },
+             "authorAssociation": "OWNER"
+            }
+           }
+          ]
+         }
+        },
+        {
+         "number": 505,
+         "url": "https://github.com/acme/app/issues/505",
+         "title": "No verdict",
+         "state": "OPEN",
+         "repository": {
+          "nameWithOwner": "acme/app"
+         },
+         "labels": {
+          "nodes": [
+           {
+            "name": "ready-for-agent"
+           },
+           {
+            "name": "claimed"
+           }
+          ]
+         },
+         "assignees": {
+          "nodes": []
+         },
+         "blockedBy": {
+          "nodes": []
+         },
+         "closedByPullRequestsReferences": {
+          "nodes": []
+         },
+         "timelineItems": {
+          "nodes": [
+           {
+            "source": {
+             "number": 605,
+             "url": "https://github.com/acme/app/pull/605",
+             "state": "OPEN",
+             "headRefOid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+             "baseRefName": "feat/epic",
+             "repository": {
+              "nameWithOwner": "acme/app"
+             },
+             "body": "Closes #505",
+             "comments": {
+              "nodes": [
+               {
+                "body": "<!-- spp-verdict -->\nunreadable\n<!-- sdd-data: !! -->\n",
+                "author": {
+                 "login": "maint"
+                },
+                "authorAssociation": "OWNER"
+               }
+              ]
+             },
+             "author": {
+              "login": "maint"
+             },
+             "authorAssociation": "OWNER"
+            }
+           }
+          ]
+         }
+        }
+       ]
+      }
+     }
+    }
+   }
+  }
+ }
+}
