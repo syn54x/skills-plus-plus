@@ -15,10 +15,8 @@
  */
 import { readFileSync } from "node:fs";
 import { runGh } from "../gh.ts";
-import { find, parseIssue, readTrailer } from "../markers.ts";
+import { checkPin, savePin } from "../pin.ts";
 import { type Failure, isIssueRef, lintTicket, parseTicket } from "../ticket.ts";
-import { MARKER, savePin } from "./progress.ts";
-import { pinOf } from "./verify.ts";
 
 export type { Failure } from "../ticket.ts";
 
@@ -64,13 +62,11 @@ export async function run(args: string[]): Promise<number> {
   }
   if (file === undefined) {
     // The ready gate: a block edited after hardening pinned it would only stall at the worker's spp verify.
-    const pin = readTrailer((await find(parseIssue(rest[1]), MARKER))?.body ?? "")?.verifyPin;
-    if (typeof pin === "string" && (block === null || pinOf(block) !== pin)) {
-      failures.push({ rule: "pin-match", detail: `the Verify block changed since it was hardened; re-harden it (spp lint ticket ${rest[1]} --pin <body-file>)` });
-    }
+    const refusal = await checkPin(rest[1], block);
+    if (refusal?.rule === "pin-match") failures.push(refusal);
   }
   const ok = failures.length === 0;
-  if (ok && written) await savePin(rest[1], pinOf(written));
+  if (ok && written) await savePin(rest[1], written);
   const result: LintResult = { ok, failures };
   process.stdout.write(
     args.includes("--json") ? JSON.stringify(result, null, 2) + "\n" : ok ? "ok\n" : failures.map((f) => `${f.rule}: ${f.detail}`).join("\n") + "\n",
