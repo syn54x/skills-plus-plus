@@ -1,15 +1,17 @@
 #!/usr/bin/env node
-// The spp command router: `spp <command> [args]` runs `run(args)` from spp/src/commands/<command>.ts,
+// The spp command router: `spp <command> [args]` runs `run(args)` from <command>.ts (or .js) in the commands folder,
 // so a new command is one new file there. Its resolved number is the exit code; a thrown error exits 1.
+// An npm install ships the compiled dist/ (Node will not strip types under node_modules); the plugin and the repo have no dist/ and run the .ts sources.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 
-const commands = new URL("../spp/src/commands/", import.meta.url);
+const dist = new URL("../dist/commands/", import.meta.url);
+const [commands, ext] = existsSync(dist) ? [dist, ".js"] : [new URL("../spp/src/commands/", import.meta.url), ".ts"];
 const [command, ...args] = process.argv.slice(2);
 const usage = () =>
   "usage: spp <command> [args]\ncommands: " +
-  readdirSync(commands).filter((f) => f.endsWith(".ts")).map((f) => f.slice(0, -3)).sort().join(", ") +
+  readdirSync(commands).filter((f) => f.endsWith(ext)).map((f) => f.slice(0, -ext.length)).sort().join(", ") +
   "\n";
-const file = command && /^[a-z][a-z-]*$/.test(command) ? new URL(`${command}.ts`, commands) : null;
+const file = command && /^[a-z][a-z-]*$/.test(command) ? new URL(`${command}${ext}`, commands) : null;
 
 if (command === "--version") {
   const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));

@@ -8,7 +8,7 @@
   },
   "files": [
     "bin/",
-    "spp/src/"
+    "dist/"
   ],
   "publishConfig": {
     "access": "public",
@@ -26,6 +26,8 @@
   "scripts": {
     "test": "node --test",
     "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
     "changeset": "changeset",
     "version": "changeset version && node scripts/sync-version.ts"
   },
