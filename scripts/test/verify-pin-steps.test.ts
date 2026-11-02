@@ -31,3 +31,29 @@ describe("Verify pin steps", () => {
     assert.match(step2, /--body-file <file>`.*`spp lint ticket <N> --pin <file>`/);
   });
 });
+
+// Panel F24 on #267: a block edited after the pin must be refused before anyone runs it by hand, not only when
+// spp verify finally reads it. These pin every step that runs an issue's Verify block outside spp verify.
+describe("the pin is checked before any hand run of a Verify block", () => {
+  test("implement-issue runs the ready-gate lint at readiness, before it routes a bug or runs a prose block", () => {
+    const text = skill("implement-issue");
+    const readiness = text.split("## 1. Readiness")[1].split("## 2. Claim")[0];
+    assert.deepEqual(lintCalls(readiness), ["`spp lint ticket <N>`"]);
+    assert.match(readiness, /`spp lint ticket <N>`[^\n]*\bstop\b/);
+    assert.ok(text.indexOf("## 1. Readiness") < text.indexOf('"diagnosing-bugs"'));
+    assert.ok(text.indexOf("## 1. Readiness") < text.indexOf("**Prose issues.**"));
+  });
+
+  test("diagnosing-bugs confirms the pin before it runs an issue's Verify block as its loop", () => {
+    const para = /^\*\*A Verify block comes first\.\*\*.*$/m.exec(skill("diagnosing-bugs"))?.[0] ?? "";
+    const lint = para.indexOf("`spp lint ticket <N>`");
+    assert.ok(lint >= 0, "no pin check");
+    assert.ok(lint < para.indexOf("Run it"), "the block runs before the pin check");
+  });
+
+  test("build runs a merged issue's Verify through spp verify, never by hand", () => {
+    const merged = /^- `0`: merged\..*$/m.exec(readFileSync(join(root, "skills", "build", "EPIC.md"), "utf8"))?.[0] ?? "";
+    assert.match(merged, /`spp verify <N>`/);
+    assert.doesNotMatch(merged, /run the merged issue's Verify block/);
+  });
+});

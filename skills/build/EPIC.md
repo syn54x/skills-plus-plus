@@ -55,7 +55,7 @@ A `hand-back` whose reason says `worker lost` goes to the user first, as Wait be
 
 Run `spp merge <pr>`. It merges only a pull request that passed its gate, whose blockers merged and whose checks are green, and records it on the Wave comment. Read its exit:
 
-- `0`: merged. Close the Sub-issue if it is still open: `gh issue close <N> --reason completed --comment "Merged in <pr> into <branch>"`, since a merge into a non-default branch closes nothing by itself. Then run the merged issue's Verify block on the integration branch, in a throwaway worktree of its tip. Red stops the loop and goes to the user, because a broken base poisons every later Wave.
+- `0`: merged. Close the Sub-issue if it is still open: `gh issue close <N> --reason completed --comment "Merged in <pr> into <branch>"`, since a merge into a non-default branch closes nothing by itself. Then, from a throwaway worktree of the integration branch's tip, run `spp verify <N>`, never the block's commands by hand: it runs the merged issue's Verify block only while it matches its pin. Red, or a refusal, stops the loop and goes to the user, because a broken base poisons every later Wave.
 - `3`: `rebase needed`. Resume the same worker with "rebase onto the current integration branch and re-run Verify". The new head is gated again. You never resolve the conflict, since silently picking a side discards one issue's intent.
 - `1`: print the refusal and stop on that pull request.
 
