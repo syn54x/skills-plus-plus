@@ -156,10 +156,27 @@ describe("edge cases", () => {
   test("tickets that are not ready (claimed, no ready-for-agent) are neither planned nor held", async () => {
     const p = await plan([
       { n: 301, modify: ["src/a.ts"] },
-      { n: 302, modify: ["src/a.ts"], labels: ["ready-for-agent", "claimed"] },
+      { n: 302, modify: ["src/b.ts"], labels: ["ready-for-agent", "claimed"] },
       { n: 303, modify: ["src/a.ts"], labels: ["size:S"] },
     ]);
     assert.deepEqual(p, { wave: ["301"], held: [] });
+  });
+
+  // F3 on #267: in-flight work seeds the check, so a ready ticket overlapping it stays held until it merges.
+  test("a claimed ticket in flight holds a ready one that shares its path or consumes what it produces", async () => {
+    const p = await plan([
+      { n: 301, modify: ["src/a.ts"] },
+      { n: 302, modify: ["src/b.ts"], consumes: "`makeThing`" },
+      { n: 303, modify: ["src/c.ts"] },
+      { n: 310, modify: ["src/a.ts"], produces: "`makeThing(): Thing`", labels: ["ready-for-agent", "claimed"] },
+    ]);
+    assert.deepEqual(p, {
+      wave: ["303"],
+      held: [
+        { ticket: "301", reason: "shares src/a.ts with 310" },
+        { ticket: "302", reason: "consumes 310" },
+      ],
+    });
   });
 
   test("an Epic with nothing ready plans an empty wave", async () => {

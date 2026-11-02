@@ -9,7 +9,7 @@ type Verdict = { head: string; spec: "pass" | "fail"; quality: "pass" | "fail" }
 // red: earlier heads of the pull request whose checks failed; rebased: failing heads a force push replaced;
 // forged: the revisions of a verdict comment an outside author posted before the real one.
 type PrSpec = { n: number; state?: "OPEN" | "MERGED" | "CLOSED"; head?: string; verdict?: Verdict; checks?: string; history?: Verdict[]; red?: string[]; rebased?: string[]; forged?: Verdict[] };
-type Spec = { n: number; closed?: boolean; labels?: string[]; assignees?: string[]; blockedBy?: number[]; pr?: PrSpec; worker?: string };
+type Spec = { n: number; closed?: boolean; labels?: string[]; assignees?: string[]; blockedBy?: number[]; pr?: PrSpec; worker?: string; files?: string[] };
 type Opts = {
   branch?: string | null;
   panel?: string;
@@ -31,7 +31,7 @@ const trailer = (marker: string, data: unknown) => `${marker}\nrendered\n<!-- sd
 const verdictBody = (v: Verdict) => trailer("<!-- spp-verdict -->", { ticket: "x", ...v });
 // A comment by the repository owner, or by an outside author when `outsider`.
 const by = (body: string, outsider = false) => ({ body, author: { login: outsider ? "mallory" : "maint" }, authorAssociation: outsider ? "NONE" : "OWNER" });
-const ticketBody = (n: number) => `## Files owned\n\n- Create: \`src/f${n}.ts\`\n\n## Interfaces\n\n- Consumes: none\n- Produces: none\n`;
+const ticketBody = (t: Spec) => `## Files owned\n\n- Modify: ${(t.files ?? [`src/f${t.n}.ts`]).map((f) => `\`${f}\``).join(", ")}\n\n## Interfaces\n\n- Consumes: none\n- Produces: none\n`;
 
 // A case directory for Epic 197 in acme/app: its Sub-issues, their pull requests, CI and verdict history,
 // the pull request to the base branch, the Routing block and the claude session list.
@@ -83,7 +83,7 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
     },
   };
   for (const t of tickets) {
-    gh[`issue view ${ISSUE}${t.n} --json body`] = { stdout: { body: ticketBody(t.n) } };
+    gh[`issue view ${ISSUE}${t.n} --json body`] = { stdout: { body: ticketBody(t) } };
     if (!t.pr) continue;
     gh[`pr checks ${PULL}${t.pr.n} --json name,bucket`] = { stdout: [{ name: "test", bucket: t.pr.checks ?? "pass" }] };
     const history = t.pr.history ?? (t.pr.verdict ? [t.pr.verdict] : []);
@@ -304,6 +304,43 @@ describe("edge cases", () => {
   test("a pull request merged into the integration branch counts as merged while its issue is still open", async () => {
     const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, state: "MERGED" } }], { mainPr: null });
     assert.deepEqual(kinds(actions), ["main-gate"]);
+  });
+});
+
+// F3 on #267: the parallel safety check holds a ready ticket against in-flight work on every call, not only the one
+// that dispatched it.
+describe("in-flight work holds an overlapping ready ticket until it merges", () => {
+  const C: Spec = { n: 13, files: ["src/x.ts"] };
+
+  test("A claimed, C shares its file: wait, C held on every call", async () => {
+    const tickets: Spec[] = [{ n: 12, labels: [...READY, "claimed"], files: ["src/x.ts"] }, C];
+    for (let call = 0; call < 2; call++) {
+      const actions = await next(tickets);
+      assert.deepEqual(kinds(actions), ["wait"]);
+      assert.match(actions[0].reason, /#13 held: shares src\/x\.ts with 12/);
+    }
+  });
+
+  test("A dispatched with its session live but not yet claimed: C held", async () => {
+    const actions = await next([{ n: 12, files: ["src/x.ts"] }, C], { agents: [{ name: "t-12", kind: "background", state: "working" }] });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#13 held: shares src\/x\.ts with 12/);
+  });
+
+  test("A with its pull request open: C held", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], files: ["src/x.ts"], pr: { n: 40, checks: "pending" } }, C]);
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#13 held: shares src\/x\.ts with 12/);
+  });
+
+  test("A merged: C dispatched", async () => {
+    const actions = await next([{ ...merged(12), files: ["src/x.ts"] }, C]);
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["13"]]]);
+  });
+
+  test("an in-flight ticket that touches other files holds nothing", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], files: ["src/y.ts"] }, C]);
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["13"]]]);
   });
 });
 

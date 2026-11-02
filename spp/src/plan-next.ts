@@ -51,6 +51,13 @@ export function liveWorker(t: Ticket, sessions: Session[]): Session | undefined 
 // A merged pull request into the integration branch does not close its ticket, so it counts as merged too.
 const done = (t: Ticket) => t.state === "merged" || t.pr?.state === "MERGED";
 
+/**
+ * Whether a worker holds or works on the ticket until it merges: claimed or assigned, its pull request open, or a
+ * live session named after it. The parallel safety check holds a ready ticket against these on every call.
+ */
+export const inFlight = (t: Ticket, sessions: Session[]) =>
+  !done(t) && (t.claimed || t.assignees.length > 0 || t.pr?.state === "OPEN" || !!liveWorker(t, sessions));
+
 export function planNext(input: NextInput): Action[] {
   const { state, panel, sessions, checks, failedHeads, mainPr } = input;
   const ref = refIn(state.epic.repo);
