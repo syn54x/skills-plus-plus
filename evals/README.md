@@ -14,7 +14,7 @@ One folder per case, named for the skill it tests followed by the behaviour: `<s
 - `prompt.md`: run limits in the frontmatter, and the message a person would type as the body.
 - `graders/*.md`: one check per file. Give each case a grader on the result and a grader on the steps taken.
 - `case.yaml`, only when the case needs fixtures (`context.add_dirs`).
-- `resources/`: fixtures the agent may read.
+- `resources/`: fixtures the agent may read. `add_dirs` only grants the read and never tells the agent where the folder is, so the prompt names the fixture by its path inside the plugin directory (`evals/<case>/resources/<file>`).
 
 `results/` is written by each run and is not committed.
 
