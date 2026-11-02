@@ -84,15 +84,16 @@ function release(env: NodeJS.ProcessEnv) {
   return { ...result, calls };
 }
 
-test("npm run release with no NPM_TOKEN skips the publish, says so, and still tags", () => {
+test("npm run release publishes with no token in the environment, since trusted publishing needs none", () => {
   const r = release({ NODE_AUTH_TOKEN: "" });
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /NPM_TOKEN is not set/);
-  assert.equal(r.calls, "changeset tag");
+  assert.equal(r.calls, "changeset publish");
 });
 
-test("npm run release with NPM_TOKEN set publishes", () => {
-  const r = release({ NODE_AUTH_TOKEN: "x" });
-  assert.equal(r.status, 0, r.stderr);
-  assert.equal(r.calls, "changeset publish");
+test("release.yml publishes through trusted publishing: OIDC allowed, npm 11 or later, no token", () => {
+  const yml = readFileSync(join(repoRoot, ".github/workflows/release.yml"), "utf8");
+  assert.match(yml, /^\s+id-token: write$/m);
+  const npm = yml.indexOf("npm install --global npm@11");
+  assert.ok(npm > 0 && npm < yml.indexOf("uses: changesets/action@"), "npm is upgraded before the changesets step");
+  assert.doesNotMatch(yml, /NODE_AUTH_TOKEN|NPM_TOKEN/);
 });

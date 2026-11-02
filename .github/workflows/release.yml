@@ -23,9 +23,11 @@ jobs:
           node-version: 22
           cache: npm
           registry-url: https://registry.npmjs.org
+      # Trusted publishing (OIDC) needs npm 11.5.1 or later, and Node 22 ships npm 10.
+      - run: npm install --global npm@11
       - run: npm ci
-      # Opens or updates the version pull request; once it merges, publishes to npm with provenance
-      # (the NPM_TOKEN secret), or only tags the release when that secret is not set.
+      # Opens or updates the version pull request; once it merges, publishes to npm through trusted
+      # publishing: npm trades this job's OIDC token (id-token: write) for a publish, with provenance, and no secret is stored.
       - uses: changesets/action@v1
         id: changesets
         with:
@@ -35,7 +37,6 @@ jobs:
           title: "chore: version spp"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       # The release pull request is opened with GITHUB_TOKEN, which starts no pull_request run, so dispatch the evals on it.
       - name: run the evals on the release pull request
         if: steps.changesets.outputs.pullRequestNumber != ''
