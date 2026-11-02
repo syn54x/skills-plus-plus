@@ -1,0 +1,5 @@
+interface:
+  display_name: "To Tickets"
+  short_description: "Break an Epic into Sub-issues and pin the plan"
+policy:
+  allow_implicit_invocation: false
