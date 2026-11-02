@@ -4,7 +4,7 @@ Two edits go into `CLAUDE.md` (or `AGENTS.md`): the Routing block and a short do
 
 ## Routing block
 
-The template below is the whole block. Replace each `{{slot}}` with the answer from the step that owns it, and delete the `Panel` line when the person set no thresholds. `parseRouting` in `spp/src/routing.ts` reads the block, so keep the field names and the markers exactly as written.
+The template below is the whole block. Replace each `{{slot}}` with the answer from the step that owns it, and delete the `Panel` and `Merge` lines when there is nothing to put in them. `parseRouting` in `spp/src/routing.ts` reads the block, so keep the field names and the markers exactly as written.
 
 ```markdown
 <!-- sdd-routing -->
@@ -18,6 +18,7 @@ The template below is the whole block. Replace each `{{slot}}` with the answer f
 - Mode: {{mode}}
 - Sizes: {{sizes}}
 - Panel: {{panel}}
+- Merge: {{merge}}
 - Upstream feedback: {{feedback}}
 - Laws: {{laws}}
 <!-- /sdd-routing -->
@@ -28,6 +29,7 @@ The template below is the whole block. Replace each `{{slot}}` with the answer f
 | `mode` | `org` or `labels-only` | `org` when the repo's owner is an organization, because only organizations have issue types. |
 | `sizes` | `` `size:S/M/L` labels `` | The labels `to-tickets` and triage put on each Sub-issue. |
 | `panel` | `tickets>=N`, `size:L`, `lines>=N`, comma-separated | Each token overrides one threshold; the rest keep their defaults (4 tickets, any size L, 1,000 lines). Leave the line out when there is no override. The `size:L` token is always on. |
+| `merge` | `squash`, `merge` or `rebase` | How `spp merge` merges a slice. Never asked: leave the line out unless the block already has it or the person names a method. |
 | `feedback` | `off`, `counts`, `detailed` or `attributed` | What `close-epic` may put in a skill-defect issue it proposes, each one shown and approved first. Default `off`. |
 | `laws` | comma-separated paths | The repo documents workers and reviewers must obey. A trailing `/` marks a directory. |
 
@@ -50,7 +52,7 @@ On a re-run the existing line is the starting point. Every entry on it stays, an
 
 ### Rewriting an existing block
 
-Replace what sits between the markers in place and never append a second block. Carry forward each answer the block already holds (Mode, Sizes, Panel, Laws, Upstream feedback), and write the other lines from the template only when they differ. A block that already equals what would be written is left alone.
+Replace what sits between the markers in place and never append a second block. Carry forward every field line the block already holds (Mode, Sizes, Panel, Merge, Laws, Upstream feedback, and any line outside the template), and write the other lines from the template only when they differ. A block that already equals what would be written is left alone.
 
 ## Domain docs section
 
