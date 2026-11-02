@@ -37,6 +37,19 @@ jobs:
           title: "chore: version spp"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # changesets/action pushes the tag and creates the GitHub release only when it finds "New tag:" lines in the
+      # publish output, which @changesets/cli 3 no longer prints, so tag and release a published version here.
+      - name: tag and release the published version
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: |
+          name="$(node -p "require('./package.json').name")"
+          version="$(node -p "require('./package.json').version")"
+          if git ls-remote --exit-code --tags origin "v$version" > /dev/null; then exit 0; fi
+          npm view "$name@$version" version > /dev/null 2>&1 || exit 0
+          awk -v h="## $version" '$0 == h {f = 1; next} /^## / {if (f) exit} f' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          gh release create "v$version" --target "$GITHUB_SHA" --title "v$version" --notes-file "$RUNNER_TEMP/notes.md"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # The release pull request is opened with GITHUB_TOKEN, which starts no pull_request run, so dispatch the evals on it.
       - name: run the evals on the release pull request
         if: steps.changesets.outputs.pullRequestNumber != ''
