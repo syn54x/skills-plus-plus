@@ -26,4 +26,4 @@ Runs cannot write files or run shell commands unless the command grants it. The 
 
 ## CI
 
-`.github/workflows/evals.yml` runs the suite on the Changesets release pull request and on manual dispatch, never on every pull request. It needs the repository secret `ANTHROPIC_API_KEY` and skips with a notice when it is absent.
+`.github/workflows/evals.yml` runs the suite on the Changesets release pull request and on manual dispatch, never on every pull request. It needs a model credential, either the secret `ANTHROPIC_API_KEY` or the org's `CLAUDE_CODE_OAUTH_TOKEN`, and skips with a notice when neither is set.

@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -36,5 +38,28 @@ describe("evals.yml triggers", () => {
   test("a normal pull request or push starts no eval run", () => {
     const on = evals.slice(evals.indexOf("\non:"), evals.indexOf("\npermissions:"));
     assert.doesNotMatch(on, /pull_request|push/);
+  });
+});
+
+describe("evals.yml credential", () => {
+  // The credential check's shell, cut from the step's `run: |` block and run as CI would.
+  const step = evals.slice(evals.indexOf("name: check the model credential"));
+  const script = step.slice(step.indexOf("run: |") + "run: |".length, step.indexOf("\n      - if:")).replace(/^ {10}/gm, "");
+  const present = (env: Record<string, string>) => {
+    const out = join(mkdtempSync(join(tmpdir(), "spp-evals-")), "output");
+    const r = spawnSync("sh", ["-c", script], { encoding: "utf8", env: { PATH: process.env.PATH, GITHUB_OUTPUT: out, ...env } });
+    assert.equal(r.status, 0, r.stderr);
+    return readFileSync(out, "utf8").trim();
+  };
+
+  test("the job passes both secrets to Claude Code", () => {
+    assert.match(evals, /ANTHROPIC_API_KEY: \$\{\{ secrets\.ANTHROPIC_API_KEY \}\}/);
+    assert.match(evals, /CLAUDE_CODE_OAUTH_TOKEN: \$\{\{ secrets\.CLAUDE_CODE_OAUTH_TOKEN \}\}/);
+  });
+
+  test("either credential is enough to run, and neither skips", () => {
+    assert.equal(present({ ANTHROPIC_API_KEY: "k", CLAUDE_CODE_OAUTH_TOKEN: "" }), "present=true");
+    assert.equal(present({ ANTHROPIC_API_KEY: "", CLAUDE_CODE_OAUTH_TOKEN: "t" }), "present=true");
+    assert.equal(present({ ANTHROPIC_API_KEY: "", CLAUDE_CODE_OAUTH_TOKEN: "" }), "present=false");
   });
 });
