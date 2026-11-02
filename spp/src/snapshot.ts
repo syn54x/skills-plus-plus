@@ -2,7 +2,10 @@
 // Pure: no network, filesystem or environment, so the epic board can import it.
 
 export type PrState = "OPEN" | "MERGED" | "CLOSED";
-export type Pr = { number: number; url: string; state: PrState; headSha: string };
+// verdict: the trailer of the pull request's `<!-- spp-verdict -->` comment, present only when one decodes.
+export type Pr = { number: number; url: string; state: PrState; headSha: string; verdict?: Record<string, unknown> };
+
+export const VERDICT_MARKER = "<!-- spp-verdict -->";
 
 export type SnapshotIssue = {
   number: number;
@@ -27,7 +30,8 @@ export type Snapshot = {
 // Pull requests into an integration branch are not closing references, so they are found through cross-references.
 // shortcut: the last 50 cross-references only; raise it if a Sub-issue is ever referenced more often than that.
 // shortcut: Marker comments are looked for in the Epic's first 100 comments and a Sub-issue's first 50; both are
-// written early (the plan, the claim), so raise these only if one is ever missed.
+// written early (the plan, the claim), so raise these only if one is ever missed. The same holds for a pull request's
+// verdict comment in its first 30, written at its first review and rewritten in place after that.
 export const SNAPSHOT_QUERY = `query Snapshot($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
@@ -49,10 +53,18 @@ export const SNAPSHOT_QUERY = `query Snapshot($owner: String!, $repo: String!, $
     }
   }
 }
-fragment pr on PullRequest { number url state headRefOid repository { nameWithOwner } }`;
+fragment pr on PullRequest { number url state headRefOid repository { nameWithOwner } comments(first: 30) { nodes { body } } }`;
 
 type Nodes<T> = { nodes: T[] };
-type RawPr = { number: number; url: string; state: PrState; headRefOid: string; repository: { nameWithOwner: string }; body?: string };
+type RawPr = {
+  number: number;
+  url: string;
+  state: PrState;
+  headRefOid: string;
+  repository: { nameWithOwner: string };
+  body?: string;
+  comments?: Nodes<{ body: string }>;
+};
 type RawIssue = {
   number: number;
   url: string;
@@ -96,11 +108,14 @@ function markerData(comments: Nodes<{ body: string }> | undefined, marker: strin
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// GitHub's closing keywords, followed by #N (same repo only), owner/repo#N or the issue URL.
+// GitHub's closing keywords and the space before the reference they close.
+export const CLOSING_KEYWORD = String.raw`\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+`;
+
+// A closing keyword followed by #N (same repo only), owner/repo#N or the issue URL.
 function closes(body: string, prRepo: string, issue: RawIssue): boolean {
   const repo = issue.repository.nameWithOwner;
   const refs = [issue.url, `${repo}#${issue.number}`, ...(prRepo.toLowerCase() === repo.toLowerCase() ? [`#${issue.number}`] : [])];
-  const pattern = String.raw`\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+(?:${refs.map(escape).join("|")})(?![\w/])`;
+  const pattern = String.raw`${CLOSING_KEYWORD}(?:${refs.map(escape).join("|")})(?![\w/])`;
   return new RegExp(pattern, "i").test(body);
 }
 
@@ -110,7 +125,8 @@ function issue(raw: RawIssue): SnapshotIssue {
     .filter((s): s is RawPr => !!s?.headRefOid && closes(s.body ?? "", s.repository!.nameWithOwner, raw));
   const prs = new Map<string, Pr>();
   for (const p of [...raw.closedByPullRequestsReferences.nodes, ...crossRefs]) {
-    prs.set(p.url, { number: p.number, url: p.url, state: p.state, headSha: p.headRefOid });
+    const verdict = markerData(p.comments, VERDICT_MARKER);
+    prs.set(p.url, { number: p.number, url: p.url, state: p.state, headSha: p.headRefOid, ...(verdict && { verdict }) });
   }
   return {
     number: raw.number,

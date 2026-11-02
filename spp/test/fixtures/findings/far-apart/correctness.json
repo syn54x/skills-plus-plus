@@ -1,0 +1,13 @@
+{
+  "persona": "correctness",
+  "findings": [
+    {
+      "file": "src/a.ts",
+      "line": 10,
+      "title": "Missing null check",
+      "severity": "important",
+      "confidence": 85,
+      "body": "x"
+    }
+  ]
+}

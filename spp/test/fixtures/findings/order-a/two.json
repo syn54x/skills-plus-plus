@@ -1,0 +1,21 @@
+{
+  "persona": "depth",
+  "findings": [
+    {
+      "file": "src/a.ts",
+      "line": 6,
+      "title": "dropped retry",
+      "severity": "important",
+      "confidence": 95,
+      "body": "a2"
+    },
+    {
+      "file": "src/c.ts",
+      "line": 1,
+      "title": "Shallow module",
+      "severity": "important",
+      "confidence": 88,
+      "body": "c"
+    }
+  ]
+}

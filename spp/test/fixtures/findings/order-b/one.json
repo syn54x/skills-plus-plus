@@ -1,0 +1,21 @@
+{
+  "persona": "history",
+  "findings": [
+    {
+      "file": "src/b.ts",
+      "line": 3,
+      "title": "Dropped retry",
+      "severity": "minor",
+      "confidence": 90,
+      "body": "b"
+    },
+    {
+      "file": "src/a.ts",
+      "line": 5,
+      "title": "Dropped retry",
+      "severity": "critical",
+      "confidence": 90,
+      "body": "a"
+    }
+  ]
+}

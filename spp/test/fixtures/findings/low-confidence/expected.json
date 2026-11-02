@@ -1,0 +1,25 @@
+{
+  "findings": [
+    {
+      "id": "F1",
+      "file": "src/a.ts",
+      "line": 40,
+      "title": "Sure thing",
+      "severity": "minor",
+      "personas": [
+        "correctness"
+      ],
+      "body": "edge of the gate"
+    }
+  ],
+  "counts": {
+    "severity": {
+      "critical": 0,
+      "important": 0,
+      "minor": 1
+    },
+    "persona": {
+      "correctness": 1
+    }
+  }
+}

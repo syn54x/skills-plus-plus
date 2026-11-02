@@ -1,0 +1,5 @@
+interface:
+  display_name: "Close Epic"
+  short_description: "Summarise, retro and close a merged Epic"
+policy:
+  allow_implicit_invocation: false

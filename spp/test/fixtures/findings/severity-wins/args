@@ -1,0 +1,4 @@
+merge
+a.json
+b.json
+--json

@@ -9,6 +9,7 @@
   "homepage": "https://skills.x54.sh",
   "repository": "https://github.com/syn54x/skills-plus-plus",
   "license": "MIT",
+  "types": "./types/index.d.ts",
   "keywords": [
     "spec-driven-development",
     "github-issues",
