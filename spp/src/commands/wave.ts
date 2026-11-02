@@ -1,6 +1,6 @@
 // spp wave <epic> add|pr|panel ...: owns the Epic's one wave comment. Waves and panel rounds are lists inside
 // its data, so a retried call replaces its own entry and never duplicates one.
-import { derive } from "../derive.ts";
+import { derive, type EpicState } from "../derive.ts";
 import { runGh } from "../gh.ts";
 import { type Data, flagPairs, guarded, parseIssue, print, updateMarker, UsageError } from "../markers.ts";
 import { parseSnapshot, SNAPSHOT_QUERY } from "../snapshot.ts";
@@ -161,15 +161,8 @@ function planWave(tickets: PlanInput[], max: number): WavePlan {
   return { wave: wave.map((t) => t.id), held };
 }
 
-async function runPlan(args: string[]): Promise<number> {
-  const at = args.indexOf("--max");
-  const max = at < 0 ? 4 : Number(args[at + 1]);
-  const epic = args.filter((a, i) => a !== "--json" && (at < 0 || (i !== at && i !== at + 1)));
-  if (epic.length !== 1 || !Number.isInteger(max) || max < 1) throw new UsageError("");
-  const e = parseIssue(epic[0]);
-  const [owner, repo] = e.repoFlag.length ? e.repo.split("/") : ["{owner}", "{repo}"];
-  const vars = e.repoFlag.length ? ["-f", `owner=${owner}`, "-f", `repo=${repo}`] : ["-F", `owner=${owner}`, "-F", `repo=${repo}`];
-  const state = derive(parseSnapshot(JSON.parse(await runGh(["api", "graphql", "-f", `query=${SNAPSHOT_QUERY}`, ...vars, "-F", `number=${e.number}`]))));
+// The wave over the state's ready tickets, reading each one's body for its Files owned and Interfaces.
+export async function wavePlan(state: EpicState, max: number): Promise<WavePlan> {
   const ready = await Promise.all(
     state.tickets
       .filter((t) => t.state === "ready")
@@ -181,7 +174,19 @@ async function runPlan(args: string[]): Promise<number> {
         body: (JSON.parse(await runGh(["issue", "view", t.url, "--json", "body"])) as { body: string }).body ?? "",
       })),
   );
-  const plan = planWave(ready, max);
+  return planWave(ready, max);
+}
+
+async function runPlan(args: string[]): Promise<number> {
+  const at = args.indexOf("--max");
+  const max = at < 0 ? 4 : Number(args[at + 1]);
+  const epic = args.filter((a, i) => a !== "--json" && (at < 0 || (i !== at && i !== at + 1)));
+  if (epic.length !== 1 || !Number.isInteger(max) || max < 1) throw new UsageError("");
+  const e = parseIssue(epic[0]);
+  const [owner, repo] = e.repoFlag.length ? e.repo.split("/") : ["{owner}", "{repo}"];
+  const vars = e.repoFlag.length ? ["-f", `owner=${owner}`, "-f", `repo=${repo}`] : ["-F", `owner=${owner}`, "-F", `repo=${repo}`];
+  const state = derive(parseSnapshot(JSON.parse(await runGh(["api", "graphql", "-f", `query=${SNAPSHOT_QUERY}`, ...vars, "-F", `number=${e.number}`]))));
+  const plan = await wavePlan(state, max);
   process.stdout.write(
     args.includes("--json")
       ? JSON.stringify(plan, null, 2) + "\n"
