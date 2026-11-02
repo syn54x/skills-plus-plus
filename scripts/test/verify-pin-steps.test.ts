@@ -44,11 +44,25 @@ describe("the pin is checked before any hand run of a Verify block", () => {
     assert.ok(text.indexOf("## 1. Readiness") < text.indexOf("**Prose issues.**"));
   });
 
-  test("diagnosing-bugs confirms the pin before it runs an issue's Verify block as its loop", () => {
-    const para = /^\*\*A Verify block comes first\.\*\*.*$/m.exec(skill("diagnosing-bugs"))?.[0] ?? "";
-    const lint = para.indexOf("`spp lint ticket <N>`");
-    assert.ok(lint >= 0, "no pin check");
-    assert.ok(lint < para.indexOf("Run it"), "the block runs before the pin check");
+  // Panel F40 (Round 3) on #267: the pin check and the hand run read the issue once, through `spp verify <N> --print`,
+  // so a block that flips between two fetches can never pass the check as one text and run as another.
+  test("implement-issue's prose red run runs only what spp verify --print printed", () => {
+    const prose = /^\*\*Prose issues\.\*\*.*$/m.exec(skill("implement-issue"))?.[0] ?? "";
+    assert.match(prose, /`spp verify <N> --print`/);
+    assert.match(prose, /only the commands it printed/);
+    assert.match(prose, /never a copy of the block you fetched/);
+  });
+
+  test("diagnosing-bugs takes an issue's Verify block as its loop only from spp verify --print", () => {
+    const text = skill("diagnosing-bugs");
+    const para = /^\*\*A Verify block comes first\.\*\*.*$/m.exec(text)?.[0] ?? "";
+    const print = para.indexOf("`spp verify <N> --print`");
+    assert.ok(print >= 0, "no pin check");
+    assert.ok(print < para.indexOf("Run "), "the block runs before the pin check");
+    assert.match(para, /only the commands it printed/);
+    assert.match(para, /never a copy of the block you fetched/);
+    const lockIn = text.split("## 4. Lock it in")[1].split("## 5.")[0];
+    assert.match(lockIn, /For an issue with a Verify block, the loop is the commands `spp verify <N> --print` prints/);
   });
 
   test("build runs a merged issue's Verify through spp verify, never by hand", () => {
