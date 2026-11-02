@@ -1,0 +1,3 @@
+interface:
+  display_name: "Harden"
+  short_description: "Write the ticket contract into one issue and gate it with spp lint"
