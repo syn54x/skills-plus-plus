@@ -110,7 +110,7 @@ When a skill runs over, run the no-op test first, then move detail into a refere
 A skill outlives the harness it was written on. Three rules keep a port to new files rather than a rewrite:
 
 1. **Features only one harness has sit at the edges.** Session drivers, workflows, hooks and panes are reached behind a check that the capability is present, and the skill still works when it is not.
-2. **Skills name capabilities, never harness tools.** "Start an isolated worker" and "post a progress note" travel; a specific tool's name does not.
+2. **Skills name capabilities, never harness tools.** "Start an isolated worker" and "post a progress note" travel; a specific tool's name does not. The one exception is the skill-call line, `Call the Skill tool with "<name>"` (see `SKILLS.md`), which each harness reference file maps to its own mechanism.
 3. **Each harness's specifics live in one reference file**, read only when running on that harness. It maps each capability the skill names to that harness's tool or command.
 
 A port then adds a reference file, a driver and a manifest, and the skill text stays as it is.
@@ -120,4 +120,4 @@ A port then adds a reference file, a driver and a manifest, and the skill text s
 - Every sentence passes the no-op test, and no meaning is stated twice.
 - Every step ends on a criterion the agent can observe.
 - Material only some runs need sits behind a pointer at the step that needs it.
-- For a skill: inside the size budget, and no harness tool is named outside a harness reference file.
+- For a skill: inside the size budget, and no harness tool is named outside a harness reference file, apart from the skill-call line.

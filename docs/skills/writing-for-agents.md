@@ -27,7 +27,7 @@ Nearly every choice in writing for an agent is that trade in another form: inlin
 - **Leading words.** A short term the model already understands (*red*, *tight*, *tracer bullet*) that stands for a whole behaviour.
 - **Pruning.** Each meaning stated in exactly one place, and every sentence put to the no-op test.
 
-Skills carry two extra laws. The size budget caps `SKILL.md` at 12 KB, the description at 1,024 characters and each reference file at 20 KB. The portability law keeps harness-only features at the edges, has skills name capabilities rather than a harness's tools, and puts each harness's specifics in a single reference file that only that harness reads.
+Skills carry two extra laws. The size budget caps `SKILL.md` at 12 KB, the description at 1,024 characters and each reference file at 20 KB. The portability law keeps harness-only features at the edges, has skills name capabilities rather than a harness's tools (the line that calls another skill is the one exception), and puts each harness's specifics in a single reference file that only that harness reads.
 
 ## Common questions
 
@@ -58,4 +58,4 @@ A skill written up from one finished run inherits that run's repo, files and exa
 - A leading word visibly changes what the agent does in several places.
 - Every meaning appears once, and only once.
 - What a single path needs lives behind a pointer rather than in the main file.
-- A skill passes the size check, and the only file naming a harness tool is that harness's reference file.
+- A skill passes the size check, and apart from the line that calls another skill, the only file naming a harness tool is that harness's reference file.

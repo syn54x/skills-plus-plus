@@ -21,7 +21,7 @@ The choice is the two loads traded against each other.
 | Description written for | The model: what it is, then each case that should start it ("Use when ...") | The person scanning a menu: one line, no trigger list |
 | What it costs | Context load on every turn | Cognitive load: the person must remember it exists |
 
-Make a skill model-invoked only when the agent must reach it unprompted or another skill must call it. Every other skill is user-invoked, which costs no context at all. The flag and the policy line always agree, so a skill is user-invoked on every harness or on none.
+Model-invoked is the default: keep a skill model-invoked whenever the agent could sensibly reach for it unprompted, or another skill must call it. Make it user-invoked when only a person should ever start it, which takes its description out of context entirely. The flag and the policy line always agree, so a skill is user-invoked on every harness or on none.
 
 A model-invoked skill made only of reference is the home for material several skills need: they call it rather than copy it. Two user-invoked skills cannot share material through each other, since neither can start the other; put it in a model-invoked skill or a plain file both point to.
 
