@@ -13,7 +13,7 @@ The `spp` plugin puts `spp` on the Bash tool's PATH. Each capability the skill n
 | Post a note | `spp note <N> "<text>" --milestone`; `--milestone` also copies the line into the progress comment |
 | Run Verify | `spp verify <N>`; it prints `pass:` or `fail:` per command and writes `verified <time>` or `failed <time>` as a git note on `HEAD` under `refs/notes/sdd-verify` |
 | Publish the Verify record | see *Pushing the notes ref* |
-| Open the pull request | `BODY=$(mktemp -t pr-<N>)`, write the body there, then `gh pr create --base <base> --title "<title>" --body-file "$BODY"` |
+| Open the pull request | `BODY=$(mktemp "${TMPDIR:-/tmp}/pr-<N>.XXXXXX")` (this form works on both BSD and GNU `mktemp`), write the body there, then `gh pr create --base <base> --title "<title>" --body-file "$BODY"` |
 | Hand back | `spp hand-back <N> needs-info\|ready-for-human\|blocked --reason "<why>"`, adding `--blocked-by <issue>` on the `blocked` route when you know the blocker |
 | Record a blocked stop | `git notes --ref=sdd-verify add -f -m blocked HEAD` |
 

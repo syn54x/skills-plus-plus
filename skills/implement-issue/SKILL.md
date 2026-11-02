@@ -11,7 +11,7 @@ A **note** is one line, posted at each milestone: claimed, first red test, green
 
 ## 1. Readiness
 
-Fetch the issue (body, state, labels, assignees, parent, blockers) and its comments. Stop and report, writing nothing, if any of these is false:
+Fetch the issue (body, state, labels, assignees, parent, blockers) and its comments. Stop and report, writing nothing, if any of these is false. A hand-back clears the claim, so never hand back an issue you have not claimed: the claim may be another worker's. The stop gate lets you finish while your branch has no commits of its own.
 
 - The issue lives in the repo you are standing in, since `Closes #N` only links within one repo.
 - It is open and labelled `ready-for-agent`, and every issue blocking it is closed.

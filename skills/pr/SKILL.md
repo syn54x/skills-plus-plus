@@ -3,9 +3,9 @@ name: pr
 description: The pull request body, from the summary visual to the sections a review gate checks. Use when writing or rewriting a pull request description, including a worker opening the pull request for a Sub-issue or One-off and a fix round that changes what the body claims.
 ---
 
-A pull request body is read by someone deciding whether to merge. Give them, in this order, what changed, proof that it works, and what breaks if it is wrong. When the pull request builds an issue that carries the **Ticket contract**, the body is also a set of claims the review gate checks one by one against the diff, so those sections are required and have no default text.
+The person reading a pull request body has one decision to make, merge or not, and three questions on the way to it: what is this, how bad is it if it is wrong, and why should I believe it works. The body answers them in that order, because the answer to the second sets how much proof the third needs. When the pull request builds an issue that carries the **Ticket contract**, the body goes on to make claims the review gate tests against the diff line by line; those sections are mandatory and have no stock wording.
 
-Call the Skill tool with "writing-for-humans" before drafting the prose, and use the `GLOSSARY.md` term for anything it defines. Leave out preamble and anything the diff already shows.
+Call the Skill tool with "writing-for-humans" before drafting the prose, and use the `GLOSSARY.md` term for anything it defines. Every line should tell the reader something the diff does not.
 
 ## The body
 
@@ -14,19 +14,19 @@ Closes #<N>
 
 ## Summary
 
-<one or two sentences: the behaviour this makes work>
+<the claim, in a sentence or two>
 
-<the smallest visual that shows it>
-
-## Evidence
-
-**Before:** <the failing run, the old output, the old screen>
-**After:** <the passing run, the new output, the new screen>
+<a text picture of it, when one helps>
 
 ## Merge danger
 
-**Door:** one-way | two-way: <why>
-**Blast radius:** <what is affected if this is wrong>
+**Door:** one-way | two-way: <what undoing it would take>
+**Blast radius:** <who notices first if it is wrong, and how far it spreads>
+
+## Evidence
+
+**Before:** <what the reader would have seen without this change>
+**After:** <what they see with it>
 
 ## Verify
 
@@ -50,44 +50,57 @@ Interfaces changed: none
 
 ## Notes for the reviewer
 
-<decisions the issue left open, `No RED:` pins, anything the reviewer should look at first; or "none">
+<decisions the issue left open, `No RED:` pins, where to start reading; or "none">
 ```
 
-A pull request that builds no issue keeps Summary, Evidence and Merge danger and drops the rest. When the repo has its own pull request template, keep its headings and put these sections after them; `Closes #<N>` still opens the body.
+Without an issue behind it, a pull request needs only the first three sections. If the repo ships its own template, its headings come first and these follow, with `Closes #<N>` still on line one.
 
 ## Summary
 
-Find the one point the reviewer must hold, then the smallest picture that carries it. Prefer the plain-text forms, since they read the same in a terminal, an email and the web.
+Write the claim as a sentence before anything else: what someone can now do, or what now happens, that was not true yesterday. If that sentence needs an "and", the pull request may be two.
 
-| The point is | Show |
+Then ask what a reviewer would sketch to check the claim, and draw that sketch in plain text, which survives terminals, emails and notification previews. Keep it smaller than the diff it stands for, and use only names that appear in the diff.
+
+| To check the claim, the reviewer wants | Draw |
 | --- | --- |
-| a rule or an algorithm | a few lines of pseudocode |
-| who calls whom at run time | an indented call tree |
-| where responsibility lives in the files | a shallow file tree, one comment per line |
-| how parts talk to each other over time | a Mermaid `sequenceDiagram` |
-| a change to a shape that already exists | a `diff` block over that tree or pseudocode, `+` for what arrives and `-` for what leaves |
-| a new block most readers will copy | the whole block |
+| which inputs now give which outputs | a small table of cases |
+| where a request or a value travels | one line of arrows: `form -> POST /invoices -> queue -> mailer` |
+| which files gained or lost a job | a tree of only the touched paths |
+| what several processes say to each other, in order | a Mermaid `sequenceDiagram` |
+| how something that already existed changed shape | that shape in a `diff` fence |
 
-A `diff` over a call tree makes the change stand out where a paragraph would bury it:
+A table of cases, for a fee rule:
 
-```diff
- openPullRequest
-   writeBody
-+    readIssueFromClosesLine
-   push
+```text
+order total   before   after
+  19.99        2.50     2.50
+  20.00        2.50     0.00
+ 120.00        0.00     0.00
 ```
 
-Keep only the names the reviewer needs for the point being made. One visual is usual; two is the most that helps. A change too small for any picture gets the sentence alone.
-
-## Evidence
-
-Prove the change with the old result beside the new one. For a visual change nothing beats a screenshot, if the environment can capture it. Without one, show a run: the named test that was red before and is green now, with the command and the lines of output that matter. A change with no runnable effect (a docs page, a skill file) shows the check that now passes, such as the build or the lint.
+One picture is the norm and two the ceiling. A typo fix gets the sentence alone.
 
 ## Merge danger
 
-A **two-way door** can be walked back: revert the merge and nothing is lost. A **one-way door** is not: a data migration, a deleted record, a published package version, a renamed public route that clients already call. Say which, and why.
+Two questions, answered honestly, so the reviewer can set how hard to look.
 
-The **blast radius** is everything this can break if it is wrong: callers of a changed signature, other services reading the same data, layouts on narrow screens, users mid-session. Name the widest one honestly; a reviewer trusts a stated risk more than a missing one.
+- **Door.** If this turns out wrong, does reverting the merge undo it? A two-way door reverts cleanly. A one-way door leaves something behind that a revert cannot reach: a column already dropped, an email already sent, a tag already published, a route already called by clients in the field. Say which, and what undoing it would take.
+- **Blast radius.** Who notices first if it is wrong, and how far does it reach from there? Name the first person or system to feel it (a test suite, one screen, every caller of a function, every tenant) and the widest it could go.
+
+A stated risk earns more trust than a body that claims none.
+
+## Evidence
+
+Evidence answers "how do you know?", and its strength should match the door: a two-way door may rest on a test run, while a one-way door wants a dry run or output from data shaped like production.
+
+Pick the proof that fits the kind of claim, and show the state before the change beside the state after it, so the reader sees the difference rather than being told about it:
+
+| The claim is about | Show |
+| --- | --- |
+| what someone sees on screen | a screenshot of each state, if the environment can produce them |
+| what the code does | the command and the lines of output that matter: the named test red before, green after |
+| a risk that was avoided | the dry run, the plan output or the check that would have caught it |
+| a document or skill | the check or build that now passes |
 
 ## The gate's sections
 
@@ -106,6 +119,6 @@ The body describes the head it was written for. When a fix round pushes new comm
 
 ## Done when
 
-- A reviewer can say what changed and how risky it is from the Summary and Merge danger alone.
-- Evidence shows a before and an after.
-- For a pull request that closes an issue, every section above is present and each claim points at something in the diff.
+- The Summary states the claim in a sentence, and Merge danger names the door and the first to notice.
+- Evidence is as strong as the door demands and shows both states.
+- For a pull request that closes an issue, every gate section is present and each claim points at something in the diff.
