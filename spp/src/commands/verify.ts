@@ -93,6 +93,10 @@ async function check(): Promise<number> {
   if (gitOut("status", "--porcelain")) return block(`uncommitted changes on ${branch}. Commit them, then run spp verify ${n}.`);
   const note = gitOut("notes", "--ref=sdd-verify", "show", "HEAD") ?? "";
   if (/^(verified|blocked)\b/.test(note)) return 0;
+  // HEAD already on a remote branch other than an sdd/* one: the worker committed nothing (say, a readiness stop
+  // on the branch its brief cut), so there is nothing to verify and no claim of its own to hand back.
+  const bases = (gitOut("for-each-ref", "--contains", "HEAD", "--format=%(refname:short)", "refs/remotes") ?? "").split("\n");
+  if (bases.some((r) => r && !/^[^/]+\/(sdd\/|HEAD$)/.test(r))) return 0;
   const handBack = `If you are stopping BLOCKED, hand the ticket back (spp hand-back ${n} <route> --reason ...), push what is committed, then record it: git notes --ref=sdd-verify add -f -m blocked HEAD`;
   if (note.startsWith("failed")) return block(`Verify failed on HEAD of ${branch}. Fix it and run spp verify ${n} again. ${handBack}`);
   return block(`Verify not run on HEAD of ${branch}. Run spp verify ${n} on the committed tree. ${handBack}`);
