@@ -139,6 +139,36 @@ describe("--pin <body-file>", () => {
     assert.equal(r.code, 1);
     assert.deepEqual(r.writes, []);
   });
+
+  // The ready gate (triage step 3) runs the plain lint: a body edited after harden pinned it must not pass it.
+  describe("without --pin, an existing pin is checked", () => {
+    const PIN = createHash("sha256").update("npm ci\nnode --test test/greet.test.ts").digest("hex");
+    const pinned = (pin: string, association = "OWNER") =>
+      JSON.stringify([5, `<!-- sdd-progress -->\n<!-- sdd-data: ${Buffer.from(JSON.stringify({ verifyPin: pin })).toString("base64")} -->`, "mallory", association]) + "\n";
+
+    test("a Verify block that still matches its pin passes", async () => {
+      const r = await runCase("lint", pinCase("hardened", pinned(PIN), undefined, "ticket\n12\n"));
+      assert.equal(r.code, 0, r.stdout + r.stderr);
+      assert.equal(r.stdout, "ok\n");
+      assert.deepEqual(r.writes, []);
+    });
+
+    test("a Verify block edited since it was pinned fails pin-match and writes nothing", async () => {
+      const r = await runCase("lint", pinCase("hardened", pinned("0".repeat(64)), undefined, "ticket\n12\n"));
+      assert.equal(r.code, 1);
+      assert.match(r.stdout, /^pin-match: /m);
+      assert.deepEqual(r.writes, []);
+    });
+
+    test("a pin in a comment from an outside author is not trusted, so it neither passes nor fails the lint", async () => {
+      const dir = pinCase("hardened", pinned("0".repeat(64), "NONE"), undefined, "ticket\n12\n");
+      const gh = JSON.parse(readFileSync(join(dir, "gh.json"), "utf8"));
+      gh["api graphql -f query=Viewer --jq .data.viewer.login"] = { stdout: "maint\n" };
+      writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
+      const r = await runCase("lint", dir);
+      assert.equal(r.code, 0, r.stdout + r.stderr);
+    });
+  });
 });
 
 describe("parseTicket", () => {
