@@ -40,12 +40,18 @@ describe("edge cases", () => {
   });
 
   // F46 (Round 3) on #267: the lint `spp kind` stands for checks the pin too, so /build sends these to /triage.
-  test("a hardened One-off whose Verify block carries no pin is raw, with the pin-present detail", async () => {
+  // Review of #275: --json names the failing pin rule, so /review can stop with its refusal instead of quality only.
+  test("a hardened One-off whose Verify block carries no pin is raw, with rule pin-present and its detail", async () => {
     await assertCase("kind", fixture("raw-unpinned"));
   });
 
-  test("a hardened One-off whose Verify block changed since its pin is raw, with the pin-match detail", async () => {
+  test("a hardened One-off whose Verify block changed since its pin is raw, with rule pin-match and its detail", async () => {
     await assertCase("kind", fixture("raw-pin-changed"));
+  });
+
+  test("a raw issue that fails the lint itself carries no rule", async () => {
+    const r = await assertCase("kind", fixture("raw-no-size"));
+    assert.equal(Object.hasOwn(r.json as object, "rule"), false);
   });
 });
 

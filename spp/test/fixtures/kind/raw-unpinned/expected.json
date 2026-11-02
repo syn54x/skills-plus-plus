@@ -1,4 +1,5 @@
 {
   "kind": "raw",
+  "rule": "pin-present",
   "reason": "the Verify block of 12 is not pinned; re-harden it (harden ends with spp lint ticket 12 --pin <body-file>)"
 }
