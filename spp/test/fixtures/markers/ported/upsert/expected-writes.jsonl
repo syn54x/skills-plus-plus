@@ -1,0 +1,1 @@
+{"cmd":"gh","argv":["api","-X","POST","repos/{owner}/{repo}/issues/200/comments","-f","body=<!-- sdd-summary -->\n## Summary\n\nShipped -- all five tickets.\n","--jq",".html_url"]}

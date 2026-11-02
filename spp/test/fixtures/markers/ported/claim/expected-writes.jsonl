@@ -1,0 +1,2 @@
+{"cmd":"gh","argv":["label","create","claimed","--color","FBCA04","--description","Held by a worker; set before work, cleared on stopping without a PR","--force"]}
+{"cmd":"gh","argv":["issue","edit","103","--add-label","claimed"]}

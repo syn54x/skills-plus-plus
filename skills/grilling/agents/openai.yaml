@@ -1,0 +1,3 @@
+interface:
+  display_name: "Grilling"
+  short_description: "Interview a plan round by round until it is understood"

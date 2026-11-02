@@ -1,0 +1,21 @@
+{
+  "persona": "correctness",
+  "findings": [
+    {
+      "file": "src/a.ts",
+      "line": 10,
+      "title": "Maybe a race",
+      "severity": "critical",
+      "confidence": 70,
+      "body": "weak"
+    },
+    {
+      "file": "src/a.ts",
+      "line": 40,
+      "title": "Sure thing",
+      "severity": "minor",
+      "confidence": 80,
+      "body": "edge of the gate"
+    }
+  ]
+}

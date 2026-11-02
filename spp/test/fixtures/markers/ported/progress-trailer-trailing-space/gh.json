@@ -1,0 +1,5 @@
+{
+  "api repos/{owner}/{repo}/issues/103/comments --paginate --jq .[] | [.id, .body] | @json": {
+    "stdout": "[501,\"<!-- sdd-progress -->\\n(rendered)\\n<!-- sdd-data: eyJzdGF0dXMiOiJpbi1wcm9ncmVzcyIsIndvcmtlciI6InNkZC13b3JrZXItMSIsImJyYW5jaCI6InNkZC8xMDMteCIsInByIjpudWxsLCJ2ZXJpZnkiOnsic3RhdGUiOiJub3QtcnVuIiwic2hhIjoiIn0sInJvdXRlIjpudWxsLCJyZWFzb24iOiIiLCJub3RlcyI6IiJ9 -->  \\t\"]\n"
+  }
+}

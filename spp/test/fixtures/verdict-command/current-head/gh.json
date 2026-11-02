@@ -1,0 +1,8 @@
+{
+  "pr view 40 --json headRefOid --jq .headRefOid": {
+    "stdout": "cccccccccccccccccccccccccccccccccccccccc\n"
+  },
+  "api repos/{owner}/{repo}/issues/40/comments --paginate --jq .[] | [.id, .body] | @json": {
+    "stdout": ""
+  }
+}

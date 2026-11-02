@@ -32,16 +32,31 @@ const STATES: TicketState[] = ["blocked", "ready", "claimed", "pr-open", "gate-p
 const HANDED_BACK = ["needs-info", "ready-for-human", "blocked"];
 const PR_RANK: Record<Pr["state"], number> = { OPEN: 0, MERGED: 1, CLOSED: 2 };
 
+// A Marker comment trailer field as shown: a non-empty string, else null (the trailers store "" for unset).
+const text = (v: unknown) => (typeof v === "string" && v ? v : null);
+
 // The pull request a ticket shows: an open one first, then a merged one, newest first.
 const pickPr = (prs: Pr[]) => [...prs].sort((a, b) => PR_RANK[a.state] - PR_RANK[b.state] || b.number - a.number)[0] ?? null;
+
+// The slice gate on an open pull request: its verdict counts only for the head it was given on (the full sha, or a
+// prefix of at least 7 characters); a verdict on an older head leaves the pull request pr-open.
+function gateOf(pr: Pr): TicketState {
+  const v = pr.verdict;
+  const head = text(v?.head);
+  if (!v || !head || head.length < 7 || !pr.headSha.startsWith(head)) return "pr-open";
+  if (v.spec === "fail" || v.quality === "fail") return "gate-fail";
+  return v.spec === "pass" && v.quality === "pass" ? "gate-pass" : "pr-open";
+}
 
 // The states overlap (a claimed ticket keeps its mark through pr-open), so the first match wins.
 function stateOf(i: SnapshotIssue, blockedBy: string[], pr: Pr | null): TicketState {
   // shortcut: a closed ticket counts as merged even without a merged pull request (closed by hand, not planned).
   if (i.state === "CLOSED") return "merged";
-  if (pr?.state === "OPEN") return "pr-open";
-  if (i.labels.includes("claimed") || i.assignees.length) return "claimed";
-  if (i.labels.some((l) => HANDED_BACK.includes(l))) return "handed-back";
+  const held = i.labels.includes("claimed") || i.assignees.length > 0;
+  // A Hand-back clears the claim and may leave its pull request open; the route label wins over that pull request.
+  if (!held && i.labels.some((l) => HANDED_BACK.includes(l))) return "handed-back";
+  if (pr?.state === "OPEN") return gateOf(pr);
+  if (held) return "claimed";
   if (blockedBy.length) return "blocked";
   if (!i.labels.includes("ready-for-agent")) return "not-agent";
   return "ready";
@@ -65,7 +80,7 @@ export function derive(s: Snapshot): EpicState {
       assignees: i.assignees,
       labels: i.labels,
       pr,
-      worker: null,
+      worker: text(i.progress?.worker),
       note: null,
     };
   });
@@ -88,5 +103,5 @@ export function derive(s: Snapshot): EpicState {
   }
 
   const counts = Object.fromEntries(STATES.map((st) => [st, tickets.filter((t) => t.state === st).length])) as Record<TicketState, number>;
-  return { epic: { ...s.epic, branch: null }, tickets, layers, cycle: rest.map((t) => t.url), counts };
+  return { epic: { ...s.epic, branch: text(s.plan?.branch) }, tickets, layers, cycle: rest.map((t) => t.url), counts };
 }

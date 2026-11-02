@@ -1,0 +1,9 @@
+F1 critical src/a.ts:5 [depth, history] Dropped retry
+  a
+F2 important src/c.ts:1 [depth] Shallow module
+  c
+F3 minor src/b.ts:3 [history] Dropped retry
+  b
+Severity: critical 1, important 1, minor 1
+Personas: depth 2, history 2
+Dropped below confidence 80: 0

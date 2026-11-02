@@ -1,0 +1,5 @@
+interface:
+  display_name: "Auto-grill"
+  short_description: "Grill a plan with cited answers given on your behalf"
+policy:
+  allow_implicit_invocation: false
