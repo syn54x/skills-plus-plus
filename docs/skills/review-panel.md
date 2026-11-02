@@ -53,7 +53,7 @@ The decision is yours. If the third round would still say FIX FIRST, the verdict
 Its `Closes #N` names a Sub-issue, so `spp kind` reads `sub-issue`. A slice gets [review](review.md), and the panel belongs on its Epic's pull request to the base branch, so run `/review-panel` there instead.
 
 **Why did the panel stop on a refused Verify?**
-The panel runs each closed Sub-issue's Verify block through `spp verify <N>`, which refuses a block that was never pinned or changed after hardening, since anyone who can edit an issue can rewrite its commands. Run [harden](harden.md) on that Sub-issue again, then run the panel again.
+The panel runs each closed Sub-issue's Verify block through `spp verify <N>`, which refuses a block that was never pinned or changed after hardening, since anyone who can edit an issue can rewrite its commands. The panel stops the same way when the issue the pull request closes reads `raw` with a `pin-present` or `pin-match` rule from `spp kind`. Run [harden](harden.md) on that issue again, then run the panel again.
 
 **A report I did not post is not on the pull request. Is it lost?**
 No. The skill shows the report and asks before posting. Every round is recorded on the Epic's wave comment either way, marked `unposted` until a comment link exists, so the retro still counts it.

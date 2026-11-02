@@ -23,9 +23,10 @@ gh pr diff "$PR"
 
 `HEAD` is `headRefOid` as read now; every check below runs on it and every verdict names it. `BASE` is `baseRefName`. Take the linked issue `N` from a `Closes #N` (or `Fixes`, `Resolves`) line in the body, never from GitHub's closing references, which stay empty on a pull request into a non-default branch. Then sort the run:
 
-| Linked issue | `spp kind N` | Run |
+| Linked issue | `spp kind N --json` | Run |
 | --- | --- | --- |
-| none, or `#N` | `raw` | Quality only. The comment's first line says `No linked Sub-issue or One-off: quality verdict only.` (naming `#N` as raw when there is one) and no verdict marker is written, so a gate never passes it. |
+| `#N` | `raw` with a `rule` | `pin-present` or `pin-match`: a hardened issue whose Verify block lost its pin. Stop as step 3.1 does on a refusal: post no verdict and report to whoever started the review that the issue needs harden again. |
+| none, or `#N` | `raw`, no `rule` | Quality only. The comment's first line says `No linked Sub-issue or One-off: quality verdict only.` (naming `#N` as raw when there is one) and no verdict marker is written, so a gate never passes it. |
 | `#N` | `epic` | The Epic's own pull request: read [`EPIC.md`](EPIC.md) and follow it in place of steps 4 to 6. |
 | `#N` | `sub-issue` | A slice of an Epic: both verdicts. |
 | `#N` | `one-off` | A slice with no Epic: both verdicts. |

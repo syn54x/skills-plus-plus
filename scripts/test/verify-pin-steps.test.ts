@@ -71,6 +71,27 @@ describe("the pin is checked before any hand run of a Verify block", () => {
     assert.doesNotMatch(merged, /run the merged issue's Verify block/);
   });
 
+  // Review of #275: since F46, a hardened issue whose pin is missing or changed reads raw; the slice gate must still
+  // refuse it as step 3.1 does, never review it as an unlinked pull request.
+  test("review's sort table stops a raw issue with a pin rule with the step 3.1 refusal, before the quality-only row", () => {
+    const text = skill("review");
+    const table = text.split("## 3. Run the evidence")[0];
+    assert.match(table, /`spp kind N --json`/);
+    const pinRow = /^\| `#N` \| `raw` with a `rule` \|.*$/m.exec(table)?.[0] ?? "";
+    assert.match(pinRow, /`pin-present` or `pin-match`/);
+    assert.match(pinRow, /post no verdict/);
+    assert.match(pinRow, /harden again/);
+    const quality = /^\|.*\| `raw`, no `rule` \| Quality only\..*$/m.exec(table)?.[0] ?? "";
+    assert.ok(quality, "the quality-only row is not limited to a raw issue with no rule");
+    assert.ok(table.indexOf(pinRow) < table.indexOf(quality), "the pin row must come before the quality-only row");
+  });
+
+  test("review-panel stops on a linked raw issue with a pin rule, as on a refused Verify", () => {
+    const step = /^The pull request body's `Closes #N` names its issue\..*$/m.exec(skill("review-panel"))?.[0] ?? "";
+    assert.match(step, /`spp kind N --json`/);
+    assert.match(step, /`raw` with a `rule`.*harden again.*stop/);
+  });
+
   test("review-panel runs each closed Sub-issue's Verify through spp verify and stops on a refusal", () => {
     const item = /^- \*\*Verify\.\*\*.*$/m.exec(skill("review-panel"))?.[0] ?? "";
     assert.match(item, /`spp verify <N>` for each closed Sub-issue/);
