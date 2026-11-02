@@ -1,4 +1,5 @@
 schema_version: "1.1"
 name: grill-records-glossary-term
 context:
-  add_dirs: [resources]
+  # Copies resources/ into the run's working directory, so both arms see the same project.
+  scaffold_script: scaffold.sh

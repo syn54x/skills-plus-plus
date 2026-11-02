@@ -3,8 +3,8 @@
 Cases for `claude plugin eval`, run against the plugin in the repo root and against a no-plugin baseline. The score delta says what the plugin adds.
 
 ```bash
-claude plugin eval . --trust-plugin                      # the whole suite
-claude plugin eval . --case 'grilling-*' --trust-plugin  # one skill's cases
+claude plugin eval . --trust-plugin --scaffold --allow-tools Write Edit                      # the whole suite
+claude plugin eval . --case 'grilling-*' --trust-plugin --scaffold --allow-tools Write Edit  # one skill's cases
 ```
 
 ## Layout
@@ -13,8 +13,8 @@ One folder per case, named for the skill it tests followed by the behaviour: `<s
 
 - `prompt.md`: run limits in the frontmatter, and the message a person would type as the body.
 - `graders/*.md`: one check per file. Give each case a grader on the result and a grader on the steps taken.
-- `case.yaml`, only when the case needs fixtures (`context.add_dirs`).
-- `resources/`: fixtures the agent may read. `add_dirs` only grants the read and never tells the agent where the folder is, so the prompt names the fixture by its path inside the plugin directory (`evals/<case>/resources/<file>`).
+- `case.yaml`, only when the case needs fixtures. It names `scaffold.sh` as the `context.scaffold_script`.
+- `scaffold.sh` and `resources/`: the script copies `resources/` into the run's working directory, so both arms find the same project in the same place and the prompt says "this project". Do not use `add_dirs` for a fixture the prompt depends on: the no-plugin arm cannot reach a path inside the plugin directory, so the delta would measure file access instead of the skill. The runner skips the script unless the command passes `--scaffold`.
 
 `results/` is written by each run and is not committed.
 

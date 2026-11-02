@@ -41,6 +41,7 @@ jobs:
         run: |
           claude plugin eval . \
             --trust-plugin \
+            --scaffold \
             --allow-tools Write Edit \
             --json evals/results.json \
             --threshold 0.8 \
