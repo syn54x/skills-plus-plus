@@ -94,7 +94,7 @@ Swap the roles in one `gh issue edit`, then post one comment that opens with the
 
 1. Call the Skill tool with "harden", passing the issue number, what you found, and for a bug the reproduction command, named as this issue's expected-red reproduction: it fails on the base branch because it is the bug, and it belongs first in the Verify block. harden writes the contract and sets one size.
 2. Read the body's `## Verify` again (`gh issue view <N> --json body`). For a bug, confirm the reproduction command is in it. If harden dropped or rewrote it, put it back as the first line and write the body with `gh issue edit <N> --body-file <file>`, since a ready bug with no reproducing command has nothing to turn green.
-3. Run `spp lint ticket <N>` and add `ready-for-agent` only after it prints `ok` on the body as it now stands. If harden ended in `needs-info`, that is the outcome, with harden's **Still open** comment.
+3. Run `spp lint ticket <N>` and add `ready-for-agent` only after it prints `ok` on the body as it now stands. If harden ended in `needs-info`, that is the outcome. Harden's **Still open** comment carries no disclaimer, so post a short comment of your own that opens with it, points at that list, and asks the reporter to answer its points; it takes the place of step 4.
 4. Comment with the role, the size, what was established and, for a bug, the failing output.
 
 ```markdown
