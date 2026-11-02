@@ -102,6 +102,7 @@ Checks the Epic's preconditions in order: `gh` 2.94 or later, the Epic open, at 
   sizes: string;
   laws: string[];
   panel: { tickets: number; sizeL: boolean; lines: number };
+  upstreamFeedback: "off" | "counts" | "detailed" | "attributed";   // a missing or unknown value is off
   merge?: "squash" | "merge" | "rebase";   // absent means squash
 }
 ```
@@ -322,11 +323,8 @@ The `PreToolUse` hook on Bash. In a session working in a linked worktree, it rea
 
 ### feedback check
 
-!!! note "Arriving with #256"
-    This command lands with [#256](https://github.com/syn54x/skills-plus-plus/issues/256), still in review.
-
 ```text
 spp feedback check <body-file> [--title-file <file>]
 ```
 
-The outbound check on a skill-feedback draft that `/close-epic` proposes, before anyone files it. Exits 0 when the draft is clean, 2 when it is blocked, with one line per hit, and 1 when the feedback profile is off or on a usage error. No JSON.
+The outbound check on a skill-feedback draft that `/close-epic` proposes, before anyone files it. The Routing block's `upstreamFeedback` profile sets what the draft may say. Exits 0 with no output when the draft is clean; 2 when it is blocked, with one `rule <rule> <name>, line <n>: <text>` line per hit on stdout; and 1 when the profile is off or on a usage error. It never rewrites the draft. The title file holds one title per line, and a line that is only `owner/repo` names a repo. No JSON.

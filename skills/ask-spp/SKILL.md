@@ -17,7 +17,7 @@ The lines below orient you; they are not the skills. Before you tell the person 
 
 ## The five paths
 
-A repo runs `/setup-spp` once before its first `/to-spec` or `/build`; if the person has not, that is the command to type now.
+Every path but tiny unfiled work needs the repo set up once with `/setup-spp`, since `/triage`, `/wayfinder`, `/to-spec` and `/build` each stop in a repo without it. If the person has not run it, that is the command to type now, before the path's first step.
 
 | Path | The situation | The route |
 | --- | --- | --- |
