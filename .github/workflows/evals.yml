@@ -1,0 +1,62 @@
+name: evals
+
+# Runs the skill evals against a no-plugin baseline. Every case is a real model
+# call, so this runs on the Changesets release pull request and on demand,
+# never on every pull request.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    name: skill evals
+    # A pull request from any branch other than the Changesets release branch
+    # skips the job. Manual dispatch always runs it.
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'changeset-release/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - name: check the model credential
+        id: credential
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::notice::Repository secret ANTHROPIC_API_KEY is not set; skipping the evals."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.credential.outputs.present == 'true'
+        uses: actions/checkout@v4
+      - if: steps.credential.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - if: steps.credential.outputs.present == 'true'
+        name: install Claude Code
+        run: npm install --global @anthropic-ai/claude-code
+      - if: steps.credential.outputs.present == 'true'
+        name: run the suite against the baseline
+        run: |
+          claude plugin eval . \
+            --trust-plugin \
+            --allow-tools Write Edit \
+            --json evals/results.json \
+            --threshold 0.8 \
+            --model claude-sonnet-5 \
+            --judge-model claude-haiku-4-5 \
+            --no-publish \
+            --max-cost-usd 20
+      - if: always() && steps.credential.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: |
+            evals/results.json
+            evals/results/
+          if-no-files-found: ignore
