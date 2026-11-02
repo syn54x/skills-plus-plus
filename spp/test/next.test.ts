@@ -422,6 +422,15 @@ describe("one rule for a landed blocker", () => {
       assert.equal(s.tickets.find((t) => t.number === 12)?.state, "blocked");
     });
   }
+
+  test("a blocker whose real merge into the integration branch sits beside a foreign merged pull request with a higher number has landed: dispatch its dependant", async () => {
+    const tickets: Spec[] = [
+      { n: 11, labels: [...READY, "claimed"], pr: { n: 111, state: "MERGED" }, extraPrs: [{ n: 999, state: "MERGED", repo: "mallory/fork" }] },
+      { n: 12, blockedBy: [11] },
+    ];
+    const actions = await next(tickets);
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["12"]]]);
+  });
 });
 
 describe("error paths", () => {
