@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // The spp command router: `spp <command> [args]` runs `run(args)` from <command>.ts (or .js) in the commands folder,
 // so a new command is one new file there. Its resolved number is the exit code; a thrown error exits 1.
-// `--help` or `-h` among the args prints the command's exported USAGE and exits 0 without running it.
+// `--help` or `-h` as the first argument after the command prints the command's exported USAGE and exits 0 without
+// running it; later in the args it is an ordinary value (a note's text, a reason).
 // The plugin and the repo have spp/src and run the .ts sources, so a leftover dist/ never shadows an edit; an npm install
 // never ships spp/src (Node will not strip types under node_modules) and runs the compiled dist/.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -26,7 +27,7 @@ if (command === "--version") {
 } else {
   try {
     const { run, USAGE } = await import(file.href);
-    if (args.includes("--help") || args.includes("-h")) process.stdout.write(USAGE);
+    if (args[0] === "--help" || args[0] === "-h") process.stdout.write(USAGE);
     else process.exitCode = await run(args);
   } catch (e) {
     process.stderr.write(`spp ${command}: ${e instanceof Error ? e.message : e}\n`);
