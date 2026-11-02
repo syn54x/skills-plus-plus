@@ -1,5 +1,6 @@
 {
-  "description": "spp gates and notes: a worker on an sdd/* branch cannot stop until spp verify has passed on HEAD, a worktree session cannot write into the main checkout, and pull request opens, Verify runs and stops are noted automatically.",
+  "description": "spp gates and notes: a worker on an sdd/* branch cannot stop until spp verify has passed on HEAD, a worktree session cannot write into the main checkout, and pull request opens, Verify runs and stops are noted automatically. The module draws the epic board.",
+  "modules": ["./board/register.tsx"],
   "hooks": {
     "Stop": [
       {
