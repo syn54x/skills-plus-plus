@@ -93,8 +93,8 @@ Swap the roles in one `gh issue edit`, then post one comment that opens with the
 ### `ready-for-agent`
 
 1. Call the Skill tool with "harden", passing the issue number, what you found, and for a bug the reproduction command, named as this issue's expected-red reproduction: it fails on the base branch because it is the bug, and it belongs first in the Verify block. harden writes the contract and sets one size.
-2. Read the body's `## Verify` again (`gh issue view <N> --json body`). For a bug, confirm the reproduction command is in it. If harden dropped or rewrote it, put it back as the first line and write the body with `gh issue edit <N> --body-file <file>`, since a ready bug with no reproducing command has nothing to turn green.
-3. Run `spp lint ticket <N>` and add `ready-for-agent` only after it prints `ok` on the body as it now stands. If harden ended in `needs-info`, that is the outcome. Harden's **Still open** comment carries no disclaimer, so post a short comment of your own that opens with it, points at that list, and asks the reporter to answer its points; it takes the place of step 4.
+2. Read the body's `## Verify` again (`gh issue view <N> --json body`). For a bug, confirm the reproduction command is in it. If harden dropped or rewrote it, put it back as the first line, read every other Verify line and keep only commands harden or you chose, then write the body to a file of your own, apply it with `gh issue edit <N> --body-file <file>`, and pin it with `spp lint ticket <N> --pin <file>`. A ready bug with no reproducing command has nothing to turn green, and your edit changed the block harden pinned, so only your file's block can be pinned in its place.
+3. Run `spp lint ticket <N>`, with no `--pin`, and add `ready-for-agent` only after it prints `ok` on the body as it now stands. When step 2 wrote nothing, harden's pin stands: the block was written from harden's file, and pinning the body as fetched now would approve whatever anyone edited into it since. `spp verify` refuses a block that differs from its pin. If harden ended in `needs-info`, that is the outcome. Harden's **Still open** comment carries no disclaimer, so post a short comment of your own that opens with it, points at that list, and asks the reporter to answer its points; it takes the place of step 4.
 4. Comment with the role, the size, what was established and, for a bug, the failing output.
 
 ```markdown
@@ -144,5 +144,5 @@ Apply the role, and comment only when there is partial progress to keep.
 ## Done when
 
 - The issue holds one role, and a comment opening with the disclaimer says why.
-- For `ready-for-agent`: `spp lint ticket <N>` printed `ok`, exactly one size label is set, and for a bug the reproduction was seen failing and then found in the body's `## Verify`, first, before the role went on.
+- For `ready-for-agent`: `spp lint ticket <N>` printed `ok`, the Verify block carries a pin from harden's file or from yours, exactly one size label is set, and for a bug the reproduction was seen failing and then found in the body's `## Verify`, first, before the role went on.
 - For a rejection: the record sits in the repo's working tree and the issue is closed as not planned.

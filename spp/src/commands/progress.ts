@@ -24,9 +24,12 @@ export const MARKER = "<!-- sdd-progress -->";
 const DEFAULT = { status: "in-progress", worker: "", branch: "", pr: null, verify: { state: "not-run", sha: "" }, route: null, reason: "", notes: "" };
 const STATUSES = ["in-progress", "pr-open", "verify-passed", "changes-requested", "handed-back"];
 
-// Five lines, the hand-back line, then notes capped at ten lines, so the body stays under 20 lines.
+// Five lines, the hand-back line, the Verify pin, then notes capped at ten lines, so the body stays under 20 lines.
+// A comment hardening created holds only the pin until a worker writes the rest.
 function render(data: Data): string {
-  const d = data as typeof DEFAULT & { pr: number | string | null; route: string | null };
+  const d = data as typeof DEFAULT & { pr: number | string | null; route: string | null; verifyPin?: string };
+  const pin = d.verifyPin ? [`**Verify pin:** \`${d.verifyPin.slice(0, 12)}\``] : [];
+  if (d.status === undefined) return pin.join("\n");
   return [
     `**Status:** ${d.status}`,
     `**Worker:** ${d.worker === "" ? "none" : d.worker}`,
@@ -34,6 +37,7 @@ function render(data: Data): string {
     `**PR:** ${d.pr === null ? "none" : typeof d.pr === "number" ? `#${d.pr}` : d.pr}`,
     `**Verify:** ${d.verify.state === "not-run" ? "not run" : `${d.verify.state} ${d.verify.sha}`}`,
     ...(d.status === "handed-back" ? [`**Handed back:** ${d.route}: ${d.reason.replace(/\n/g, " ")}`] : []),
+    ...pin,
     ...(d.notes !== "" ? ["", ...d.notes.split("\n").slice(0, 10)] : []),
   ].join("\n");
 }
@@ -45,6 +49,16 @@ function render(data: Data): string {
  */
 export function saveProgress(issue: string, patch: Data): Promise<string> {
   return updateMarker(issue, MARKER, render, (old) => ({ ...DEFAULT, ...old, ...patch }));
+}
+
+/**
+ * Pins the sha256 of the approved Verify block in the progress comment's trailer, keeping every other field, so
+ * `spp verify` can refuse a block edited since (ADR 0009); returns the comment's URL.
+ *
+ * @internal
+ */
+export function savePin(issue: string, verifyPin: string): Promise<string> {
+  return updateMarker(issue, MARKER, render, (old) => ({ ...old, verifyPin }));
 }
 
 /**

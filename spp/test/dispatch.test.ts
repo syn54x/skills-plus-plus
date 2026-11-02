@@ -6,7 +6,7 @@ import { describe, test } from "node:test";
 import { readTrailer } from "../src/markers.ts";
 import { runCase } from "./harness.ts";
 
-const JQ = ".[] | [.id, .body] | @json";
+const JQ = ".[] | [.id, .body, .user.login, .author_association] | @json";
 const ISSUE = "https://github.com/acme/app/issues/";
 const PLAN = `<!-- sdd-plan -->\n<!-- sdd-data: ${Buffer.from(JSON.stringify({ branch: "feat/epic" })).toString("base64")} -->`;
 
@@ -20,7 +20,7 @@ function scratch(args: string[], labels: string[] = ["ready-for-agent"]): string
     "issue view 12 --json number,title,url,body,parent": {
       stdout: { number: 12, title: "Invoice endpoint", url: ISSUE + 12, body: "## What to build\n\nAn endpoint.\n", parent: { url: ISSUE + 197 } },
     },
-    [`api repos/acme/app/issues/197/comments --paginate --jq ${JQ}`]: { stdout: JSON.stringify([1, PLAN]) + "\n" },
+    [`api repos/acme/app/issues/197/comments --paginate --jq ${JQ}`]: { stdout: JSON.stringify([1, PLAN, "maint", "OWNER"]) + "\n" },
     [`api repos/{owner}/{repo}/issues/12/comments --paginate --jq ${JQ}`]: { stdout: "" },
   };
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));

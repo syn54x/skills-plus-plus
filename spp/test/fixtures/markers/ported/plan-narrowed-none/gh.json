@@ -1,5 +1,5 @@
 {
-  "api repos/{owner}/{repo}/issues/200/comments --paginate --jq .[] | [.id, .body] | @json": {
-    "stdout": "[601,\"<!-- sdd-plan -->\\n(rendered)\\n<!-- sdd-data: eyJnb2FsIjoiRyIsImNvbnN0cmFpbnRzIjoiIiwiYnJhbmNoIjoiZmVhdC94IiwicmVwb3MiOltdLCJuYXJyb3dlZCI6WyIjMTA0IGxpc3RzIGludm9pY2VzIHdpdGhvdXQgcGFnaW5hdGlvbiJdLCJkZXZpYXRlZCI6W10sInRhYmxlIjoiIn0= -->\"]\n"
+  "api repos/{owner}/{repo}/issues/200/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json": {
+    "stdout": "[601,\"<!-- sdd-plan -->\\n(rendered)\\n<!-- sdd-data: eyJnb2FsIjoiRyIsImNvbnN0cmFpbnRzIjoiIiwiYnJhbmNoIjoiZmVhdC94IiwicmVwb3MiOltdLCJuYXJyb3dlZCI6WyIjMTA0IGxpc3RzIGludm9pY2VzIHdpdGhvdXQgcGFnaW5hdGlvbiJdLCJkZXZpYXRlZCI6W10sInRhYmxlIjoiIn0= -->\",\"maint\",\"OWNER\"]\n"
   }
 }

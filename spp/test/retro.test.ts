@@ -52,8 +52,8 @@ function build(s: Setup): string {
         },
       },
     },
-    "api repos/{owner}/{repo}/issues/197/comments --paginate --jq .[] | .body | @json": {
-      stdout: (s.epicComments ?? []).map((b) => JSON.stringify(b) + "\n").join(""),
+    "api repos/{owner}/{repo}/issues/197/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json": {
+      stdout: (s.epicComments ?? []).map((b, i) => JSON.stringify([i + 1, b, "maint", "OWNER"]) + "\n").join(""),
     },
   };
   for (const t of s.tickets) {

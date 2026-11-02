@@ -14,7 +14,10 @@ export type TicketBody = {
 
 /** One ticket-lint rule a body breaks. */
 export type Failure = {
-  /** `section-present`, `verify-fenced`, `files-owned-shape`, `scenario-shape`, `one-size` or `no-placeholder`. */
+  /**
+   * `section-present`, `verify-fenced`, `files-owned-shape`, `scenario-shape`, `one-size`, `no-placeholder`, or
+   * `pin-match` (only from `spp lint ticket --pin`).
+   */
   rule: string;
   /** What is wrong, in a sentence. */
   detail: string;

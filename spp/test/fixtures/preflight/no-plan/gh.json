@@ -10,7 +10,7 @@
       }
     }
   },
-  "api repos/{owner}/{repo}/issues/197/comments --paginate --jq .[] | [.id, .body] | @json": {
-    "stdout": "[12,\"unrelated\"]\n"
+  "api repos/{owner}/{repo}/issues/197/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json": {
+    "stdout": "[12,\"unrelated\",\"maint\",\"OWNER\"]\n"
   }
 }

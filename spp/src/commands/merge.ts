@@ -1,17 +1,20 @@
 /**
  * `spp merge <pr> [--json]` merges a slice pull request into its Epic's integration branch, only when its gate passed
  * on the current head, its blockers' pull requests have merged, its base is the integration branch and its checks
- * pass. It merges with the Routing block's merge method (squash by default) pinned to the head the gate passed, then
- * records the pull request on the wave comment. A conflict is never resolved here: the worker rebases. It prints
+ * pass. The gate's verdict counts only from a trusted author (the gh user, or an OWNER, MEMBER or COLLABORATOR), and
+ * `spp merge` re-reads the verdict comment to check that before it merges (ADR 0009). It merges with the Routing
+ * block's merge method (squash by default) pinned to the head the gate passed, then records the pull request on the
+ * wave comment. A conflict is never resolved here: the worker rebases. It prints
  * `merged <pr> into <branch>` or `not merged: <reason>`; with `--json` it prints {@link MergeResult}.
  *
  * @module
  */
 import { spawnSync } from "node:child_process";
-import { derive } from "../derive.ts";
+import { derive, gateOf } from "../derive.ts";
 import { GhError, runGh } from "../gh.ts";
+import { find, parseIssue, readTrailer } from "../markers.ts";
 import { readRouting } from "../routing.ts";
-import { CLOSING_KEYWORD, SNAPSHOT_QUERY, parseSnapshot } from "../snapshot.ts";
+import { CLOSING_KEYWORD, SNAPSHOT_QUERY, parseSnapshot, VERDICT_MARKER } from "../snapshot.ts";
 import { culprits, readChecks } from "./checks.ts";
 
 /** The usage text `spp merge --help` prints. */
@@ -67,6 +70,10 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   if (!ticket) return refuse(`${ref(ticketUrl)} is not a sub-issue of ${ref(parent.url)}`);
 
   if (ticket.state !== "gate-pass" || ticket.pr?.url !== view.url) return refuse(`gate not passed: ${ref(ticketUrl)} is ${ticket.state}`);
+  // The trust boundary (ADR 0009), checked again on the comment itself: only a verdict a trusted author wrote, passing
+  // on the head about to merge, lets the merge through.
+  const verdict = readTrailer((await find(parseIssue(view.url.replace("/pull/", "/issues/")), VERDICT_MARKER))?.body ?? "");
+  if (gateOf({ ...ticket.pr, verdict: verdict ?? undefined }) !== "gate-pass") return refuse(`no passing verdict from a trusted author on ${ref(view.url)}`);
   for (const b of ticket.blockedBy) {
     const pr = byUrl.get(b)?.pr;
     if (pr?.state !== "MERGED") return refuse(`blocked by ${ref(pr?.url ?? b)}`);

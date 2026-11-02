@@ -60,7 +60,7 @@ Read the six sections as the worker would, and remove every spot where they woul
 
 ## Write, lint, or route
 
-Write the body to a file unique to this issue, apply it with `gh issue edit <N> --body-file <file>`, and run `spp lint ticket <N>`. Each line of its output names a rule and the failure; fix, write, and run again until it prints `ok`.
+Write the body to a file unique to this issue, apply it with `gh issue edit <N> --body-file <file>`, and run `spp lint ticket <N> --pin <file>` with that same file. Each line of its output names a rule and the failure; fix, write, and run again until it prints `ok`. That last run also pins the Verify block you wrote: the hash of the file's block goes into the progress comment, and `spp verify` refuses to run a block that differs from it, because anyone who can edit the issue can rewrite the commands a worker will run. The pin comes from your file, never from the issue, so an edit someone makes after your write fails the lint with `pin-match` instead of being approved. So this run is always the last step, after the final edit to the body.
 
 Some gaps need a person: an output nobody has decided, a base-branch failure this issue cannot fix, an Interface the Epic leaves open, a placement no law settles. For those, `gh issue edit <N> --add-label needs-info --remove-label ready-for-agent`, then one comment titled **Still open** with a bullet per gap naming the section it holds up.
 
@@ -68,5 +68,5 @@ Some gaps need a person: an output nobody has decided, a base-branch failure thi
 
 You tell the caller the size and one of two outcomes:
 
-- `spp lint ticket <N>` printed `ok`, and all five code checks and the read for open questions found nothing.
+- `spp lint ticket <N> --pin <file>` printed `ok` on the body as it now stands, and all five code checks and the read for open questions found nothing.
 - The issue carries `needs-info` and one comment listing every gap that remains.

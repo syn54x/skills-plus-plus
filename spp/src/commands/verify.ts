@@ -6,7 +6,10 @@
  *
  * - `spp verify <issue>` runs the Sub-issue's Verify block from the repository root, one command per line (a trailing
  *   backslash continues a line), prints `pass:` or `fail:` per command with the commands' own output on stderr, and
- *   records the result as a note under `refs/notes/sdd-verify` on `HEAD`.
+ *   records the result as a note under `refs/notes/sdd-verify` on `HEAD`. It runs only a block that matches the pin
+ *   hardening wrote in the progress comment (`spp lint ticket <issue> --pin <body-file>`), since anyone who can edit
+ *   the issue can change the block after it was approved (ADR 0009), and only on a clean tree, so the note speaks for
+ *   `HEAD`.
  * - `spp verify --check` is the `Stop` and `SubagentStop` hook. On an `sdd/*` branch it blocks the stop when the tree
  *   is dirty or `HEAD` has no passing (or `blocked`) note, unless `HEAD` adds nothing to an integration branch or the
  *   default branch; on any other branch it passes unchecked.
@@ -14,9 +17,12 @@
  * @module
  */
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { runGh } from "../gh.ts";
+import { find, parseIssue, readTrailer } from "../markers.ts";
 import { isIssueRef, parseTicket } from "../ticket.ts";
+import { MARKER } from "./progress.ts";
 
 /** The usage text `spp verify --help` prints. */
 export const USAGE = `usage: spp verify <issue number | issue URL>
@@ -87,17 +93,30 @@ export function gitOut(...args: string[]): string | null {
   return r.status === 0 ? r.stdout.trim() : null;
 }
 
+/**
+ * The pin of a Verify block: the sha256 of the block as `parseTicket` reads it, in hex.
+ *
+ * @internal
+ */
+export const pinOf = (block: string) => createHash("sha256").update(block).digest("hex");
+
 // One command per line; a trailing backslash continues the line, and blank and comment lines are skipped.
 // shortcut: each line runs in its own shell, so a `cd` on its own line does not carry to the next; join them with && instead.
 const commands = (block: string) =>
   block.replace(/\\\n/g, " ").split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
 
 async function verify(ref: string): Promise<number> {
+  const root = gitOut("rev-parse", "--show-toplevel");
+  if (!root) throw new Error("not inside a git repository");
+  const refuse = (why: string) => (process.stderr.write(`spp verify: ${why}\n`), 1);
+  if (gitOut("status", "--porcelain")) return refuse(`uncommitted changes. Commit them, then run spp verify ${ref} on the committed tree.`);
   const { body } = JSON.parse(await runGh(["issue", "view", ref, "--json", "body"])) as { body: string | null };
   const block = parseTicket(body ?? "").verify;
   if (block === null) throw new Error(`${ref} has no Verify block`);
-  const root = gitOut("rev-parse", "--show-toplevel");
-  if (!root) throw new Error("not inside a git repository");
+  const pin = readTrailer((await find(parseIssue(ref), MARKER))?.body ?? "")?.verifyPin;
+  const reharden = `Re-harden it (harden ends with spp lint ticket ${ref} --pin <body-file>), then run spp verify again.`;
+  if (typeof pin !== "string") return refuse(`the Verify block of ${ref} is not pinned. ${reharden}`);
+  if (pin !== pinOf(block)) return refuse(`the Verify block of ${ref} changed since it was hardened, so it is not run. ${reharden}`);
   let failed = false;
   for (const cmd of commands(block)) {
     // The command's own output goes to stderr, so stdout carries only the pass and fail lines.
@@ -136,7 +155,8 @@ async function check(): Promise<number> {
  * Runs a Sub-issue's Verify block, or checks that `HEAD` carries a passing run.
  *
  * @param args - The Sub-issue (an issue number in the current repo or an issue URL), or `--check` alone.
- * @returns With an issue: 0 when every command passed, 1 when any failed (or the issue has no Verify block). With
+ * @returns With an issue: 0 when every command passed; 1 when any failed, the issue has no Verify block, the block
+ *   is unpinned or differs from its pin, or the tree is dirty (those last three run nothing and record nothing). With
  *   `--check`: 0 to let the session stop, 2 to block it, with the reason on stderr. 2 on a usage error, with the
  *   usage on stderr.
  * @example

@@ -47,18 +47,20 @@ export type Snapshot = {
 // shortcut: Marker comments are looked for in the Epic's first 100 comments and a Sub-issue's first 50; both are
 // written early (the plan, the claim), so raise these only if one is ever missed. The same holds for a pull request's
 // verdict comment in its first 30, written at its first review and rewritten in place after that.
+// `viewer` and each comment's author are there for the trust boundary (ADR 0009).
 export const SNAPSHOT_QUERY = `query Snapshot($owner: String!, $repo: String!, $number: Int!) {
+  viewer { login }
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       number url title repository { nameWithOwner }
-      comments(first: 100) { nodes { body } }
+      comments(first: 100) { nodes { ...comment } }
       subIssues(first: 100) {
         nodes {
           number url title state repository { nameWithOwner }
           labels(first: 50) { nodes { name } }
           assignees(first: 20) { nodes { login } }
           blockedBy(first: 50) { nodes { url state } }
-          comments(first: 50) { nodes { body } }
+          comments(first: 50) { nodes { ...comment } }
           closedByPullRequestsReferences(first: 20, includeClosedPrs: true) { nodes { ...pr } }
           timelineItems(last: 50, itemTypes: [CROSS_REFERENCED_EVENT]) {
             nodes { ... on CrossReferencedEvent { source { ... on PullRequest { ...pr body } } } }
@@ -68,9 +70,11 @@ export const SNAPSHOT_QUERY = `query Snapshot($owner: String!, $repo: String!, $
     }
   }
 }
-fragment pr on PullRequest { number url state headRefOid repository { nameWithOwner } comments(first: 30) { nodes { body } } }`;
+fragment pr on PullRequest { number url state headRefOid repository { nameWithOwner } comments(first: 30) { nodes { ...comment } } }
+fragment comment on IssueComment { body author { login } authorAssociation }`;
 
 type Nodes<T> = { nodes: T[] };
+type Comment = { body: string; author?: { login: string } | null; authorAssociation?: string };
 type RawPr = {
   number: number;
   url: string;
@@ -78,7 +82,7 @@ type RawPr = {
   headRefOid: string;
   repository: { nameWithOwner: string };
   body?: string;
-  comments?: Nodes<{ body: string }>;
+  comments?: Nodes<Comment>;
 };
 type RawIssue = {
   number: number;
@@ -91,10 +95,10 @@ type RawIssue = {
   blockedBy: Nodes<{ url: string; state: string }>;
   closedByPullRequestsReferences: Nodes<RawPr>;
   timelineItems: Nodes<{ source?: Partial<RawPr> }>;
-  comments?: Nodes<{ body: string }>;
+  comments?: Nodes<Comment>;
 };
 type Response = {
-  data?: { repository: { issue: (Omit<RawIssue, "state"> & { subIssues: Nodes<RawIssue> }) | null } | null };
+  data?: { viewer?: { login: string }; repository: { issue: (Omit<RawIssue, "state"> & { subIssues: Nodes<RawIssue> }) | null } | null };
   errors?: { message: string }[];
 };
 
@@ -115,9 +119,30 @@ export function readTrailer(body: string): Record<string, unknown> | null {
   }
 }
 
-// The trailer of the first comment that starts with the marker; null when there is none or it does not decode.
-function markerData(comments: Nodes<{ body: string }> | undefined, marker: string): Record<string, unknown> | null {
-  const c = comments?.nodes.find((n) => n.body.startsWith(marker));
+/** The comment authors GitHub marks as holding a role on the repository; spp trusts their Marker comments (ADR 0009). */
+export const TRUSTED_ASSOCIATIONS = ["OWNER", "MEMBER", "COLLABORATOR"];
+
+/**
+ * Whether spp may act on a Marker comment by this author: the gh user's own, or one GitHub marks OWNER, MEMBER or
+ * COLLABORATOR. Anyone who can comment can post a marker, so every other author's is skipped (ADR 0009).
+ */
+export function trustedAuthor(login: string | null | undefined, association: string | null | undefined, viewer: string | null | undefined): boolean {
+  return TRUSTED_ASSOCIATIONS.includes(association ?? "") || (!!login && login === viewer);
+}
+
+/**
+ * The first comment from a trusted author that starts with the marker; an untrusted one before it is skipped, so a
+ * forged comment can neither be read nor stand in the real writer's place.
+ *
+ * @internal
+ */
+export function trustedMarker<C extends Comment>(comments: C[] | undefined, marker: string, viewer: string | null | undefined): C | undefined {
+  return comments?.find((c) => c.body.startsWith(marker) && trustedAuthor(c.author?.login, c.authorAssociation, viewer));
+}
+
+// The trailer of the first trusted comment that starts with the marker; null when there is none or it does not decode.
+function markerData(comments: Nodes<Comment> | undefined, marker: string, viewer: string | null): Record<string, unknown> | null {
+  const c = trustedMarker(comments?.nodes, marker, viewer);
   return c ? readTrailer(c.body) : null;
 }
 
@@ -134,13 +159,13 @@ function closes(body: string, prRepo: string, issue: RawIssue): boolean {
   return new RegExp(pattern, "i").test(body);
 }
 
-function issue(raw: RawIssue): SnapshotIssue {
+function issue(raw: RawIssue, viewer: string | null): SnapshotIssue {
   const crossRefs = raw.timelineItems.nodes
     .map((e) => e.source)
     .filter((s): s is RawPr => !!s?.headRefOid && closes(s.body ?? "", s.repository!.nameWithOwner, raw));
   const prs = new Map<string, Pr>();
   for (const p of [...raw.closedByPullRequestsReferences.nodes, ...crossRefs]) {
-    const verdict = markerData(p.comments, VERDICT_MARKER);
+    const verdict = markerData(p.comments, VERDICT_MARKER, viewer);
     prs.set(p.url, { number: p.number, url: p.url, state: p.state, headSha: p.headRefOid, ...(verdict && { verdict }) });
   }
   return {
@@ -153,7 +178,7 @@ function issue(raw: RawIssue): SnapshotIssue {
     assignees: raw.assignees.nodes.map((a) => a.login),
     blockedBy: raw.blockedBy.nodes.map((b) => ({ url: b.url, open: b.state === "OPEN" })),
     prs: [...prs.values()],
-    progress: markerData(raw.comments, "<!-- sdd-progress -->"),
+    progress: markerData(raw.comments, "<!-- sdd-progress -->", viewer),
   };
 }
 
@@ -162,9 +187,10 @@ export function parseSnapshot(json: unknown): Snapshot {
   const epic = r?.data?.repository?.issue;
   if (epic === null) throw new Error("epic not found");
   if (!epic) throw new Error(r?.errors?.[0]?.message ?? "unexpected response from GitHub");
+  const viewer = r.data?.viewer?.login ?? null; // the gh user, read in the same query so this stays pure
   return {
     epic: { number: epic.number, url: epic.url, repo: epic.repository.nameWithOwner, title: epic.title },
-    issues: epic.subIssues.nodes.map(issue),
-    plan: markerData(epic.comments, "<!-- sdd-plan -->"),
+    issues: epic.subIssues.nodes.map((i) => issue(i, viewer)),
+    plan: markerData(epic.comments, "<!-- sdd-plan -->", viewer),
   };
 }

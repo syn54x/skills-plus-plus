@@ -1,5 +1,5 @@
 {
-  "api repos/{owner}/{repo}/issues/103/comments --paginate --jq .[] | [.id, .body] | @json": {
+  "api repos/{owner}/{repo}/issues/103/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json": {
     "stdout": ""
   }
 }

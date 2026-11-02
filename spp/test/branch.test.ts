@@ -7,7 +7,7 @@ import { describe, test } from "node:test";
 import { readTrailer } from "../src/markers.ts";
 import { runCase } from "./harness.ts";
 
-const JQ = ".[] | [.id, .body] | @json";
+const JQ = ".[] | [.id, .body, .user.login, .author_association] | @json";
 const BRANCH = "feat/rebuild-s-from-scratch-as-spp-2-0";
 const TITLE = "Rebuild S++ from scratch as spp 2.0!";
 const ENV = { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@x", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@x" };
@@ -16,7 +16,7 @@ type Write = { argv: string[] };
 
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, env: ENV, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 const trailer = (data: unknown) => `<!-- sdd-data: ${Buffer.from(JSON.stringify(data)).toString("base64")} -->`;
-const planComment = (branch: string) => JSON.stringify([601, `<!-- sdd-plan -->\n## Plan\n${trailer({ branch })}\n`]) + "\n";
+const planComment = (branch: string) => JSON.stringify([601, `<!-- sdd-plan -->\n## Plan\n${trailer({ branch })}\n`, "maint", "OWNER"]) + "\n";
 
 // A clone whose origin holds `main` and `next` (each with one commit), with the stub gh answers for Epic 197 in it.
 function scratch(plan: string): { clone: string; origin: string } {

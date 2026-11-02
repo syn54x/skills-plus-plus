@@ -5,10 +5,10 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 import { runCase } from "./harness.ts";
 
-const JQ = ".[] | [.id, .body] | @json";
+const JQ = ".[] | [.id, .body, .user.login, .author_association] | @json";
 const ROUTING = "# Project\n\n<!-- sdd-routing -->\n- Mode: org\n- Laws: CLAUDE.md, GLOSSARY.md, .agents/adr/\n<!-- /sdd-routing -->\n";
 const trailer = (data: unknown) => `<!-- sdd-data: ${Buffer.from(JSON.stringify(data)).toString("base64")} -->`;
-const plan = (data: unknown) => JSON.stringify([601, `<!-- sdd-plan -->\n## Plan\n${trailer(data)}\n`]) + "\n";
+const plan = (data: unknown) => JSON.stringify([601, `<!-- sdd-plan -->\n## Plan\n${trailer(data)}\n`, "maint", "OWNER"]) + "\n";
 
 // Markdown that a paraphrase or a template engine would mangle: a fence with shell syntax, a heading, a backslash, trailing spaces.
 const BODY = [
