@@ -53,4 +53,4 @@ Shallow modules found after merge come back as a trickle of refactoring pull req
 - Design talk uses "module", "interface" and "seam" where it used to say "component", "service" and "boundary".
 - Anyone proposing an extraction can say plainly whether it survives the paste-it-into-the-callers test.
 - A proposed seam comes with its second adapter named.
-- Depth findings on your pull requests point at the line declaring the interface, name a concrete failure, and are never Critical.
+- Findings in the depth category on your pull requests point at the line declaring the interface, name a concrete failure, and are never Critical.
