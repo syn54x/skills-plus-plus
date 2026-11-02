@@ -11,5 +11,6 @@
     "tickets": 4,
     "sizeL": true,
     "lines": 1000
-  }
+  },
+  "upstreamFeedback": "off"
 }

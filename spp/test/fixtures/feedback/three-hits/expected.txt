@@ -1,0 +1,3 @@
+rule 1 URLs, line 4: **Observed:** see https://example.com/x
+rule 6 Error text, line 5: Traceback (most recent call last)
+rule 5 Titles, line 6: **Note:** wrote the outbound check to close out

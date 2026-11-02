@@ -29,7 +29,7 @@ Build the body from this template and nothing else. Each field is a number, a va
 <!-- spp-feedback/1 -->
 **Skill:** harden step 3
 **Category:** verify-unrunnable
-**Observed:** 2 of 7 Sub-issues needed their Verify block rewritten; it caused 1 fix round.
+**Observed:** 2 of 7 Sub-issues needed their Verify block rewritten, which caused 1 fix round.
 **Retro counts:** Sub-issues 7 · fix rounds 3 · by cause: told 4, not told 1, untagged 0 · hand-backs 1 · panel 2 rounds, 5 findings · ponytail did not run
 **Harness:** <harness name and version> · gh <version>
 **Proposed change:** add a check
@@ -65,14 +65,30 @@ Build the body from this template and nothing else. Each field is a number, a va
 
 ## The outbound check
 
-Before filing or drafting, read the finished body against each rule. One hit stops that issue; fix the body by rebuilding it from the template, never by deleting the offending words.
+Before filing or drafting, run `spp feedback check` on the finished body. It reads the `Upstream feedback:` profile from the Routing block and applies the six rules below, so a program stops a leak and not only your reading of the rules.
 
-1. **URLs.** None, except under `attributed`, where an issue or pull request URL inside the person's own repo passes.
-2. **Names.** No owner, org or repo name, and no `owner/repo` string, from this Epic or its Sub-issues. Under `attributed`, the person's own `owner/repo` and the bare repo name pass; the bare owner name still does not.
-3. **Paths.** No token naming a file or directory that `git ls-files` lists.
+```bash
+spp feedback check "$BODY_FILE" --title-file "$TITLE_FILE"
+```
+
+`$TITLE_FILE` holds one line per title of this Epic's Sub-issues and their pull requests, plus one `owner/repo` line for each repo the Epic, its Sub-issues or its pull requests live in. The check takes the current repo's name from `gh repo view` and the tracked paths from `git ls-files`, so run it from the repo's checkout.
+
+| Exit | Meaning |
+| --- | --- |
+| 0 | Clean, with no output: the body may be shown for approval or drafted. |
+| 2 | Blocked: one line per hit, naming the rule number, the rule name and the body's line number. |
+| 1 | The profile is `off` (or unset or unrecognised) and nothing may be filed, or the command was used wrongly. |
+
+One hit stops that issue. Fix the body by rebuilding it from the template, never by deleting the offending words, and run the check again; it never rewrites the body itself. The rules:
+
+1. **URLs.** None, except under `attributed`, where an issue or pull request URL inside the person's own repo passes. A URL counts with or without its scheme: `www.` hosts and `domain.tld/path` are URLs too.
+2. **Names.** No owner, org or repo name, and no `owner/repo` string, from this Epic or its Sub-issues. Under `attributed`, the person's own `owner/repo` and the bare repo name pass; the bare owner name still does not. Short names count, matched as whole words in any case.
+3. **Paths.** No token naming a file or directory that `git ls-files` lists, wherever it sits in the token (`path#L10`, `path@main`, `file=path`, `a/path`, an absolute path ending in it), nor a tracked file's basename that has an extension (`invoice.ts`), nor a nested directory's last segment written with a slash (`billing/`, `/billing`). Any home path (`/home/<user>/`, `/Users/<user>/`, `~/`) is out as well.
 4. **Code.** No fenced block and no line that reads as code (`;`, `{`, `=>`, `import `, `def `, `func `).
 5. **Titles.** No run of four or more words copied from a Sub-issue or pull request title.
-6. **Error text.** No commit message, stack trace, or line containing `Error`, `Traceback` or `exit code`.
+6. **Error text.** No commit message (a conventional-commit subject line), stack trace (JavaScript, Java, Python, Go, Rust, or any `file:line` frame), or line containing `error`, `fatal:`, `exception`, `traceback`, `panic` or `exit code`, in any case.
+
+The check errs toward blocking. A hit on an innocent line is cheaper than a leak, so rebuild the body from the template and run it again.
 
 ## Filing
 
@@ -101,4 +117,4 @@ When nobody can approve, the drafts all share a single comment on the Epic, and 
 spp upsert "$EPIC" '<!-- sdd-feedback-draft -->' "$DRAFT_BODIES"
 ```
 
-The drafts belong to the person, and nothing else reads them. To file one, they copy its body into a file, read it, run the outbound check, and use the filing command under the draft's title. Re-running `/close-epic` does not file them, because the summary comment now exists and the gate stops it. When none are left to file or drop, they delete the comment.
+The drafts belong to the person, and nothing else reads them. To file one, they copy its body into a file, read it, run `spp feedback check` on it, and use the filing command under the draft's title. Re-running `/close-epic` does not file them, because the summary comment now exists and the gate stops it. When none are left to file or drop, they delete the comment.

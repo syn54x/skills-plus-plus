@@ -41,6 +41,7 @@ describe("the Routing block template", () => {
       sizes: "`size:S/M/L` labels",
       laws: ["CLAUDE.md", "GLOSSARY.md", "docs/adr/"],
       panel: { tickets: 4, sizeL: true, lines: 1000 },
+      upstreamFeedback: "off",
     });
   });
 
@@ -64,7 +65,7 @@ describe("a block that already holds a Merge line", () => {
 
   test("every field parseRouting reads has a line in the template", () => {
     const source = readFileSync(join(here, "../../spp/src/routing.ts"), "utf8");
-    const fields = [...source.matchAll(/field\("(\w+)"\)/g)].map((m) => m[1]);
+    const fields = [...source.matchAll(/field\("([\w ]+)"\)/g)].map((m) => m[1]);
     assert.deepEqual(fields.filter((f) => !new RegExp(`^- ${f}:`, "m").test(template)), []);
   });
 });
