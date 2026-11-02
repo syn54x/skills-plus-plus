@@ -1,0 +1,5 @@
+interface:
+  display_name: "Review Panel"
+  short_description: "Run the review panel on an Epic's pull request"
+policy:
+  allow_implicit_invocation: false
