@@ -1,0 +1,7 @@
+{
+  "issue view 5 --json title": {
+    "stdout": {
+      "title": "Five"
+    }
+  }
+}

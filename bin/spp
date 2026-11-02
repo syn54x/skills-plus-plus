@@ -1,6 +1,30 @@
 #!/usr/bin/env node
-// Placeholder: prints the version until #200 replaces this file with the command router.
-import { readFileSync } from "node:fs";
+// The spp command router: `spp <command> [args]` runs `run(args)` from spp/src/commands/<command>.ts,
+// so a new command is one new file there. Its resolved number is the exit code; a thrown error exits 1.
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 
-const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-console.log(`spp ${version}`);
+const commands = new URL("../spp/src/commands/", import.meta.url);
+const [command, ...args] = process.argv.slice(2);
+const usage = () =>
+  "usage: spp <command> [args]\ncommands: " +
+  readdirSync(commands).filter((f) => f.endsWith(".ts")).map((f) => f.slice(0, -3)).sort().join(", ") +
+  "\n";
+const file = command && /^[a-z][a-z-]*$/.test(command) ? new URL(`${command}.ts`, commands) : null;
+
+if (command === "--version") {
+  const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  console.log(`spp ${version}`);
+} else if (command === "--help" || command === "-h") {
+  process.stdout.write(usage());
+} else if (!file || !existsSync(file)) {
+  process.stderr.write(usage());
+  process.exitCode = 2;
+} else {
+  try {
+    const { run } = await import(file.href);
+    process.exitCode = await run(args);
+  } catch (e) {
+    process.stderr.write(`spp ${command}: ${e instanceof Error ? e.message : e}\n`);
+    process.exitCode = 1;
+  }
+}
