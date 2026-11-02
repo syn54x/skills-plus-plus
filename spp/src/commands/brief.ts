@@ -1,5 +1,11 @@
-// spp brief <N | issue URL> [--out FILE]: renders the worker brief for one ticket to a file and prints the path.
-// The ticket body goes in verbatim; the rest is mechanics the worker cannot get anywhere else.
+/**
+ * `spp brief <issue> [--out FILE]` writes the worker brief for one Sub-issue and prints the file's path. The brief
+ * holds the ticket body verbatim, the Laws sources from the Routing block, the branch mechanics (cut from the Epic's
+ * integration branch, or from the default branch for a One-off) and the report format. Without `--out` the file goes
+ * in a new temporary directory. It has no `--json`.
+ *
+ * @module
+ */
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,7 +14,8 @@ import { find, flagPairs, guarded, parseIssue, readTrailer, UsageError } from ".
 import { readRouting } from "../routing.ts";
 import { slug } from "./branch.ts";
 
-const USAGE = `usage: spp brief <issue number | issue URL> [--out FILE]
+/** The usage text `spp brief --help` prints. */
+export const USAGE = `usage: spp brief <issue number | issue URL> [--out FILE]
 Writes the worker brief for the ticket (its body verbatim, the Laws sources, the branch mechanics, the report format)
 and prints the file's path. Without --out the file is a new one in the temp directory.
 `;
@@ -65,6 +72,18 @@ Reply in 200 words or fewer: status (DONE, DONE_WITH_CONCERNS, BLOCKED or NEEDS_
 `;
 }
 
+/**
+ * Writes the worker brief and prints its path.
+ *
+ * @param args - The Sub-issue (an issue number in the current repo or an issue URL), then `--out FILE` to choose
+ *   the file.
+ * @returns 0 when the brief is written; 2 on a usage error, with the usage on stderr; 1 with the reason on stderr
+ *   when there is no Routing block, the Epic's plan comment names no integration branch, or `gh` fails.
+ * @example
+ * ```bash
+ * spp brief 265 --out /tmp/brief-265.md
+ * ```
+ */
 export function run(args: string[]): Promise<number> {
   return guarded(() => "brief", USAGE, async () => {
     const [arg, ...rest] = args;

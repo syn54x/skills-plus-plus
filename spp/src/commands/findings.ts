@@ -1,10 +1,30 @@
-// spp findings merge <file...> [--json] [--verdict <round> ...]: reads each Persona's findings JSON and prints the
-// one deduplicated list, and with --verdict the panel's verdict over it.
+/**
+ * `spp findings merge <file...> [--json] [--verdict <round> ...]` merges the review panel's Persona findings. Each
+ * file is one {@link PersonaFindings}. Findings under 80 confidence are dropped, and findings on the same file,
+ * less than 5 lines apart and with the same normalised title become one that keeps the highest severity and every Persona.
+ * `--verdict` adds the panel's verdict over the merged list, as a last `Verdict:` line or, with `--json`, a `verdict`
+ * key; from round 3 a FIX FIRST is written HUMAN DECISION. With `--json` it prints {@link PanelFindings}.
+ *
+ * @module
+ */
 import { readFileSync } from "node:fs";
-import { mergeFindings, panelVerdict, parsePersonaFindings, type MergeResult, type Readings } from "../findings.ts";
+import { mergeFindings, panelVerdict, parsePersonaFindings, type MergeResult, type Merged, type PanelVerdict, type Readings } from "../findings.ts";
 import { guarded, UsageError } from "../markers.ts";
 
-const USAGE = `usage: spp findings merge <file...> [--json]
+export type { Finding, Merged, PanelVerdict, PersonaFindings, Severity } from "../findings.ts";
+
+/** The panel's findings after the merge: the `--json` shape of `spp findings merge`. */
+export type PanelFindings = {
+  /** The merged findings, most severe first, then by file and line; the ids follow this order. */
+  findings: Merged[];
+  /** How many merged findings carry each severity, and how many name each Persona. */
+  counts: { severity: Record<string, number>; persona: Record<string, number> };
+  /** The panel's verdict, present only with `--verdict`. */
+  verdict?: PanelVerdict;
+};
+
+/** The usage text `spp findings --help` prints. */
+export const USAGE = `usage: spp findings merge <file...> [--json]
          [--verdict <round> --spec pass|fail --coherence pass|fail --verify pass|fail
           --checks pass|fail|pending|none [--missing name,name]]
 Each file is { "persona": NAME, "findings": [{ file, line, title, severity, confidence, law?, body }] }.
@@ -65,6 +85,20 @@ function render(r: MergeResult): string {
   );
 }
 
+/**
+ * Merges Persona findings files and, with `--verdict`, gives the panel's verdict.
+ *
+ * @param args - `merge`, one or more findings files, `--json` for the {@link PanelFindings} shape, and for a verdict
+ *   `--verdict <round>` with `--spec pass|fail`, `--coherence pass|fail`, `--verify pass|fail`,
+ *   `--checks pass|fail|pending|none` and optionally `--missing name,name` (Personas that never reported).
+ * @returns 0 when it printed the merged list; 2 on a usage error, with the usage on stderr; 1 when a file cannot be
+ *   read or does not hold Persona findings, with the reason on stderr.
+ * @example
+ * ```bash
+ * spp findings merge correctness.json security.json --json
+ * spp findings merge *.json --verdict 1 --spec pass --coherence pass --verify pass --checks pass
+ * ```
+ */
 export function run(args: string[]): Promise<number> {
   return guarded(() => "findings merge", USAGE, async () => {
     const [sub, ...rest] = args;
@@ -88,7 +122,8 @@ export function run(args: string[]): Promise<number> {
     if (stray) throw new UsageError(`${stray} goes with --verdict`);
     const result = mergeFindings(files.map(load));
     const verdict = r && panelVerdict(result, r);
-    if (json) process.stdout.write(JSON.stringify({ findings: result.findings, counts: result.counts, ...(verdict && { verdict }) }, null, 2) + "\n");
+    const out: PanelFindings = { findings: result.findings, counts: result.counts, ...(verdict && { verdict }) };
+    if (json) process.stdout.write(JSON.stringify(out, null, 2) + "\n");
     else process.stdout.write(render(result) + (verdict ? `Verdict: ${verdict}\n` : ""));
   });
 }

@@ -3,15 +3,23 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+/** The upstream feedback profile, which sets what a skill-feedback issue may say; under `off` nothing may be filed. */
 export type UpstreamFeedback = "off" | "counts" | "detailed" | "attributed";
 
+/** A repo's Routing block, parsed: the `--json` shape of `spp preflight`. */
 export type Routing = {
+  /** The `Mode:` line. */
   mode: "org" | "labels-only";
+  /** The `Sizes:` line, as written. */
   sizes: string;
+  /** The documents on the `Laws:` line. */
   laws: string[];
+  /** When the main gate runs the review panel: at `tickets` Sub-issues or more, on any size L ticket when `sizeL`, or at `lines` changed lines or more. */
   panel: { tickets: number; sizeL: boolean; lines: number };
-  upstreamFeedback: UpstreamFeedback; // how much a skill-feedback issue may say; a missing or unknown value is off
-  merge?: "squash" | "merge" | "rebase"; // how spp merge merges a slice; absent means squash
+  /** How much a skill-feedback issue may say; a missing or unknown value is off. */
+  upstreamFeedback: UpstreamFeedback;
+  /** How `spp merge` merges a slice; absent means squash. */
+  merge?: "squash" | "merge" | "rebase";
 };
 
 const MERGE_METHODS = ["squash", "merge", "rebase"];

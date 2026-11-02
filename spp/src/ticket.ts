@@ -12,7 +12,13 @@ export type TicketBody = {
   verify: string | null; // the first fenced block of the Verify section, or null
 };
 
-export type Failure = { rule: string; detail: string };
+/** One ticket-lint rule a body breaks. */
+export type Failure = {
+  /** `section-present`, `verify-fenced`, `files-owned-shape`, `scenario-shape`, `one-size` or `no-placeholder`. */
+  rule: string;
+  /** What is wrong, in a sentence. */
+  detail: string;
+};
 
 const FENCE = /^\s*(`{3,}|~{3,})/;
 

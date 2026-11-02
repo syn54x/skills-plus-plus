@@ -1,12 +1,53 @@
 // The deterministic half of the panel report: Persona findings in, one deduplicated list out. Pure: no network,
 // filesystem or environment, so the same findings always give the same list and the same ids.
 
-export const SEVERITIES = ["critical", "important", "minor"] as const;
-export type Severity = (typeof SEVERITIES)[number];
+/** How much a finding matters. */
+export type Severity = "critical" | "important" | "minor";
+export const SEVERITIES = ["critical", "important", "minor"] as const satisfies readonly Severity[];
 
-export type Finding = { file: string; line: number; title: string; severity: Severity; confidence: number; law?: string; body: string };
-export type PersonaFindings = { persona: string; findings: Finding[] };
-export type Merged = { id: string; file: string; line: number; title: string; severity: Severity; personas: string[]; law?: string; body: string };
+/** One finding as a Persona reports it. */
+export type Finding = {
+  /** The file it is about. */
+  file: string;
+  /** The line in that file. */
+  line: number;
+  /** A one-line title. */
+  title: string;
+  /** How much it matters. */
+  severity: Severity;
+  /** 0 to 100; under 80 the finding is dropped. */
+  confidence: number;
+  /** The Law tag it cites, if any. */
+  law?: string;
+  /** The finding's text. */
+  body: string;
+};
+/** One Persona's findings file, the input of `spp findings merge`. */
+export type PersonaFindings = {
+  /** The Persona's name. */
+  persona: string;
+  /** Everything it found. */
+  findings: Finding[];
+};
+/** A finding after the merge, standing for every Persona finding it absorbed. */
+export type Merged = {
+  /** `F1`, `F2` and so on, in the merged list's order: most severe first, then by file and line. */
+  id: string;
+  /** The file it is about. */
+  file: string;
+  /** The line in that file. */
+  line: number;
+  /** A one-line title. */
+  title: string;
+  /** The highest severity among the findings merged into it. */
+  severity: Severity;
+  /** Every Persona that reported it. */
+  personas: string[];
+  /** The Law tag it cites, if any. */
+  law?: string;
+  /** The finding's text. */
+  body: string;
+};
 export type MergeResult = {
   findings: Merged[];
   counts: { severity: Record<string, number>; persona: Record<string, number> };
@@ -44,6 +85,11 @@ export function parsePersonaFindings(json: unknown, where: string): PersonaFindi
   return { persona: o.persona as string, findings };
 }
 
+/**
+ * The panel's verdict: FIX FIRST when a reading failed, a Persona never reported or a critical finding that is not
+ * ticket-mandated stands (HUMAN DECISION from round 3 on); else HUMAN DECISION when an important finding stands, the checks are pending or a
+ * finding is ticket-mandated; else MERGE.
+ */
 export type PanelVerdict = "MERGE" | "FIX FIRST" | "HUMAN DECISION";
 export type Reading = "pass" | "fail";
 // What the panel read besides the findings: the review skill's Spec and Coherence verdicts, Verify on the head, the

@@ -1,35 +1,45 @@
-// spp retro <epic> [--json]: the Epic's retro numbers, collected from GitHub alone.
-//
-// Where each number comes from:
-//   byCause, byTicket, rounds  the gate's verdicts on the Sub-issues' pull requests (reviews and comments). A body
-//                              with a `## Spec: FAIL` or `## Quality: FAIL` heading is one fix round, and each of
-//                              its finding lines (`- <severity> · [<source>#<id>] · <file:line at sha> · ...`) counts
-//                              once under its whole Law tag, `none` when it carries no tag.
-//   handBacks                  `labeled` events for needs-info, ready-for-human and blocked on the Sub-issues.
-//   panel                      the rounds the wave comment's data trailer records (`spp wave <epic> panel`).
-//   ponytail                   a pull request comment that starts `## Ponytail` and lists the findings ponytail
-//                              raised that stood after verification, one `- <severity> · <file:line> · <title>` per
-//                              line. A hit is such a line; it overlaps the gate when a verdict finding on the same
-//                              pull request names the same file within WINDOW lines, and is unique otherwise.
-// A pull request is a Sub-issue's when GitHub links it or the wave trailer records it. An input that cannot be read
-// is "not found", named on stderr, and never counted as 0.
+/**
+ * `spp retro <epic> [--json]` collects the Epic's retro numbers from GitHub alone: findings by Law tag and by
+ * Sub-issue from the gate's verdicts, fix rounds, Hand-backs, the panel's rounds, and ponytail's hits. A pull request
+ * is a Sub-issue's when GitHub links it or the wave comment's trailer records it. An input it cannot read is named on
+ * stderr as `not found` and never counted as 0. With `--json` it prints {@link Retro}; the field docs there say where
+ * each number comes from.
+ *
+ * @module
+ */
 import { WINDOW } from "../findings.ts";
 import { GhError, runGh } from "../gh.ts";
 import { guarded, parseIssue, readTrailer, UsageError } from "../markers.ts";
 import { parseSnapshot, SNAPSHOT_QUERY, type Snapshot } from "../snapshot.ts";
 
-const USAGE = `usage: spp retro <epic number | issue URL> [--json]
+/** The usage text `spp retro --help` prints. */
+export const USAGE = `usage: spp retro <epic number | issue URL> [--json]
 Prints the Epic's retro numbers from GitHub: findings by Law tag and by ticket, fix rounds, hand-backs,
 the panel's rounds and findings, and ponytail's hits, unique hits and overlap. A number whose input is missing
 reads "not found" (and, for the others, is named on stderr), never 0.
 `;
 
-type Retro = {
+/** The Epic's retro numbers: the `--json` shape of `spp retro`. */
+export type Retro = {
+  /**
+   * Findings in failing verdicts by Law tag, `none` for an untagged one. A verdict is a review or comment on a
+   * Sub-issue's pull request with a `## Spec: FAIL` or `## Quality: FAIL` heading, and each of its finding lines
+   * (`- <severity> · [<source>#<id>] · <file:line at sha> · ...`) counts once under its whole tag.
+   */
   byCause: Record<string, number>;
+  /** The same findings by Sub-issue, `#N` or `owner/repo#N`. */
   byTicket: Record<string, number>;
+  /** Failing verdicts across the Epic, one per fix round. */
   rounds: number;
+  /** `labeled` events for `needs-info`, `ready-for-human` and `blocked` on the Sub-issues. */
   handBacks: number;
+  /** The panel rounds the wave comment's trailer records (`spp wave <epic> panel`) and their findings. */
   panel: { rounds: number; findings: number } | "not found";
+  /**
+   * Ponytail's findings that stood after verification, from pull request comments that start `## Ponytail` with one
+   * `- <severity> · <file:line> · <title>` line per hit. A hit overlaps the gate when a verdict finding on the same
+   * pull request names the same file less than 5 lines away, and is unique otherwise.
+   */
   ponytail: { hits: number; unique: number; overlap: number } | "not found";
 };
 
@@ -172,6 +182,18 @@ function render(epic: Snapshot["epic"], r: Retro): string {
   );
 }
 
+/**
+ * Prints the Epic's retro numbers.
+ *
+ * @param args - The Epic (an issue number in the current repo or an issue URL), and `--json` for the {@link Retro}
+ *   shape.
+ * @returns 0 when it printed the numbers, inputs it could not read included (they read `not found`); 2 on a usage
+ *   error, with the usage on stderr. A `gh` error on the Epic itself exits 1 with the reason on stderr.
+ * @example
+ * ```bash
+ * spp retro 197 --json
+ * ```
+ */
 export function run(args: string[]): Promise<number> {
   return guarded(() => "retro", USAGE, async () => {
     const rest = args.filter((a) => a !== "--json");

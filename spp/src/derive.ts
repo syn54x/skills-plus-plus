@@ -1,30 +1,57 @@
 // derive: the EpicState computed from a Snapshot. Pure: no network, filesystem or environment.
 import type { Pr, Snapshot, SnapshotIssue } from "./snapshot.ts";
 
+/**
+ * Where a Sub-issue stands, the first that fits: `merged` (the issue is closed), `handed-back` (unheld, with a route
+ * label), `pr-open`, `gate-pass` or `gate-fail` (an open pull request, by the slice gate's verdict on its current
+ * head), `claimed` (held by the Claim mark or an assignee), `blocked` (an open blocker), `not-agent` (no
+ * `ready-for-agent` label), else `ready`.
+ */
 export type TicketState = "blocked" | "ready" | "claimed" | "pr-open" | "gate-pass" | "gate-fail" | "merged" | "handed-back" | "not-agent";
 
+/** One Sub-issue of the Epic. */
 export type Ticket = {
+  /** The issue number. */
   number: number;
+  /** The issue URL, which names the ticket everywhere else in the state. */
   url: string;
+  /** The issue's repository, `owner/repo`. */
   repo: string;
+  /** The issue title. */
   title: string;
+  /** The size its `size:` label gives, or null without one. */
   size: "S" | "M" | "L" | null;
+  /** Where the ticket stands. */
   state: TicketState;
+  /** The Layer: one above its highest open blocker inside the Epic, 0 with none; null when caught in a cycle. */
   layer: number | null;
-  blockedBy: string[]; // URLs of open blockers
-  claimed: boolean; // the Claim mark (the `claimed` label); an assignee also holds a ticket
+  /** URLs of open blockers. */
+  blockedBy: string[];
+  /** Whether it carries the Claim mark (the `claimed` label); an assignee also holds a ticket. */
+  claimed: boolean;
+  /** Assignee logins. */
   assignees: string[];
+  /** Label names. */
   labels: string[];
+  /** The pull request it shows (an open one first, then a merged one, newest first), or null. */
   pr: Pr | null;
+  /** The progress comment's Worker line, or null. */
   worker: string | null;
+  /** The latest local note (`spp note`) with its ISO time, or null. */
   note: { text: string; at: string } | null;
 };
 
+/** An Epic and its Sub-issues as one snapshot derives them: the `--json` shape of `spp status`. */
 export type EpicState = {
+  /** The Epic; `branch` is the integration branch its plan comment records, or null. */
   epic: { number: number; url: string; repo: string; title: string; branch: string | null };
+  /** Every Sub-issue. */
   tickets: Ticket[];
+  /** Issue URLs by Layer, Layer 0 first. */
   layers: string[][];
+  /** Issue URLs caught in a blocking cycle. */
   cycle: string[];
+  /** How many tickets are in each state. */
   counts: Record<TicketState, number>;
 };
 

@@ -1,12 +1,26 @@
-// spp preflight <epic> [--json]: the Epic's preconditions before a build. Prints one ok line per check and stops
-// at the first failure with the fix (exit 1). With --json a pass prints the parsed Routing block instead.
+/**
+ * `spp preflight <epic> [--json]` checks the Epic's preconditions before a build, in order: `gh` 2.94 or later, the
+ * Epic open, at least one Sub-issue, a plan comment, and a Routing block in `CLAUDE.md` or `AGENTS.md`. It prints
+ * `ok: <check>` per passing check; at the first failure it prints `fail:` and `fix:` lines on stderr. With `--json`
+ * a pass prints the parsed {@link Routing} block instead of the `ok:` lines.
+ *
+ * @module
+ */
 import { runGh } from "../gh.ts";
 import { find, guarded, type Issue, parseIssue, UsageError } from "../markers.ts";
 import { readRouting, type Routing } from "../routing.ts";
 
-const USAGE = "usage: spp preflight <epic number | issue URL> [--json]\n";
+export type { Routing, UpstreamFeedback } from "../routing.ts";
+
+/** The usage text `spp preflight --help` prints. */
+export const USAGE = "usage: spp preflight <epic number | issue URL> [--json]\n";
 const MIN_GH = [2, 94];
 
+/**
+ * A failed precondition, with its fix.
+ *
+ * @internal
+ */
 export class Failure extends Error {
   fix: string;
   constructor(message: string, fix: string) {
@@ -15,7 +29,11 @@ export class Failure extends Error {
   }
 }
 
-// The checks in order, each passed one pushed onto `ok`; throws a Failure at the first that fails.
+/**
+ * The checks in order, each passed one pushed onto `ok`; throws a Failure at the first that fails.
+ *
+ * @internal
+ */
 export async function preflight(epic: Issue, ok: string[] = []): Promise<{ file: string; routing: Routing }> {
   const gh = /gh version ((\d+)\.(\d+)\.\S*)/.exec(await runGh(["--version"]));
   const [major, minor] = (gh?.slice(2) ?? []).map(Number);
@@ -39,6 +57,18 @@ export async function preflight(epic: Issue, ok: string[] = []): Promise<{ file:
   return found;
 }
 
+/**
+ * Checks the Epic's preconditions.
+ *
+ * @param args - The Epic (an issue number in the current repo or an issue URL), and `--json` for the
+ *   {@link Routing} shape.
+ * @returns 0 when every check passes; 1 at the first that fails, with `fail:` and `fix:` on stderr, and on a `gh`
+ *   error; 2 on a usage error, with the usage on stderr.
+ * @example
+ * ```bash
+ * spp preflight 197 --json
+ * ```
+ */
 export function run(args: string[]): Promise<number> {
   return guarded(() => "preflight", USAGE, async () => {
     const rest = args.filter((a) => a !== "--json");

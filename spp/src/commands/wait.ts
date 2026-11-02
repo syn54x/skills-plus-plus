@@ -1,6 +1,11 @@
-// spp wait <epic> [--interval 30]: polls the Epic's state and the claude session list every interval seconds and
-// exits 0, printing what changed, when a ticket's state changes or one of its workers stops working.
-// Run in the background, its exit wakes the orchestrator.
+/**
+ * `spp wait <epic> [--interval SECONDS]` polls the Epic's state and the `claude` session list every interval
+ * (default 30 seconds) and exits when something changes, with one line per change: a ticket's state
+ * (`#12 claimed -> pr-open`) or one of its workers that stopped working (`t-12 done`). Run it in the background so its
+ * exit wakes the orchestrator. It has no `--json`.
+ *
+ * @module
+ */
 import { setTimeout as sleep } from "node:timers/promises";
 import type { EpicState } from "../derive.ts";
 import { flagPairs, guarded, parseIssue, UsageError } from "../markers.ts";
@@ -8,7 +13,8 @@ import type { Session } from "../plan-next.ts";
 import { readSessions } from "./next.ts";
 import { fetchState } from "./status.ts";
 
-const USAGE = `usage: spp wait <epic number | issue URL> [--interval SECONDS]
+/** The usage text `spp wait --help` prints. */
+export const USAGE = `usage: spp wait <epic number | issue URL> [--interval SECONDS]
 Exits 0 with one line per change: a ticket's state ("#12 claimed -> pr-open") or a worker that stopped working
 ("t-12 done"). The interval defaults to 30 seconds.
 `;
@@ -34,6 +40,17 @@ function changes(before: Poll, now: Poll): string[] {
   return [...tickets, ...workers];
 }
 
+/**
+ * Waits until the Epic or one of its workers changes.
+ *
+ * @param args - The Epic (an issue number in the current repo or an issue URL), then `--interval SECONDS`.
+ * @returns 0 once something changed; 2 on a usage error, with the usage on stderr; 1 when `gh` fails, with the
+ *   reason on stderr.
+ * @example
+ * ```bash
+ * spp wait 197 --interval 60
+ * ```
+ */
 export function run(args: string[]): Promise<number> {
   return guarded(() => "wait", USAGE, async () => {
     const [arg, ...rest] = args;

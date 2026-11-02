@@ -1,6 +1,12 @@
-// spp merge <pr> [--json]: merges a gate-pass slice pull request into its Epic's integration branch, only when its
-// blockers' pull requests are merged and its checks pass, then records it on the wave comment. A conflict is never
-// resolved here: it exits 3 with "rebase needed" and the worker rebases.
+/**
+ * `spp merge <pr> [--json]` merges a slice pull request into its Epic's integration branch, only when its gate passed
+ * on the current head, its blockers' pull requests have merged, its base is the integration branch and its checks
+ * pass. It merges with the Routing block's merge method (squash by default) pinned to the head the gate passed, then
+ * records the pull request on the wave comment. A conflict is never resolved here: the worker rebases. It prints
+ * `merged <pr> into <branch>` or `not merged: <reason>`; with `--json` it prints {@link MergeResult}.
+ *
+ * @module
+ */
 import { spawnSync } from "node:child_process";
 import { derive } from "../derive.ts";
 import { GhError, runGh } from "../gh.ts";
@@ -8,10 +14,19 @@ import { readRouting } from "../routing.ts";
 import { CLOSING_KEYWORD, SNAPSHOT_QUERY, parseSnapshot } from "../snapshot.ts";
 import { culprits, readChecks } from "./checks.ts";
 
-const USAGE = "usage: spp merge <pr number | pr URL> [--json]\n";
+/** The usage text `spp merge --help` prints. */
+export const USAGE = "usage: spp merge <pr number | pr URL> [--json]\n";
 const ISSUE_URL = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/(?:issues|pull)\/(\d+)$/;
 
-type Result = { merged: boolean; reason?: string; interfacesChanged?: string };
+/** What `spp merge` did: its `--json` shape. */
+export type MergeResult = {
+  /** Whether the pull request merged. */
+  merged: boolean;
+  /** Why it did not merge, such as `rebase needed` or `checks failing: <runs>`. */
+  reason?: string;
+  /** The pull request body's `Interfaces changed:` lines that are not `none`, one per line, so the orchestrator sees an Interface deviation. */
+  interfacesChanged?: string;
+};
 type PrView = { number: number; url: string; state: string; body: string; baseRefName: string; mergeable: string };
 
 // The issue the body closes first, as a URL: #N in the pull request's own repo, owner/repo#N, or the issue URL.
@@ -30,7 +45,7 @@ function interfacesChanged(body: string): string | undefined {
 }
 
 
-async function decide(pr: string): Promise<{ result: Result; code: number; base?: string }> {
+async function decide(pr: string): Promise<{ result: MergeResult; code: number; base?: string }> {
   const refuse = (reason: string, code = 1) => ({ result: { merged: false, reason }, code });
   const view = JSON.parse(await runGh(["pr", "view", pr, "--json", "number,url,state,body,baseRefName,mergeable"])) as PrView;
   const [, owner, name] = ISSUE_URL.exec(view.url) ?? [];
@@ -80,7 +95,7 @@ async function decide(pr: string): Promise<{ result: Result; code: number; base?
   const spp = process.argv[1]; // the running bin/spp: its path from here differs between spp/src and the compiled dist/
   const wave = spawnSync(process.execPath, [spp, "wave", parent.url, "pr", "--ticket", waveTicket, "--pr", view.url], { encoding: "utf8" });
   const changed = interfacesChanged(view.body);
-  const result: Result = { merged: true, ...(changed && { interfacesChanged: changed }) };
+  const result: MergeResult = { merged: true, ...(changed && { interfacesChanged: changed }) };
   if (wave.status !== 0) {
     process.stderr.write(`spp merge: merged ${ref(view.url)}, but recording it on the wave comment failed:\n${wave.stderr}`);
     return { result, code: 1 };
@@ -88,6 +103,18 @@ async function decide(pr: string): Promise<{ result: Result; code: number; base?
   return { result, code: 0, base: view.baseRefName };
 }
 
+/**
+ * Merges one slice pull request when everything allows it.
+ *
+ * @param args - The pull request (a number or URL), and `--json` for the {@link MergeResult} shape.
+ * @returns 0 when it merged; 3 on a merge conflict (`rebase needed`), so the worker rebases; 1 for any other
+ *   refusal, for a merge whose wave comment could not be recorded, and on a `gh` error; 2 on a usage error, with the
+ *   usage on stderr.
+ * @example
+ * ```bash
+ * spp merge 264 --json
+ * ```
+ */
 export async function run(args: string[]): Promise<number> {
   const rest = args.filter((a) => a !== "--json");
   if (rest.length !== 1) {

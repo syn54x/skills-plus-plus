@@ -1,12 +1,18 @@
-// spp guard worktree: the PreToolUse hook on Bash. In a session working in a linked worktree, it denies a command
-// that would write into the main checkout outside that worktree (exit 2, the reason on stderr); it allows the rest.
-// It reads the command, it does not run it: `$(...)`, variables and globs are not expanded, so they never deny.
+/**
+ * `spp guard worktree` is the `PreToolUse` hook on Bash. In a session working in a linked worktree, it reads the
+ * command from the hook payload on stdin and denies one that would write into the main checkout outside that
+ * worktree; it allows the rest. It reads the command without running it: `$(...)`, variables and globs are not
+ * expanded, so they never deny. It has no `--json`.
+ *
+ * @module
+ */
 import { existsSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { enterHookCwd, gitOut, readHookInput } from "./verify.ts";
 
-const USAGE = "usage: spp guard worktree   (a PreToolUse hook on Bash: reads the hook payload on stdin)\n";
+/** The usage text `spp guard --help` prints. */
+export const USAGE = "usage: spp guard worktree   (a PreToolUse hook on Bash: reads the hook payload on stdin)\n";
 
 const WRITES_EVERY_OPERAND = new Set(["rm", "rmdir", "unlink", "touch", "mkdir", "mv", "tee", "truncate", "chmod", "chown"]);
 const WRITES_LAST_OPERAND = new Set(["cp", "ln", "install", "rsync"]);
@@ -114,6 +120,17 @@ async function worktree(): Promise<number> {
   return 2;
 }
 
+/**
+ * Runs the worktree guard over the hook payload on stdin.
+ *
+ * @param args - `worktree`, the only guard.
+ * @returns 0 to allow the command; 2 to deny it, with the reason on stderr, which Claude Code shows the model; 2 on
+ *   a usage error too, with the usage on stderr.
+ * @example
+ * ```bash
+ * echo '{"tool_name":"Bash","tool_input":{"command":"rm -rf ../main/src"},"cwd":"."}' | spp guard worktree
+ * ```
+ */
 export async function run(args: string[]): Promise<number> {
   if (args.length === 1 && args[0] === "worktree") return worktree();
   process.stderr.write(USAGE);

@@ -1,0 +1,153 @@
+`spp status <epic> [--json]` prints every Sub-issue of an Epic with its state, grouped by Layer, from one GraphQL
+query. Each line is the ticket's state, its number and title, and its pull request when it has one; a blocking
+cycle gets a group of its own. With `--json` it prints the whole [EpicState](#epicstate) instead.
+
+## Functions
+
+### run()
+
+```ts
+function run(args): Promise<number>;
+```
+
+Prints the Epic's state.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `args` | `string`[] | The Epic (an issue number in the current repo or an issue URL), and `--json` for the [EpicState](#epicstate) shape. |
+
+#### Returns
+
+`Promise`\<`number`\>
+
+0 when it printed the state; 2 on a usage error, with the usage on stderr. A `gh` error exits 1 with
+  the reason on stderr.
+
+#### Example
+
+```bash
+spp status 197
+spp status https://github.com/syn54x/skills-plus-plus/issues/197 --json
+```
+
+## Variables
+
+### USAGE
+
+```ts
+const USAGE: string;
+```
+
+The usage text `spp status --help` prints.
+
+```text
+usage: spp status <epic number | issue URL> [--json]
+```
+
+## Type Aliases
+
+### TicketState
+
+```ts
+type TicketState = 
+  | "blocked"
+  | "ready"
+  | "claimed"
+  | "pr-open"
+  | "gate-pass"
+  | "gate-fail"
+  | "merged"
+  | "handed-back"
+  | "not-agent";
+```
+
+Where a Sub-issue stands, the first that fits: `merged` (the issue is closed), `handed-back` (unheld, with a route
+label), `pr-open`, `gate-pass` or `gate-fail` (an open pull request, by the slice gate's verdict on its current
+head), `claimed` (held by the Claim mark or an assignee), `blocked` (an open blocker), `not-agent` (no
+`ready-for-agent` label), else `ready`.
+
+***
+
+### Ticket
+
+```ts
+type Ticket = object;
+```
+
+One Sub-issue of the Epic.
+
+#### Properties
+
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="property-number"></a> `number` | `number` | The issue number. |
+| <a id="property-url"></a> `url` | `string` | The issue URL, which names the ticket everywhere else in the state. |
+| <a id="property-repo"></a> `repo` | `string` | The issue's repository, `owner/repo`. |
+| <a id="property-title"></a> `title` | `string` | The issue title. |
+| <a id="property-size"></a> `size` | `"S"` \| `"M"` \| `"L"` \| `null` | The size its `size:` label gives, or null without one. |
+| <a id="property-state"></a> `state` | [`TicketState`](#ticketstate) | Where the ticket stands. |
+| <a id="property-layer"></a> `layer` | `number` \| `null` | The Layer: one above its highest open blocker inside the Epic, 0 with none; null when caught in a cycle. |
+| <a id="property-blockedby"></a> `blockedBy` | `string`[] | URLs of open blockers. |
+| <a id="property-claimed"></a> `claimed` | `boolean` | Whether it carries the Claim mark (the `claimed` label); an assignee also holds a ticket. |
+| <a id="property-assignees"></a> `assignees` | `string`[] | Assignee logins. |
+| <a id="property-labels"></a> `labels` | `string`[] | Label names. |
+| <a id="property-pr"></a> `pr` | [`Pr`](#pr) \| `null` | The pull request it shows (an open one first, then a merged one, newest first), or null. |
+| <a id="property-worker"></a> `worker` | `string` \| `null` | The progress comment's Worker line, or null. |
+| <a id="property-note"></a> `note` | \| \{ `text`: `string`; `at`: `string`; \} \| `null` | The latest local note (`spp note`) with its ISO time, or null. |
+
+***
+
+### EpicState
+
+```ts
+type EpicState = object;
+```
+
+An Epic and its Sub-issues as one snapshot derives them: the `--json` shape of `spp status`.
+
+#### Properties
+
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="property-epic"></a> `epic` | `object` | The Epic; `branch` is the integration branch its plan comment records, or null. |
+| `epic.number` | `number` | - |
+| `epic.url` | `string` | - |
+| `epic.repo` | `string` | - |
+| `epic.title` | `string` | - |
+| `epic.branch` | `string` \| `null` | - |
+| <a id="property-tickets"></a> `tickets` | [`Ticket`](#ticket)[] | Every Sub-issue. |
+| <a id="property-layers"></a> `layers` | `string`[][] | Issue URLs by Layer, Layer 0 first. |
+| <a id="property-cycle"></a> `cycle` | `string`[] | Issue URLs caught in a blocking cycle. |
+| <a id="property-counts"></a> `counts` | `Record`\<[`TicketState`](#ticketstate), `number`\> | How many tickets are in each state. |
+
+***
+
+### PrState
+
+```ts
+type PrState = "OPEN" | "MERGED" | "CLOSED";
+```
+
+A pull request's state on GitHub.
+
+***
+
+### Pr
+
+```ts
+type Pr = object;
+```
+
+A pull request linked to a Sub-issue.
+
+#### Properties
+
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="property-number-1"></a> `number` | `number` | The pull request number. |
+| <a id="property-url-1"></a> `url` | `string` | The pull request URL. |
+| <a id="property-state-1"></a> `state` | [`PrState`](#prstate) | Its state on GitHub. |
+| <a id="property-headsha"></a> `headSha` | `string` | The head commit's full sha. |
+| <a id="property-verdict"></a> `verdict?` | `Record`\<`string`, `unknown`\> | The trailer of the pull request's `<!-- spp-verdict -->` comment, present only when one decodes: `{ ticket, head, spec: "pass" \| "fail", quality: "pass" \| "fail" }`, as `spp verdict` writes it. |

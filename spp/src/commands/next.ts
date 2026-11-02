@@ -1,4 +1,11 @@
-// spp next <epic> [--json]: the build's next actions. The build loop is: run spp next, do what it says, repeat.
+/**
+ * `spp next <epic> [--json]` prints the build's next actions, one per line. The build loop is: run `spp next`, do
+ * what it says, run it again. It reads the Epic's preconditions, its state, CI on open pull requests, the gate's
+ * verdict history, the pull request to the base branch and the session list, all from GitHub and `claude`, never
+ * from local state. With `--json` it prints {@link NextActions}.
+ *
+ * @module
+ */
 import { spawnSync } from "node:child_process";
 import { runGh } from "../gh.ts";
 import { guarded, parseIssue, readTrailer, UsageError } from "../markers.ts";
@@ -9,7 +16,16 @@ import { Failure, preflight } from "./preflight.ts";
 import { fetchState } from "./status.ts";
 import { wavePlan } from "./wave.ts";
 
-const USAGE = `usage: spp next <epic number | issue URL> [--json]
+export type { Action, ActionKind } from "../plan-next.ts";
+
+/** The build's next actions: the `--json` shape of `spp next`. */
+export type NextActions = {
+  /** The actions, in the order to take them. */
+  actions: Action[];
+};
+
+/** The usage text `spp next --help` prints. */
+export const USAGE = `usage: spp next <epic number | issue URL> [--json]
 Prints the next actions: preflight, branch, dispatch, gate, fix, hand-back, merge, wait, main-gate, close or stuck.
 `;
 
@@ -30,7 +46,11 @@ const VERDICT_HISTORY = `query VerdictHistory($owner: String!, $repo: String!, $
   }
 }`;
 
-// The sessions `claude agents` lists; none when claude is missing or fails, since the session list is only a hint.
+/**
+ * The sessions `claude agents` lists; none when claude is missing or fails, since the session list is only a hint.
+ *
+ * @internal
+ */
 export function readSessions(): Session[] {
   const r = spawnSync("claude", ["agents", "--json", "--all"], { encoding: "utf8" });
   try {
@@ -100,15 +120,27 @@ async function actions(arg: string): Promise<Action[]> {
   });
 }
 
+/**
+ * Prints the build's next actions.
+ *
+ * @param args - The Epic (an issue number in the current repo or an issue URL), and `--json` for the
+ *   {@link NextActions} shape.
+ * @returns 0 when it printed the actions, a failed precondition included (as a `preflight` action); 2 on a usage
+ *   error, with the usage on stderr. A `gh` error exits 1 with the reason on stderr.
+ * @example
+ * ```bash
+ * spp next 197
+ * ```
+ */
 export function run(args: string[]): Promise<number> {
   return guarded(() => "next", USAGE, async () => {
     const rest = args.filter((a) => a !== "--json");
     if (rest.length !== 1) throw new UsageError("");
-    const list = await actions(rest[0]);
+    const list: NextActions = { actions: await actions(rest[0]) };
     process.stdout.write(
       args.includes("--json")
-        ? JSON.stringify({ actions: list }, null, 2) + "\n"
-        : list.map((a) => `${a.kind}${a.tickets ? ` ${a.tickets.join(", ")}` : ""}${a.pr ? ` ${a.pr}` : ""}: ${a.reason}\n`).join(""),
+        ? JSON.stringify(list, null, 2) + "\n"
+        : list.actions.map((a) => `${a.kind}${a.tickets ? ` ${a.tickets.join(", ")}` : ""}${a.pr ? ` ${a.pr}` : ""}: ${a.reason}\n`).join(""),
     );
   });
 }
