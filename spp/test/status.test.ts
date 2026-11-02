@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { derive, type EpicState, type Ticket } from "../src/derive.ts";
+import { derive, type EpicState, refIn, type Ticket } from "../src/derive.ts";
 import { parseSnapshot } from "../src/snapshot.ts";
 import { assertCase, runCase } from "./harness.ts";
 
@@ -222,5 +222,15 @@ describe("trust boundary", () => {
     const s = parseSnapshot(response([], [], [by("mallory", "NONE", verdict), by(null, "NONE", verdict)]));
     assert.equal(s.issues[0].prs[0].verdict, undefined);
     assert.equal(derive(s).tickets[0].state, "pr-open");
+  });
+});
+
+// F18 on #267: one helper writes an issue or pull request URL relative to the Epic's repo.
+describe("refIn", () => {
+  test("an issue or pull request in the repo is #N, one in another repo is owner/repo#N", () => {
+    const ref = refIn("acme/app");
+    assert.equal(ref(ISSUE + 12), "#12");
+    assert.equal(ref("https://github.com/acme/app/pull/40"), "#40");
+    assert.equal(ref("https://github.com/acme/api/issues/7"), "acme/api#7");
   });
 });

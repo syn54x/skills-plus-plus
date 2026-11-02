@@ -7,7 +7,7 @@
  * @module
  */
 import { setTimeout as sleep } from "node:timers/promises";
-import type { EpicState } from "../derive.ts";
+import { type EpicState, refIn } from "../derive.ts";
 import { flagPairs, guarded, parseIssue, UsageError } from "../markers.ts";
 import type { Session } from "../plan-next.ts";
 import { readSessions } from "./next.ts";
@@ -25,9 +25,9 @@ const BUSY = ["working", "busy"];
 const sessionState = (s: Session | undefined) => s?.state ?? s?.status;
 
 function changes(before: Poll, now: Poll): string[] {
-  const ref = (t: EpicState["tickets"][number]) => (t.repo === now.state.epic.repo ? `#${t.number}` : `${t.repo}#${t.number}`);
+  const ref = refIn(now.state.epic.repo);
   const was = new Map(before.state.tickets.map((t) => [t.url, t.state]));
-  const tickets = now.state.tickets.filter((t) => was.get(t.url) !== t.state).map((t) => `${ref(t)} ${was.get(t.url) ?? "absent"} -> ${t.state}`);
+  const tickets = now.state.tickets.filter((t) => was.get(t.url) !== t.state).map((t) => `${ref(t.url)} ${was.get(t.url) ?? "absent"} -> ${t.state}`);
   // A ticket's workers: the progress comment's worker and the name spp dispatch gives, t-<N>.
   const names = new Set(now.state.tickets.flatMap((t) => [t.worker, `t-${t.number}`]).filter((n): n is string => !!n));
   const workers = now.sessions

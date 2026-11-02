@@ -55,6 +55,14 @@ export type EpicState = {
   counts: Record<TicketState, number>;
 };
 
+/** How a URL of an issue or pull request is written relative to `repo`: `#N` inside it, `owner/repo#N` outside it. */
+export const refIn =
+  (repo: string) =>
+  (url: string): string => {
+    const [, r, n] = /([^/]+\/[^/]+)\/(?:issues|pull)\/(\d+)$/.exec(url) ?? [, url, ""];
+    return r === repo ? `#${n}` : `${r}#${n}`;
+  };
+
 const STATES: TicketState[] = ["blocked", "ready", "claimed", "pr-open", "gate-pass", "gate-fail", "merged", "handed-back", "not-agent"];
 const HANDED_BACK = ["needs-info", "ready-for-human", "blocked"];
 const PR_RANK: Record<Pr["state"], number> = { OPEN: 0, MERGED: 1, CLOSED: 2 };

@@ -7,6 +7,7 @@
  *
  * @module
  */
+import { refIn } from "../derive.ts";
 import { WINDOW } from "../findings.ts";
 import { GhError, runGh } from "../gh.ts";
 import { find, guarded, parseIssue, readTrailer, UsageError } from "../markers.ts";
@@ -102,7 +103,7 @@ type Wave = { panel?: { round: number; severity?: Record<string, number> }[]; wa
 async function collect(arg: string, notFound: string[]): Promise<{ epic: Snapshot["epic"]; retro: Retro }> {
   const epic = parseIssue(arg);
   const snap = await snapshot(epic);
-  const ref = (repo: string, n: number) => (repo === snap.epic.repo ? `#${n}` : `${repo}#${n}`);
+  const ref = refIn(snap.epic.repo);
   if (!snap.issues.length) notFound.push("sub-issues");
 
   // The wave comment's trailer, from a trusted author (ADR 0009): recorded pull requests and the panel's rounds.
@@ -137,13 +138,13 @@ async function collect(arg: string, notFound: string[]): Promise<{ epic: Snapsho
   let handBacks = 0;
   for (const i of snap.issues) {
     const mine = [...prsOf.get(i.url)!].filter((u) => data.has(u));
-    if (mine.length) byTicket[ref(i.repo, i.number)] = mine.reduce((n, u) => n + data.get(u)!.causes.length, 0);
-    else if (!prsOf.get(i.url)!.size) notFound.push(`pull request for ${ref(i.repo, i.number)}`);
+    if (mine.length) byTicket[ref(i.url)] = mine.reduce((n, u) => n + data.get(u)!.causes.length, 0);
+    else if (!prsOf.get(i.url)!.size) notFound.push(`pull request for ${ref(i.url)}`);
     try {
       const labels = await runGh(["api", `repos/${i.repo}/issues/${i.number}/events`, "--paginate", "--jq", '.[] | select(.event == "labeled") | .label.name']);
       handBacks += labels.split("\n").filter((l) => HAND_BACK_LABELS.includes(l)).length;
     } catch {
-      notFound.push(`events on ${ref(i.repo, i.number)}`);
+      notFound.push(`events on ${ref(i.url)}`);
     }
   }
 

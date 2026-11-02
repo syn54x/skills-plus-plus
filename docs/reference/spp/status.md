@@ -150,4 +150,23 @@ A pull request linked to a Sub-issue.
 | <a id="property-url-1"></a> `url` | `string` | The pull request URL. |
 | <a id="property-state-1"></a> `state` | [`PrState`](#prstate) | Its state on GitHub. |
 | <a id="property-headsha"></a> `headSha` | `string` | The head commit's full sha. |
-| <a id="property-verdict"></a> `verdict?` | `Record`\<`string`, `unknown`\> | The trailer of the pull request's `<!-- spp-verdict -->` comment, present only when one decodes: `{ ticket, head, spec: "pass" \| "fail", quality: "pass" \| "fail" }`, as `spp verdict` writes it. |
+| <a id="property-verdict"></a> `verdict?` | [`Verdict`](#verdict) | The pull request's `<!-- spp-verdict -->` comment as `spp verdict` writes it, present only when it decodes. |
+
+***
+
+### Verdict
+
+```ts
+type Verdict = object;
+```
+
+The slice gate's verdict on one head of a pull request, as its `<!-- spp-verdict -->` comment's trailer holds it.
+
+#### Properties
+
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="property-ticket"></a> `ticket` | `string` | The Sub-issue or One-off the pull request closes, as `spp verdict --ticket` gave it. |
+| <a id="property-head"></a> `head` | `string` | The head the verdict was given on: a full sha, or a prefix of at least 7 characters. |
+| <a id="property-spec"></a> `spec` | `"pass"` \| `"fail"` | The spec verdict. |
+| <a id="property-quality"></a> `quality` | `"pass"` \| `"fail"` | The quality verdict. |

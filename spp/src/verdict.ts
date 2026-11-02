@@ -5,7 +5,17 @@
 
 export const VERDICT_MARKER = "<!-- spp-verdict -->";
 
-export type Verdict = { ticket: string; head: string; spec: "pass" | "fail"; quality: "pass" | "fail" };
+/** The slice gate's verdict on one head of a pull request, as its `<!-- spp-verdict -->` comment's trailer holds it. */
+export type Verdict = {
+  /** The Sub-issue or One-off the pull request closes, as `spp verdict --ticket` gave it. */
+  ticket: string;
+  /** The head the verdict was given on: a full sha, or a prefix of at least 7 characters. */
+  head: string;
+  /** The spec verdict. */
+  spec: "pass" | "fail";
+  /** The quality verdict. */
+  quality: "pass" | "fail";
+};
 
 const isResult = (v: unknown): v is Verdict["spec"] => v === "pass" || v === "fail";
 

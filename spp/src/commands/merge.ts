@@ -10,7 +10,7 @@
  * @module
  */
 import { spawnSync } from "node:child_process";
-import { derive, gateOf } from "../derive.ts";
+import { derive, gateOf, refIn } from "../derive.ts";
 import { GhError, runGh } from "../gh.ts";
 import { find, parseIssue, readTrailer } from "../markers.ts";
 import { readRouting } from "../routing.ts";
@@ -53,10 +53,7 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   const refuse = (reason: string, code = 1) => ({ result: { merged: false, reason }, code });
   const view = JSON.parse(await runGh(["pr", "view", pr, "--json", "number,url,state,body,baseRefName,mergeable"])) as PrView;
   const [, owner, name] = ISSUE_URL.exec(view.url) ?? [];
-  const ref = (url: string) => {
-    const [, o, r, n] = ISSUE_URL.exec(url) ?? [, "", "", url];
-    return o === owner && r === name ? `#${n}` : `${o}/${r}#${n}`;
-  };
+  const ref = refIn(`${owner}/${name}`);
   if (view.state !== "OPEN") return refuse(`${ref(view.url)} is ${view.state}`);
   const ticketUrl = closedIssue(view.body, `${owner}/${name}`);
   if (!ticketUrl) return refuse(`${ref(view.url)} closes no issue`);

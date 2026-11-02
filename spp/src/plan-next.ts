@@ -1,6 +1,6 @@
 // The next actions of a build, from the EpicState and what the command read around it (CI, verdict history, the pull
 // request to the base branch, the session list, the wave). Pure: no network, filesystem or environment.
-import type { EpicState, Ticket } from "./derive.ts";
+import { type EpicState, refIn, type Ticket } from "./derive.ts";
 import type { Routing } from "./routing.ts";
 import type { PrState } from "./snapshot.ts";
 
@@ -21,6 +21,9 @@ export type Action = {
   /** Why, in a sentence. */
   reason: string;
 };
+
+// How many ready tickets one Wave starts at most, unless `spp wave plan --max` says otherwise.
+export const DEFAULT_WAVE_MAX = 4;
 
 // One entry of `claude agents --json --all`: background sessions carry `state`, interactive ones `status`.
 export type Session = { name?: string; state?: string; status?: string };
@@ -50,10 +53,7 @@ const done = (t: Ticket) => t.state === "merged" || t.pr?.state === "MERGED";
 
 export function planNext(input: NextInput): Action[] {
   const { state, panel, sessions, checks, failedHeads, mainPr } = input;
-  const ref = (url: string) => {
-    const [, repo, n] = /([^/]+\/[^/]+)\/(?:issues|pull)\/(\d+)$/.exec(url) ?? [, url, ""];
-    return repo === state.epic.repo ? `#${n}` : `${repo}#${n}`;
-  };
+  const ref = refIn(state.epic.repo);
   // A ticket as spp dispatch and the other commands take it: its number in the Epic's repo, else its URL.
   const id = (t: Ticket) => (t.repo === state.epic.repo ? String(t.number) : t.url);
 

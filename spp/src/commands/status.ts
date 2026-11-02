@@ -5,13 +5,14 @@
  *
  * @module
  */
-import { derive, type EpicState } from "../derive.ts";
+import { derive, type EpicState, refIn } from "../derive.ts";
 import { GhError, runGh } from "../gh.ts";
 import { attachNotes } from "../notes.ts";
 import { SNAPSHOT_QUERY, parseSnapshot } from "../snapshot.ts";
 
 export type { EpicState, Ticket, TicketState } from "../derive.ts";
 export type { Pr, PrState } from "../snapshot.ts";
+export type { Verdict } from "../verdict.ts";
 
 /** The usage text `spp status --help` prints. */
 export const USAGE = "usage: spp status <epic number | issue URL> [--json]\n";
@@ -32,10 +33,7 @@ function missingIssue(stdout: string): boolean {
 }
 
 function render(s: EpicState): string {
-  const ref = (url: string) => {
-    const [, repo, n] = /([^/]+\/[^/]+)\/(?:issues|pull)\/(\d+)$/.exec(url) ?? [, url, ""];
-    return repo === s.epic.repo ? `#${n}` : `${repo}#${n}`;
-  };
+  const ref = refIn(s.epic.repo);
   const byUrl = new Map(s.tickets.map((t) => [t.url, t]));
   const line = (url: string) => {
     const t = byUrl.get(url)!;

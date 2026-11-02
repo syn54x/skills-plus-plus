@@ -24,6 +24,7 @@ import { derive, type EpicState } from "../derive.ts";
 import { runGh } from "../gh.ts";
 import { type Data, flagPairs, guarded, parseIssue, print, updateMarker, UsageError } from "../markers.ts";
 import { parseSnapshot, SNAPSHOT_QUERY } from "../snapshot.ts";
+import { DEFAULT_WAVE_MAX } from "../plan-next.ts";
 import { parseTicket } from "../ticket.ts";
 
 /** The usage text `spp wave --help` prints. */
@@ -33,7 +34,7 @@ export const USAGE = `usage: spp wave plan <epic> [--max N] [--json]
        spp wave <epic> pr    --ticket 101|owner/repo#7 --pr URL|#n
        spp wave <epic> panel --round R --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE [--report URL]
                              [--severity critical=1,important=2,minor=3] [--persona name=count,...] [--dropped D]
-wave plan prints the ready tickets that can run together (at most --max, default 4) and the held ones with why.
+wave plan prints the ready tickets that can run together (at most --max, default ${DEFAULT_WAVE_MAX}) and the held ones with why.
 wave add replaces every wave with the same --n; wave panel replaces the entry with the same --round
 (a round shown but never posted has no --report and renders unposted);
 wave pr records the PR on the last wave whose tickets hold --ticket, given in the form wave add stored.
@@ -210,7 +211,7 @@ export async function wavePlan(state: EpicState, max: number): Promise<WavePlan>
 
 async function runPlan(args: string[]): Promise<number> {
   const at = args.indexOf("--max");
-  const max = at < 0 ? 4 : Number(args[at + 1]);
+  const max = at < 0 ? DEFAULT_WAVE_MAX : Number(args[at + 1]);
   const epic = args.filter((a, i) => a !== "--json" && (at < 0 || (i !== at && i !== at + 1)));
   if (epic.length !== 1 || !Number.isInteger(max) || max < 1) throw new UsageError("");
   const e = parseIssue(epic[0]);
