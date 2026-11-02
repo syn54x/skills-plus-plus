@@ -7,6 +7,7 @@
  * @module
  */
 import { type Data, flagPairs, guarded, print, updateMarker, UsageError } from "../markers.ts";
+import { PIN_KEY } from "../pin.ts";
 
 /** The usage text `spp progress --help` prints. */
 export const USAGE = `usage: spp progress <issue> [--status in-progress|pr-open|verify-passed|changes-requested|handed-back]
@@ -24,11 +25,17 @@ export const MARKER = "<!-- sdd-progress -->";
 const DEFAULT = { status: "in-progress", worker: "", branch: "", pr: null, verify: { state: "not-run", sha: "" }, route: null, reason: "", notes: "" };
 const STATUSES = ["in-progress", "pr-open", "verify-passed", "changes-requested", "handed-back"];
 
-// Five lines, the hand-back line, the Verify pin, then notes capped at ten lines, so the body stays under 20 lines.
-// A comment hardening created holds only the pin until a worker writes the rest.
-function render(data: Data): string {
-  const d = data as typeof DEFAULT & { pr: number | string | null; route: string | null; verifyPin?: string };
-  const pin = d.verifyPin ? [`**Verify pin:** \`${d.verifyPin.slice(0, 12)}\``] : [];
+/**
+ * Renders the progress comment's lines from its data: five lines, the hand-back line, the Verify pin, then notes
+ * capped at ten lines, so the body stays under 20 lines. A comment hardening created holds only the pin until a
+ * worker writes the rest.
+ *
+ * @internal
+ */
+export function renderProgress(data: Data): string {
+  const d = data as typeof DEFAULT & { pr: number | string | null; route: string | null };
+  const verifyPin = data[PIN_KEY];
+  const pin = typeof verifyPin === "string" && verifyPin ? [`**Verify pin:** \`${verifyPin.slice(0, 12)}\``] : [];
   if (d.status === undefined) return pin.join("\n");
   return [
     `**Status:** ${d.status}`,
@@ -48,17 +55,7 @@ function render(data: Data): string {
  * @internal
  */
 export function saveProgress(issue: string, patch: Data): Promise<string> {
-  return updateMarker(issue, MARKER, render, (old) => ({ ...DEFAULT, ...old, ...patch }));
-}
-
-/**
- * Pins the sha256 of the approved Verify block in the progress comment's trailer, keeping every other field, so
- * `spp verify` can refuse a block edited since (ADR 0009); returns the comment's URL.
- *
- * @internal
- */
-export function savePin(issue: string, verifyPin: string): Promise<string> {
-  return updateMarker(issue, MARKER, render, (old) => ({ ...old, verifyPin }));
+  return updateMarker(issue, MARKER, renderProgress, (old) => ({ ...DEFAULT, ...old, ...patch }));
 }
 
 /**

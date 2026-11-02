@@ -10,6 +10,6 @@
     }
   },
   "api repos/acme/app/issues/12/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json": {
-    "stdout": ""
+    "stdout": "[1,\"<!-- sdd-progress -->\\n**Verify pin:** `33f7bcd13fe3`\\n<!-- sdd-data: eyJ2ZXJpZnlQaW4iOiIzM2Y3YmNkMTNmZTNlNzViYzRjMDdhZTU4MTk3ZmFiMjk3ZGNmMjBhYjVmMTJlOTUzZDZlNTgyNTQyZDcxMjcxIn0= -->\\n\",\"maint\",\"OWNER\"]\n"
   }
 }

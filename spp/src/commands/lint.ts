@@ -7,18 +7,17 @@
  * into the progress comment's trailer, and `spp verify` refuses to run a block that no longer matches it (ADR 0009).
  * The pin is taken from the file and not from the issue, so an edit made after the agent wrote the body is never
  * approved by it: when the issue's block differs from the file's, nothing is pinned and the lint fails with
- * `pin-match`. Hardening's last step is this run. Without `--pin`, as the ready gate runs it, a pin that a trusted
- * progress comment already holds must still match the issue's Verify block, or the lint fails with `pin-match`, so a
- * body edited after hardening never reaches `ready-for-agent`.
+ * `pin-match`. Hardening's last step is this run. Without `--pin`, as the ready gate and the worker's readiness check
+ * run it, the issue's Verify block must carry a pin from a trusted progress comment, or the lint fails with
+ * `pin-present`, and must still match that pin, or it fails with `pin-match`. So a ticket never hardened, or edited
+ * after hardening, never reaches `ready-for-agent`, and a worker stops before running its block by hand.
  *
  * @module
  */
 import { readFileSync } from "node:fs";
 import { runGh } from "../gh.ts";
-import { find, parseIssue, readTrailer } from "../markers.ts";
+import { checkPin, savePin } from "../pin.ts";
 import { type Failure, isIssueRef, lintTicket, parseTicket } from "../ticket.ts";
-import { MARKER, savePin } from "./progress.ts";
-import { pinOf } from "./verify.ts";
 
 export type { Failure } from "../ticket.ts";
 
@@ -40,8 +39,8 @@ export const USAGE = "usage: spp lint ticket <issue number | issue URL> [--pin <
  *   a passing ticket's Verify block as the file holds it, and `--json` for the {@link LintResult} shape.
  * @returns 0 when the ticket passes (and, with `--pin`, its pin is written); 1 when it breaks a rule, including
  *   `pin-match` when the issue's Verify block differs from the file's (which pins nothing) or, without `--pin`, from
- *   the pin already written; 2 on a usage error, with
- *   the usage on stderr. A `gh` error or an unreadable body file also exits 1, with the reason on stderr.
+ *   the pin already written, and `pin-present` when, without `--pin`, a Verify block has no pin; 2 on a usage error,
+ *   with the usage on stderr. A `gh` error or an unreadable body file also exits 1, with the reason on stderr.
  * @example
  * ```bash
  * spp lint ticket 265 --pin /tmp/harden-265.md
@@ -63,14 +62,12 @@ export async function run(args: string[]): Promise<number> {
     failures.push({ rule: "pin-match", detail: `the issue's Verify block differs from the one in ${file}; write the file to the issue, then lint again` });
   }
   if (file === undefined) {
-    // The ready gate: a block edited after hardening pinned it would only stall at the worker's spp verify.
-    const pin = readTrailer((await find(parseIssue(rest[1]), MARKER))?.body ?? "")?.verifyPin;
-    if (typeof pin === "string" && (block === null || pinOf(block) !== pin)) {
-      failures.push({ rule: "pin-match", detail: `the Verify block changed since it was hardened; re-harden it (spp lint ticket ${rest[1]} --pin <body-file>)` });
-    }
+    // The ready gate: a block never pinned, or edited since, would only stall at the worker's spp verify.
+    const refusal = await checkPin(rest[1], block);
+    if (refusal) failures.push(refusal);
   }
   const ok = failures.length === 0;
-  if (ok && written) await savePin(rest[1], pinOf(written));
+  if (ok && written) await savePin(rest[1], written);
   const result: LintResult = { ok, failures };
   process.stdout.write(
     args.includes("--json") ? JSON.stringify(result, null, 2) + "\n" : ok ? "ok\n" : failures.map((f) => `${f.rule}: ${f.detail}`).join("\n") + "\n",
