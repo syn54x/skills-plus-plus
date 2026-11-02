@@ -159,4 +159,12 @@ describe("error paths", () => {
     assert.deepEqual(r.out, { merged: false, reason: "rebase needed" });
     assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
   });
+
+  test("a branch policy refusal exits 1 with gh's reason, never rebase needed", async () => {
+    const stderr = "Pull request acme/app#40 is not mergeable: the base branch policy prohibits the merge.\n";
+    const r = await merge({ mergeable: "MERGEABLE", mergeAnswer: { stderr, code: 1 } }, 1);
+    assert.equal(r.out.merged, false);
+    assert.match(r.out.reason ?? "", /base branch policy prohibits the merge/);
+    assert.doesNotMatch(r.out.reason ?? "", /rebase needed/);
+  });
 });

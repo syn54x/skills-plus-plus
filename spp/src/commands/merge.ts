@@ -2,10 +2,10 @@
 // blockers' pull requests are merged and its checks pass, then records it on the wave comment. A conflict is never
 // resolved here: it exits 3 with "rebase needed" and the worker rebases.
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { derive } from "../derive.ts";
 import { GhError, runGh } from "../gh.ts";
+import { readRouting } from "../routing.ts";
 import { CLOSING_KEYWORD, SNAPSHOT_QUERY, parseSnapshot } from "../snapshot.ts";
 import { culprits, readChecks } from "./checks.ts";
 
@@ -30,16 +30,6 @@ function interfacesChanged(body: string): string | undefined {
   return values.length ? values.join("\n") : undefined;
 }
 
-// The Routing block's `Merge: squash|merge|rebase` line in CLAUDE.md or AGENTS.md; squash when there is none.
-function mergeMethod(): string {
-  for (const file of ["CLAUDE.md", "AGENTS.md"]) {
-    if (!existsSync(file)) continue;
-    const block = /<!-- sdd-routing -->([\s\S]*?)<!-- \/sdd-routing -->/.exec(readFileSync(file, "utf8"))?.[1];
-    const m = block && /^[-*]?\s*Merge:\s*(squash|merge|rebase)\b/im.exec(block);
-    if (m) return m[1].toLowerCase();
-  }
-  return "squash";
-}
 
 async function decide(pr: string): Promise<{ result: Result; code: number; base?: string }> {
   const refuse = (reason: string, code = 1) => ({ result: { merged: false, reason }, code });
@@ -75,11 +65,14 @@ async function decide(pr: string): Promise<{ result: Result; code: number; base?
   if (checks.result === "pending") return refuse(`checks pending: ${culprits(checks).join(", ")}`);
   if (view.mergeable === "CONFLICTING") return refuse("rebase needed", 3);
 
+  // Exit 3 sends the worker to rebase, so it is kept for a real conflict; any other refusal (a branch policy, a
+  // required approval) exits 1 with gh's own reason, which a rebase could never fix.
   try {
-    await runGh(["pr", "merge", view.url, `--${mergeMethod()}`, "--match-head-commit", ticket.pr.headSha]);
+    await runGh(["pr", "merge", view.url, `--${readRouting(process.cwd())?.routing.merge ?? "squash"}`, "--match-head-commit", ticket.pr.headSha]);
   } catch (e) {
-    if (e instanceof GhError && /not mergeable|conflict/i.test(e.message)) return refuse("rebase needed", 3);
-    throw e;
+    if (!(e instanceof GhError)) throw e;
+    if (/cannot be cleanly created|merge conflict/i.test(e.message)) return refuse("rebase needed", 3);
+    return refuse(e.message);
   }
 
   // The wave comment stores a ticket in the Epic's repo as its number and any other as owner/repo#N.
