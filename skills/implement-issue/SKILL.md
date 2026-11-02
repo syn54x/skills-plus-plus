@@ -11,13 +11,13 @@ A **note** is one line, posted at each milestone: claimed, first red test, green
 
 ## 1. Readiness
 
-Fetch the issue (body, state, labels, assignees, parent, blockers) and its comments. Stop and report, writing nothing, if any of these is false. A hand-back clears the claim, so never hand back an issue you have not claimed: the claim may be another worker's. The stop gate lets you finish while your branch has no commits of its own.
+Fetch the issue (body, state, labels, assignees, parent, blockers) and its comments. If any of these is false, stop and report, writing nothing to the issue. A hand-back clears whatever claim the issue carries, so an issue held by anyone else is never handed back, only reported. The stop gate lets you finish while your branch has no commits of its own.
 
 - The issue lives in the repo you are standing in, since `Closes #N` only links within one repo.
 - It is open and labelled `ready-for-agent`, and every issue blocking it is closed.
 - It is not held, or it is held by you: no `claimed` label and no assignee, or a progress comment whose Worker line names you (a fix round). Report "held by <name>" otherwise.
 
-Then read the contract. What to build, Acceptance criteria, Files owned, Interfaces, Test scenarios and Verify must each be present and concrete. A section that is missing, empty or a placeholder ("TBD", "as in #N", "handle errors appropriately") leaves nothing to build against: hand the issue back on the `needs-info` route, naming the gap, and stop.
+Then read the contract. What to build, Acceptance criteria, Files owned, Interfaces, Test scenarios and Verify must each be present and concrete. A section that is missing, empty or a placeholder ("TBD", "as in #N", "handle errors appropriately") leaves nothing to build against. The checks above have shown the issue is not held by anyone else, so hand it back on the `needs-info` route, naming the gap, and stop: that takes it out of the ready queue, where it would otherwise be picked up again every Wave.
 
 Read the Laws before writing anything, from three places:
 

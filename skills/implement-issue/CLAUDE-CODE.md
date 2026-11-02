@@ -21,17 +21,17 @@ Your name on the Worker line is your agent name (`worker-<N>` when a brief says 
 
 ## Pushing the notes ref
 
-Every worker in a Wave pushes `refs/notes/sdd-verify`, so a push is often rejected because a sibling got there first. Merge theirs and retry, up to three times:
+Every worker in a Wave pushes `refs/notes/sdd-verify`, so a push is often rejected because a sibling got there first. Merge theirs and push again, up to three pushes in all:
 
 ```bash
-for i in 1 2 3; do
-  git push origin refs/notes/sdd-verify && break
+git push origin refs/notes/sdd-verify || for i in 1 2; do
   git fetch origin +refs/notes/sdd-verify:refs/notes/sdd-verify-remote
   git notes --ref=sdd-verify merge -s ours refs/notes/sdd-verify-remote
+  git push origin refs/notes/sdd-verify && break
 done
 ```
 
-Notes on different commits never conflict, and `-s ours` keeps your own record if the same commit somehow carries two. If all three attempts fail, say so in the report; the pull request body carries the verified SHA as well.
+Notes on different commits never conflict, and `-s ours` keeps your own record if the same commit somehow carries two. If all three pushes fail, say so in the report; the pull request body carries the verified SHA as well.
 
 ## Hooks that act for you
 
