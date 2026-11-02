@@ -27,7 +27,7 @@ Done when you hold the kind and, for `raw`, the user has the reason.
 A **Driver** is the mechanism a worker runs in. Every driver keeps one contract: an issue number goes in, a pull request comes out, all state lives in GitHub. Choose once per run, by capability, best first, and test each by the presence of its tool or signal:
 
 1. **Desktop linked sessions**, when a tool that starts a separate linked session is available. Sessions show as sidebar rows, the person can steer them, and the app wakes you when one ends.
-2. **Background sessions**, when the dispatch action `spp next` prints says `bg` (it reads the cross-session messaging socket). `spp dispatch <N> --driver bg` starts the worker, and `spp wait <epic>` run in the background wakes you.
+2. **Background sessions**, when the cross-session messaging socket is present. On the Epic path `spp next <epic> --json` reports it as the `driver` of its `dispatch` action (`bg` or `subagent`). A One-off has no `spp next`, so test for the socket yourself, as `CLAUDE-CODE.md` says. `spp dispatch <N> --driver bg` starts the worker, and `spp wait <epic>` run in the background wakes you.
 3. **Isolated subagents** otherwise: one worker agent per issue, each in a worktree of its own.
 
 Never take a lower driver while a higher one is available, and never take a higher one on a guess. On Claude Code, [`CLAUDE-CODE.md`](CLAUDE-CODE.md) names the tool or command behind each capability here; read it now.
@@ -66,7 +66,7 @@ Whenever you are woken, or you surface to the user, print one line per live work
 
 ## Guardrails
 
-- A worker's tier follows the shape of its issue, never a vendor model name. A mid tier for a well-specified issue in one subsystem with an in-repo pattern to copy; the ceiling tier for cross-cutting, schema or design-judgment work, and for any issue that already bounced once. Always set it, since an unset tier inherits yours.
+- A worker's tier follows the shape of its issue, never a vendor model name. A mid tier for a well-specified issue in one subsystem with an in-repo pattern to copy; the ceiling tier for cross-cutting, schema or design-judgment work, and for any issue that already bounced once. Set it wherever the driver takes one, since an unset tier inherits yours.
 - Readiness comes from GitHub (open, unblocked, unheld, `ready-for-agent`) and `spp` computes it; no status label says "in progress".
 - Every issue comment goes through `spp progress`, `spp plan`, `spp wave` or `spp hand-back`, which keep one Marker comment each.
 - Start workers on issues nobody holds, and never claim for them: the worker claims in its first step.

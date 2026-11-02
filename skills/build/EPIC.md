@@ -1,8 +1,8 @@
 # The Epic path
 
-Read only when `spp kind` says `epic`. `<epic>` is the Epic's number or URL. The loop is one rule: run `spp next <epic>`, do every action it prints, run it again. It ends at `close` or `stuck`.
+Read only when `spp kind` says `epic`. `<epic>` is the Epic's number or URL. The loop is one rule: run `spp next <epic> --json`, do every action in its `actions` array, run it again. It ends at `close` or `stuck`.
 
-Each line of output is `<action> <issues> <pull request>: <reason>`. Handle by action:
+Each action has a `kind`, the `tickets` and `pr` it concerns, a `reason`, and on `dispatch` the `driver` (`bg` or `subagent`) that `spp` detected from the messaging socket, which step 2 of `SKILL.md` uses. Handle by `kind`:
 
 | Action | Do |
 | --- | --- |
@@ -87,7 +87,9 @@ A `NEEDS_CONTEXT` of that kind arrives as a handed-back issue. The decision belo
 - **The panel runs** (four or more Sub-issues, any size L, or 1,000 changed lines, as the reason says). `/review-panel` is user-invoked, so you start its workflow `spp:review-panel` on the pull request and, where the harness cannot, ask the user to run `/review-panel <PR>`. Its report ends in MERGE, FIX FIRST or HUMAN DECISION.
 - **No panel.** Call the Skill tool with "review" for the pull request. It reads the Epic's pull request in its Epic mode and returns one spec verdict with a coherence check.
 
-On a failing verdict (FIX FIRST, or a spec failure), send each Critical and Important finding to the worker that owns the file, by Files owned; a class of finding that cuts across files goes whole to one worker. A fix is a new pull request into the integration branch, from the resumed worker, whose body opens with `Refs #<Sub-issue>` and names the finding. Gate and merge each like any slice, then run the main gate again. On MERGE, or HUMAN DECISION with its open findings, give the user the report and the pull request and stop. You do not merge to the base branch.
+On a failing verdict (FIX FIRST, or a spec failure), send each Critical and Important finding to the worker that owns the file, by Files owned; a class of finding that cuts across files goes whole to one worker. A fix is a new pull request into the integration branch, from the resumed worker, whose body opens with `Refs #<Sub-issue>` and names the finding. Call the Skill tool with "review" for each fix pull request, as for a slice. Once it passes and its checks are green, merge it yourself: `gh pr merge <pr> --squash --match-head-commit <the head that was reviewed>`. `spp merge` does not apply, because its gate covers a Sub-issue whose pull request is still open and this fix refs one already closed. `spp merge` and `spp next` do not yet model fix pull requests; that is a known follow-up for the retro.
+
+After the round, run the panel again through its workflow for the re-review. At most two fix rounds: a re-review still at FIX FIRST after the second ends as HUMAN DECISION. On MERGE, or HUMAN DECISION with its open findings, give the user the report and the pull request and stop. You do not merge to the base branch.
 
 ## Close
 

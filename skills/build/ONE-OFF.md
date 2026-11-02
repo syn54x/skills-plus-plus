@@ -4,7 +4,7 @@ Read only when `spp kind` says `ticket`. A One-off has no Epic and no integratio
 
 ## 1. Start the worker
 
-Use the driver from step 2 of `SKILL.md`. `spp dispatch <N> --driver <d>` writes the brief and, for a background session, starts the worker. It refuses an issue that is held; report who holds it and stop. Choose the worker's tier as `SKILL.md` says.
+Pick the driver from step 2 of `SKILL.md` by testing each capability yourself, in its order: the session-start tool, then the messaging socket, then isolated subagents. `spp next` is not there to report it. `spp dispatch <N> --driver <d>` writes the brief and, for a background session, starts the worker. It refuses an issue that is held; report who holds it and stop. Choose the worker's tier as `SKILL.md` says.
 
 Done when a worker is running on the issue.
 
