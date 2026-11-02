@@ -5,14 +5,17 @@
 //   args                    the arguments after the command, one per line
 //   gh.json                 { "<gh argv joined by spaces>": { "stdout"?: string | JSON, "stderr"?: string, "code"?: number } }
 //   agents.json             the same shape, answering the claude stub (optional)
+//                           an answer may be a list: the nth call with that key gets the nth entry, the last repeating
 //   expected.json           the JSON stdout assertCase compares (optional)
 //   expected.txt            the text stdout assertCase compares (optional)
-//   expected-writes.jsonl   one { "cmd": "gh", "argv": [...], "input"?: string } per write, in order (absent means none)
+//   expected-writes.jsonl   one { "cmd": "gh" | "claude", "argv": [...], "input"?: string } per write, in order (absent means none);
+//                           every claude call but `claude agents` counts as a write
 //
 // Keys and logged argv are stable: a `query=` argument becomes `query=<operation name>`, and a `k=@file`,
 // `--body-file file` or `--input file` argument has the file's contents inlined.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
@@ -81,6 +84,14 @@ function isGhWrite(argv: string[]): boolean {
 
 type Answer = { stdout?: unknown; stderr?: string; code?: number };
 
+// A list answer is served in call order: each call appends one byte to a per-key counter file beside the write log.
+function sequence(name: string, key: string, answer: Answer | Answer[] | undefined): Answer | undefined {
+  if (!Array.isArray(answer)) return answer;
+  const counter = join(dirname(process.env.SPP_WRITES ?? tmpdir()), `calls-${createHash("sha1").update(name + " " + key).digest("hex")}`);
+  appendFileSync(counter, "x");
+  return answer[Math.min(readFileSync(counter).length, answer.length) - 1];
+}
+
 // The body of spp/test/stubs/gh and spp/test/stubs/claude.
 export function stub(name: "gh" | "claude"): void {
   const dir = process.env.SPP_CASE;
@@ -89,11 +100,10 @@ export function stub(name: "gh" | "claude"): void {
   const keyArgs = argv.map((a) => a.replace(/^query=\s*(?:query|mutation)\s+(\w+)[\s\S]*$/, "query=$1"));
   const key = keyArgs.join(" ");
   const input = process.stdin.isTTY ? "" : readFileSync(0, "utf8");
-  // shortcut: only gh writes are logged; log claude calls too once a command dispatches workers through it.
-  const write = name === "gh" && isGhWrite(argv);
+  const write = name === "gh" ? isGhWrite(argv) : argv[0] !== "agents";
   if (write) appendFileSync(process.env.SPP_WRITES ?? "/dev/null", JSON.stringify({ cmd: name, argv: keyArgs, ...(input && { input }) }) + "\n");
-  const answers = JSON.parse(read(dir, name === "gh" ? "gh.json" : "agents.json") ?? "{}") as Record<string, Answer>;
-  const answer = answers[key];
+  const answers = JSON.parse(read(dir, name === "gh" ? "gh.json" : "agents.json") ?? "{}") as Record<string, Answer | Answer[]>;
+  const answer = sequence(name, key, answers[key]);
   if (!answer) {
     if (write) return;
     process.stderr.write(`stub ${name}: no answer for: ${key}\n`);
