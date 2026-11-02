@@ -2,10 +2,10 @@
  * `spp wait <epic> [--interval SECONDS] [--timeout SECONDS]` polls the Epic's state and the `claude` session list
  * every interval (default 120 seconds) and exits when something changes, with one line per change: a ticket's state
  * (`#12 claimed -> pr-open`) or one of its workers that stopped working (`t-12 done`). The first poll also reports a
- * held ticket whose worker session is listed but no longer live, since it stopped before the wait began. When nothing
- * changes for `--timeout` seconds (default 1800) it exits with one `heartbeat:` line, so a worker that died unseen
- * never leaves the orchestrator asleep. Run it in the background so its exit wakes the orchestrator. It has no
- * `--json`.
+ * claimed ticket with no pull request whose worker session is listed but no longer live, since that worker stopped
+ * before the wait began. When nothing changes for `--timeout` seconds (default 1800) it exits with one `heartbeat:`
+ * line, so a worker that died unseen never leaves the orchestrator asleep. Run it in the background so its exit wakes
+ * the orchestrator. It has no `--json`.
  *
  * @module
  */
@@ -19,8 +19,8 @@ import { fetchState } from "./status.ts";
 /** The usage text `spp wait --help` prints. */
 export const USAGE = `usage: spp wait <epic number | issue URL> [--interval SECONDS] [--timeout SECONDS]
 Exits 0 with one line per change: a ticket's state ("#12 claimed -> pr-open") or a worker that stopped working
-("t-12 done"), a held ticket's worker that had already stopped included; or, when nothing changed for --timeout
-seconds, one "heartbeat:" line. The interval defaults to 120 seconds and the timeout to 1800.
+("t-12 done"), a claimed ticket's worker that stopped before opening its PR included; or, when nothing changed
+for --timeout seconds, one "heartbeat:" line. The interval defaults to 120 seconds and the timeout to 1800.
 `;
 
 type Poll = { state: EpicState; sessions: Session[] };
@@ -44,9 +44,10 @@ function changes(before: Poll, now: Poll): string[] {
   return [...tickets, ...workers];
 }
 
-// Held tickets whose worker session is listed but no longer live: it stopped before the first poll could see it go.
+// Held tickets with no pull request whose worker session is listed but no longer live: it stopped before the first
+// poll could see it go. A worker that opened its pull request is done by design, so that ticket waits on CI or the gate.
 function stopped(p: Poll): string[] {
-  const held = p.state.tickets.filter((t) => t.state !== "merged" && (t.claimed || t.assignees.length) && !liveWorker(t, p.sessions));
+  const held = p.state.tickets.filter((t) => t.state === "claimed" && !liveWorker(t, p.sessions));
   return held.flatMap((t) => {
     const s = p.sessions.find((s) => s.name && [t.worker, `t-${t.number}`].includes(s.name));
     return s ? [`${s.name} ${sessionState(s)}`] : [];
@@ -64,8 +65,8 @@ const seconds = (rest: string[], flag: string, fallback: number) => {
  *
  * @param args - The Epic (an issue number in the current repo or an issue URL), then `--interval SECONDS` and
  *   `--timeout SECONDS`.
- * @returns 0 once something changed or the timeout passed; 2 on a usage error, with the usage on stderr; 1 when `gh` fails, with the
- *   reason on stderr.
+ * @returns 0 once something changed or the timeout passed; 2 on a usage error, with the usage on stderr; 1 when `gh`
+ *   fails, with the reason on stderr.
  * @example
  * ```bash
  * spp wait 197 --interval 60

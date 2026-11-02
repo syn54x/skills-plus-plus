@@ -74,7 +74,6 @@ function render(data: Data): string {
   ].join("\n");
 }
 
-// The merge for each operation, from its flags.
 // Whether two forms of a ticket (a number, owner/repo#N or the issue URL) name the same one, a number taken to be in
 // the Epic's repo. shortcut: with the Epic given as a number its repo is unknown, so a number then matches only a number.
 function sameTicket(epicRepo: string | null): (a: string | number, b: string) => boolean {
@@ -85,6 +84,7 @@ function sameTicket(epicRepo: string | null): (a: string | number, b: string) =>
   return (a, b) => key(String(a)) === key(b);
 }
 
+// The merge for each operation, from its flags.
 function merger(op: string, f: Record<string, string>, epicRepo: string | null): (d: WaveData) => void {
   if (op === "add") {
     if (!/^\d+$/.test(f["--n"] ?? "")) throw new UsageError("wave add needs --n N");

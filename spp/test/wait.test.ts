@@ -81,6 +81,14 @@ describe("edge cases", () => {
     assert.equal(r.stdout, "t-12 done\n");
   });
 
+  test("a worker that stopped after opening its pull request is not reported, so the wait does not wake at once", async () => {
+    const dir = scratch([snapshot(true)], [session("done")]);
+    writeFileSync(join(dir, "args"), "197\n--interval\n0\n--timeout\n0\n");
+    const r = await runCase("wait", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "heartbeat: nothing changed in 0s\n");
+  });
+
   test("nothing changing until the timeout exits 0 with one heartbeat line", async () => {
     const dir = scratch([snapshot(false)], [session("working")]);
     writeFileSync(join(dir, "args"), "197\n--interval\n0\n--timeout\n0\n");
