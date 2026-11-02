@@ -71,6 +71,25 @@ describe("happy path", () => {
   });
 });
 
+// F7 on #267: wait wakes the orchestrator even when nothing changes between its polls.
+describe("edge cases", () => {
+  test("a claimed ticket whose worker had already stopped before the wait began is reported on the first poll", async () => {
+    const dir = scratch([snapshot(false)], [session("done")]);
+    writeFileSync(join(dir, "args"), "197\n--interval\n0\n--timeout\n60\n");
+    const r = await runCase("wait", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "t-12 done\n");
+  });
+
+  test("nothing changing until the timeout exits 0 with one heartbeat line", async () => {
+    const dir = scratch([snapshot(false)], [session("working")]);
+    writeFileSync(join(dir, "args"), "197\n--interval\n0\n--timeout\n0\n");
+    const r = await runCase("wait", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "heartbeat: nothing changed in 0s\n");
+  });
+});
+
 describe("error paths", () => {
   test("a negative interval exits 2 with usage", async () => {
     const dir = scratch([snapshot(false)], [session("working")]);
