@@ -25,7 +25,7 @@ The repo needs a Routing block in its `CLAUDE.md` or `AGENTS.md`, written by `/s
 
 Every slice is a *tracer bullet*: once it merges, a person can watch something work. "Export one saved report as CSV" is a slice; "add the exports table" is a layer, and on its own it shows nothing. Layer-shaped slices leave each worker grading code another worker owns, and nothing runs until the last one lands.
 
-When a change breaks call sites everywhere at once, such as renaming a widely used column, the slices follow *expand and contract* instead: add the new form, move callers over package by package, then delete the old form.
+When one change breaks every reader at once, such as renaming the field that the export, the list view and the scheduler all read, the slices follow *expand and contract* instead. One slice adds the new field beside the old, one slice per reader moves over to it, and a last slice drops the old field.
 
 ## From approval to plan
 

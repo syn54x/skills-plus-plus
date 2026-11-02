@@ -52,7 +52,7 @@ The **scenario data exists** check applies here. Whatever a result asserts on, b
 
 `## Verify` is one fenced block of commands to run from the repo root, and passing it is what done means; the worker runs it, and so does the reviewer after them. Each line is a command, never an instruction to inspect something. Tests are selected to this issue, by its Test paths or the test-selection tool the Laws name, because CI already runs everything on the pull request.
 
-The **Verify resolves, and is green on the default branch where it can be** check applies here. Every tool must be on the machine or named in the repo's own tooling (the CI workflow, a Makefile, `pyproject.toml`, package scripts), and every subcommand must answer `--help`. Next, on a fresh checkout of the default branch, run each command that does not wait on this issue's code, such as a lint, a typecheck or an existing test path. Any that fail there would greet the worker with a red it did not cause, so fix the block now. Commands for tests the issue will add fail today by design; for those, resolving is enough.
+The **Verify resolves, and is green on the base branch where it can be** check applies here. The base is the branch this Sub-issue's pull request will target: the Epic's integration branch for a Sub-issue, the default branch for a One-off. Every tool must be on the machine or named in the repo's own tooling (the CI workflow, a Makefile, `pyproject.toml`, package scripts), and every subcommand must answer `--help`. Next, on a fresh checkout of the base branch, run each command that does not wait on this issue's code, such as a lint, a typecheck or an existing test path. Any that fail there would greet the worker with a red it did not cause, so fix the block now. Commands for tests the issue will add fail today by design; for those, resolving is enough.
 
 ## Nothing left to ask
 
@@ -62,7 +62,7 @@ Read the six sections as the worker would, and remove every spot where they woul
 
 Write the body to a file unique to this issue, apply it with `gh issue edit <N> --body-file <file>`, and run `spp lint ticket <N>`. Each line of its output names a rule and the failure; fix, write, and run again until it prints `ok`.
 
-Some gaps need a person: an output nobody has decided, a default-branch failure this issue cannot fix, an Interface the Epic leaves open, a placement no law settles. For those, `gh issue edit <N> --add-label needs-info --remove-label ready-for-agent`, then one comment titled **Still open** with a bullet per gap naming the section it holds up.
+Some gaps need a person: an output nobody has decided, a base-branch failure this issue cannot fix, an Interface the Epic leaves open, a placement no law settles. For those, `gh issue edit <N> --add-label needs-info --remove-label ready-for-agent`, then one comment titled **Still open** with a bullet per gap naming the section it holds up.
 
 ## Done when
 

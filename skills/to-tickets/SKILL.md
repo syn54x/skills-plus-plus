@@ -14,11 +14,19 @@ The examples follow one Epic: scheduled CSV exports of saved reports.
 
 Read the code the Epic touches, `GLOSSARY.md`, and the Laws line's documents. Where a slice needs a term the glossary does not have, or the Epic uses a term in a sense the glossary contradicts, call the Skill tool with "domain-modeling" before naming the slice.
 
-Cut the work into *tracer bullets*. A tracer bullet goes end to end through whatever the behaviour needs (data, logic, the surface a user touches, the tests) and, once merged, does something a person can watch happen: "export one saved report as CSV" is a slice, "add the exports table" is not. A worker in a fresh session should be able to finish one. Put any prefactoring that makes the feature easier first, as slices of its own.
+Slice by behaviour, never by layer. A slice is a *tracer bullet* when merging it lets someone watch the Epic do one more thing: "export one saved report as CSV" is one, "add the exports table" is not, because a table alone shows nothing. Each slice carries every layer its behaviour touches, tests included, and is small enough for one worker session. Groundwork that makes the Epic's slices simpler goes first, as slices of its own.
 
 Each slice lists its blockers, meaning only the slices whose merged code it needs. "Schedule a weekly export" needs "export one report"; "email the export" and "schedule it" probably need only the first, so they stay unblocked from each other and can share a Wave.
 
-Some changes cannot be sliced end to end, because one edit breaks call sites across the whole codebase: renaming a widely used column, changing the type of a shared symbol. Use *expand and contract* there. The first slice adds the new form while the old one still works. Then one slice per package (or per directory, whatever keeps each slice small) moves its callers to the new form, each blocked by that first slice. A last slice, blocked by all of them, deletes the old form. If the callers are too tangled for any one package to switch and stay green, let those slices land red on the Epic's integration branch, and make the last slice the one that has to verify green.
+**When a slice cannot land green alone.** Suppose the Epic renames `Report.title` to `Report.name`, and the export, the list view and the scheduler all read it. Any single edit breaks the other two, so no tracer bullet exists for it. Cut it into three phases instead:
+
+| Phase | Slice | Blocked by | CI after it merges |
+| --- | --- | --- | --- |
+| Expand | Add `name` beside `title`, both filled | none | green, `title` still works |
+| Migrate | One slice each for the export, the list view and the scheduler, reading `name` | the expand slice | green, `title` still exists |
+| Contract | Remove `title` | all three migrate slices | green, no reader is left |
+
+If the readers are so entangled that a migrate slice breaks the build until its neighbours move too, keep the same three phases, let the migrate slices merge into the Epic's integration branch while red, and make the contract slice the one that must verify green.
 
 ## 2. Agree the breakdown
 

@@ -25,7 +25,7 @@ Type `/harden <N>`, or the agent starts it when a task fits. Most runs happen in
 | What am I making? | What to build, Acceptance criteria, size | each criterion being false before the work starts |
 | Which files are mine? | Files owned | output pins, callers of changed signatures, ADR placement |
 | What do my neighbours call things? | Interfaces | codebase-design, when a module is new or reshaped |
-| How do I know I am finished? | Test scenarios, Verify | scenario data exists, Verify resolves and passes on the default branch |
+| How do I know I am finished? | Test scenarios, Verify | scenario data exists, Verify resolves and passes on the base branch |
 
 ## Common questions
 
@@ -42,7 +42,7 @@ The comment titled **Still open** lists each gap and the section it holds up. Se
 That fixture asserts the output being changed. The search for those runs over the whole tree, so a pinned string in a root-level fixture or a CI step is owned up front, and the worker never has to edit a file it does not hold.
 
 **Can a Verify command fail before the work starts?**
-Only one that runs tests the issue will add. Every other command, such as a lint or a typecheck, has to pass on the default branch first; otherwise the worker would start from a failure it did not cause.
+Only one that runs tests the issue will add. Every other command, such as a lint or a typecheck, has to pass on the base branch first, meaning the branch the pull request will target: the Epic's integration branch for a Sub-issue, the default branch for a One-off; otherwise the worker would start from a failure it did not cause.
 
 ## It's working if
 
