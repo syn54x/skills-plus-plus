@@ -2,7 +2,7 @@
 
 `harden` writes the Ticket contract into one GitHub issue: What to build, Acceptance criteria, Files owned, Interfaces, Test scenarios, a Verify block, and a single size label. After it runs, a worker who reads only that issue can build it.
 
-It writes from the repository, not from the plan. Before a section goes into the issue, `harden` checks it against the code, because the plan is usually where a wrong file list or an unrunnable command comes from. Then `spp lint ticket` checks the result mechanically. It ends in one of two states: the lint prints `ok`, or the issue is labelled `needs-info` with a comment saying what a person still has to decide.
+It writes from the repository, not from the plan. Before a section goes into the issue, `harden` checks it against the code, because the plan is usually where a wrong file list or an unrunnable command comes from. Then `spp lint ticket --pin` checks the result mechanically and, when it passes, pins the Verify block. It ends in one of two states: the lint prints `ok` and the block is pinned, or the issue is labelled `needs-info` with a comment saying what a person still has to decide.
 
 ## When to reach for it
 
@@ -35,6 +35,9 @@ Both to-tickets and triage need to write the same contract. When the rules lived
 **What does `spp lint ticket` check, and what is left to `harden`?**
 The lint checks what a script can: every section present, a fenced Verify block, the shape of Files owned and Test scenario lines, exactly one size label, and no `TBD`, `TODO` or similar marker. Whether the scenarios assert on real data, whether the file list is complete, and whether the commands run are questions about the repository, so `harden` answers them before the lint runs.
 
+**Why does `spp verify` say the Verify block is not pinned, or changed since it was hardened?**
+A worker runs the Verify block's commands on its own machine, and anyone who can edit the issue, the person who filed it included, can change those commands after you approved them. So the last lint run stores a hash of the block in the issue's progress comment, and `spp verify` runs only a block that still matches it. If the change was yours and intended, run `/harden <N>` again so the new block is checked and pinned.
+
 **My issue was labelled `needs-info`. What happens next?**
 The comment titled **Still open** lists each gap and the section it holds up. Settle those (an output wording, an Interface the Epic left open), then run `/harden <N>` again.
 
@@ -46,7 +49,7 @@ Only one that runs tests the issue will add. Every other command, such as a lint
 
 ## It's working if
 
-- `spp lint ticket <N>` prints `ok`, or the issue carries `needs-info` and a **Still open** comment.
+- `spp lint ticket <N> --pin` prints `ok` and the progress comment shows a **Verify pin** line, or the issue carries `needs-info` and a **Still open** comment.
 - Workers' pull requests never report a corrected Verify block.
 - No pull request edits a file outside its Files owned to make a test or a caller pass.
 - Each Test scenario reads as something done and what it caused.

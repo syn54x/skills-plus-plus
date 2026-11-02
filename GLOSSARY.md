@@ -99,7 +99,7 @@ Marking a **Sub-issue** as held by whoever builds it, with the **Claim mark**. I
 The label `claimed`. The holder sets it before any work; a **Hand-back** clears it, otherwise it stays through `pr-open`. Its lifecycle is an assignee's, not a workflow status's.
 
 **Verify block**:
-The fenced commands under a **Sub-issue**'s `## Verify`. Green means done. The result is recorded against the commit, and a stop hook refuses an unverified finish.
+The fenced commands under a **Sub-issue**'s `## Verify`. Green means done. The result is recorded against the commit, and a stop hook refuses an unverified finish. Hardening pins the approved block by its hash, and `spp verify` runs only a block that matches its pin.
 
 **Interface deviation**:
 A **Sub-issue**'s declared departure from its own Produces line, stated in its pull request and recorded on the **Epic**'s plan. Only in-repo code signatures may deviate; a cross-repo contract or an interface the **Epic** states never does.
@@ -113,7 +113,7 @@ Returning a **Sub-issue** to a person or a queue: a worker stopping without a pu
 _Avoid_: escalation (a grilling term), unclaim (only the mark half)
 
 **Marker comment**:
-An issue comment spp owns, found by the hidden marker on its first line and rewritten in place: the progress comment on a **Sub-issue**, the plan and wave comments on an **Epic**. The lines above are for people; the base64 data trailer on its last line is what `spp` reads back.
+An issue comment spp owns, found by the hidden marker on its first line and rewritten in place: the progress comment on a **Sub-issue**, the plan and wave comments on an **Epic**. The lines above are for people; the base64 data trailer on its last line is what `spp` reads back, and only from the gh user or an author GitHub marks OWNER, MEMBER or COLLABORATOR.
 _Avoid_: status comment, sticky comment
 
 **Note**:

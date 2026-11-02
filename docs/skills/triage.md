@@ -49,7 +49,7 @@ No, only issues. A pull request goes to [review](review.md).
 Watching a run, you see:
 
 - the agent run the reproduction and show you its failing output before it calls a bug confirmed;
-- a `ready-for-agent` label go on only after `spp lint ticket` has printed `ok`, with the issue already holding one size label;
+- a `ready-for-agent` label go on only after `spp lint ticket --pin` has printed `ok`, with the issue already holding one size label and its Verify block pinned;
 - the agent reread the issue body after harden and confirm the reproduction is still the first Verify line;
 - the issue's label list change by one swap, ending with a single state label, and a comment starting with the disclaimer beside it;
 - no question put to you that the code, the issue thread or `.out-of-scope/` could have answered;
