@@ -1,0 +1,1 @@
+{"cmd":"gh","argv":["api","-X","POST","repos/{owner}/{repo}/issues/40/comments","-f","body=<!-- spp-verdict -->\n**Spec:** pass\n**Quality:** fail\n**Head:** `ccccccc`\n**Ticket:** 219\n<!-- sdd-data: eyJ0aWNrZXQiOiIyMTkiLCJoZWFkIjoiY2NjY2NjYyIsInNwZWMiOiJwYXNzIiwicXVhbGl0eSI6ImZhaWwifQ== -->\n","--jq",".html_url"]}

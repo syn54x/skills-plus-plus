@@ -1,0 +1,5 @@
+{
+  "pr view 40 --json headRefOid --jq .headRefOid": {
+    "stdout": "cccccccccccccccccccccccccccccccccccccccc\n"
+  }
+}
