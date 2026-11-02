@@ -10,8 +10,8 @@ Its forms:
   prints [WavePlan](#waveplan). It writes nothing.
 - `spp wave <epic> add --n N --tickets ... --workers ... --started ISO8601 --edges ...` records a Wave, replacing
   any wave with the same `--n`.
-- `spp wave <epic> pr --ticket T --pr URL|#n` records a pull request on the last wave holding `--ticket`, given in
-  the form `add` stored.
+- `spp wave <epic> pr --ticket T --pr URL|#n` records a pull request on the last wave holding `--ticket`, in any
+  of its forms: a number in the Epic's repo, `owner/repo#N` or the issue URL.
 - `spp wave <epic> panel --round R --verdict V [--report URL] ...` records a review panel round, replacing the
   round with the same `--round`.
 
@@ -71,7 +71,7 @@ wave plan prints the ready tickets that can run together (at most --max, default
 a ready ticket that overlaps work in flight (claimed, assigned or with its PR open) is held until that merges.
 wave add replaces every wave with the same --n; wave panel replaces the entry with the same --round
 (a round shown but never posted has no --report and renders unposted);
-wave pr records the PR on the last wave whose tickets hold --ticket, given in the form wave add stored.
+wave pr records the PR on the last wave whose tickets hold --ticket, in any of its forms (number, owner/repo#N, URL).
 A wave ticket is a number, owner/repo#N or an issue URL, stored and rendered as given.
 ```
 

@@ -11,8 +11,8 @@
  *   prints {@link WavePlan}. It writes nothing.
  * - `spp wave <epic> add --n N --tickets ... --workers ... --started ISO8601 --edges ...` records a Wave, replacing
  *   any wave with the same `--n`.
- * - `spp wave <epic> pr --ticket T --pr URL|#n` records a pull request on the last wave holding `--ticket`, given in
- *   the form `add` stored.
+ * - `spp wave <epic> pr --ticket T --pr URL|#n` records a pull request on the last wave holding `--ticket`, in any
+ *   of its forms: a number in the Epic's repo, `owner/repo#N` or the issue URL.
  * - `spp wave <epic> panel --round R --verdict V [--report URL] ...` records a review panel round, replacing the
  *   round with the same `--round`.
  *
@@ -39,7 +39,7 @@ wave plan prints the ready tickets that can run together (at most --max, default
 a ready ticket that overlaps work in flight (claimed, assigned or with its PR open) is held until that merges.
 wave add replaces every wave with the same --n; wave panel replaces the entry with the same --round
 (a round shown but never posted has no --report and renders unposted);
-wave pr records the PR on the last wave whose tickets hold --ticket, given in the form wave add stored.
+wave pr records the PR on the last wave whose tickets hold --ticket, in any of its forms (number, owner/repo#N, URL).
 A wave ticket is a number, owner/repo#N or an issue URL, stored and rendered as given.
 `;
 
@@ -75,7 +75,17 @@ function render(data: Data): string {
 }
 
 // The merge for each operation, from its flags.
-function merger(op: string, f: Record<string, string>): (d: WaveData) => void {
+// Whether two forms of a ticket (a number, owner/repo#N or the issue URL) name the same one, a number taken to be in
+// the Epic's repo. shortcut: with the Epic given as a number its repo is unknown, so a number then matches only a number.
+function sameTicket(epicRepo: string | null): (a: string | number, b: string) => boolean {
+  const key = (t: string) => {
+    const m = /^(?:https:\/\/github\.com\/)?([\w.-]+\/[\w.-]+)(?:#|\/issues\/)(\d+)$/.exec(t);
+    return m ? `${m[1].toLowerCase()}#${m[2]}` : `${epicRepo?.toLowerCase() ?? ""}#${t}`;
+  };
+  return (a, b) => key(String(a)) === key(b);
+}
+
+function merger(op: string, f: Record<string, string>, epicRepo: string | null): (d: WaveData) => void {
   if (op === "add") {
     if (!/^\d+$/.test(f["--n"] ?? "")) throw new UsageError("wave add needs --n N");
     if (!TICKETS.test(f["--tickets"] ?? "")) throw new UsageError("wave add needs --tickets 101,owner/repo#7,...");
@@ -95,10 +105,12 @@ function merger(op: string, f: Record<string, string>): (d: WaveData) => void {
     const ticket = f["--ticket"] ?? "";
     if (!new RegExp(`^${T}$`).test(ticket)) throw new UsageError("wave pr needs --ticket N|owner/repo#N|URL");
     if (!f["--pr"]) throw new UsageError("wave pr needs --pr URL|#n");
+    const same = sameTicket(epicRepo);
+    // The PR is stored under the ticket as the wave holds it, whichever form --ticket used.
     return (d) => {
-      const w = d.waves.findLast((w) => w.tickets.some((t) => String(t) === ticket));
+      const w = d.waves.findLast((w) => w.tickets.some((t) => same(t, ticket)));
       if (!w) throw new UsageError(`no wave holds ticket ${ticket}`);
-      w.prs[ticket] = f["--pr"];
+      w.prs[String(w.tickets.find((t) => same(t, ticket)))] = f["--pr"];
     };
   }
   const round = f["--round"] ?? "";
@@ -254,7 +266,8 @@ export function run(args: string[]): Promise<number> {
   return guarded(() => (known ? `wave ${op}` : "wave"), USAGE, async () => {
     if (epic === undefined) throw new UsageError("");
     if (!known) throw new UsageError("wave takes add, pr or panel");
-    const merge = merger(op, Object.fromEntries(flagPairs(rest, FLAGS[op])));
+    const e = parseIssue(epic);
+    const merge = merger(op, Object.fromEntries(flagPairs(rest, FLAGS[op])), e.repoFlag.length ? e.repo : null);
     print(
       await updateMarker(epic, "<!-- sdd-wave -->", render, (old) => {
         const data = { waves: [], panel: [], ...old } as WaveData;

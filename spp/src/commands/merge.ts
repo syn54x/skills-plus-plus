@@ -94,7 +94,7 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
     return refuse(e.message);
   }
 
-  // The wave comment stores a ticket in the Epic's repo as its number and any other as owner/repo#N.
+  // wave pr matches a ticket in any of its forms, whichever one the wave stored.
   const [, to, tr, tn] = ISSUE_URL.exec(ticketUrl)!;
   const waveTicket = to === epic[1] && tr === epic[2] ? tn : `${to}/${tr}#${tn}`;
   const spp = process.argv[1]; // the running bin/spp: its path from here differs between spp/src and the compiled dist/
