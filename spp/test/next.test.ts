@@ -9,7 +9,7 @@ type Verdict = { head: string; spec: "pass" | "fail"; quality: "pass" | "fail" }
 // red: earlier heads of the pull request whose checks failed; rebased: failing heads a force push replaced;
 // forged: the revisions of a verdict comment an outside author posted before the real one.
 type PrSpec = { n: number; state?: "OPEN" | "MERGED" | "CLOSED"; head?: string; verdict?: Verdict; checks?: string; history?: Verdict[]; red?: string[]; rebased?: string[]; forged?: Verdict[] };
-type Spec = { n: number; closed?: boolean; labels?: string[]; assignees?: string[]; blockedBy?: number[]; pr?: PrSpec; worker?: string; files?: string[] };
+type Spec = { n: number; closed?: boolean; labels?: string[]; assignees?: string[]; blockedBy?: number[]; pr?: PrSpec; worker?: string; files?: string[]; extraPrs?: PrSpec[] };
 type Opts = {
   branch?: string | null;
   panel?: string;
@@ -57,7 +57,7 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
     assignees: { nodes: (t.assignees ?? []).map((login) => ({ login })) },
     blockedBy: { nodes: (t.blockedBy ?? []).map((b) => ({ url: ISSUE + b, state: tickets.find((x) => x.n === b)?.closed ? "CLOSED" : "OPEN" })) },
     comments: { nodes: t.worker ? [by(trailer("<!-- sdd-progress -->", { worker: t.worker }))] : [] },
-    closedByPullRequestsReferences: { nodes: t.pr ? [pr(t.pr)] : [] },
+    closedByPullRequestsReferences: { nodes: [...(t.pr ? [pr(t.pr)] : []), ...(t.extraPrs ?? []).map(pr)] },
     timelineItems: { nodes: [] },
   });
   const gh: Record<string, unknown> = {
@@ -295,6 +295,28 @@ describe("edge cases", () => {
     assert.equal(actions[0].panel, false);
   });
 
+  // Review of #271: a claimed worker that died before its pull request must end the wait loop, not feed it.
+  test("a claimed ticket with no pull request whose worker session stopped: one hand-back naming the lost worker, on every call", async () => {
+    const tickets: Spec[] = [{ n: 12, labels: [...READY, "claimed"], worker: "t-12" }];
+    const agents = [{ name: "t-12", kind: "background", state: "done" }];
+    for (let call = 0; call < 2; call++) {
+      const actions = await next(tickets, { agents });
+      assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["hand-back", ["12"]]]);
+      assert.match(actions[0].reason, /#12 .*t-12 done.*worker lost/);
+    }
+  });
+
+  test("once that lost worker's ticket is handed back, next is stuck on it, not waiting", async () => {
+    const actions = await next([{ n: 12, labels: ["size:S", "needs-info"], worker: "t-12" }], { agents: [{ name: "t-12", kind: "background", state: "done" }] });
+    assert.deepEqual(kinds(actions), ["stuck"]);
+    assert.match(actions[0].reason, /#12 is handed back/);
+  });
+
+  test("a ticket a person holds by assignment, with a stale t-<N> session listed, is a live hold: wait", async () => {
+    const actions = await next([{ n: 12, assignees: ["alice"] }], { agents: [{ name: "t-12", kind: "background", state: "done" }] });
+    assert.deepEqual(kinds(actions), ["wait"]);
+  });
+
   test("a ready ticket whose dispatched worker session is still working is waited on, not dispatched again", async () => {
     const actions = await next([{ n: 12, worker: "t-12" }], { agents: [{ name: "t-12", kind: "background", state: "working" }] });
     assert.deepEqual(kinds(actions), ["wait"]);
@@ -368,6 +390,20 @@ describe("hand-backs and merged blockers (F5, F6 on #267)", () => {
     const actions = await next(tickets);
     assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["12"]]]);
     assert.equal(await stateOf(tickets, 12), "ready");
+  });
+});
+
+// Review of #271: derive's blockers and planNext read one rule for a landed ticket, the pull request it shows.
+describe("one rule for a landed blocker", () => {
+  test("a blocker with a merged pull request and a newer open one is not done: its dependant stays blocked, and its open PR is gated", async () => {
+    const tickets: Spec[] = [
+      { n: 11, labels: [...READY, "claimed"], pr: { n: 112 }, extraPrs: [{ n: 111, state: "MERGED" }] },
+      { n: 12, blockedBy: [11] },
+    ];
+    const actions = await next(tickets);
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["gate", ["11"]]]);
+    const s = (await runCase("status", scratch(tickets))).json as { tickets: { number: number; state: string }[] };
+    assert.equal(s.tickets.find((t) => t.number === 12)?.state, "blocked");
   });
 });
 

@@ -2,7 +2,7 @@
  * `spp wait <epic> [--interval SECONDS] [--timeout SECONDS]` polls the Epic's state and the `claude` session list
  * every interval (default 120 seconds) and exits when something changes, with one line per change: a ticket's state
  * (`#12 claimed -> pr-open`) or one of its workers that stopped working (`t-12 done`). The first poll also reports a
- * claimed ticket with no pull request whose worker session is listed but no longer live, since that worker stopped
+ * claimed, unassigned ticket with no pull request whose worker session is listed but no longer live, since it stopped
  * before the wait began. When nothing changes for `--timeout` seconds (default 1800) it exits with one `heartbeat:`
  * line, so a worker that died unseen never leaves the orchestrator asleep. Run it in the background so its exit wakes
  * the orchestrator. It has no `--json`.
@@ -12,7 +12,7 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { type EpicState, refIn } from "../derive.ts";
 import { flagPairs, guarded, parseIssue, UsageError } from "../markers.ts";
-import { liveWorker, type Session } from "../plan-next.ts";
+import { lostWorker, type Session } from "../plan-next.ts";
 import { readSessions } from "./next.ts";
 import { fetchState } from "./status.ts";
 
@@ -44,12 +44,11 @@ function changes(before: Poll, now: Poll): string[] {
   return [...tickets, ...workers];
 }
 
-// Held tickets with no pull request whose worker session is listed but no longer live: it stopped before the first
-// poll could see it go. A worker that opened its pull request is done by design, so that ticket waits on CI or the gate.
+// Lost workers (see lostWorker): they stopped before the first poll could see them go, and spp next hands their tickets
+// back. A worker that opened its pull request is done by design, and a person's assignment is a live hold.
 function stopped(p: Poll): string[] {
-  const held = p.state.tickets.filter((t) => t.state === "claimed" && !liveWorker(t, p.sessions));
-  return held.flatMap((t) => {
-    const s = p.sessions.find((s) => s.name && [t.worker, `t-${t.number}`].includes(s.name));
+  return p.state.tickets.flatMap((t) => {
+    const s = lostWorker(t, p.sessions);
     return s ? [`${s.name} ${sessionState(s)}`] : [];
   });
 }

@@ -5,7 +5,7 @@ import type { Pr, Snapshot, SnapshotIssue } from "./snapshot.ts";
  * Where a Sub-issue stands, the first that fits: `merged` (the issue is closed), `handed-back` (unheld, with a route
  * label; `blocked` beside `ready-for-agent` is not one, since that route waits on its blocked-by edge), `pr-open`,
  * `gate-pass` or `gate-fail` (an open pull request, by the slice gate's verdict on its current head), `claimed` (held
- * by the Claim mark or an assignee), `blocked` (an open blocker whose pull request has not merged), `not-agent` (no
+ * by the Claim mark or an assignee), `blocked` (an open blocker that has not landed), `not-agent` (no
  * `ready-for-agent` label), else `ready`.
  */
 export type TicketState = "blocked" | "ready" | "claimed" | "pr-open" | "gate-pass" | "gate-fail" | "merged" | "handed-back" | "not-agent";
@@ -26,7 +26,7 @@ export type Ticket = {
   state: TicketState;
   /** The Layer: one above its highest open blocker inside the Epic, 0 with none; null when caught in a cycle. */
   layer: number | null;
-  /** URLs of open blockers, leaving out one whose pull request merged while its issue stays open. */
+  /** URLs of open blockers, leaving out one that landed (the pull request it shows merged) while its issue stays open. */
   blockedBy: string[];
   /** Whether it carries the Claim mark (the `claimed` label); an assignee also holds a ticket. */
   claimed: boolean;
@@ -103,11 +103,17 @@ function stateOf(i: SnapshotIssue, blockedBy: string[], pr: Pr | null): TicketSt
   return "ready";
 }
 
+/**
+ * Whether a ticket's work has landed: its issue is closed, or the pull request it shows (an open one first) merged into
+ * the integration branch, which closes nothing, so its issue may stay open. derive's blockers and planNext both read it.
+ */
+export const landed = (closed: boolean, pr: Pr | null) => closed || pr?.state === "MERGED";
+
 export function derive(s: Snapshot): EpicState {
-  // A pull request merged into the integration branch closes nothing, so its issue may stay open; it no longer blocks.
-  const landed = new Set(s.issues.filter((i) => i.prs.some((p) => p.state === "MERGED")).map((i) => i.url));
+  // A landed blocker no longer blocks, even while its issue stays open.
+  const done = new Set(s.issues.filter((i) => landed(i.state === "CLOSED", pickPr(i.prs))).map((i) => i.url));
   const tickets: Ticket[] = s.issues.map((i) => {
-    const blockedBy = i.blockedBy.filter((b) => b.open && !landed.has(b.url)).map((b) => b.url);
+    const blockedBy = i.blockedBy.filter((b) => b.open && !done.has(b.url)).map((b) => b.url);
     const pr = pickPr(i.prs);
     const size = i.labels.find((l) => /^size:[SML]$/.test(l))?.slice(5) as Ticket["size"] | undefined;
     return {

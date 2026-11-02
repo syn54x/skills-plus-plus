@@ -29,7 +29,7 @@ For work too small to file, skip spp and edit directly. `ask-spp` routes between
 | `dispatch` | A Wave of ready, non-overlapping Sub-issues starts, one worker each. You approve the first Wave only. |
 | `gate` | A fresh reviewer reads the pull request and returns the spec and quality verdicts. |
 | `fix` | A failed gate goes back to the same worker for one fix round. |
-| `hand-back` | The fix round is spent, so the issue returns to you with the open findings. |
+| `hand-back` | The fix round is spent, so the issue returns to you with the open findings; or its worker stopped before opening a pull request (`worker lost`), and you are asked whether to hand it back or start a worker again. |
 | `merge` | A passing pull request merges once its blockers have. A conflict sends the worker back to rebase. |
 | `main-gate` | Every Sub-issue merged. `build` opens the Epic's pull request and gates it. |
 | `close` | The pull request merged. `build` points you to `/close-epic`. |
