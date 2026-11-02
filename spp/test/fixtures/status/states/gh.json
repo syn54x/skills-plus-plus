@@ -118,6 +118,7 @@
                           "url": "https://github.com/acme/app/pull/503",
                           "state": "OPEN",
                           "headRefOid": "abc1234def",
+                          "baseRefName": "feat/epic",
                           "repository": {
                             "nameWithOwner": "acme/app"
                           },
@@ -158,6 +159,7 @@
                         "url": "https://github.com/acme/app/pull/504",
                         "state": "MERGED",
                         "headRefOid": "fed4321cba",
+                        "baseRefName": "feat/epic",
                         "repository": {
                           "nameWithOwner": "acme/app"
                         }
@@ -259,6 +261,7 @@
                           "url": "https://github.com/acme/app/pull/507",
                           "state": "OPEN",
                           "headRefOid": "0000000",
+                          "baseRefName": "feat/epic",
                           "repository": {
                             "nameWithOwner": "acme/app"
                           },

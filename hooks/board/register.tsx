@@ -125,16 +125,22 @@ function statusOf(b: Board): string | undefined {
 
 // One refresh at a time: a timer tick or turn that comes while one is in flight is skipped, since each snapshot costs
 // GitHub's GraphQL budget. When the Epic changed while it loaded, the result is dropped and the new Epic is loaded.
+// The in-flight refresh learns of a new Epic from `wanted`, not the atom: a handler's reads of the atom do not see
+// another handler's write while it runs, so /epic-board sets both.
 let refreshing = false
+let wanted: string | null = null
 async function refresh($: EngineInterface) {
   if (refreshing) return
   refreshing = true
   try {
+    let epic = wanted ?? (await read($, board)).epic
     for (;;) {
-      const { epic } = await read($, board)
       if (!epic) return
       const next = await load($, epic)
-      if ((await read($, board)).epic !== epic) continue
+      if (wanted && wanted !== epic) {
+        epic = wanted
+        continue
+      }
       await update($, board, () => next)
       await $.ui.status(statusOf(next))
       return
@@ -179,6 +185,7 @@ export const register: Register = on => {
   on('command.run', { command: 'epic-board' }, async ($, e) => {
     const epic = e.args.trim() || (await currentEpic($))
     if (!epic) return { text: 'Which Epic? Run /epic-board <epic number or issue URL>.' }
+    wanted = epic
     await update($, board, () => ({ ...EMPTY, epic }))
     await refresh($)
     startTimer($)

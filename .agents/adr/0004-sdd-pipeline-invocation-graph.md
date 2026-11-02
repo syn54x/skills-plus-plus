@@ -21,6 +21,6 @@ We give each step a person takes exactly one user-invoked entry, and make every 
 
 ## How `build` reaches the panel
 
-`build` is user-invoked and so is `review-panel`, so `build` cannot call it as a skill. The panel runs as a plugin workflow that `build` starts when the Epic crosses the size thresholds; a person can still type `/review-panel` on any pull request to main.
+`build` is user-invoked and so is `review-panel`, so `build` cannot call it as a skill. When the Epic crosses the size thresholds, `build` walks `review-panel`'s own steps at the main gate, reading them from its files: the panel folder, the Personas, the `spp:review-panel` workflow started with the pull request number, then `spp findings merge --verdict`. The workflow is a pure fan-out of the Persona reviewers and holds no panel logic. Reading another skill's steps this way is the one exception [invocation.md](../invocation.md) records, ruled in Epic #197's Spec deltas (F4). A person can still type `/review-panel` on any pull request to main.
 
 `scripts/check-invocation.ts` enforces the rule: any `Call the Skill tool with "x"` or agent `skills:` preload naming a user-invoked skill fails CI.

@@ -1,8 +1,9 @@
 {
-  "issue view 12 --json body,labels,subIssuesSummary": {
+  "issue view 12 --json body,labels,parent,subIssuesSummary": {
     "stdout": {
       "body": "## Parent\n\n#10\n\n## What to build\n\nA `greet` command that prints a greeting. Quotes like `TBD` in code are not placeholders.\n\n## Acceptance criteria\n\n- [ ] `spp greet` prints `hello`.\n- [ ] It exits 0.\n\n## Files owned\n\n- Create: `src/greet.ts`, `src/greet2.ts`\n- Modify: `bin/spp`\n- Test: `test/greet.test.ts`\n\n## Interfaces\n\n- Consumes: `runGh` from #200.\n- Produces: `greet(name: string): string`, used by #13.\n\n## Test scenarios\n\n- Happy path: `spp greet` → prints `hello`.\n- Edge case: an empty name\n  → prints `hello, world`.\n- Error path: a missing argument → exits 2.\n- Integration: the router runs it → exit 0.\n\n## Verify\n\n```bash\nnpm ci\nnode --test test/greet.test.ts\n```\n\n## Blocked by\n\n- #200\n",
       "labels": [],
+      "parent": null,
       "subIssuesSummary": {
         "total": 0,
         "completed": 0,

@@ -15,7 +15,7 @@ You type `/triage`, with an issue number or with nothing to see what needs atten
 | An Epic needs cutting into Sub-issues | [to-tickets](to-tickets.md) |
 | One issue has a contract that fails the lint | [harden](harden.md) |
 
-Run `/triage` on an Epic and it stops, since an Epic goes to `/build` as it is. `ask-spp` routes between every skill when the right one is unclear.
+Run `/triage` on an Epic and it stops, since an Epic goes to `/build` as it is. It stops on a Sub-issue that already carries its contract too, and points you to `/build` on that Sub-issue's Epic. `ask-spp` routes between every skill when the right one is unclear.
 
 ## Prerequisites
 

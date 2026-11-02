@@ -41,7 +41,7 @@ Under the title sits the latest Note and its age (`first red test, 5m ago`), the
 | transcript | shows the worker's transcript in the main view, when the worker is a subagent of this session |
 | attach | puts `claude attach <worker>` in the prompt, when the worker is a background session |
 
-The board refreshes every 30 seconds, after every turn and whenever a message reaches the session. When a `gh`, `spp` or `claude` call fails, one red line under the title says which call and why. A failing `gh` call leaves no ticket rows, since the board has nothing to draw them from; a failing `spp` or `claude` call keeps the rows and drops only the notes or the worker buttons.
+The board refreshes every 2 minutes, after every turn and whenever a message reaches the session. Each refresh makes one `gh` call for the Epic's state and reads the notes from the local log that `spp note` writes. When a `gh` or `claude` call fails, one red line under the title says which call and why. A failing `gh` call leaves no ticket rows, since the board has nothing to draw them from; a failing `claude` call keeps the rows and drops only the worker buttons.
 
 ## Common questions
 
@@ -60,5 +60,4 @@ The board is a Claude Code mod, an early-access feature that an organization's p
 ## It's working if
 
 - The status line shows the Epic's merged count rising as pull requests merge.
-- Each worker's newest note appears on its row within 30 seconds of the worker posting it.
 - A row's chip matches what the issue and its pull request show on GitHub.

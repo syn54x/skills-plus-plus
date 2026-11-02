@@ -127,6 +127,7 @@
                           "url": "https://github.com/acme/api/pull/77",
                           "state": "OPEN",
                           "headRefOid": "beef",
+                          "baseRefName": "feat/epic",
                           "repository": {
                             "nameWithOwner": "acme/api"
                           },

@@ -44,7 +44,7 @@ describe("happy path", () => {
   test("an open linked pull request makes a ticket pr-open with its number and head sha", async () => {
     const t = ticket(await state("states"), 403);
     assert.equal(t.state, "pr-open");
-    assert.deepEqual(t.pr, { number: 503, url: "https://github.com/acme/app/pull/503", state: "OPEN", headSha: "abc1234def" });
+    assert.deepEqual(t.pr, { number: 503, url: "https://github.com/acme/app/pull/503", state: "OPEN", repo: "acme/app", base: "feat/epic", headSha: "abc1234def" });
   });
 
   test("a closed ticket whose linked pull request merged is merged", async () => {

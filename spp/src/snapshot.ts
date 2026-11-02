@@ -2,8 +2,6 @@
 // Pure: no network, filesystem or environment, so the epic board can import it.
 import { readVerdict, type Verdict, VERDICT_MARKER } from "./verdict.ts";
 
-export { VERDICT_MARKER };
-
 /** A pull request's state on GitHub. */
 export type PrState = "OPEN" | "MERGED" | "CLOSED";
 /** A pull request linked to a Sub-issue. */
@@ -14,6 +12,10 @@ export type Pr = {
   url: string;
   /** Its state on GitHub. */
   state: PrState;
+  /** Its repository, `owner/repo`, which may lie outside the Epic: any repository can say it closes an issue. */
+  repo: string;
+  /** The branch it merges into. */
+  base: string;
   /** The head commit's full sha. */
   headSha: string;
   /** The pull request's `<!-- spp-verdict -->` comment as `spp verdict` writes it, present only when it decodes. */
@@ -69,7 +71,7 @@ export const SNAPSHOT_QUERY = `query Snapshot($owner: String!, $repo: String!, $
     }
   }
 }
-fragment pr on PullRequest { number url state headRefOid repository { nameWithOwner } comments(first: 30) { nodes { ...comment } } }
+fragment pr on PullRequest { number url state headRefOid baseRefName repository { nameWithOwner } comments(first: 30) { nodes { ...comment } } }
 fragment comment on IssueComment { body author { login } authorAssociation }`;
 
 type Nodes<T> = { nodes: T[] };
@@ -79,6 +81,7 @@ type RawPr = {
   url: string;
   state: PrState;
   headRefOid: string;
+  baseRefName: string;
   repository: { nameWithOwner: string };
   body?: string;
   comments?: Nodes<Comment>;
@@ -165,7 +168,7 @@ function issue(raw: RawIssue, viewer: string | null): SnapshotIssue {
   const prs = new Map<string, Pr>();
   for (const p of [...raw.closedByPullRequestsReferences.nodes, ...crossRefs]) {
     const verdict = readVerdict(markerData(p.comments, VERDICT_MARKER, viewer));
-    prs.set(p.url, { number: p.number, url: p.url, state: p.state, headSha: p.headRefOid, ...(verdict && { verdict }) });
+    prs.set(p.url, { number: p.number, url: p.url, state: p.state, repo: p.repository.nameWithOwner, base: p.baseRefName, headSha: p.headRefOid, ...(verdict && { verdict }) });
   }
   return {
     number: raw.number,

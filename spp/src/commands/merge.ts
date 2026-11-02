@@ -72,10 +72,9 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   // on the head about to merge, lets the merge through.
   const verdict = readVerdict(readTrailer((await find(parseIssue(view.url.replace("/pull/", "/issues/")), VERDICT_MARKER))?.body ?? ""));
   if (gateOf({ ...ticket.pr, verdict: verdict ?? undefined }) !== "gate-pass") return refuse(`no passing verdict from a trusted author on ${ref(view.url)}`);
-  for (const b of ticket.blockedBy) {
-    const pr = byUrl.get(b)?.pr;
-    if (pr?.state !== "MERGED") return refuse(`blocked by ${ref(pr?.url ?? b)}`);
-  }
+  // blockedBy already leaves out a blocker that landed, so any one left still blocks.
+  const blocker = ticket.blockedBy[0];
+  if (blocker) return refuse(`blocked by ${ref(byUrl.get(blocker)?.pr?.url ?? blocker)}`);
   const branch = state.epic.branch;
   if (branch && view.baseRefName !== branch) return refuse(`base is ${view.baseRefName}, not the integration branch ${branch}`);
   // shortcut: none (no CI configured) does not block; a repo whose CI registers late could merge before it starts.
@@ -94,11 +93,9 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
     return refuse(e.message);
   }
 
-  // wave pr matches a ticket in any of its forms, whichever one the wave stored.
-  const [, to, tr, tn] = ISSUE_URL.exec(ticketUrl)!;
-  const waveTicket = to === epic[1] && tr === epic[2] ? tn : `${to}/${tr}#${tn}`;
+  // wave pr matches a ticket in any of its forms, whichever one the wave stored, so the issue URL does.
   const spp = process.argv[1]; // the running bin/spp: its path from here differs between spp/src and the compiled dist/
-  const wave = spawnSync(process.execPath, [spp, "wave", parent.url, "pr", "--ticket", waveTicket, "--pr", view.url], { encoding: "utf8" });
+  const wave = spawnSync(process.execPath, [spp, "wave", parent.url, "pr", "--ticket", ticketUrl, "--pr", view.url], { encoding: "utf8" });
   const changed = interfacesChanged(view.body);
   const result: MergeResult = { merged: true, ...(changed && { interfacesChanged: changed }) };
   if (wave.status !== 0) {

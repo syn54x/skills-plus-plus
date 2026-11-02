@@ -26,8 +26,10 @@ export type Ticket = {
   state: TicketState;
   /** The Layer: one above its highest open blocker inside the Epic, 0 with none; null when caught in a cycle. */
   layer: number | null;
-  /** URLs of open blockers, leaving out one that landed (the pull request it shows merged) while its issue stays open. */
+  /** URLs of open blockers, leaving out one that landed while its issue stays open. */
   blockedBy: string[];
+  /** Whether its work has landed: the issue is closed, or a pull request of its merged into the integration branch. */
+  landed: boolean;
   /** Whether it carries the Claim mark (the `claimed` label); an assignee also holds a ticket. */
   claimed: boolean;
   /** Assignee logins. */
@@ -104,14 +106,23 @@ function stateOf(i: SnapshotIssue, blockedBy: string[], pr: Pr | null): TicketSt
 }
 
 /**
- * Whether a ticket's work has landed: its issue is closed, or the pull request it shows (an open one first) merged into
- * the integration branch, which closes nothing, so its issue may stay open. derive's blockers and planNext both read it.
+ * Whether a ticket's work has landed: its issue is closed, or one of its pull requests merged into the integration
+ * branch, which closes nothing, so its issue may stay open, while none of them is still open. Only a pull request in
+ * one of the Epic's repositories counts, open or merged, since any repository can say it closes the issue (ADR 0009);
+ * with no integration branch recorded, none lands it. derive's blockers and planNext both read it, through
+ * {@link Ticket.landed}.
  */
-export const landed = (closed: boolean, pr: Pr | null) => closed || pr?.state === "MERGED";
+function landed(closed: boolean, prs: Pr[], branch: string | null, repos: Set<string>): boolean {
+  const own = prs.filter((p) => repos.has(p.repo.toLowerCase()));
+  return closed || (!own.some((p) => p.state === "OPEN") && own.some((p) => p.state === "MERGED" && p.base === branch));
+}
 
 export function derive(s: Snapshot): EpicState {
+  const branch = text(s.plan?.branch);
+  const repos = new Set([s.epic.repo, ...s.issues.map((i) => i.repo)].map((r) => r.toLowerCase()));
+  const isLanded = (i: SnapshotIssue) => landed(i.state === "CLOSED", i.prs, branch, repos);
   // A landed blocker no longer blocks, even while its issue stays open.
-  const done = new Set(s.issues.filter((i) => landed(i.state === "CLOSED", pickPr(i.prs))).map((i) => i.url));
+  const done = new Set(s.issues.filter(isLanded).map((i) => i.url));
   const tickets: Ticket[] = s.issues.map((i) => {
     const blockedBy = i.blockedBy.filter((b) => b.open && !done.has(b.url)).map((b) => b.url);
     const pr = pickPr(i.prs);
@@ -125,6 +136,7 @@ export function derive(s: Snapshot): EpicState {
       state: stateOf(i, blockedBy, pr),
       layer: null,
       blockedBy,
+      landed: done.has(i.url),
       claimed: i.labels.includes("claimed"),
       assignees: i.assignees,
       labels: i.labels,
@@ -152,5 +164,5 @@ export function derive(s: Snapshot): EpicState {
   }
 
   const counts = Object.fromEntries(STATES.map((st) => [st, tickets.filter((t) => t.state === st).length])) as Record<TicketState, number>;
-  return { epic: { ...s.epic, branch: text(s.plan?.branch) }, tickets, layers, cycle: rest.map((t) => t.url), counts };
+  return { epic: { ...s.epic, branch }, tickets, layers, cycle: rest.map((t) => t.url), counts };
 }

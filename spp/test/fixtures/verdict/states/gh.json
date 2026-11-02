@@ -53,6 +53,7 @@
              "url": "https://github.com/acme/app/pull/601",
              "state": "OPEN",
              "headRefOid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+             "baseRefName": "feat/epic",
              "repository": {
               "nameWithOwner": "acme/app"
              },
@@ -115,6 +116,7 @@
              "url": "https://github.com/acme/app/pull/602",
              "state": "OPEN",
              "headRefOid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+             "baseRefName": "feat/epic",
              "repository": {
               "nameWithOwner": "acme/app"
              },
@@ -170,6 +172,7 @@
              "url": "https://github.com/acme/app/pull/603",
              "state": "OPEN",
              "headRefOid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+             "baseRefName": "feat/epic",
              "repository": {
               "nameWithOwner": "acme/app"
              },
@@ -225,6 +228,7 @@
              "url": "https://github.com/acme/app/pull/604",
              "state": "OPEN",
              "headRefOid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+             "baseRefName": "feat/epic",
              "repository": {
               "nameWithOwner": "acme/app"
              },
@@ -280,6 +284,7 @@
              "url": "https://github.com/acme/app/pull/605",
              "state": "OPEN",
              "headRefOid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+             "baseRefName": "feat/epic",
              "repository": {
               "nameWithOwner": "acme/app"
              },

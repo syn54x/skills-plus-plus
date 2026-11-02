@@ -1,6 +1,6 @@
 // The next actions of a build, from the EpicState and what the command read around it (CI, verdict history, the pull
 // request to the base branch, the session list, the wave). Pure: no network, filesystem or environment.
-import { type EpicState, landed, refIn, type Ticket } from "./derive.ts";
+import { type EpicState, refIn, type Ticket } from "./derive.ts";
 import type { Routing } from "./routing.ts";
 import type { PrState } from "./snapshot.ts";
 
@@ -49,16 +49,16 @@ export function liveWorker(t: Ticket, sessions: Session[]): Session | undefined 
 }
 
 /**
- * The stopped session of a worker that was lost: the ticket is held by the Claim mark alone, with no pull request, no
- * live session, and a session named after it listed but no longer live. A person's assignment is a live hold, so an
- * assigned ticket never has one.
+ * The stopped session of a worker that was lost: the ticket has not landed and is held by the Claim mark alone, with no
+ * open pull request, no live session, and a session named after it listed but no longer live. A person's assignment
+ * is a live hold, so an assigned ticket never has one, and a landed ticket's worker finished, so it has none either.
  */
 export function lostWorker(t: Ticket, sessions: Session[]): Session | undefined {
-  if (t.state !== "claimed" || !t.claimed || t.assignees.length || liveWorker(t, sessions)) return undefined;
+  if (t.landed || t.state !== "claimed" || !t.claimed || t.assignees.length || liveWorker(t, sessions)) return undefined;
   return sessions.find((s) => s.name && [t.worker, `t-${t.number}`].includes(s.name));
 }
 
-const done = (t: Ticket) => landed(t.state === "merged", t.pr);
+const done = (t: Ticket) => t.landed;
 
 /**
  * Whether a worker holds or works on the ticket until it merges: claimed or assigned, its pull request open, or a
@@ -91,7 +91,7 @@ export function planNext(input: NextInput): Action[] {
   const byUrl = new Map(state.tickets.map((t) => [t.url, t]));
   const order = [...state.layers.flat(), ...state.cycle].map((u) => byUrl.get(u)!);
   const actions: Action[] = [];
-  const inFlight: string[] = [];
+  const waitingOn: string[] = [];
   const idle: string[] = [];
 
   const ready = new Map(state.tickets.map((t) => [t.repo === state.epic.repo ? String(t.number) : `${t.repo}#${t.number}`, t]));
@@ -107,16 +107,16 @@ export function planNext(input: NextInput): Action[] {
     const running = s ? ` (${s.name} ${s.state ?? s.status})` : "";
     const c = checks[pr] ?? { result: "pending", failing: [] };
     if (t.state === "ready") {
-      if (s) inFlight.push(`${ref(t.url)} dispatched${running}`);
+      if (s) waitingOn.push(`${ref(t.url)} dispatched${running}`);
     } else if (lostWorker(t, sessions)) {
       // A stopped worker with no pull request is no work in flight: waiting on it would wake at once, forever.
       const lost = lostWorker(t, sessions)!;
       const reason = `${ref(t.url)} is claimed with no pull request and its worker ${lost.name} ${lost.state ?? lost.status}: worker lost; ask the user before handing it back`;
       actions.push({ kind: "hand-back", tickets: [id(t)], reason });
     } else if (t.state === "claimed") {
-      inFlight.push(`${ref(t.url)} claimed${running || (t.worker ? ` by ${t.worker}` : "")}`);
+      waitingOn.push(`${ref(t.url)} claimed${running || (t.worker ? ` by ${t.worker}` : "")}`);
     } else if (s && (t.state === "pr-open" || t.state === "gate-fail")) {
-      inFlight.push(`${ref(t.url)} ${t.state}, its worker is still running${running}`);
+      waitingOn.push(`${ref(t.url)} ${t.state}, its worker is still running${running}`);
     } else if (t.state === "gate-fail" || (t.state === "pr-open" && c.result === "fail")) {
       // Failing CI is a Critical finding: it shares the one fix round with a failed gate, so the second failed head hands back.
       const what = t.state === "gate-fail" ? "failed its gate" : `checks fail: ${c.failing.join(", ")}`;
@@ -125,7 +125,7 @@ export function planNext(input: NextInput): Action[] {
     } else if (t.state === "pr-open") {
       // shortcut: none (no CI configured) gates like pass, as spp merge does; a repo whose CI registers late could gate early.
       if (c.result === "pass" || c.result === "none") actions.push({ kind: "gate", ...one, reason: `${ref(pr)} checks ${c.result}, no verdict on its head` });
-      else inFlight.push(`${ref(t.url)} ${ref(pr)} checks ${c.result}`);
+      else waitingOn.push(`${ref(t.url)} ${ref(pr)} checks ${c.result}`);
     } else if (t.state === "gate-pass") {
       const waiting = t.blockedBy.filter((b) => !(byUrl.get(b) && done(byUrl.get(b)!)));
       if (!waiting.length) actions.push({ kind: "merge", ...one, reason: `${ref(pr)} passed its gate and its blockers merged` });
@@ -136,7 +136,7 @@ export function planNext(input: NextInput): Action[] {
   }
 
   if (actions.length) return actions;
-  if (inFlight.length) return [{ kind: "wait", reason: `in flight: ${inFlight.join("; ")}${idle.length ? `; also ${idle.join("; ")}` : ""}` }];
+  if (waitingOn.length) return [{ kind: "wait", reason: `in flight: ${waitingOn.join("; ")}${idle.length ? `; also ${idle.join("; ")}` : ""}` }];
   const cycle = state.cycle.length ? [`cycle: ${state.cycle.map(ref).join(", ")}`] : [];
   return [{ kind: "stuck", reason: `nothing ready and nothing in flight: ${[...cycle, ...idle].join("; ")}` }];
 }
