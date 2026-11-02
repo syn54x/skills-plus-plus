@@ -1,0 +1,13 @@
+{
+  "persona": "x",
+  "findings": [
+    {
+      "file": "a.ts",
+      "line": 1,
+      "title": "t",
+      "severity": "blocker",
+      "confidence": 90,
+      "body": "b"
+    }
+  ]
+}

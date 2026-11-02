@@ -1,0 +1,13 @@
+{
+  "persona": "adversarial",
+  "findings": [
+    {
+      "file": "src/a.ts",
+      "line": 9,
+      "title": "Unescaped input",
+      "severity": "critical",
+      "confidence": 81,
+      "body": "critical view"
+    }
+  ]
+}
