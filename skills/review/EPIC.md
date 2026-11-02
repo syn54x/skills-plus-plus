@@ -24,3 +24,7 @@ Checks: <reading from spp checks>
 ```
 
 No verdict marker is written here: the panel's report, or the person who merges, owns this pull request's outcome. Post as step 7 of `SKILL.md` says and return the two verdict lines.
+
+## For the panel
+
+`review-panel` runs this mode as its first section and says so in the request ("for the panel: return, do not post"). Then the comment above is not posted and nothing is written to GitHub. Your last message is the comment's text, whole, and nothing else; the panel puts it in its own report and posts that once, if the person agrees. When the request does not say so, post as above.

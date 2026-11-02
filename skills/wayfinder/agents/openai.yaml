@@ -1,0 +1,5 @@
+interface:
+  display_name: "Wayfinder"
+  short_description: "Chart an unknown-territory effort as a map and resolve it one decision per session"
+policy:
+  allow_implicit_invocation: false
