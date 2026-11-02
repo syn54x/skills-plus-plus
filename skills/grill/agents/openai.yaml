@@ -1,0 +1,5 @@
+interface:
+  display_name: "Grill"
+  short_description: "Interview a plan and record its terms and decisions"
+policy:
+  allow_implicit_invocation: false
