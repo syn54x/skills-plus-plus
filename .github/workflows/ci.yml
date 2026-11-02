@@ -24,6 +24,8 @@ jobs:
         run: node scripts/check-size.ts
       - name: invocation flags agree and no skill calls a user-invoked skill
         run: node scripts/check-invocation.ts
+      - name: README, docs nav, ask-spp and docs pages list every skill
+        run: node scripts/check-registry.ts
       - name: plugin.json version tracks package.json
         run: node scripts/sync-version.ts --check
       - name: plugin manifest validates
@@ -32,6 +34,18 @@ jobs:
             claude plugin validate .
           else
             echo "::notice::claude CLI not available in CI; skipped claude plugin validate"
+          fi
+      - name: epic board mod tests
+        run: |
+          if npm install --global @anthropic-ai/claude-code >/dev/null 2>&1 && command -v claude >/dev/null; then
+            # claude plugin test takes the plugin root and runs every test file under it, and the node:test suites
+            # cannot load there, so it runs on a copy of the plugin without them.
+            board="$(mktemp -d)"
+            cp -R .claude-plugin hooks types spp bin package.json "$board"/
+            rm -rf "$board/spp/test"
+            claude plugin test "$board"
+          else
+            echo "::notice::claude CLI not available in CI; skipped claude plugin test"
           fi
       - uses: astral-sh/setup-uv@v10.2.0
         with:

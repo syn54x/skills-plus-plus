@@ -19,8 +19,10 @@ npm run typecheck
 npm test
 node scripts/check-size.ts
 node scripts/check-invocation.ts
+node scripts/check-registry.ts
 node scripts/sync-version.ts --check
 claude plugin validate .
+uv run --frozen zensical build --clean --strict
 ```
 
 Each check prints one line per violation and exits non-zero when there is any.

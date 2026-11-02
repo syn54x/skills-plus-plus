@@ -1,0 +1,9 @@
+[project]
+site_name = "demo"
+nav = [
+  { "Home" = "index.md" },
+  { "Skills" = [
+    { "alpha" = "skills/alpha.md" },
+    { "ask-spp" = "skills/ask-spp.md" },
+  ] },
+]
