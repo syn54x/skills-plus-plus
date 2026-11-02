@@ -15,11 +15,18 @@ Prints the next actions: preflight, branch, dispatch, gate, fix, hand-back, merg
 
 const PULL_URL = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)$/;
 
-// Every revision of a pull request's verdict comment, so the fix rounds come from GitHub and never from local state.
-// shortcut: the first 30 comments and 100 edits, as the snapshot reads verdicts; raise them if a verdict is ever missed.
+// Every revision of a pull request's verdict comment and the CI result of every head it had (force-pushed ones too),
+// so the fix rounds come from GitHub and never from local state.
+// shortcut: the first 30 comments, 100 edits, last 100 commits and 50 force pushes; raise them if a failure is ever missed.
 const VERDICT_HISTORY = `query VerdictHistory($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) { comments(first: 30) { nodes { body userContentEdits(first: 100) { nodes { diff } } } } }
+    pullRequest(number: $number) {
+      comments(first: 30) { nodes { body userContentEdits(first: 100) { nodes { diff } } } }
+      commits(last: 100) { nodes { commit { oid statusCheckRollup { state } } } }
+      timelineItems(itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT], last: 50) {
+        nodes { ... on HeadRefForcePushedEvent { beforeCommit { oid statusCheckRollup { state } } } }
+      }
+    }
   }
 }`;
 
@@ -33,18 +40,26 @@ export function readSessions(): Session[] {
   }
 }
 
-// How many different heads a verdict failed on: 1 is the first failure, 2 or more means the fix round is spent.
+// How many different heads failed a verdict or CI: 1 is the first failure, 2 or more means the fix round is spent.
+// shortcut: every red head counts, so a worker that pushes red and then green inside one round spends the round early.
 async function failedHeads(pr: string): Promise<number> {
   const [, owner, repo, number] = PULL_URL.exec(pr) ?? [];
   if (!number) return 1;
   type Comment = { body: string; userContentEdits: { nodes: { diff: string | null }[] } };
   const out = JSON.parse(await runGh(["api", "graphql", "-f", `query=${VERDICT_HISTORY}`, "-f", `owner=${owner}`, "-f", `repo=${repo}`, "-F", `number=${number}`]));
-  const comment = (out.data.repository.pullRequest.comments.nodes as Comment[]).find((c) => c.body.startsWith(VERDICT_MARKER));
+  const p = out.data.repository.pullRequest;
+  const comment = (p.comments.nodes as Comment[]).find((c) => c.body.startsWith(VERDICT_MARKER));
   const heads = new Set<string>();
   for (const body of [comment?.body ?? "", ...(comment?.userContentEdits.nodes ?? []).map((e) => e.diff ?? "")]) {
     const v = readTrailer(body);
     if (v && (v.spec === "fail" || v.quality === "fail") && typeof v.head === "string") heads.add(v.head.slice(0, 7));
   }
+  type Commit = { oid: string; statusCheckRollup: { state: string } | null } | null;
+  const commits: Commit[] = [
+    ...p.commits.nodes.map((n: { commit: Commit }) => n.commit),
+    ...p.timelineItems.nodes.map((n: { beforeCommit?: Commit }) => n.beforeCommit ?? null),
+  ];
+  for (const c of commits) if (c && ["FAILURE", "ERROR"].includes(c.statusCheckRollup?.state ?? "")) heads.add(c.oid.slice(0, 7));
   return heads.size;
 }
 
@@ -64,12 +79,13 @@ async function actions(arg: string): Promise<Action[]> {
   const sessions = readSessions();
   const dispatchable = state.tickets.filter((t) => !(t.state === "ready" && liveWorker(t, sessions)));
   const prs = (st: string) => state.tickets.flatMap((t) => (t.pr && t.state === st ? [t.pr.url] : []));
-  const [wave, checks, heads, list] = await Promise.all([
+  const [wave, checks, list] = await Promise.all([
     wavePlan({ ...state, tickets: dispatchable }, 4),
     Promise.all(prs("pr-open").map(async (pr) => [pr, await readChecks(pr)] as const)),
-    Promise.all(prs("gate-fail").map(async (pr) => [pr, await failedHeads(pr)] as const)),
     runGh(["pr", "list", "-R", state.epic.repo, "--head", branch, "--state", "all", "--json", "number,url,state,additions,deletions"]),
   ]);
+  const red = checks.flatMap(([pr, c]) => (c.result === "fail" ? [pr] : []));
+  const heads = await Promise.all([...prs("gate-fail"), ...red].map(async (pr) => [pr, await failedHeads(pr)] as const));
   type MainPr = { url: string; state: "OPEN" | "MERGED" | "CLOSED"; additions: number; deletions: number };
   const main = (JSON.parse(list) as MainPr[]).sort((a, b) => Number(b.state === "MERGED") - Number(a.state === "MERGED") || Number(b.state === "OPEN") - Number(a.state === "OPEN"))[0];
   return planNext({

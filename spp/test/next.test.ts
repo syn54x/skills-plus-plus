@@ -6,7 +6,8 @@ import { describe, test } from "node:test";
 import { runCase } from "./harness.ts";
 
 type Verdict = { head: string; spec: "pass" | "fail"; quality: "pass" | "fail" };
-type PrSpec = { n: number; state?: "OPEN" | "MERGED" | "CLOSED"; head?: string; verdict?: Verdict; checks?: string; history?: Verdict[] };
+// red: earlier heads of the pull request whose checks failed; rebased: failing heads a force push replaced.
+type PrSpec = { n: number; state?: "OPEN" | "MERGED" | "CLOSED"; head?: string; verdict?: Verdict; checks?: string; history?: Verdict[]; red?: string[]; rebased?: string[] };
 type Spec = { n: number; closed?: boolean; labels?: string[]; assignees?: string[]; blockedBy?: number[]; pr?: PrSpec; worker?: string };
 type Opts = {
   branch?: string | null;
@@ -89,6 +90,13 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
           repository: {
             pullRequest: {
               comments: { nodes: current ? [{ body: verdictBody(current), userContentEdits: { nodes: [current, ...older].map((v) => ({ diff: verdictBody(v) })) } }] : [] },
+              commits: {
+                nodes: [
+                  ...(t.pr.red ?? []).map((oid) => ({ commit: { oid, statusCheckRollup: { state: "FAILURE" } } })),
+                  { commit: { oid: t.pr.head ?? HEAD, statusCheckRollup: { state: t.pr.checks === "fail" ? "FAILURE" : "SUCCESS" } } },
+                ],
+              },
+              timelineItems: { nodes: (t.pr.rebased ?? []).map((oid) => ({ beforeCommit: { oid, statusCheckRollup: { state: "FAILURE" } } })) },
             },
           },
         },
@@ -218,6 +226,35 @@ describe("edge cases", () => {
     const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, verdict: FAIL, history: [first, FAIL] } }]);
     assert.deepEqual(kinds(actions), ["hand-back"]);
     assert.deepEqual(actions[0].tickets, ["12"]);
+  });
+
+  test("failing CI after its fix round for red CI: hand-back naming the failing check", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, checks: "fail", red: ["b".repeat(40)] } }]);
+    assert.deepEqual(kinds(actions), ["hand-back"]);
+    assert.deepEqual(actions[0].tickets, ["12"]);
+    assert.match(actions[0].reason, /checks fail: test/);
+  });
+
+  test("a red head replaced by a force push still spends the fix round: hand-back", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, checks: "fail", rebased: ["b".repeat(40)] } }]);
+    assert.deepEqual(kinds(actions), ["hand-back"]);
+  });
+
+  test("a ticket that had a gate fix round then goes red on CI: hand-back", async () => {
+    const older: Verdict = { head: "b".repeat(40), spec: "fail", quality: "pass" };
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, checks: "fail", verdict: older } }]);
+    assert.deepEqual(kinds(actions), ["hand-back"]);
+    assert.match(actions[0].reason, /checks fail: test/);
+  });
+
+  test("a ticket that had a CI fix round then fails its gate: hand-back", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, verdict: FAIL, red: ["b".repeat(40)] } }]);
+    assert.deepEqual(kinds(actions), ["hand-back"]);
+  });
+
+  test("a failing verdict rewritten on the same head is still the first failure: fix", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, verdict: FAIL, history: [FAIL, FAIL] } }]);
+    assert.deepEqual(kinds(actions), ["fix"]);
   });
 
   test("every ticket merged, two size S tickets, 200 changed lines: main-gate with panel false", async () => {
