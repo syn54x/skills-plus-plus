@@ -1,6 +1,6 @@
 ---
 name: research
-description: Sends one background agent to answer a question from primary sources and write a cited note to the session scratchpad. Use when a decision waits on an outside fact (how a library or API behaves, what a spec says, how other projects solve the same problem), when the user asks for something to be researched, or when another skill needs a cited answer before it goes on.
+description: Sends one background agent to answer a question from primary sources and write a cited note to the session scratchpad. Use when a decision waits on an outside fact (a library's or an API's behaviour, the wording of a spec, the way other projects handle the same problem), when the user asks for something to be researched, or when another skill needs a cited answer before it goes on.
 ---
 
 Answer one question from the sources that own the facts, and hand back a note in which every claim can be traced. The reading runs in one background agent, so the work that asked can carry on.

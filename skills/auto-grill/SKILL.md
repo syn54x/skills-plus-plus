@@ -1,60 +1,56 @@
 ---
 name: auto-grill
-description: Grill my plan with you answering every question you can cite on my behalf, so I only see the questions that need me.
+description: Interview my plan while you settle, with a citation, every question the code, the record or the industry already answers, and bring me only the rest.
 disable-model-invocation: true
 ---
 
-You are the **Proxy**. You run a grilling interview and answer each of its questions the way the **Principal**, the person who typed `/auto-grill`, would answer it, from a source you can cite. The Principal sees three things only: the **Escalations**, the **Challenges**, and the veto list of what you answered for them.
+Run a grilling interview in which you stand in for the person. In this skill you are the **Proxy**, and whoever started it is the **Principal**. You settle each question that a citable source already settles, and you bring the Principal three kinds of thing only: **Escalations**, **Challenges**, and a veto list of the answers you gave in their name.
 
-## 1. Set up
+## 1. Before the first Round
 
-Call the Skill tool twice, for "grilling" and "domain-modeling". Run the interview by `grilling`, with one change the Principal asked for by starting this skill: every Round is put to you first, and the Wait step waits only for the questions step 2 leaves open. Apply `domain-modeling` throughout, so a settled term or a lasting decision is written as soon as it is settled.
+- Call the Skill tool twice, for "grilling" and "domain-modeling". `grilling` drives the interview with a single change, which the Principal requested by starting this skill: each Round reaches you before it reaches them, and its Wait step holds only for what step 2 leaves open. `domain-modeling` runs alongside, writing down each term and lasting decision as soon as it is agreed.
+- Once a question turns on how code is shaped (an interface, the placement of a seam, what a module conceals), call the Skill tool with "codebase-design"; its vocabulary holds from that Round onward.
+- The subject is the text after `/auto-grill`. If there is none, state what the conversation is designing, phrased as open choices rather than conclusions.
+- Open a transcript, `auto-grill-<slug>.md`, in the session scratchpad and print its path for the Principal once. It logs the session for audit and stays out of git.
+- Start the **session list**: each decision the Principal takes during this session, beginning with any they took in the conversation before the skill started. Their Escalation answers, Challenge rulings and overrules join it as they come.
 
-The first time a question is about the shape of code (a module's interface, where a seam sits, what hides behind it), call the Skill tool with "codebase-design" and use its words in every Round after.
+## 2. Work a Round
 
-The subject is whatever follows `/auto-grill`. With nothing there, restate what is being designed in the conversation so far, as an open question rather than as decisions already taken.
+### Draft before you dig
 
-Create the transcript, `auto-grill-<slug>.md` in the session scratchpad, and give the Principal its path once. It is the audit log of the session and is never committed.
-
-Keep a **session list** of every decision the Principal makes in this session: their answers to Escalations, their rulings on Challenges, their overrules, and anything they decided in the conversation before this skill started.
-
-## 2. Each Round
-
-### Draft cold
-
-Draft every question on the Frontier, each with a recommendation, before researching any of them. Include the ones that look settled already. Asking one costs a single line on the veto list; skipping it leaves an assumption that nobody examined.
+Write out the whole Frontier, with a recommendation on each question, before researching any of it. Keep the questions that seem decided already: each costs one veto line, while dropping it leaves an untested assumption standing.
 
 ### Four passes
 
-Run the passes across the whole Round at once, so that one search can serve several questions.
+Batch each pass over the Round, so that one lookup can feed many questions.
 
-1. **The code.** What the repo already does that fixes or limits the answer.
-2. **The record.** What was decided before: the glossary, the ADRs, the issues, the repo's standards, and the session list.
-3. **The industry.** How established libraries and products handle the same problem, read from their docs and source. When a question needs real reading, call the Skill tool with "research" and cite the note it returns. An answer that departs from common practice must know it departs, and why.
-4. **Question it.** Passes 1 to 3 supply candidates, not verdicts. Ask whether the answer is the one you would pick for the long run if time and effort were free: cost to build never settles a question, and a shortcut is never right because it is cheap today. A design answer must also pass `codebase-design`'s tests. One that fails any of them is the wrong answer, whatever cites it.
+1. **The code.** What the repository does today that settles or narrows the answer.
+2. **The record.** Earlier deliberation: the glossary, every ADR, the issue history, written standards, and the session list.
+3. **The industry.** What mature libraries and products do about the same problem, read from their own docs and code. For a question that needs real reading, call the Skill tool with "research" and cite the note it gives back. An answer that parts ways with common practice says so and gives its reason.
+4. **Question it.** Treat what passes 1 to 3 found as candidates. Ask which answer you would choose if building it cost nothing and it had to last: saved effort never justifies an answer, and neither does a shortcut that is cheaper today. Put every design answer through the `codebase-design` tests; failing any one disqualifies it, no matter what backs it.
 
-### One outcome per question
+### Pick one outcome
 
-| Outcome | Given when | Carries |
+| Outcome | Use it when | It carries |
 | --- | --- | --- |
-| **Auto-answer** | The answer survives pass 4 and has a citation: a file and line, an ADR, a glossary term, an issue, a research note or a session decision. | The citation, plus a cited reason when it departs from common practice. |
-| **Challenge** | The code or a recorded decision forces an answer that pass 4 judges worse, and you can name the better one. | The decision, the answer it forces, the better answer, and what keeping the decision costs. |
-| **Escalation** | Anything else: a matter of preference, an open trade-off, a departure from practice with no citable reason. | A **Best fit**, with its basis in one sentence. |
+| **Auto-answer** | The answer comes through pass 4 intact and you can point to its source: a file and line, an ADR, a glossary entry, an issue, a research note or the session list. | That pointer, plus a pointer for the reason whenever it departs from common practice. |
+| **Challenge** | Existing code or a prior decision pins the question to an answer pass 4 rates lower, and you know the stronger answer. | The prior decision, the answer it pins, the stronger alternative, and the price of leaving things as they are. |
+| **Escalation** | Everything left: taste, trade-offs still open, a departure from practice whose reason nobody wrote down. | A **Best fit** and the single sentence it rests on. |
 
-- **A session decision is never challenged.** The Principal made it in this session knowing the trade-off; a question it answers is an auto-answer citing it.
-- **An outside fact is never challenged.** What a library supports or how an API behaves can only be out of date, never outvoted; re-verify one you doubt and cite what holds now. The repo's own code is not an outside fact: it is a past decision, and it can be challenged.
-- **No citation, no auto-answer.** An answer you cannot point at is an Escalation.
-- **A Best fit stays a recommendation.** Research sharpens it but never turns a preference into a fact. When the Escalation is a choice between interfaces, design it twice by `codebase-design` and pick the Best fit on depth, locality and where the seam falls.
+- **The session list is never challenged.** The Principal settled those entries in this sitting, aware of the trade-off; answer from them as auto-answers.
+- **Facts about the outside world are never challenged.** A library's capability or an API's behaviour can go stale but cannot be outvoted: check again any you doubt and cite the current state. Code in this repository is different, since it records an earlier choice, and a Challenge may question it.
+- **Nothing uncited is auto-answered.** Without a pointer, the question becomes an Escalation.
+- **The Best fit is advice.** Research makes it sharper; it never makes taste into fact. For an Escalation between interfaces, produce rival designs the way `codebase-design` describes, and choose by depth, locality and where the seam falls.
 
-### Stop only for the Principal
+### Present a stop
 
-A Round with no Escalation and no Challenge goes straight to the next Round; its veto lines wait for the next stop. Otherwise, show:
+When the Round produced neither an Escalation nor a Challenge, begin the next Round at once and hold its veto lines for the next stop. Otherwise present, in order:
 
-1. **Each Escalation** in `grilling`'s numbered format, with the recommendation line replaced by `Best fit:` and its basis. Add one line naming what other products do when the Best fit departs from it, and one line saying what changed your mind when research moved you off the recommendation you drafted.
-2. **Each Challenge**: the decision and the answer it forces, then `Supersede or uphold?` with the better answer and the cost of keeping the decision.
-3. **The veto list**: every auto-answer since the last stop, grouped by Round, one line each with the question, the answer and its citation, plus what others do and the cited reason when the answer departs from practice.
+1. **Escalations**, numbered as `grilling` numbers its questions, with `Best fit:` and its basis where the recommendation would go. When the Best fit departs from what comparable products do, one more line says what they do; when research changed your drafted recommendation, one more line says why.
+2. **Challenges**: the prior decision and the answer it pins, then `Supersede or uphold?` with the stronger alternative and the price of keeping the decision.
+3. **Veto list**: one line per auto-answer since the previous stop, under its Round: the question, the answer, the pointer, and for a departure from practice, the common approach beside the cited reason for leaving it.
 
-Lead each Escalation and Challenge with the plainest picture of its options, and keep the prose for what the picture cannot say: the call site for an API choice, a table for options compared on the same axes, an ASCII diagram for a flow or a structure, a before and after snippet for a change in behaviour. A Challenge draws the design with the decision beside the design without it. The output lands in a terminal, so draw with Markdown and ASCII only. A name or a yes or no stays a sentence.
+Open each Escalation and Challenge with the plainest drawing of the choice, and let prose cover only what the picture leaves out: how a caller would write each API option, a table when options share axes, an ASCII sketch for flows and structures, old and new snippets when behaviour changes. A Challenge sets the design that keeps the decision next to the one that drops it. Everything renders in a terminal, so use Markdown and ASCII, never a diagram language. A name or a yes-or-no question needs no picture.
 
 ```text
 3. Challenge: ADR 0004 sends every write through the job queue, so Q3 becomes "queue the profile save".
@@ -66,19 +62,19 @@ Lead each Escalation and Challenge with the plainest picture of its options, and
    Supersede or uphold? Better: write the single row directly. Keeping ADR 0004 here costs a second retry path.
 ```
 
-Then wait. The Principal answers the Escalations, rules on each Challenge, and may overrule any line of the veto list.
+Then wait. The Principal answers the Escalations, rules on each Challenge, and can strike any veto line.
 
-### Settle the Round
+### Close the Round
 
-- Record each answer in the tree as `auto`, with its citation, or `principal`. An overrule replaces the auto-answer it hits.
-- An upheld Challenge is a `principal` answer citing the decision; a superseded one is a `principal` answer naming the decision it replaces. Add every `principal` answer to the session list.
-- Weigh a `principal` answer above an `auto` one when `domain-modeling` records a decision. A `principal` answer that supersedes a recorded decision gets a new ADR, and the old ADR is marked as superseded by it.
-- Append the Round to the transcript: each question, its answer and label, its citation or Best fit basis, each Challenge and its ruling, and each overrule.
+- Label each answer in the tree: `auto` with its pointer, or `principal`. A struck veto line is replaced by what the Principal said.
+- An upheld Challenge becomes a `principal` answer pointing at the decision; a superseded one becomes a `principal` answer naming the decision it retires. Every `principal` answer goes on the session list.
+- When `domain-modeling` writes a decision, `principal` outranks `auto`. If a `principal` answer retires a recorded decision, write a fresh ADR and mark the earlier one as superseded by it.
+- Add this Round to the transcript: questions, answers with labels, pointers or Best fit bases, Challenges with their rulings, and overrules.
 
-Redraw the Frontier and start the next Round. When the Principal says to wrap up, go to step 3 with what is settled.
+Recompute the Frontier and run the next Round. When the Principal says to wrap up, jump to step 3 with whatever is settled.
 
-## 3. Close
+## 3. Finish
 
-When the Frontier is empty, give `grilling`'s restatement, with a picture of the settled design wherever it describes a structure or a flow, and the full veto list of the session. Only the Principal confirms. An objection reopens the Frontier, and you go back to step 2.
+Once the Frontier is empty, give the restatement `grilling` ends with, sketching the settled design wherever it has moving parts or a sequence, and list every auto-answer of the session. The Principal alone confirms; any objection puts questions back on the Frontier and returns you to step 2.
 
-Once the Principal confirms, end with the confirmed restatement, the files you wrote (glossary entries and ADRs, including any that supersede a challenged decision), the transcript path, and one line saying that `/to-spec` in this same conversation is the usual next step. Ask the Principal to run it; never start it yourself.
+After confirmation, report the confirmed restatement, every file written (glossary entries and ADRs, superseding ones included), where the transcript is, and a line recommending `/to-spec` in this conversation as the next step. That skill is the Principal's to run: ask them to, and leave it unstarted.
