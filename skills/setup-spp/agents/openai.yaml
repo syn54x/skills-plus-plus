@@ -1,0 +1,5 @@
+interface:
+  display_name: "Setup spp"
+  short_description: "Prepare a repo for the spp pipeline"
+policy:
+  allow_implicit_invocation: false
