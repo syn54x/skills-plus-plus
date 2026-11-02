@@ -89,13 +89,13 @@ One Sub-issue of the Epic.
 | <a id="property-title"></a> `title` | `string` | The issue title. |
 | <a id="property-size"></a> `size` | `"S"` \| `"M"` \| `"L"` \| `null` | The size its `size:` label gives, or null without one. |
 | <a id="property-state"></a> `state` | [`TicketState`](#ticketstate) | Where the ticket stands. |
-| <a id="property-layer"></a> `layer` | `number` \| `null` | The Layer: one above its highest open blocker inside the Epic, 0 with none; null when caught in a cycle. |
+| <a id="property-layer"></a> `layer` | `number` \| `null` | The Layer: one above its highest blocker inside the Epic that has not landed, 0 with none; null when caught in a cycle. |
 | <a id="property-blockedby"></a> `blockedBy` | `string`[] | URLs of open blockers, leaving out one that landed while its issue stays open. |
 | <a id="property-landed"></a> `landed` | `boolean` | Whether its work has landed: the issue is closed, or a pull request of its merged into the integration branch. |
 | <a id="property-claimed"></a> `claimed` | `boolean` | Whether it carries the Claim mark (the `claimed` label); an assignee also holds a ticket. |
 | <a id="property-assignees"></a> `assignees` | `string`[] | Assignee logins. |
 | <a id="property-labels"></a> `labels` | `string`[] | Label names. |
-| <a id="property-pr"></a> `pr` | [`Pr`](#pr) \| `null` | The pull request it shows (an open one first, then a merged one, newest first), or null. |
+| <a id="property-pr"></a> `pr` | [`Pr`](#pr) \| `null` | The pull request it shows (an open one first, then a merged one, newest first), or null. Only its own count: in one of the Epic's repositories, opened by a trusted author and, while open, into the integration branch. |
 | <a id="property-worker"></a> `worker` | `string` \| `null` | The progress comment's Worker line, or null. |
 | <a id="property-note"></a> `note` | \| \{ `text`: `string`; `at`: `string`; \} \| `null` | The latest local note (`spp note`) with its ISO time, or null. |
 
@@ -154,6 +154,7 @@ A pull request linked to a Sub-issue.
 | <a id="property-repo-1"></a> `repo` | `string` | Its repository, `owner/repo`, which may lie outside the Epic: any repository can say it closes an issue. |
 | <a id="property-base"></a> `base` | `string` | The branch it merges into. |
 | <a id="property-headsha"></a> `headSha` | `string` | The head commit's full sha. |
+| <a id="property-trusted"></a> `trusted` | `boolean` | Whether spp trusts its author: the gh user, or one GitHub marks OWNER, MEMBER or COLLABORATOR (ADR 0009), so a stranger's fork pull request into the Epic's repository is never the ticket's. |
 | <a id="property-verdict"></a> `verdict?` | [`Verdict`](#verdict) | The pull request's `<!-- spp-verdict -->` comment as `spp verdict` writes it, present only when it decodes. |
 
 ***
