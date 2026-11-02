@@ -93,6 +93,12 @@ async function check(): Promise<number> {
   if (gitOut("status", "--porcelain")) return block(`uncommitted changes on ${branch}. Commit them, then run spp verify ${n}.`);
   const note = gitOut("notes", "--ref=sdd-verify", "show", "HEAD") ?? "";
   if (/^(verified|blocked)\b/.test(note)) return 0;
+  // HEAD equal to or an ancestor of a remote integration branch (feat/*) or the remote default branch (a One-off's
+  // base): the worker committed nothing beyond the base it was cut from (say, a readiness stop), so there is nothing
+  // to verify and no claim of its own to hand back. Any other remote branch (wip, another sdd/*) does not count.
+  const bases = (gitOut("for-each-ref", "--contains", "HEAD", "--format=%(refname)", "refs/remotes") ?? "").split("\n");
+  const defaults = (gitOut("for-each-ref", "--format=%(symref)", "refs/remotes/*/HEAD") ?? "").split("\n");
+  if (bases.some((r) => r && (/^refs\/remotes\/[^/]+\/feat\//.test(r) || defaults.includes(r)))) return 0;
   const handBack = `If you are stopping BLOCKED, hand the ticket back (spp hand-back ${n} <route> --reason ...), push what is committed, then record it: git notes --ref=sdd-verify add -f -m blocked HEAD`;
   if (note.startsWith("failed")) return block(`Verify failed on HEAD of ${branch}. Fix it and run spp verify ${n} again. ${handBack}`);
   return block(`Verify not run on HEAD of ${branch}. Run spp verify ${n} on the committed tree. ${handBack}`);

@@ -102,6 +102,67 @@ describe("edge cases", () => {
     assert.match(r.stderr, /Verify not run on HEAD of sdd\/12-x/);
   });
 
+  test("a fresh sdd/* branch with no commits beyond the integration branch it was cut from lets the stop through", () => {
+    const repo = gitRepo("sdd/12-x");
+    git(repo, "update-ref", "refs/remotes/origin/feat/epic", "HEAD");
+    const r = runSpp(["verify", "--check"], "", repo);
+    assert.equal(r.code, 0, r.stderr);
+  });
+
+  test("one commit beyond the integration branch is checked as usual", () => {
+    const repo = gitRepo("sdd/12-x");
+    git(repo, "update-ref", "refs/remotes/origin/feat/epic", "HEAD");
+    git(repo, "commit", "-q", "--allow-empty", "-m", "work");
+    const r = runSpp(["verify", "--check"], "", repo);
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /Verify not run on HEAD/);
+  });
+
+  test("a HEAD pushed only to its own sdd/* branch still needs Verify", () => {
+    const repo = gitRepo("sdd/12-x");
+    git(repo, "update-ref", "refs/remotes/origin/sdd/12-x", "HEAD");
+    git(repo, "update-ref", "refs/remotes/origin/sdd/13-y", "HEAD");
+    const r = runSpp(["verify", "--check"], "", repo);
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /Verify not run on HEAD/);
+  });
+
+  test("a fresh branch whose integration branch has moved on (HEAD an ancestor of its tip) lets the stop through", () => {
+    const repo = gitRepo("sdd/12-x");
+    git(repo, "commit", "-q", "--allow-empty", "-m", "sibling merged");
+    git(repo, "update-ref", "refs/remotes/origin/feat/epic", "HEAD");
+    git(repo, "reset", "-q", "--hard", "HEAD~1");
+    const r = runSpp(["verify", "--check"], "", repo);
+    assert.equal(r.code, 0, r.stderr);
+  });
+
+  test("a fresh One-off branch on the remote default branch lets the stop through", () => {
+    const repo = gitRepo("sdd/12-x");
+    git(repo, "update-ref", "refs/remotes/origin/trunk", "HEAD");
+    git(repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/trunk");
+    const r = runSpp(["verify", "--check"], "", repo);
+    assert.equal(r.code, 0, r.stderr);
+  });
+
+  test("unverified commits pushed to a remote branch that is not an integration branch (origin/wip) still need Verify", () => {
+    const repo = gitRepo("sdd/12-x");
+    git(repo, "update-ref", "refs/remotes/origin/feat/epic", "HEAD");
+    git(repo, "commit", "-q", "--allow-empty", "-m", "work");
+    git(repo, "update-ref", "refs/remotes/origin/wip", "HEAD");
+    const r = runSpp(["verify", "--check"], "", repo);
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /Verify not run on HEAD/);
+  });
+
+  test("a fresh branch with uncommitted changes is still blocked", () => {
+    const repo = gitRepo("sdd/12-x");
+    git(repo, "update-ref", "refs/remotes/origin/feat/epic", "HEAD");
+    writeFileSync(join(repo, "loose.txt"), "x");
+    const r = runSpp(["verify", "--check"], "", repo);
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /uncommitted changes/);
+  });
+
   test("a second stop (stop_hook_active) on an unverified HEAD is blocked too", () => {
     const repo = gitRepo("sdd/12-x");
     const r = runSpp(["verify", "--check"], JSON.stringify({ hook_event_name: "SubagentStop", cwd: repo, stop_hook_active: true }), repo);
