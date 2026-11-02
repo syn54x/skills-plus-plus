@@ -1,0 +1,5 @@
+ok: gh 2.103.2 (2.94 or later needed)
+ok: epic #197 is open
+ok: epic #197 has 33 Sub-issues
+ok: epic #197 has a plan comment
+ok: Routing block in CLAUDE.md (mode org)

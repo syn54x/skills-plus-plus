@@ -71,6 +71,7 @@ const READ_VERBS = new Set(["view", "list", "status", "diff", "checks"]);
 
 function isGhWrite(argv: string[]): boolean {
   const [cmd, sub] = argv;
+  if (cmd === "--version") return false;
   if (cmd !== "api") return !READ_VERBS.has(sub);
   if (sub === "graphql") return argv.some((a) => /^query=\s*mutation\b/.test(a));
   const m = argv.findIndex((a) => a === "-X" || a === "--method");
