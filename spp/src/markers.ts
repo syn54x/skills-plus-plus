@@ -52,7 +52,7 @@ export function print(url: string): void {
 }
 
 // The first comment on the issue whose body starts with the marker.
-async function find(issue: Issue, marker: string): Promise<{ id: number; body: string } | null> {
+export async function find(issue: Issue, marker: string): Promise<{ id: number; body: string } | null> {
   const out = await runGh(["api", `repos/${issue.repo}/issues/${issue.number}/comments`, "--paginate", "--jq", ".[] | [.id, .body] | @json"]);
   for (const line of out.split("\n").filter(Boolean)) {
     const [id, body] = JSON.parse(line) as [number, string];
