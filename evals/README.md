@@ -22,7 +22,7 @@ One folder per case, named for the skill it tests followed by the behaviour: `<s
 
 A fix for a skill defect ships with one case that reproduces the defect: it fails before the fix and passes after. Name it for the skill and the behaviour that was wrong.
 
-Runs cannot write files or run shell commands unless the command grants it. The `grill` case grades the Write call to `GLOSSARY.md` itself, and a call the run was not granted still counts, so the case passes without a grant; the workflow passes `--allow-tools Write Edit` so the write lands.
+Runs cannot write files or run shell commands unless the command grants it. The `grill` case grades the Write call to `GLOSSARY.md` itself, and a tool that is not granted is withheld from the model, so run it with `--allow-tools Write Edit`, as the workflow does.
 
 ## CI
 
