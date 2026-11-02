@@ -1,10 +1,10 @@
 ---
 type: llm
-focus: last_message
+focus: trace
 ---
 
-Judge only the glossary entry for Slot that the reply shows.
+The person settled "Slot": one bookable block of a technician's day, at most two hours long. Judge the Slot entry in the content of the run's Write or Edit call to GLOSSARY.md. When there is no such call, judge the Slot entry the final reply shows, and when there is neither, FAIL.
 
-PASS if that entry is vocabulary: the term and a short definition of what it means. The two-hour limit belongs in it, because the person made it part of the word's meaning. Optional extras still pass: an entry for Job, an _Avoid_ line naming words not to use, or a line relating Slot to Job. Questions the reply asks about other terms do not count against it.
+PASS if the entry gives Slot the person's meaning (small wording changes are fine) and is vocabulary: the term and a short definition. The two-hour limit belongs in it, because the person made it part of the word's meaning. Optional extras still pass: an entry for Job, an _Avoid_ line, a line relating Slot to Job, or a note on the sense of Slot that lost.
 
-FAIL if the entry adds build detail (database fields, code names, APIs, screens), a list of requirements, or a dated decision log with rationale, or if the reply says it wrote an ADR for this naming choice.
+FAIL if the entry changes the meaning (a different length limit, a narrower or wider definition), or adds build detail (database fields, code names, APIs, screens), a list of requirements, or a dated decision log with rationale.

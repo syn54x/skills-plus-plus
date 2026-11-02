@@ -1,7 +1,7 @@
 ---
-description: Grill records a term in the glossary the moment the person settles it.
+description: Grill writes a term into the glossary the moment the person settles it, without being asked to.
 max_turns: 15
 allowed_tools: [Read, Glob, Grep, Skill, Write, Edit]
 ---
 
-/spp:grill our scheduling vocabulary. The word "Slot" is overloaded in our docs. I've decided: a Slot is one bookable block of a technician's day, at most two hours long. Anything longer is a Job, made of consecutive Slots. That's settled, so record it in the glossary now. Our glossary is `GLOSSARY.md` in the directory we're working in; it doesn't exist yet, so start it, and show me the Slot entry.
+/spp:grill our scheduling vocabulary. The project is at `evals/grill-records-glossary-term/resources/` in the spp plugin's directory. "Slot" means two things in our docs, and I've decided which one wins: a Slot is one bookable block of a technician's day, at most two hours long. Anything longer is a Job, made of consecutive Slots.
