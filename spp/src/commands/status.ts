@@ -1,6 +1,7 @@
 // spp status <epic> [--json]: the state of every Sub-issue of an Epic, from one GraphQL query.
 import { derive, type EpicState } from "../derive.ts";
 import { GhError, runGh } from "../gh.ts";
+import { attachNotes } from "../notes.ts";
 import { SNAPSHOT_QUERY, parseSnapshot } from "../snapshot.ts";
 
 const USAGE = "usage: spp status <epic number | issue URL> [--json]\n";
@@ -36,13 +37,10 @@ function render(s: EpicState): string {
   return lines.join("\n") + "\n";
 }
 
-export async function run(args: string[]): Promise<number> {
-  const rest = args.filter((a) => a !== "--json");
-  const vars = rest.length === 1 ? variables(rest[0]) : null;
-  if (!vars) {
-    process.stderr.write(USAGE);
-    return 2;
-  }
+// The Epic's derived state with each ticket's latest local note, or null when `epic` is not a number or issue URL.
+export async function fetchState(epic: string): Promise<EpicState | null> {
+  const vars = variables(epic);
+  if (!vars) return null;
   let out: string;
   try {
     out = await runGh(["api", "graphql", "-f", `query=${SNAPSHOT_QUERY}`, ...vars]);
@@ -51,7 +49,16 @@ export async function run(args: string[]): Promise<number> {
     if (!(e instanceof GhError) || !missingIssue(e.stdout)) throw e;
     out = e.stdout;
   }
-  const state = derive(parseSnapshot(JSON.parse(out)));
+  return attachNotes(derive(parseSnapshot(JSON.parse(out))));
+}
+
+export async function run(args: string[]): Promise<number> {
+  const rest = args.filter((a) => a !== "--json");
+  const state = rest.length === 1 ? await fetchState(rest[0]) : null;
+  if (!state) {
+    process.stderr.write(USAGE);
+    return 2;
+  }
   process.stdout.write(args.includes("--json") ? JSON.stringify(state, null, 2) + "\n" : render(state));
   return 0;
 }
