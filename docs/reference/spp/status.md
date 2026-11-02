@@ -66,7 +66,7 @@ type TicketState =
 Where a Sub-issue stands, the first that fits: `merged` (the issue is closed), `handed-back` (unheld, with a route
 label; `blocked` beside `ready-for-agent` is not one, since that route waits on its blocked-by edge), `pr-open`,
 `gate-pass` or `gate-fail` (an open pull request, by the slice gate's verdict on its current head), `claimed` (held
-by the Claim mark or an assignee), `blocked` (an open blocker whose pull request has not merged), `not-agent` (no
+by the Claim mark or an assignee), `blocked` (an open blocker that has not landed), `not-agent` (no
 `ready-for-agent` label), else `ready`.
 
 ***
@@ -90,7 +90,7 @@ One Sub-issue of the Epic.
 | <a id="property-size"></a> `size` | `"S"` \| `"M"` \| `"L"` \| `null` | The size its `size:` label gives, or null without one. |
 | <a id="property-state"></a> `state` | [`TicketState`](#ticketstate) | Where the ticket stands. |
 | <a id="property-layer"></a> `layer` | `number` \| `null` | The Layer: one above its highest open blocker inside the Epic, 0 with none; null when caught in a cycle. |
-| <a id="property-blockedby"></a> `blockedBy` | `string`[] | URLs of open blockers, leaving out one whose pull request merged while its issue stays open. |
+| <a id="property-blockedby"></a> `blockedBy` | `string`[] | URLs of open blockers, leaving out one that landed (the pull request it shows merged) while its issue stays open. |
 | <a id="property-claimed"></a> `claimed` | `boolean` | Whether it carries the Claim mark (the `claimed` label); an assignee also holds a ticket. |
 | <a id="property-assignees"></a> `assignees` | `string`[] | Assignee logins. |
 | <a id="property-labels"></a> `labels` | `string`[] | Label names. |

@@ -1,7 +1,7 @@
 `spp wait <epic> [--interval SECONDS] [--timeout SECONDS]` polls the Epic's state and the `claude` session list
 every interval (default 120 seconds) and exits when something changes, with one line per change: a ticket's state
 (`#12 claimed -> pr-open`) or one of its workers that stopped working (`t-12 done`). The first poll also reports a
-claimed ticket with no pull request whose worker session is listed but no longer live, since that worker stopped
+claimed, unassigned ticket with no pull request whose worker session is listed but no longer live, since it stopped
 before the wait began. When nothing changes for `--timeout` seconds (default 1800) it exits with one `heartbeat:`
 line, so a worker that died unseen never leaves the orchestrator asleep. Run it in the background so its exit wakes
 the orchestrator. It has no `--json`.
