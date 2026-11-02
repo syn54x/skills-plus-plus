@@ -68,8 +68,26 @@ describe("happy path", () => {
     assert.ok(brief.includes("git switch -c sdd/12-add-the-invoice-endpoint origin/feat/invoices\n"));
     assert.ok(brief.includes('test "$(git merge-base HEAD origin/feat/invoices)" = "$(git rev-parse origin/feat/invoices)"'));
     assert.match(brief, /PR into `feat\/invoices` with `Closes #12`/);
-    assert.match(brief, /worker-12/);
     assert.match(brief, /## Report/);
+  });
+
+  test("the worker's name is t-<N>, the name the drivers give its session, so the board can match it", async () => {
+    const { dir, out } = scratch({ extra: ["--out", "OUT"] });
+    await runCase("brief", dir);
+    const brief = readFileSync(out, "utf8");
+    assert.match(brief, /^You are t-12,/);
+    assert.ok(brief.includes("spp progress 12 --worker t-12"), "the Worker line names t-12");
+    assert.doesNotMatch(brief, /worker-12/);
+  });
+
+  test("the report asks for implement-issue's one fenced JSON object, not a prose report", async () => {
+    const { dir, out } = scratch({ extra: ["--out", "OUT"] });
+    await runCase("brief", dir);
+    const report = readFileSync(out, "utf8").split("## Report\n")[1];
+    assert.match(report, /one fenced JSON object/);
+    assert.match(report, /"ticket"/);
+    assert.match(report, /"verifySha"/);
+    assert.doesNotMatch(report, /Reply in 200 words/);
   });
 
   test("without --out the brief goes to a temp file whose path is printed", async () => {

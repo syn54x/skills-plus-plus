@@ -46,7 +46,7 @@ Write only after the person confirms, and only the entries that were shown:
 2. Write or rewrite the Routing block from `BLOCKS.md`, replacing what lies between the markers and never adding a second block.
 3. Add the domain docs section when it is missing. Create no glossary or ADR file; `domain-modeling` does that when a term or a decision is settled.
 
-Done when `gh label list` shows every label in the table, and re-reading the block shows each field line in the form `BLOCKS.md` gives: Mode exactly `org` or `labels-only`, and any Panel token one of `tickets>=N`, `size:L`, `lines>=N`.
+Done when `gh label list` shows every label in the table, and re-reading the block shows each field line in the form `BLOCKS.md` gives: Mode exactly `org` or `labels-only`, and any Panel token one of `tickets>=N`, `size:L`, `no-size-L`, `lines>=N`.
 
 ## 4. Offer ponytail
 

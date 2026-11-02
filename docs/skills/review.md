@@ -38,11 +38,11 @@ When the base branch has moved since the branch was cut, the reviewer merges the
 **Why does every finding need a Law tag?**
 The retro counts fix-round findings by tag to name which rule workers keep missing. An untagged finding counts as nothing, so the review refuses to post until each finding names its rule, or says `[none]` after checking that no written rule covers it.
 
-**Why does a slice review raise depth findings?**
+**Why does a slice review raise findings in the depth category?**
 Shallow modules are cheapest to fix while the author still has the files open. The four Depth check questions run on every module the pull request adds or reshapes, and each one that fires is an ordinary finding at the severity the check gives.
 
 **ponytail is installed. What does it change?**
-When the slice changes code, the reviewer also runs `ponytail-review` on the same head, after its own findings are written down. It checks each of ponytail's findings that it did not already have, keeps only those that hold up, and posts them in a separate `## Ponytail` comment. A kept Critical or Important one joins the fix round. Ponytail's own verdict is never read. Without ponytail, nothing changes.
+When the slice changes code, the reviewer also runs `ponytail-review` on the same head, after its own findings are written down. It checks each of ponytail's findings, keeps only those that hold up, and posts them in a separate `## Ponytail` comment, marking each one that repeats a finding of its own so the retro can count the overlap. A kept Critical or Important one that the reviewer did not already have joins the fix round. Ponytail's own verdict is never read. Without ponytail, nothing changes.
 
 **What happens after a fix round?**
 The next review is scoped: it reads only the commits since the head it last reviewed, marks each earlier finding addressed or not, and looks for anything the fix broke. Verify and CI run again on the new head.

@@ -1,8 +1,8 @@
 /**
  * `spp brief <issue> [--out FILE]` writes the worker brief for one Sub-issue and prints the file's path. The brief
  * holds the ticket body verbatim, the Laws sources from the Routing block, the branch mechanics (cut from the Epic's
- * integration branch, or from the default branch for a One-off) and the report format. Without `--out` the file goes
- * in a new temporary directory. It has no `--json`.
+ * integration branch, or from the default branch for a One-off), the worker's name `t-<N>` and the report format (one
+ * fenced JSON object). Without `--out` the file goes in a new temporary directory. It has no `--json`.
  *
  * @module
  */
@@ -38,7 +38,7 @@ function render(issue: Issue, base: string, laws: string[], checkout: string): s
   const n = issue.number;
   const branch = `sdd/${n}-${slug(issue.title)}`;
   const repo = /github\.com\/([^/]+\/[^/]+)\/issues\//.exec(issue.url)![1];
-  return `You are worker-${n}, implementing ${issue.url}${issue.parent ? ` of the epic ${issue.parent.url}` : ""}.
+  return `You are t-${n}, implementing ${issue.url}${issue.parent ? ` of the epic ${issue.parent.url}` : ""}.
 Start in the checkout at ${checkout}; the ticket, its branch and its PR all live in ${repo} and nowhere else.
 First, before anything else, cut your branch from the remote ${issue.parent ? "integration" : "base"} branch, whatever branch this worktree started on, and confirm its base:
 
@@ -61,14 +61,20 @@ ${issue.parent ? `- the epic ${issue.parent.url}: the Implementation Decisions t
 ## Mechanics
 
 - Branch \`${branch}\`, cut from \`origin/${base}\` by the first step above; open the PR into \`${base}\` with \`Closes #${n}\` on its first line. Do not merge.
-- Claim #${n} with \`spp claim ${n}\` and write worker-${n} on the Worker line of the progress comment (\`spp progress ${n} --worker worker-${n}\`).
+- Claim #${n} with \`spp claim ${n}\` and write t-${n} on the Worker line of the progress comment (\`spp progress ${n} --worker t-${n}\`). It is the name the driver gave your session, so the board and \`spp wait\` find you by it.
 - Progress is one comment on #${n}, rewritten in place through \`spp progress\`; never post a second one.
 - Commit as you go with conventional messages. The last commit before the PR is the one Verify ran on.
 - Write the PR body to a file unique to this ticket (for example \`$(mktemp -t pr-${n})\`), never a shared path.
 
 ## Report
 
-Reply in 200 words or fewer: status (DONE, DONE_WITH_CONCERNS, BLOCKED or NEEDS_CONTEXT), PR link, commits, TDD evidence (the RED and GREEN commands with their output), the Verify SHA, and anything the reviewer must know. For BLOCKED or NEEDS_CONTEXT, say exactly what you are stuck on, what you tried, and what would unblock you. Then stop.
+End with one fenced JSON object and nothing after it, the report implement-issue's last step defines, because the driver that started you parses it:
+
+\`\`\`json
+{ "ticket": ${n}, "pr": "<pull request URL>", "verifySha": "<sha7>", "status": "DONE", "notes": "..." }
+\`\`\`
+
+\`status\` is DONE, DONE_WITH_CONCERNS, BLOCKED or NEEDS_CONTEXT. \`pr\` and \`verifySha\` are null when no pull request opened. \`notes\`, in 200 words or fewer, holds the commits, the TDD evidence (the RED and GREEN commands with their output) and anything the reviewer must know; for BLOCKED or NEEDS_CONTEXT, exactly what you are stuck on, what you tried, and what would unblock you. Then stop.
 `;
 }
 

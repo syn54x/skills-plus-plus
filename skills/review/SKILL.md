@@ -27,7 +27,7 @@ gh pr diff "$PR"
 | --- | --- | --- |
 | none, or `#N` | `raw` | Quality only. The comment's first line says `No linked Sub-issue or One-off: quality verdict only.` (naming `#N` as raw when there is one) and no verdict marker is written, so a gate never passes it. |
 | `#N` | `epic` | The Epic's own pull request: read [`EPIC.md`](EPIC.md) and follow it in place of steps 4 to 6. |
-| `#N` | `ticket` | A slice, either a Sub-issue or a One-off: both verdicts. |
+| `#N` | `one-off` | A slice, either a Sub-issue or a One-off: both verdicts. |
 
 For a slice, read the linked issue (`gh issue view N --json body,parent`). A Sub-issue has a parent Epic: read its Implementation Decisions and Out of Scope too, and its plan comment's `**Narrowed:**` and `**Deviated:**` lines. A One-off has no Epic, so its own body is the whole spec. Check `HEAD` out detached in a throwaway worktree; that checkout and an unpushed trial merge are the only things you change.
 

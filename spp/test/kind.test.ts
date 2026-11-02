@@ -12,8 +12,8 @@ describe("happy path", () => {
     await assertCase("kind", fixture("epic")); // expected.json
   });
 
-  test("spp kind 12 on a hardened issue with size:S is a ticket", async () => {
-    await assertCase("kind", fixture("ticket"));
+  test("spp kind 12 on a hardened issue with size:S is a one-off", async () => {
+    await assertCase("kind", fixture("one-off"));
   });
 });
 
@@ -33,7 +33,7 @@ describe("edge cases", () => {
 
 describe("integration", () => {
   test("the text view prints kind and reason on one line", async () => {
-    await assertCase("kind", fixture("ticket-text")); // expected.txt
+    await assertCase("kind", fixture("one-off-text")); // expected.txt
   });
 
   test("a non-issue argument exits 2 with usage", async () => {

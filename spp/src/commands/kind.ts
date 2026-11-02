@@ -1,7 +1,7 @@
 /**
- * `spp kind <issue> [--json]` says what an issue is: an Epic (it has Sub-issues), a ticket (it passes
- * `spp lint ticket`) or raw (anything else), and why. `/build` routes on it. Without `--json` the answer is one line,
- * such as `ticket: carries the ticket contract and one size`; with `--json` it prints {@link Kind}.
+ * `spp kind <issue> [--json]` says what an issue is: an Epic (it has Sub-issues), a hardened One-off (it passes
+ * `spp lint ticket`) or a raw issue (anything else), and why. `/build` routes on it. Without `--json` the answer is one
+ * line, such as `one-off: carries the ticket contract and one size`; with `--json` it prints {@link Kind}.
  *
  * @module
  */
@@ -10,8 +10,8 @@ import { isIssueRef, lintTicket } from "../ticket.ts";
 
 /** What an issue is: the `--json` shape of `spp kind`. */
 export type Kind = {
-  /** `epic` when it has Sub-issues, `ticket` when it passes the ticket lint, `raw` otherwise. */
-  kind: "epic" | "ticket" | "raw";
+  /** `epic` when it has Sub-issues, `one-off` when it passes the ticket lint (a hardened One-off), `raw` otherwise. */
+  kind: "epic" | "one-off" | "raw";
   /** Why: the Sub-issue count for an Epic, and every lint failure, joined by `; `, for a raw issue. */
   reason: string;
 };
@@ -47,7 +47,7 @@ export async function run(args: string[]): Promise<number> {
     issue.subIssuesSummary.total > 0
       ? { kind: "epic", reason: `${issue.subIssuesSummary.total} Sub-issues` }
       : failures.length === 0
-        ? { kind: "ticket", reason: "carries the ticket contract and one size" }
+        ? { kind: "one-off", reason: "carries the ticket contract and one size" }
         : { kind: "raw", reason: failures.map((f) => f.detail).join("; ") };
   process.stdout.write(args.includes("--json") ? JSON.stringify(result, null, 2) + "\n" : `${result.kind}: ${result.reason}\n`);
   return 0;
