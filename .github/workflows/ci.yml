@@ -33,3 +33,8 @@ jobs:
           else
             echo "::notice::claude CLI not available in CI; skipped claude plugin validate"
           fi
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - name: docs site builds with no broken links
+        run: uv run --frozen zensical build --clean --strict
