@@ -17,17 +17,17 @@ Fetch the issue (body, state, labels, assignees, parent, blockers) and its comme
 - It is open and labelled `ready-for-agent`, and every issue blocking it is closed.
 - It is not held, or it is held by you: no `claimed` label and no assignee, or a progress comment whose Worker line names you (a fix round). Report "held by <name>" otherwise.
 
-Then read the contract. What to build, Acceptance criteria, Files owned, Interfaces, Test scenarios and Verify must each be present and concrete. A section that is missing, empty or a placeholder ("TBD", "as in #N", "handle errors appropriately") means the issue cannot be built: hand it back on the `needs-info` route naming the gap, and stop.
+Then read the contract. What to build, Acceptance criteria, Files owned, Interfaces, Test scenarios and Verify must each be present and concrete. A section that is missing, empty or a placeholder ("TBD", "as in #N", "handle errors appropriately") leaves nothing to build against: hand the issue back on the `needs-info` route, naming the gap, and stop.
 
 Read the Laws before writing anything, from three places:
 
-1. The repo: each document on the Laws line of the Routing block in `CLAUDE.md` or `AGENTS.md`. Read a directory (the ADRs) by the entries that touch Files owned.
+1. The repo: each document the Routing block in `CLAUDE.md` or `AGENTS.md` lists as a Law. For a directory such as the ADRs, read only the records relevant to Files owned.
 2. The Epic, when the issue has a parent: its Implementation Decisions, Testing Decisions and Out of Scope, and the plan comment's Constraints, Narrowed and Deviated lines.
 3. Every document the issue itself cites.
 
-Write down, for each Law that names a moment ("before a second copy", "when a component gains a second host"), that moment and the observation that satisfies it. Step 4 checks those at their moment; step 6 checks the rest.
+List, for each Law that names a moment ("before a second copy", "when a component gains a second host"), that moment and the observation that satisfies it. Step 4 checks those at their moment; step 6 checks the rest.
 
-The step is done when every Law has a line in your notes.
+The step is done when every Law has a line in that list.
 
 ## 2. Claim
 
@@ -43,17 +43,17 @@ The step is done when `git merge-base HEAD origin/<base>` equals the tip of `ori
 
 Call the Skill tool with "tdd" and follow its loop, one test per Test scenario line, in the order the issue lists them. When the issue is a bug (its Verify block reproduces a failure), call the Skill tool with "diagnosing-bugs" first and let its red command lead. Post the note `first red: <test>` at the first failure you trust and `green` when the last scenario passes.
 
-**Prose issues.** When Files owned are only skill files, reference files or docs pages, each scenario resolves to a Verify command and the Verify block is your test. Run it before the first edit and keep every failing command: that is red. Make the edits in scenario order until each command passes. A command already passing before any edit is a weak pin; list it as `No RED: <command>` in the pull request so the gate weighs it accordingly. Before writing a docs page or a docstring, call the Skill tool with "writing-for-humans".
+**Prose issues.** When Files owned are only skill files, reference files or docs pages, each scenario resolves to a Verify command and the Verify block is your test. Run it before the first edit and keep every failing command: that is red. Make the edits in scenario order until each command passes. A command already passing before any edit is a weak pin; list it as `No RED: <command>` in the pull request so the gate weighs it accordingly. Prose meant for people (a docs page, a docstring) starts with this call: Call the Skill tool with "writing-for-humans".
 
 **Files owned.** Create and edit only what Files owned lists. A file the slice cannot ship without may be touched, and the pull request names it with the reason under Outside Files owned. Another issue's Files owned are never yours, even when the edit looks trivial.
 
 **Interfaces.** Ship every Produces line with exactly the name and signature written, because another worker is coding against it now. Import every Consumes item by the name its producer published; if the merged name differs, stop and report rather than alias it. A Consumes item from another repo that you cannot reach yet means `BLOCKED`.
 
-An **Interface deviation** is the one exit. When an in-repo code signature (a function, type, enum or struct) cannot work as written, ship the one that does, give it an `Interfaces changed:` line in the pull request, and report `DONE_WITH_CONCERNS`. A cross-repo contract (a route and its shapes, an event payload, a generated client method) or an interface the Epic states never deviates: that is `NEEDS_CONTEXT`.
+An **Interface deviation** is the one exit. When a signature the issue gives for code inside this repo turns out unworkable, ship a version that works, explain the swap on its own `Interfaces changed:` line in the pull request, and finish as `DONE_WITH_CONCERNS`. Contracts that cross a repo boundary (HTTP routes and their payloads, events, generated clients) and anything the Epic spells out stay fixed: stop with `NEEDS_CONTEXT`.
 
-**Laws at their moment.** When you reach the moment a Law names, run its check before the line it governs (usually a search for the existing copy, the other host, the test that covers the affordance) and act on the result in this pull request.
+**Laws at their moment.** When you reach the moment a Law names, run its check before writing the line it governs (often a search: is there already a copy, a second host, a test covering the affordance?) and act on the answer in this pull request.
 
-Run the type checker and the test file in front of you often. The full suite is CI's job. Commit in small conventional commits; leave the history unsquashed.
+Type-check and rerun your current test file often. The full suite is CI's job. Commit in small conventional commits; leave the history unsquashed.
 
 **Escalate rather than guess** when the issue needs an architectural choice with more than one fair answer, when understanding the code needs more than the brief and the issue gave and you cannot find it, when the plan did not foresee the restructuring the work needs, or when you have read file after file without getting closer. Go to *Stopping without a pull request*.
 
@@ -67,14 +67,14 @@ The step is done when the record on `HEAD` says verified. A pull request never o
 
 ## 6. Self-review
 
-Read `git diff origin/<base>...HEAD` once, as a stranger would, and fix what you find. A fix is a new commit and a fresh step 5.
+Read `git diff origin/<base>...HEAD` end to end with a reviewer's eyes and repair what you catch. Each repair is its own commit, followed by a fresh step 5.
 
 - Nothing was built that the issue did not ask for, and every file outside Files owned is declared.
 - Tests assert behaviour through the agreed seams, and their output is clean.
 - Names say what a thing does.
-- **Laws**: hold each Law from step 1 against the diff and draft the pull request's Laws lines: one per Law that applies, grouped by source, and one `n/a: <reason>` per source where nothing applies.
-- **Ticket**: for each acceptance criterion and each Test scenario, in the issue's order, name the test (`file::name`) or the hunk (`file:line`) that satisfies it. A line you cannot fill is a gap to close now, never an `n/a`.
-- **Interfaces**: list every public symbol the diff adds, removes or re-signs inside Files owned and match it to a Produces line. Each mismatch is reverted or declared; the line reads `none` only when the lists agree.
+- **Laws**: compare every Law from step 1 with the diff and draft the Laws lines. For each source, write a line per Law the diff engages, saying how it complies, or a single `n/a: <reason>` when that source has none.
+- **Ticket**: walk the acceptance criteria, then the Test scenarios, in the issue's order, and give each one the test (`file::name`) or hunk (`file:line`) that meets it. An item you cannot tie to a test or a hunk is unfinished work, so finish it now; `n/a` is never the answer here.
+- **Interfaces**: collect each exported name the diff creates, deletes or reshapes within Files owned and pair it with its Produces line. Revert or declare every name without a partner; `Interfaces changed: none` is true only when all of them pair up.
 
 ## 7. Open the pull request
 
@@ -87,8 +87,8 @@ Push the branch and open the pull request into the base from step 3, titled `<ty
 Against the pushed branch, confirm each of these, and fix (commit, step 5, push) or withdraw any that fails:
 
 - Every test, file and hunk the pull request names is in `git diff origin/<base>...origin/<branch>`.
-- Every acceptance criterion and Test scenario has its line in the Ticket section.
-- A test edited after its red run was run again, and the verified SHA equals the pushed head.
+- The Ticket section covers every acceptance criterion and every Test scenario.
+- Any test changed since it first failed has passed again on the final commit, and the verified SHA is the pushed head.
 - `git status --porcelain` is empty.
 
 ## 9. Report
@@ -102,8 +102,8 @@ End with one fenced JSON object and nothing after it:
 
 - `status`: `DONE`; `DONE_WITH_CONCERNS` (finished, but a deviation or a doubt about correctness or scope remains); `BLOCKED` (cannot finish); `NEEDS_CONTEXT` (information is missing).
 - `pr` and `verifySha` are `null` when no pull request opened.
-- `notes`, in 200 words or fewer: the commits (short SHA and subject), the red command with its failing output and the green command with its passing output, and each concern. For `NEEDS_CONTEXT`, open with the kind: a **missing fact** (a path, value or name the brief or issue lacks) or an **unsettled design** (more than one valid approach and the Epic does not choose, or the Epic contradicts the code). Then say what you tried and what would unblock you.
+- `notes`, in 200 words or fewer: the commits (short SHA and subject), the red command with its failing output and the green command with its passing output, and each concern. For `NEEDS_CONTEXT`, open with the kind: a **missing fact** (a path, value or name nobody gave you) or an **unsettled design** (several reasonable designs remain open in the Epic, or what it decided clashes with the code). Then list the attempts made and the one thing that would let you continue.
 
 ## Stopping without a pull request
 
-Hand the issue back with one call, giving the route and the reason: `needs-info` when the issue is ambiguous or contradicts the code, `ready-for-human` when a person's decision or a secret is needed, `blocked` for a blocker the tracker does not know (name the blocking issue when you know it). The call writes the reason on the progress comment, sets the route label and clears the claim. Post the note `blocked: <why>`, push what is committed, record the stop on `HEAD` as blocked so the stop gate lets you finish, and report.
+Hand the issue back with one call, giving the route and the reason: `needs-info` when the issue is unclear or disagrees with the code, `ready-for-human` when only a person can decide or supply a secret, `blocked` when something stops the work that no blocked-by edge records yet (name the blocking issue if you can). The one call records why on the progress comment, labels the route and clears the claim. Post the note `blocked: <why>`, push what is committed, record the stop on `HEAD` as blocked so the stop gate lets you finish, and report.

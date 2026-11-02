@@ -81,11 +81,11 @@ Keep only the names the reviewer needs for the point being made. One visual is u
 
 ## Evidence
 
-Show the change working, before and after. A screenshot is the strongest proof for a visual change, when the environment can take one. Otherwise show a run: the test that failed and now passes, named, with the command and its trimmed output. A change with no runnable effect (a docs page, a skill file) shows the check that now passes, such as the build or the lint.
+Prove the change with the old result beside the new one. For a visual change nothing beats a screenshot, if the environment can capture it. Without one, show a run: the named test that was red before and is green now, with the command and the lines of output that matter. A change with no runnable effect (a docs page, a skill file) shows the check that now passes, such as the build or the lint.
 
 ## Merge danger
 
-A **two-way door** is cheap to walk back: revert the merge and nothing is lost. A **one-way door** is not: a data migration, a deleted record, a published package version, a renamed public route that clients already call. Say which, and why.
+A **two-way door** can be walked back: revert the merge and nothing is lost. A **one-way door** is not: a data migration, a deleted record, a published package version, a renamed public route that clients already call. Say which, and why.
 
 The **blast radius** is everything this can break if it is wrong: callers of a changed signature, other services reading the same data, layouts on narrow screens, users mid-session. Name the widest one honestly; a reviewer trusts a stated risk more than a missing one.
 
@@ -95,9 +95,9 @@ These apply when the pull request closes an issue with the Ticket contract. A mi
 
 - **`Closes #<N>` on the first line.** GitHub does not link closing keywords on a pull request into a non-default branch, so the gate, `spp` and the orchestrator read the issue number from this line.
 - **Verify.** The short SHA Verify ran on, which equals the pushed head. The TDD line names the red command with what failed and the green command with its count; for a prose issue the red command is the Verify run before the first edit. `Verify block corrected:` is always present: `no`, or `yes:` with what was wrong in the issue's block and the command run instead.
-- **Ticket.** One line per acceptance criterion and per Test scenario, in the issue's order, each ending in the test (`file::name`) or the hunk (`file:line`) that satisfies it. There is no `n/a` line here.
-- **Interfaces.** `Interfaces changed: none` when every public symbol the diff touches matches a Produces line. Otherwise one `Interfaces changed:` line per **Interface deviation**: the old signature, the new one, and why the old one could not work.
-- **Laws.** One line per Law the diff touches, grouped by source (a repo document by its rule or heading, the Epic by its decision's name, a cited document by the heading that binds), saying how the diff meets it, and one `n/a: <reason>` line per source with nothing that applies.
+- **Ticket.** The acceptance criteria and then the Test scenarios, in the issue's order, one line each, closed by the test (`file::name`) or hunk (`file:line`) that meets it. No line here may read `n/a`.
+- **Interfaces.** `Interfaces changed: none` when each exported name the diff touches pairs with a Produces line. Otherwise each **Interface deviation** gets its own `Interfaces changed:` line, giving the signature the issue asked for, the signature shipped, and the reason the first was unworkable.
+- **Laws.** Grouped by source (a repo document by rule id or heading, the Epic by decision name, a document the issue cites by its binding heading), a line for each Law the diff engages with how it complies. A source where none applies gets a single `n/a: <reason>`.
 - **Outside Files owned.** Only when a file outside Files owned changed: each path with its reason.
 
 ## Keeping it true
