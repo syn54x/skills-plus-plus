@@ -1,0 +1,16 @@
+{
+  "--version": {
+    "stdout": "gh version 2.103.2 (2026-10-23)\n"
+  },
+  "issue view 197 --json state,subIssuesSummary": {
+    "stdout": {
+      "state": "CLOSED",
+      "subIssuesSummary": {
+        "total": 33
+      }
+    }
+  },
+  "api repos/{owner}/{repo}/issues/197/comments --paginate --jq .[] | [.id, .body] | @json": {
+    "stdout": "[11,\"<!-- sdd-plan -->\\n## Plan\"]\n"
+  }
+}

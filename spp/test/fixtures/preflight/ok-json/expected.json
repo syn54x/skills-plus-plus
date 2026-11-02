@@ -1,0 +1,15 @@
+{
+  "mode": "org",
+  "sizes": "`size:S/M/L` labels",
+  "laws": [
+    "CLAUDE.md",
+    "GLOSSARY.md",
+    ".agents/adr/",
+    ".agents/invocation.md"
+  ],
+  "panel": {
+    "tickets": 4,
+    "sizeL": true,
+    "lines": 1000
+  }
+}

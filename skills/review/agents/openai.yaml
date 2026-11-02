@@ -1,0 +1,3 @@
+interface:
+  display_name: "Review"
+  short_description: "Gate a pull request with spec and quality verdicts"

@@ -1,0 +1,27 @@
+{
+  "findings": [
+    {
+      "id": "F1",
+      "file": "src/a.ts",
+      "line": 9,
+      "title": "Unescaped input",
+      "severity": "critical",
+      "personas": [
+        "adversarial",
+        "security"
+      ],
+      "body": "critical view"
+    }
+  ],
+  "counts": {
+    "severity": {
+      "critical": 1,
+      "important": 0,
+      "minor": 0
+    },
+    "persona": {
+      "adversarial": 1,
+      "security": 1
+    }
+  }
+}
