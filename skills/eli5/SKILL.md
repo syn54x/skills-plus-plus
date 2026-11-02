@@ -5,38 +5,32 @@ disable-model-invocation: true
 argument-hint: "[eli5|adhd|wait-what] [topic]"
 ---
 
-Explain the topic in the mode the person names. The first word of the arguments picks the mode: `eli5`, `adhd` or `wait-what`. Without one of those words the mode is `eli5`. The topic is the rest of the arguments, or when there are none, the last thing said in the conversation.
+Re-explain a topic so the reader can use it. The first word of the arguments selects the mode (`eli5`, `adhd` or `wait-what`); with none of those, the mode is `eli5`. The topic is the remaining arguments, or the most recent subject in the conversation when there are none.
 
-The reader is smart. What they lack is context, time or attention, so every mode below gives the point first, in short sentences, one idea each. Add a layer deeper only when they ask for it.
+Assume a capable reader short on one thing. Each mode names that thing and answers it. Open every reply with the answer itself, write plain sentences of one idea each, and offer the next layer only on request.
+
+| Mode | The reader is short on | The reply |
+| --- | --- | --- |
+| `eli5` | A mental picture | One definition sentence, one everyday analogy, one sentence on what the thing lets them do |
+| `adhd` | Attention | The answer in a sentence, then up to three bullets of what they need next |
+| `wait-what` | The thread of what was said | A short scene-setter, then the earlier message restated in Simplified Technical English |
 
 ## Mode eli5
 
-Explain it as to a bright five-year-old: concrete things they already know, and a plain word wherever a technical one would appear.
-
-1. **The thing**: one sentence saying what it is.
-2. **The picture**: one analogy, drawn from everyday life, that needs no explanation of its own.
-3. **Why it matters**: one sentence on what it lets you do.
-
-Keep the tone warm and level, as between equals.
+Choose the analogy from objects and routines a child meets daily, and check that it stands without a footnote: if it needs explaining, pick another. Swap each technical word for an everyday one, and keep the voice friendly and even.
 
 ## Mode adhd
 
-Give the shortest useful answer.
-
-1. **The point**: first, in one sentence.
-2. **At most three bullets**: only what the reader needs next, in this order: why it matters, then the one catch that would actually bite them, if there is one.
-3. Stop there.
+The first sentence carries the whole answer. Bullets add only what changes what the reader does next: the reason it matters, and a risk when one would really cost them. End on the last bullet.
 
 ## Mode wait-what
 
-The reader missed the last message. Re-pitch it.
-
-1. **Context**: two or three sentences that set the scene, so the message makes sense on its own.
-2. **The pitch**: restate it in Simplified Technical English (ASD-STE100): short active sentences, one meaning per word, the same word for the same thing every time.
-3. **Terms**: take every domain word from the repo's `GLOSSARY.md`. When the repo has several glossaries, follow `GLOSSARY-MAP.md` to the right one. A repo with no glossary gets the plainest everyday words.
+1. Set the scene in two or three sentences so the restatement makes sense alone.
+2. Restate the earlier message in ASD-STE100 Simplified Technical English: short active sentences, a single meaning for each word, the same word for the same thing throughout.
+3. Draw domain terms from the repo's `GLOSSARY.md` (through `GLOSSARY-MAP.md` when the repo holds several). Without a glossary, use the plainest everyday words.
 
 ## Done when
 
-- The reply is in one mode, and that mode is the one asked for.
-- The first sentence is the point.
-- The reply fits its mode: one analogy for `eli5`, at most three bullets for `adhd`, context followed by the pitch for `wait-what`.
+- The reply uses exactly one mode, the one requested.
+- Sentence one is the answer, or in `wait-what`, the scene-setter.
+- The reply meets its mode's limit: one analogy, three bullets at most, or the scene plus the restatement.

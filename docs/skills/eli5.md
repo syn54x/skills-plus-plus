@@ -38,7 +38,7 @@ A short answer you finish beats a thorough one you abandon. Ask for the next lay
 
 ## It's working if
 
-- The first sentence is the point.
-- `eli5` carries exactly one analogy, and it needs no explanation of its own.
-- `adhd` ends after three bullets or fewer.
-- `wait-what` opens with context and uses the repo's own terms.
+- You can act on the first sentence alone.
+- An `eli5` reply holds a single analogy that needs no footnote.
+- An `adhd` reply is over after three bullets.
+- A `wait-what` reply sets the scene first, then speaks in the repo's own terms.
