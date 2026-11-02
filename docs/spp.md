@@ -10,12 +10,12 @@ It prints the issue's kind and why:
 
 ```json
 {
-  "kind": "ticket",
+  "kind": "one-off",
   "reason": "carries the ticket contract and one size"
 }
 ```
 
-Without `--json` the same answer is one line, `ticket: carries the ticket contract and one size`.
+Without `--json` the same answer is one line, `one-off: carries the ticket contract and one size`.
 
 ## Install
 

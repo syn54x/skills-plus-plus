@@ -13,7 +13,7 @@ What `build` does depends on what `<N>` is:
 | `spp kind` says | What `build` does |
 | --- | --- |
 | `epic` | Runs the Epic path: Waves of workers, a gate on each pull request, merges, then the main gate. |
-| `ticket` | Runs the One-off path: one worker, one gate, a pull request for you to merge. |
+| `one-off` | Runs the One-off path: one worker, one gate, a pull request for you to merge. |
 | `raw` | Stops and points you to `/triage`. An issue without the contract never reaches a worker. |
 
 For work too small to file, skip spp and edit directly. `ask-spp` routes between every skill when the right one is unclear.
