@@ -4,7 +4,13 @@ description: Find the skill that fits.
 disable-model-invocation: true
 ---
 
-Route the person. Outside the map, `/plugin` names a command that is not a skill.
+Route the person.
+
+## The five paths
+
+| Path | The route |
+| --- | --- |
+| 1. Demo | `/alpha <N>`, then merge |
 
 ## Every skill
 

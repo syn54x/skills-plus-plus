@@ -51,7 +51,7 @@ test("a skill without a docs page fails, naming it", () => {
 });
 
 test("an ask-spp map that omits a skill fails, naming it", () => {
-  const result = run("check-registry.ts", registry({ "skills/ask-spp/SKILL.md": without("`/alpha`") }));
+  const result = run("check-registry.ts", registry({ "skills/ask-spp/SKILL.md": without("`/alpha") }));
   assert.equal(result.status, 1);
   assert.match(result.stderr, /skills\/ask-spp\/SKILL\.md: .*\balpha\b/);
   assert.equal(result.stderr.trim().split("\n").length, 1);
@@ -63,10 +63,23 @@ test("an ask-spp map that names a skill with no folder fails, naming it", () => 
   assert.match(result.stderr, /skills\/ask-spp\/SKILL\.md: .*\bgamma\b/);
 });
 
-test("an ask-spp with no Every skill section fails", () => {
-  const result = run("check-registry.ts", registry({ "skills/ask-spp/SKILL.md": (t) => t.replace("## Every skill", "## Skills") }));
+test("an ask-spp five-paths section that names a skill with no folder fails, naming it", () => {
+  const result = run("check-registry.ts", registry({ "skills/ask-spp/SKILL.md": (t) => t.replace("`/alpha <N>`", "`/gamma <N>`") }));
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /skills\/ask-spp\/SKILL\.md: .*## Every skill/);
+  assert.match(result.stderr, /skills\/ask-spp\/SKILL\.md: .*\bgamma\b/);
+  assert.equal(result.stderr.trim().split("\n").length, 1);
+});
+
+test("an ask-spp Skill tool target with no folder fails, naming it", () => {
+  const result = run("check-registry.ts", registry({ "skills/ask-spp/SKILL.md": (t) => t + '\nCall the Skill tool with "gamma".\n' }));
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /skills\/ask-spp\/SKILL\.md: .*\bgamma\b/);
+});
+
+test("an ask-spp naming a slash command that is not a skill fails unless allowlisted", () => {
+  const result = run("check-registry.ts", registry({ "skills/ask-spp/SKILL.md": (t) => t + "\nThen `/compact`.\n" }));
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /skills\/ask-spp\/SKILL\.md: .*\bcompact\b/);
 });
 
 test("a skill missing from the nav fails, naming it", () => {
