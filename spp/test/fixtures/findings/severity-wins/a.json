@@ -1,0 +1,13 @@
+{
+  "persona": "security",
+  "findings": [
+    {
+      "file": "src/a.ts",
+      "line": 7,
+      "title": "Unescaped input",
+      "severity": "important",
+      "confidence": 99,
+      "body": "important view"
+    }
+  ]
+}
