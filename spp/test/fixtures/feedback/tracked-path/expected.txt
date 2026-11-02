@@ -1,0 +1,1 @@
+rule 3 Paths, line 4: **Observed:** the worker edited `spp/src/routing.ts` by hand

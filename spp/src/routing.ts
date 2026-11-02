@@ -3,15 +3,19 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+export type UpstreamFeedback = "off" | "counts" | "detailed" | "attributed";
+
 export type Routing = {
   mode: "org" | "labels-only";
   sizes: string;
   laws: string[];
   panel: { tickets: number; sizeL: boolean; lines: number };
+  upstreamFeedback: UpstreamFeedback; // how much a skill-feedback issue may say; a missing or unknown value is off
   merge?: "squash" | "merge" | "rebase"; // how spp merge merges a slice; absent means squash
 };
 
 const MERGE_METHODS = ["squash", "merge", "rebase"];
+const FEEDBACK_PROFILES = ["counts", "detailed", "attributed"];
 
 const ROUTING_FILES = ["CLAUDE.md", "AGENTS.md"];
 const PANEL_DEFAULT = { tickets: 4, sizeL: true, lines: 1000 };
@@ -36,11 +40,13 @@ export function parseRouting(text: string): Routing {
   if (mode !== "org" && mode !== "labels-only") throw new Error(`Routing block: Mode must be org or labels-only, got ${mode === undefined ? "nothing" : `"${mode}"`}`);
   const merge = field("Merge");
   if (merge !== undefined && !MERGE_METHODS.includes(merge)) throw new Error(`Routing block: Merge must be squash, merge or rebase, got "${merge}"`);
+  const feedback = field("Upstream feedback") ?? "";
   return {
     mode,
     sizes: field("Sizes") ?? "",
     laws: (field("Laws") ?? "").split(",").map((l) => l.trim()).filter(Boolean),
     panel: parsePanel(field("Panel") ?? ""),
+    upstreamFeedback: FEEDBACK_PROFILES.includes(feedback) ? (feedback as UpstreamFeedback) : "off",
     ...(merge && { merge: merge as Routing["merge"] }),
   };
 }
