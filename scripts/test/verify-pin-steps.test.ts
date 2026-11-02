@@ -56,4 +56,11 @@ describe("the pin is checked before any hand run of a Verify block", () => {
     assert.match(merged, /`spp verify <N>`/);
     assert.doesNotMatch(merged, /run the merged issue's Verify block/);
   });
+
+  test("review-panel runs each closed Sub-issue's Verify through spp verify and stops on a refusal", () => {
+    const item = /^- \*\*Verify\.\*\*.*$/m.exec(skill("review-panel"))?.[0] ?? "";
+    assert.match(item, /`spp verify <N>` for each closed Sub-issue/);
+    assert.match(item, /never the block's commands by hand/);
+    assert.match(item, /refus.*\bstop\b/);
+  });
 });
