@@ -1,11 +1,18 @@
 {
   "name": "@syn54x/spp",
   "version": "2.0.0-next.0",
-  "private": true,
   "description": "The spp command-line tool and Claude Code plugin: spec-driven delivery on GitHub Issues.",
   "type": "module",
   "bin": {
     "spp": "bin/spp"
+  },
+  "files": [
+    "bin/",
+    "spp/src/"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "engines": {
     "node": ">=22.18"

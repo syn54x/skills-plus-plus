@@ -14,19 +14,23 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+          registry-url: https://registry.npmjs.org
       - run: npm ci
-      # Opens or updates the version pull request; once it merges, tags the release.
+      # Opens or updates the version pull request; once it merges, publishes to npm with provenance
+      # (the NPM_TOKEN secret), or only tags the release when that secret is not set.
       - uses: changesets/action@v1
         with:
           version: npm run version
-          publish: npx changeset tag
+          publish: sh -c 'if [ -n "$NODE_AUTH_TOKEN" ]; then npx changeset publish; else echo "NPM_TOKEN is not set: skipping npm publish, tagging only"; npx changeset tag; fi'
           commit: "chore: version spp"
           title: "chore: version spp"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
