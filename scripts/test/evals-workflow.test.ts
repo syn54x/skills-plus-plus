@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
@@ -61,5 +61,50 @@ describe("evals.yml credential", () => {
     assert.equal(present({ ANTHROPIC_API_KEY: "k", CLAUDE_CODE_OAUTH_TOKEN: "" }), "present=true");
     assert.equal(present({ ANTHROPIC_API_KEY: "", CLAUDE_CODE_OAUTH_TOKEN: "t" }), "present=true");
     assert.equal(present({ ANTHROPIC_API_KEY: "", CLAUDE_CODE_OAUTH_TOKEN: "" }), "present=false");
+  });
+});
+
+describe("release.yml tags and releases a published version", () => {
+  // The step's shell, cut from its `run: |` block and run with stub git, npm and gh on the PATH.
+  const step = release.slice(release.indexOf("name: tag and release the published version"));
+  const script = step.slice(step.indexOf("run: |") + "run: |".length, step.indexOf("\n        env:")).replace(/^ {10}/gm, "");
+  const run = (stubs: { tagExists: boolean; published: boolean }) => {
+    const dir = mkdtempSync(join(tmpdir(), "spp-release-"));
+    const bin = join(dir, "bin");
+    const log = join(dir, "gh.log");
+    const write = (name: string, body: string) => {
+      writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`);
+      chmodSync(join(bin, name), 0o755);
+    };
+    mkdirSync(bin);
+    write("git", `exit ${stubs.tagExists ? 0 : 2}`);
+    write("npm", `exit ${stubs.published ? 0 : 1}`);
+    write("gh", `echo "$@" >> "${log}"`);
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "@syn54x/spp", version: "2.0.1" }));
+    writeFileSync(join(dir, "CHANGELOG.md"), "# @syn54x/spp\n\n## 2.0.1\n\n- fixed a thing\n\n## 2.0.0\n\n- old\n");
+    const r = spawnSync("sh", ["-c", script], {
+      cwd: dir,
+      encoding: "utf8",
+      env: { PATH: `${bin}:${process.env.PATH}`, RUNNER_TEMP: dir, GITHUB_SHA: "abc123" },
+    });
+    assert.equal(r.status, 0, r.stderr);
+    return { gh: existsSync(log) ? readFileSync(log, "utf8").trim() : "", notes: existsSync(join(dir, "notes.md")) ? readFileSync(join(dir, "notes.md"), "utf8") : "" };
+  };
+
+  test("it runs only on the publish path, after the changesets action", () => {
+    assert.ok(release.indexOf("name: tag and release the published version") > release.indexOf("uses: changesets/action@"));
+    assert.match(step, /if: steps\.changesets\.outputs\.hasChangesets == 'false'/);
+  });
+
+  test("a published version with no tag gets the tag and a release with its changelog section", () => {
+    const { gh, notes } = run({ tagExists: false, published: true });
+    assert.match(gh, /^release create v2\.0\.1 --target abc123 --title v2\.0\.1 --notes-file \S+notes\.md$/);
+    assert.match(notes, /fixed a thing/);
+    assert.doesNotMatch(notes, /old/);
+  });
+
+  test("an existing tag or an unpublished version creates nothing", () => {
+    assert.equal(run({ tagExists: true, published: true }).gh, "");
+    assert.equal(run({ tagExists: false, published: false }).gh, "");
   });
 });
