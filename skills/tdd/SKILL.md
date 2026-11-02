@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development in thin vertical slices, each test seen red before any code turns it green, at seams agreed before the first test is written. Use when building a feature or fixing a bug test-first, when a Sub-issue's Test scenarios are to become tests, or when asked for red-green or test-first work.
+description: Grows code test-first in thin vertical slices, each test seen red before any code turns it green, at seams agreed before the first test is written. Use when new behaviour or a bug fix should be driven by tests written first, when a Sub-issue's Test scenarios are to become tests, or when asked for red-green or test-first work.
 ---
 
 Build behaviour one test at a time. Each cycle writes one failing test at an agreed seam, watches it go **red**, then writes the least code that turns it **green**. Tests made this way check what the code does for its callers, so they keep passing when its insides change.
@@ -22,7 +22,7 @@ Done when every test you plan maps to an agreed seam.
 4. Run it and the tests beside it: all green.
 5. Tidy only while everything is green, and run the tests again after.
 
-The first cycle is a **tracer bullet**: the thinnest path through every layer the behaviour crosses, so later cycles fill in a skeleton that already runs end to end.
+Make the opening cycle a **tracer bullet**: the thinnest path through every layer the behaviour crosses, so later cycles fill in a skeleton that already runs end to end.
 
 Done when every planned case has gone red, then green, in order, and the whole test file passes.
 
@@ -35,10 +35,10 @@ An expected value comes from a source the code under test does not use: a number
 | Anti-pattern | How it shows | Write instead |
 | --- | --- | --- |
 | **Implementation-coupled** | The test mocks your own modules, calls private functions, counts calls, or checks a side channel (the database row) instead of the interface. A refactor that changes no behaviour breaks it. | Drive the interface, and observe the result through the interface as well. |
-| **Tautological** | The expected value is derived the way the code derives it, so the test can never disagree with the code. | A literal from an independent source (above). |
+| **Tautological** | The expected value is derived the way the code derives it, so the test has no way to catch a mistake in it. | A literal from an independent source (above). |
 | **Horizontal slicing** | Several tests written before any code, or the code written before its tests. Each test pins the shape you imagined before the first one ran. | Vertical slices: one test, one change, then the next. |
 
-Doubles belong only at the edges of the system the project does not own: a network service, the clock, randomness, and sometimes the filesystem or the database. When a test needs a double, or you are unsure where an expected value should come from, read [`TESTS.md`](TESTS.md): each anti-pattern beside its repair, and how to pass an edge in so a test can replace it.
+Doubles belong only at the edges of the system the project does not own: a network service, the clock, randomness, and, where a real one is costly, the filesystem or a database. When a test needs a double, or you are unsure where an expected value should come from, read [`TESTS.md`](TESTS.md): each anti-pattern beside its repair, and how to pass an edge in so a test can replace it.
 
 ## Done when
 

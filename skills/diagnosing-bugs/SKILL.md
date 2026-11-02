@@ -1,9 +1,9 @@
 ---
 name: diagnosing-bugs
-description: A disciplined loop for hard bugs and performance regressions that builds a command which goes red on the bug before any theory is formed. Use when asked to diagnose or debug something, when something is reported broken, throwing, failing, flaky or slow, or when a Sub-issue's Verify block reproduces a bug to fix.
+description: A disciplined loop for stubborn defects and slowdowns that builds a command which goes red on the bug before any theory is formed. Use when asked to diagnose or debug something, when something is reported broken, throwing, failing, flaky or slow, or when a Sub-issue's Verify block reproduces a bug to fix.
 ---
 
-Find the cause of one known failure, fix it, and leave a test that keeps it fixed. The hard part is the first step: a command that goes **red** on this bug. With that command, every later step is a question it can answer; without it, reading code only produces guesses. Take the steps in order, and start each one only when the check that closes the one before it holds.
+Find the cause of one known failure, fix it, and leave a test that keeps it fixed. The hard part is the first step: a command that this bug turns **red**. With that command, every later step is a question it can answer; without it, reading code only produces guesses. Take the steps in order, and start each one only when the check that closes the one before it holds.
 
 ## Redact before you show
 
@@ -39,7 +39,7 @@ Then make it **tight**:
 
 Until the loop exists, read code only to build the loop. Done when you can name one command, already run, with its redacted output shown, that is:
 
-- [ ] **red-capable**: it drives the real code path and fails on the reported symptom;
+- [ ] **red-capable**: it runs the real code path and fails on the reported symptom;
 - [ ] **deterministic**: the same verdict every run, or for a flaky bug a stated, high failure rate;
 - [ ] **fast**: seconds, not minutes;
 - [ ] **unattended**: you can run it alone, the person-driven script aside.
@@ -60,7 +60,7 @@ Done when removing any remaining piece turns the loop green.
 
 Write three to five candidate causes, ranked, before testing any of them. Each states a prediction that could prove it wrong: "If X is the cause, changing Y makes the failure vanish (or changing Z makes it worse)." A candidate with no such prediction is sharpened or dropped.
 
-Show the ranked list to the person before testing. They may know of a recent change, or of a cause already ruled out. If they do not answer, continue with your ranking.
+Put the ranked list in front of the person before testing. They may know of a recent change, or of a cause already ruled out. If they do not answer, continue with your ranking.
 
 Done when the list is shown and every entry carries its prediction.
 
@@ -82,7 +82,7 @@ A regression test needs a **correct seam**: one where the test triggers the bug 
 
 With a correct seam:
 
-1. Turn the shrunk case into a test at that seam and watch it fail. If you forced the failure by editing code or a fixture, diff against an untouched copy to prove the edit took.
+1. Turn the shrunk case into a test at that seam and see it fail. When the failure came from an edit you made to code or a fixture, compare against an untouched copy to prove the edit landed.
 2. Fix the cause.
 3. Watch the test pass.
 4. Run the step 1 loop again on the original, unshrunk case (for a Sub-issue, its Verify block).
