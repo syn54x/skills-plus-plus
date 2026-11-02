@@ -68,9 +68,9 @@ export function checkFeedback(body: string, ctx: FeedbackContext): Hit[] {
   const ownString = new RegExp(`(?<![\\w-])${escape(own)}(?![\\w-])`, "gi");
   const ownBare = new RegExp(`(?<![\\w./-])${escape(ownName)}(?![\\w-])`, "gi");
   const scan = (line: string) => (attributed && own ? line.replace(ownUrl, "").replace(ownString, "").replace(ownBare, "") : line);
-  // Rule 3 drops only the own issue and PR URLs and a standalone own owner/repo (nothing path-like after it), so a tracked
-  // `app/` or `issues/` cannot block them while `app/models.py` and `acme/app/models.py` still hit.
-  const ownToken = new RegExp(`(?<![\\w./-])${escape(own)}(?![\\w/-]|\\.\\w)`, "gi");
+  // Rule 3 drops only the own issue and PR URLs and a standalone own owner/repo (ended by whitespace, closing punctuation or
+  // a sentence's `.`), so a tracked `app/` or `issues/` cannot block them while `acme/app/models.py` or `acme/app#L1` still hit.
+  const ownToken = new RegExp(`(?<![\\w./-])${escape(own)}(?=$|\\s|[)\\]},;>'"\`*!]|\\.(?:\\s|$))`, "gi");
   const scanPaths = (line: string) => (attributed && own ? line.replace(ownUrl, "").replace(ownToken, "") : line);
 
   // Every name, however short, as a whole word in any case: `hp` blocks "the hp team" and "hp-team", not "http".

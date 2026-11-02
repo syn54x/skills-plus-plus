@@ -204,6 +204,13 @@ describe("rule 3: paths", () => {
     assert.ok(hit("https://github.com/acme/app/pull/12", { paths }).includes("1@1"));
   });
 
+  test("under attributed, a tracked file named exactly owner/repo blocks with an anchor, a line or a ref after it", () => {
+    const paths = ["acme/app"];
+    const leaks = ["acme/app#L1", "acme/app:12", "acme/app@main", "acme/app?plain=1"];
+    assert.deepEqual(hit(leaks.join("\n"), { profile: "attributed", paths }).filter((h) => h.startsWith("3@")), leaks.map((_, i) => `3@${i + 1}`));
+    assert.deepEqual(hit("**Repo:** acme/app\nin (acme/app), [acme/app] and acme/app.", { profile: "attributed", paths }), []);
+  });
+
   test("any home path is a hit even when nothing under it is tracked", () => {
     const lines = ["/home/taylor/x", "/Users/taylor/Library", "~/notes", "C:\\Users\\taylor\\Desktop", "cd /Users/zz"];
     assert.deepEqual(hit(lines.join("\n")).filter((h) => h.startsWith("3@")), lines.map((_, i) => `3@${i + 1}`));
