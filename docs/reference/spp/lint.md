@@ -6,7 +6,9 @@ the agent just wrote to the issue, a passing ticket's Verify block is pinned: th
 into the progress comment's trailer, and `spp verify` refuses to run a block that no longer matches it (ADR 0009).
 The pin is taken from the file and not from the issue, so an edit made after the agent wrote the body is never
 approved by it: when the issue's block differs from the file's, nothing is pinned and the lint fails with
-`pin-match`. Hardening's last step is this run.
+`pin-match`. Hardening's last step is this run. Without `--pin`, as the ready gate runs it, a pin that a trusted
+progress comment already holds must still match the issue's Verify block, or the lint fails with `pin-match`, so a
+body edited after hardening never reaches `ready-for-agent`.
 
 ## Functions
 
@@ -29,7 +31,8 @@ Lints one ticket.
 `Promise`\<`number`\>
 
 0 when the ticket passes (and, with `--pin`, its pin is written); 1 when it breaks a rule, including
-  `pin-match` when the issue's Verify block differs from the file's, which pins nothing; 2 on a usage error, with
+  `pin-match` when the issue's Verify block differs from the file's (which pins nothing) or, without `--pin`, from
+  the pin already written; 2 on a usage error, with
   the usage on stderr. A `gh` error or an unreadable body file also exits 1, with the reason on stderr.
 
 #### Example
@@ -83,5 +86,5 @@ One ticket-lint rule a body breaks.
 
 | Property | Type | Description |
 | ------ | ------ | ------ |
-| <a id="property-rule"></a> `rule` | `string` | `section-present`, `verify-fenced`, `files-owned-shape`, `scenario-shape`, `one-size`, `no-placeholder`, or `pin-match` (only from `spp lint ticket --pin`). |
+| <a id="property-rule"></a> `rule` | `string` | `section-present`, `verify-fenced`, `files-owned-shape`, `scenario-shape`, `one-size`, `no-placeholder`, or `pin-match` (only from `spp lint ticket`, which reads the pin and the `--pin` file). |
 | <a id="property-detail"></a> `detail` | `string` | What is wrong, in a sentence. |

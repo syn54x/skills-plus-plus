@@ -1,11 +1,13 @@
 // The epic board: a view-only pane opened by /epic-board, plus a status line entry. It runs the spp core (the
-// snapshot query, parseSnapshot and derive) on gh's answer, reads notes from `spp note --list` and workers from
-// `claude agents --json` and $.agent.list(). The pipeline runs the same without it; `spp status` is the fallback view.
+// snapshot query, readSnapshot and derive) on gh's answer, reads notes from the local notes log `spp note` writes and
+// workers from `claude agents --json` and $.agent.list(). The pipeline runs the same without it; `spp status` is the
+// fallback view.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import { derive, type EpicState, type TicketState } from '../../spp/src/derive.ts'
-import { parseSnapshot, readTrailer, SNAPSHOT_QUERY } from '../../spp/src/snapshot.ts'
+import { latestNotes, notesFile } from '../../spp/src/notes-log.ts'
+import { readSnapshot, type Snapshot, snapshotArgs } from '../../spp/src/snapshot.ts'
 import type { Board, BoardTicket, BoardWorker } from '../../types/index.d.ts'
 
 const PANE = 'epic-board'
@@ -29,13 +31,6 @@ const CHIPS: Record<TicketState, { label: string; color: string }> = {
 
 const firstLine = (s: string) => s.trim().split('\n')[0] ?? ''
 
-// The query variables for an Epic given as a number (the session's repo, through gh's placeholders) or an issue URL.
-function variables(epic: string): string[] | null {
-  if (/^\d+$/.test(epic)) return ['-F', 'owner={owner}', '-F', 'repo={repo}', '-F', `number=${epic}`]
-  const m = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)\/?$/.exec(epic)
-  return m ? ['-f', `owner=${m[1]}`, '-f', `repo=${m[2]}`, '-F', `number=${m[3]}`] : null
-}
-
 // Runs a host command; resolves its stdout, or throws one line naming the command and its stderr.
 async function run($: EngineInterface, name: string, argv: string[]): Promise<string> {
   const r = await $.process.run(argv, { timeoutMs: 60_000 })
@@ -43,12 +38,11 @@ async function run($: EngineInterface, name: string, argv: string[]): Promise<st
   return r.stdout
 }
 
-// The Wave each ticket was dispatched in, by ticket URL, from the wave comment's trailer. A Wave names a ticket as a
-// bare number (the Epic's repo), owner/repo#N or the issue URL.
-function wavesOf(raw: unknown, state: EpicState): Map<string, number> {
-  type Raw = { data?: { repository?: { issue?: { comments?: { nodes: { body: string }[] } } } } }
-  const body = (raw as Raw).data?.repository?.issue?.comments?.nodes.find(c => c.body.startsWith('<!-- sdd-wave -->'))?.body
-  const waves = ((body && readTrailer(body)?.waves) || []) as { n: number; tickets: (string | number)[] }[]
+// The Wave each ticket was dispatched in, by ticket URL, from the wave comment's trailer, which the snapshot reads
+// from a trusted author only (ADR 0009). A Wave names a ticket as a bare number (the Epic's repo), owner/repo#N or the
+// issue URL.
+function wavesOf(wave: Snapshot['wave'], state: EpicState): Map<string, number> {
+  const waves = (wave?.waves || []) as { n: number; tickets: (string | number)[] }[]
   const out = new Map<string, number>()
   for (const t of state.tickets) {
     const names = [t.url, `${t.repo}#${t.number}`, ...(t.repo === state.epic.repo ? [String(t.number)] : [])]
@@ -58,11 +52,20 @@ function wavesOf(raw: unknown, state: EpicState): Map<string, number> {
   return out
 }
 
-// The latest note of each ticket, by ticket URL.
-async function notesOf($: EngineInterface, epic: string): Promise<Map<string, { text: string; at: string }>> {
-  const out = await run($, 'spp note', [`${$.plugin.root}/bin/spp`, 'note', '--list', epic, '--json'])
-  const notes = JSON.parse(out) as { ticket: string; text: string; at: string }[]
-  return new Map(notes.map(n => [n.ticket, { text: n.text, at: n.at }]))
+// The latest note of each ticket, by ticket URL, read from each repo's local notes log; a repo with no log has none.
+async function notesOf($: EngineInterface, state: EpicState): Promise<Map<string, { text: string; at: string }>> {
+  const env = { XDG_STATE_HOME: await $.env.get('XDG_STATE_HOME'), HOME: (await $.env.get('HOME')) ?? '' }
+  const out = new Map<string, { text: string; at: string }>()
+  for (const repo of new Set(state.tickets.map(t => t.repo))) {
+    const file = notesFile(env, repo)
+    if (!(await $.fs.exists(file))) continue
+    const latest = latestNotes((await $.fs.read(file)) as string)
+    for (const t of state.tickets) {
+      const n = t.repo === repo ? latest.get(t.number) : undefined
+      if (n) out.set(t.url, { text: n.text, at: n.at })
+    }
+  }
+  return out
 }
 
 async function workersOf($: EngineInterface): Promise<BoardWorker[]> {
@@ -75,27 +78,22 @@ async function workersOf($: EngineInterface): Promise<BoardWorker[]> {
 }
 
 // One refresh: the snapshot through gh, then notes and workers. A failing gh call leaves no ticket rows; a failing
-// spp or claude call keeps them and shows its error.
+// notes read or claude call keeps them and shows its error.
 async function load($: EngineInterface, epic: string): Promise<Board> {
-  const vars = variables(epic)
-  if (!vars) return { ...EMPTY, epic, error: `not an issue number or URL: ${epic}` }
-  let raw: unknown
+  const args = snapshotArgs(epic)
+  if (!args) return { ...EMPTY, epic, error: `not an issue number or URL: ${epic}` }
+  let snapshot: Snapshot
   let state: EpicState
   try {
-    const r = await $.process.run(['gh', 'api', 'graphql', '-f', `query=${SNAPSHOT_QUERY}`, ...vars], { timeoutMs: 60_000 })
-    try {
-      raw = JSON.parse(r.stdout) // gh exits 1 on a missing issue but still prints the response
-    } catch {
-      throw new Error(firstLine(r.stderr) || `exited ${r.exitCode}`)
-    }
-    state = derive(parseSnapshot(raw))
+    snapshot = readSnapshot(await $.process.run(['gh', ...args], { timeoutMs: 60_000 }))
+    state = derive(snapshot)
   } catch (e) {
     return { ...EMPTY, epic, error: `gh: ${firstLine((e as Error).message)}` }
   }
   const errors: string[] = []
-  const notes = await notesOf($, epic).catch((e: Error) => (errors.push(e.message), new Map()))
+  const notes = await notesOf($, state).catch((e: Error) => (errors.push(`notes: ${firstLine(e.message)}`), new Map()))
   const workers = await workersOf($).catch((e: Error) => (errors.push(e.message), []))
-  const waves = wavesOf(raw, state)
+  const waves = wavesOf(snapshot.wave, state)
   const tickets: BoardTicket[] = state.tickets.map(t => ({
     number: t.number,
     url: t.url,
@@ -125,12 +123,25 @@ function statusOf(b: Board): string | undefined {
   return newest ? `${progress} | #${newest.number} ${newest.note!.text}` : progress
 }
 
+// One refresh at a time: a timer tick or turn that comes while one is in flight is skipped, since each snapshot costs
+// GitHub's GraphQL budget. When the Epic changed while it loaded, the result is dropped and the new Epic is loaded.
+let refreshing = false
 async function refresh($: EngineInterface) {
-  const { epic } = await read($, board)
-  if (!epic) return
-  const next = await load($, epic)
-  await update($, board, () => next)
-  await $.ui.status(statusOf(next))
+  if (refreshing) return
+  refreshing = true
+  try {
+    for (;;) {
+      const { epic } = await read($, board)
+      if (!epic) return
+      const next = await load($, epic)
+      if ((await read($, board)).epic !== epic) continue
+      await update($, board, () => next)
+      await $.ui.status(statusOf(next))
+      return
+    }
+  } finally {
+    refreshing = false
+  }
 }
 
 // The Epic of the current branch's plan, when it can tell: a worker branch sdd/<N>-* names a Sub-issue, whose
@@ -147,10 +158,11 @@ async function currentEpic($: EngineInterface): Promise<string | null> {
   }
 }
 
-// Refreshes every 30 seconds once an Epic is chosen. Timers end with the module, so a reload starts it again.
+// Refreshes every two minutes once an Epic is chosen; turns and inbound messages refresh it in between. Timers end with
+// the module, so a reload starts it again.
 let timer: { cancel: () => void } | null = null
 function startTimer($: EngineInterface) {
-  timer ??= $.clock.every(30_000, () => void refresh($))
+  timer ??= $.clock.every(120_000, () => void refresh($))
 }
 
 export const register: Register = on => {
@@ -206,7 +218,10 @@ export const register: Register = on => {
     // shortcut: rows are keyed by issue number, so a multi-repo Epic with two equal numbers shares a key; key by URL then.
     const row = (t: BoardTicket) => {
       const chip = CHIPS[t.state as TicketState]
-      const w = t.worker ? b.workers.find(w => (w.kind === 'subagent' ? w.name.includes(t.worker!) : w.name === t.worker)) : undefined
+      // The worker's name as a whole token of a session's name or a subagent's description, punctuation aside, so
+      // `t-12: implement` names t-12 and t-1 never matches t-12.
+      const named = (w: BoardWorker) => w.name.split(/[^\w-]+/).includes(t.worker!)
+      const w = t.worker ? b.workers.find(named) : undefined
       const pr = t.pr
       return (
         <Box flexDirection="column" marginBottom={1}>

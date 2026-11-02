@@ -7,13 +7,24 @@
  * @module
  */
 import { runGh } from "../gh.ts";
-import { flagPairs, guarded, print, UsageError } from "../markers.ts";
-import { type Verdict, writeVerdict } from "../verdict.ts";
+import { flagPairs, guarded, print, UsageError, writeMarker } from "../markers.ts";
+import { renderVerdict, type Verdict, VERDICT_MARKER } from "../verdict.ts";
 
 /** The usage text `spp verdict --help` prints. */
 export const USAGE = `usage: spp verdict <pr number | pr URL> --ticket N --head SHA --spec pass|fail --quality pass|fail
 Writes the verdict comment while the pull request is still at SHA (7 to 40 hex characters); exits 3 when it moved.
 `;
+
+/**
+ * Writes the verdict comment on a pull request (a number in the current repo or its URL; a pull request's comments
+ * are its issue comments) and returns the comment's URL.
+ *
+ * @internal
+ */
+export function writeVerdict(pr: string, v: Verdict): Promise<string> {
+  const issue = pr.replace(/^(https:\/\/github\.com\/[^/]+\/[^/]+)\/pull\/(\d+)\/?$/, "$1/issues/$2");
+  return writeMarker(issue, VERDICT_MARKER, renderVerdict, { ticket: v.ticket, head: v.head, spec: v.spec, quality: v.quality });
+}
 
 const isVerdict = (v: string | undefined): v is Verdict["spec"] => v === "pass" || v === "fail";
 

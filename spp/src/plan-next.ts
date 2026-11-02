@@ -1,6 +1,6 @@
 // The next actions of a build, from the EpicState and what the command read around it (CI, verdict history, the pull
 // request to the base branch, the session list, the wave). Pure: no network, filesystem or environment.
-import type { EpicState, Ticket } from "./derive.ts";
+import { type EpicState, landed, refIn, type Ticket } from "./derive.ts";
 import type { Routing } from "./routing.ts";
 import type { PrState } from "./snapshot.ts";
 
@@ -21,6 +21,9 @@ export type Action = {
   /** Why, in a sentence. */
   reason: string;
 };
+
+// How many ready tickets one Wave starts at most, unless `spp wave plan --max` says otherwise.
+export const DEFAULT_WAVE_MAX = 4;
 
 // One entry of `claude agents --json --all`: background sessions carry `state`, interactive ones `status`.
 export type Session = { name?: string; state?: string; status?: string };
@@ -45,15 +48,28 @@ export function liveWorker(t: Ticket, sessions: Session[]): Session | undefined 
   return sessions.find((s) => s.name && names.includes(s.name) && LIVE.includes(s.state ?? s.status ?? ""));
 }
 
-// A merged pull request into the integration branch does not close its ticket, so it counts as merged too.
-const done = (t: Ticket) => t.state === "merged" || t.pr?.state === "MERGED";
+/**
+ * The stopped session of a worker that was lost: the ticket is held by the Claim mark alone, with no pull request, no
+ * live session, and a session named after it listed but no longer live. A person's assignment is a live hold, so an
+ * assigned ticket never has one.
+ */
+export function lostWorker(t: Ticket, sessions: Session[]): Session | undefined {
+  if (t.state !== "claimed" || !t.claimed || t.assignees.length || liveWorker(t, sessions)) return undefined;
+  return sessions.find((s) => s.name && [t.worker, `t-${t.number}`].includes(s.name));
+}
+
+const done = (t: Ticket) => landed(t.state === "merged", t.pr);
+
+/**
+ * Whether a worker holds or works on the ticket until it merges: claimed or assigned, its pull request open, or a
+ * live session named after it. The parallel safety check holds a ready ticket against these on every call.
+ */
+export const inFlight = (t: Ticket, sessions: Session[]) =>
+  !done(t) && (t.claimed || t.assignees.length > 0 || t.pr?.state === "OPEN" || !!liveWorker(t, sessions));
 
 export function planNext(input: NextInput): Action[] {
   const { state, panel, sessions, checks, failedHeads, mainPr } = input;
-  const ref = (url: string) => {
-    const [, repo, n] = /([^/]+\/[^/]+)\/(?:issues|pull)\/(\d+)$/.exec(url) ?? [, url, ""];
-    return repo === state.epic.repo ? `#${n}` : `${repo}#${n}`;
-  };
+  const ref = refIn(state.epic.repo);
   // A ticket as spp dispatch and the other commands take it: its number in the Epic's repo, else its URL.
   const id = (t: Ticket) => (t.repo === state.epic.repo ? String(t.number) : t.url);
 
@@ -92,6 +108,11 @@ export function planNext(input: NextInput): Action[] {
     const c = checks[pr] ?? { result: "pending", failing: [] };
     if (t.state === "ready") {
       if (s) inFlight.push(`${ref(t.url)} dispatched${running}`);
+    } else if (lostWorker(t, sessions)) {
+      // A stopped worker with no pull request is no work in flight: waiting on it would wake at once, forever.
+      const lost = lostWorker(t, sessions)!;
+      const reason = `${ref(t.url)} is claimed with no pull request and its worker ${lost.name} ${lost.state ?? lost.status}: worker lost; ask the user before handing it back`;
+      actions.push({ kind: "hand-back", tickets: [id(t)], reason });
     } else if (t.state === "claimed") {
       inFlight.push(`${ref(t.url)} claimed${running || (t.worker ? ` by ${t.worker}` : "")}`);
     } else if (s && (t.state === "pr-open" || t.state === "gate-fail")) {

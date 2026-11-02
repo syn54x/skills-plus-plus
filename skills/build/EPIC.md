@@ -11,7 +11,7 @@ Each action has a `kind`, the `tickets` and `pr` it concerns, a `reason`, and on
 | `dispatch` | Approval of the first Wave, then start the workers. |
 | `gate` | Gate the pull request. |
 | `fix` | One fix round by the same worker. |
-| `hand-back` | The fix round is spent. Hand the issue back. |
+| `hand-back` | The fix round is spent. Hand the issue back. A reason saying `worker lost` goes to the user first, as Hand-back says. |
 | `merge` | Merge the pull request. |
 | `wait` | Wait for the next change. |
 | `main-gate` | The Epic's pull request to the base branch. |
@@ -49,7 +49,7 @@ The action names the issue and its pull request. Send the Critical and Important
 
 ## Hand-back
 
-Run `spp hand-back <N> ready-for-human --reason "<the open findings>"`. Leave the pull request open, and record it with `spp wave <epic> pr --ticket <N> --pr <URL>`. The issue now idles in `spp next`; carry on with what else is ready. The Epic ends at `stuck` if nothing else can move, and you report the handed-back issue to the user.
+A `hand-back` whose reason says `worker lost` goes to the user first, as Wait below says. For any other, run `spp hand-back <N> ready-for-human --reason "<the open findings>"`. Leave the pull request open, and record it with `spp wave <epic> pr --ticket <N> --pr <URL>`. The issue now idles in `spp next`; carry on with what else is ready. The Epic ends at `stuck` if nothing else can move, and you report the handed-back issue to the user.
 
 ## Merge
 
@@ -65,7 +65,7 @@ Merges move the frontier: run `spp next` after each one, and the newly unblocked
 
 ## Wait
 
-Run `spp wait <epic>` in the background and do nothing else. It exits with one line per change, a state moving (`#12 claimed -> pr-open`) or a worker that stopped (`t-12 done`); on exit, print the heartbeat and run `spp next`. When a wait outlasts any sign of life (no note, no session), ask the user whether to hand the issue back with `spp hand-back <N> needs-info --reason "worker lost"`; its claim would otherwise hold it forever.
+Run `spp wait <epic>` in the background and do nothing else. It exits with one line per change, a state moving (`#12 claimed -> pr-open`) or a worker that stopped (`t-12 done`), or with one `heartbeat:` line when nothing changed for its timeout; on exit, print the line and run `spp next`. A claimed issue with no pull request whose worker stopped is no longer waited on: `spp next` returns `hand-back` for it, its reason saying `worker lost`. For that one, do not run the Hand-back step: ask the user whether to hand the issue back with `spp hand-back <N> needs-info --reason "worker lost"` or to start a worker on it again, since its claim would otherwise hold it forever. To start one again, run `spp unclaim <N>` first, since `spp dispatch` refuses a held issue; the next `spp next` dispatches it. A new worker cuts its `sdd/<N>-*` branch from the base again and cannot push over one the lost worker pushed, so when that branch exists, name it in the question: the user deletes it (its commits are lost) or hands the issue back. Ask the same when a wait outlasts any sign of life (no note, no session). An issue a person holds by assignment is theirs; it is never a lost worker.
 
 ## Settling an unsettled design
 

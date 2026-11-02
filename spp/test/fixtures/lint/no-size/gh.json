@@ -8,5 +8,8 @@
         }
       ]
     }
+  },
+  "api repos/{owner}/{repo}/issues/12/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json": {
+    "stdout": ""
   }
 }

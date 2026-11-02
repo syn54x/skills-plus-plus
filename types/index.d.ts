@@ -14,7 +14,7 @@ export type BoardTicket = {
   state: string // a TicketState, as derive names it
   pr: string | null // the pull request's URL
   worker: string | null // the progress comment's Worker line
-  note: { text: string; at: string } | null // the latest note, from `spp note --list`
+  note: { text: string; at: string } | null // the latest note, from the local notes log `spp note` writes
   wave: number | null // the Wave it was dispatched in, from the Epic's wave comment
 }
 

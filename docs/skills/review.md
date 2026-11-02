@@ -2,7 +2,7 @@
 
 `review` reads one pull request with a reviewer that took no part in writing it, and returns two verdicts: **spec** (did the change deliver what its Sub-issue or One-off asked for, and the Epic above it) and **quality** (is it correct, are its modules deep, does it keep the repo's Laws). It records them on the pull request and posts one review comment. It never edits the code and never approves on GitHub; whoever started it decides what happens next.
 
-It trusts nothing it did not see run. The author's green tests, the pull request body and its claims are all checked again on the exact head the review read: the reviewer runs the linked issue's Verify block itself, reads CI with `spp checks`, and holds each line of the body against the branch. A verdict counts only for that head, so a push during the review sends it back to the start.
+It trusts nothing it did not see run. The author's green tests, the pull request body and its claims are all checked again on the exact head the review read: the reviewer runs the linked issue's Verify block itself through `spp verify`, reads CI with `spp checks`, and holds each line of the body against the branch. `spp verify` runs the block only while it matches what harden pinned, so an edit to the issue after hardening stops the review instead of running unapproved commands. A verdict counts only for that head, so a push during the review sends it back to the start.
 
 ## When to reach for it
 

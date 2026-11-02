@@ -10,7 +10,7 @@
  *   {@link LatestNote} list.
  * - `spp note --auto` is for the `PostToolUse` and `Stop` hooks: it reads the hook payload on stdin and notes a pull
  *   request opened, a `spp verify` run or a stop for the ticket of the session's `sdd/<N>-*` branch, so the worker
- *   never has to.
+ *   never has to. A stop that `spp verify --check` refuses is not noted, since the worker keeps going.
  *
  * @module
  */
@@ -18,7 +18,7 @@ import { guarded, parseIssue, print, UsageError } from "../markers.ts";
 import { appendNote, currentRepo } from "../notes.ts";
 import { saveProgress } from "./progress.ts";
 import { fetchState } from "./status.ts";
-import { enterHookCwd, gitOut, readHookInput } from "./verify.ts";
+import { enterHookCwd, gitOut, readHookInput, stopRefusal } from "./verify.ts";
 
 /** The latest note of one Sub-issue: an entry of the `spp note --list --json` list. */
 export type LatestNote = {
@@ -37,7 +37,7 @@ export const USAGE = `usage: spp note <issue> <text> [--milestone]
 <issue> is an issue number in the current repo or a GitHub issue URL. --milestone also writes the text into the
 ticket's progress comment as its notes. --list prints the latest note of each ticket of the Epic: the ticket's
 issue URL, the text and the time. --auto reads a hook payload on stdin and notes a gh pr create that printed a
-pull request URL, a spp verify run, or a stop.
+pull request URL, a spp verify run, or a stop that spp verify --check lets through.
 `;
 
 async function auto(): Promise<void> {
@@ -52,6 +52,7 @@ async function auto(): Promise<void> {
   const ticket = /^sdd\/(\d+)/.exec(gitOut("branch", "--show-current") ?? "")?.[1];
   if (!ticket) return;
   let text = "";
+  if (stop && stopRefusal()) return; // verify --check refuses this stop beside us, so the worker keeps going
   if (stop) text = "stopped";
   else if (pr) {
     const url = /https:\/\/github\.com\/\S+?\/pull\/\d+/.exec(input.tool_response?.stdout ?? "")?.[0];

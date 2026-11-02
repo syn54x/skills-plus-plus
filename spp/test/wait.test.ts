@@ -9,8 +9,9 @@ const ISSUE = "https://github.com/acme/app/issues/";
 const SNAPSHOT = "api graphql -f query=Snapshot -F owner={owner} -F repo={repo} -F number=197";
 const progress = `<!-- sdd-progress -->\n<!-- sdd-data: ${Buffer.from(JSON.stringify({ worker: "t-12" })).toString("base64")} -->`;
 
-// Epic 197's snapshot with ticket 12, claimed by t-12, and an open pull request when `pr` is set.
-const snapshot = (pr: boolean) => ({
+// Epic 197's snapshot with ticket 12, claimed by t-12 (or, with `assignee`, held by that person and unclaimed), and
+// an open pull request when `pr` is set.
+const snapshot = (pr: boolean, assignee?: string) => ({
   stdout: {
     data: {
       repository: {
@@ -28,8 +29,8 @@ const snapshot = (pr: boolean) => ({
                 title: "Ticket 12",
                 state: "OPEN",
                 repository: { nameWithOwner: "acme/app" },
-                labels: { nodes: [{ name: "ready-for-agent" }, { name: "claimed" }] },
-                assignees: { nodes: [] },
+                labels: { nodes: assignee ? [{ name: "ready-for-agent" }] : [{ name: "ready-for-agent" }, { name: "claimed" }] },
+                assignees: { nodes: assignee ? [{ login: assignee }] : [] },
                 blockedBy: { nodes: [] },
                 comments: { nodes: [{ body: progress, author: { login: "maint" }, authorAssociation: "OWNER" }] },
                 closedByPullRequestsReferences: {
@@ -68,6 +69,41 @@ describe("happy path", () => {
     const r = await runCase("wait", scratch([snapshot(false), snapshot(false), snapshot(true)], [session("working")]));
     assert.equal(r.code, 0, r.stderr);
     assert.equal(r.stdout, "#12 claimed -> pr-open\n");
+  });
+});
+
+// F7 on #267: wait wakes the orchestrator even when nothing changes between its polls.
+describe("edge cases", () => {
+  test("a claimed ticket whose worker had already stopped before the wait began is reported on the first poll", async () => {
+    const dir = scratch([snapshot(false)], [session("done")]);
+    writeFileSync(join(dir, "args"), "197\n--interval\n0\n--timeout\n60\n");
+    const r = await runCase("wait", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "t-12 done\n");
+  });
+
+  test("a worker that stopped after opening its pull request is not reported, so the wait does not wake at once", async () => {
+    const dir = scratch([snapshot(true)], [session("done")]);
+    writeFileSync(join(dir, "args"), "197\n--interval\n0\n--timeout\n0\n");
+    const r = await runCase("wait", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "heartbeat: nothing changed in 0s\n");
+  });
+
+  test("a ticket a person holds by assignment, with a stale t-<N> session listed, is not reported", async () => {
+    const dir = scratch([snapshot(false, "alice")], [session("done")]);
+    writeFileSync(join(dir, "args"), "197\n--interval\n0\n--timeout\n0\n");
+    const r = await runCase("wait", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "heartbeat: nothing changed in 0s\n");
+  });
+
+  test("nothing changing until the timeout exits 0 with one heartbeat line", async () => {
+    const dir = scratch([snapshot(false)], [session("working")]);
+    writeFileSync(join(dir, "args"), "197\n--interval\n0\n--timeout\n0\n");
+    const r = await runCase("wait", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "heartbeat: nothing changed in 0s\n");
   });
 });
 

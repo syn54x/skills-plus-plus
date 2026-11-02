@@ -16,7 +16,7 @@ export type TicketBody = {
 export type Failure = {
   /**
    * `section-present`, `verify-fenced`, `files-owned-shape`, `scenario-shape`, `one-size`, `no-placeholder`, or
-   * `pin-match` (only from `spp lint ticket --pin`).
+   * `pin-match` (only from `spp lint ticket`, which reads the pin and the `--pin` file).
    */
   rule: string;
   /** What is wrong, in a sentence. */

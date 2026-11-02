@@ -5,7 +5,8 @@
 //   args                    the arguments after the command, one per line
 //   gh.json                 { "<gh argv joined by spaces>": { "stdout"?: string | JSON, "stderr"?: string, "code"?: number } }
 //   agents.json             the same shape, answering the claude stub (optional)
-//                           an answer may be a list: the nth call with that key gets the nth entry, the last repeating
+//                           an answer may be a list: the nth call with that key gets the nth entry, the last repeating;
+//                           a key ending in " *" answers any argv that starts with the rest
 //   expected.json           the JSON stdout assertCase compares (optional)
 //   expected.txt            the text stdout assertCase compares (optional)
 //   expected-writes.jsonl   one { "cmd": "gh" | "claude", "argv": [...], "input"?: string } per write, in order (absent means none);
@@ -103,7 +104,9 @@ export function stub(name: "gh" | "claude"): void {
   const write = name === "gh" ? isGhWrite(argv) : argv[0] !== "agents";
   if (write) appendFileSync(process.env.SPP_WRITES ?? "/dev/null", JSON.stringify({ cmd: name, argv: keyArgs, ...(input && { input }) }) + "\n");
   const answers = JSON.parse(read(dir, name === "gh" ? "gh.json" : "agents.json") ?? "{}") as Record<string, Answer | Answer[]>;
-  const answer = sequence(name, key, answers[key]);
+  // A key ending in " *" answers any argv that starts with the rest, for argv that carries a temp path.
+  const prefix = Object.keys(answers).find((k) => k.endsWith(" *") && key.startsWith(k.slice(0, -1)));
+  const answer = sequence(name, key, answers[key] ?? (prefix && answers[prefix]));
   if (!answer) {
     if (write) return;
     process.stderr.write(`stub ${name}: no answer for: ${key}\n`);

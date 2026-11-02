@@ -64,8 +64,9 @@ type TicketState =
 ```
 
 Where a Sub-issue stands, the first that fits: `merged` (the issue is closed), `handed-back` (unheld, with a route
-label), `pr-open`, `gate-pass` or `gate-fail` (an open pull request, by the slice gate's verdict on its current
-head), `claimed` (held by the Claim mark or an assignee), `blocked` (an open blocker), `not-agent` (no
+label; `blocked` beside `ready-for-agent` is not one, since that route waits on its blocked-by edge), `pr-open`,
+`gate-pass` or `gate-fail` (an open pull request, by the slice gate's verdict on its current head), `claimed` (held
+by the Claim mark or an assignee), `blocked` (an open blocker that has not landed), `not-agent` (no
 `ready-for-agent` label), else `ready`.
 
 ***
@@ -89,7 +90,7 @@ One Sub-issue of the Epic.
 | <a id="property-size"></a> `size` | `"S"` \| `"M"` \| `"L"` \| `null` | The size its `size:` label gives, or null without one. |
 | <a id="property-state"></a> `state` | [`TicketState`](#ticketstate) | Where the ticket stands. |
 | <a id="property-layer"></a> `layer` | `number` \| `null` | The Layer: one above its highest open blocker inside the Epic, 0 with none; null when caught in a cycle. |
-| <a id="property-blockedby"></a> `blockedBy` | `string`[] | URLs of open blockers. |
+| <a id="property-blockedby"></a> `blockedBy` | `string`[] | URLs of open blockers, leaving out one that landed (the pull request it shows merged) while its issue stays open. |
 | <a id="property-claimed"></a> `claimed` | `boolean` | Whether it carries the Claim mark (the `claimed` label); an assignee also holds a ticket. |
 | <a id="property-assignees"></a> `assignees` | `string`[] | Assignee logins. |
 | <a id="property-labels"></a> `labels` | `string`[] | Label names. |
@@ -150,4 +151,23 @@ A pull request linked to a Sub-issue.
 | <a id="property-url-1"></a> `url` | `string` | The pull request URL. |
 | <a id="property-state-1"></a> `state` | [`PrState`](#prstate) | Its state on GitHub. |
 | <a id="property-headsha"></a> `headSha` | `string` | The head commit's full sha. |
-| <a id="property-verdict"></a> `verdict?` | `Record`\<`string`, `unknown`\> | The trailer of the pull request's `<!-- spp-verdict -->` comment, present only when one decodes: `{ ticket, head, spec: "pass" \| "fail", quality: "pass" \| "fail" }`, as `spp verdict` writes it. |
+| <a id="property-verdict"></a> `verdict?` | [`Verdict`](#verdict) | The pull request's `<!-- spp-verdict -->` comment as `spp verdict` writes it, present only when it decodes. |
+
+***
+
+### Verdict
+
+```ts
+type Verdict = object;
+```
+
+The slice gate's verdict on one head of a pull request, as its `<!-- spp-verdict -->` comment's trailer holds it.
+
+#### Properties
+
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="property-ticket"></a> `ticket` | `string` | The Sub-issue or One-off the pull request closes, as `spp verdict --ticket` gave it. |
+| <a id="property-head"></a> `head` | `string` | The head the verdict was given on: a full sha, or a prefix of at least 7 characters. |
+| <a id="property-spec"></a> `spec` | `"pass"` \| `"fail"` | The spec verdict. |
+| <a id="property-quality"></a> `quality` | `"pass"` \| `"fail"` | The quality verdict. |

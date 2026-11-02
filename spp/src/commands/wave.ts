@@ -5,13 +5,14 @@
  * Its forms:
  *
  * - `spp wave plan <epic> [--max N] [--json]` runs the parallel safety check over the ready Sub-issues: Files owned
- *   that overlap in one repo, and Consumes and Produces pairs across repos. It prints the tickets that can run
- *   together (at most `--max`, default 4) and the held ones with why; with `--json` it prints {@link WavePlan}. It
- *   writes nothing.
+ *   that overlap in one repo, and Consumes and Produces pairs across repos. Work in flight (claimed, assigned or with
+ *   its pull request open, until it merges) takes part too, so a ready ticket that overlaps it stays held. It prints
+ *   the tickets that can run together (at most `--max`, default 4) and the held ones with why; with `--json` it
+ *   prints {@link WavePlan}. It writes nothing.
  * - `spp wave <epic> add --n N --tickets ... --workers ... --started ISO8601 --edges ...` records a Wave, replacing
  *   any wave with the same `--n`.
- * - `spp wave <epic> pr --ticket T --pr URL|#n` records a pull request on the last wave holding `--ticket`, given in
- *   the form `add` stored.
+ * - `spp wave <epic> pr --ticket T --pr URL|#n` records a pull request on the last wave holding `--ticket`, in any
+ *   of its forms: a number in the Epic's repo, `owner/repo#N` or the issue URL.
  * - `spp wave <epic> panel --round R --verdict V [--report URL] ...` records a review panel round, replacing the
  *   round with the same `--round`.
  *
@@ -20,10 +21,11 @@
  *
  * @module
  */
-import { derive, type EpicState } from "../derive.ts";
+import { derive, type EpicState, type Ticket } from "../derive.ts";
+import { fetchSnapshot } from "../fetch-snapshot.ts";
 import { runGh } from "../gh.ts";
 import { type Data, flagPairs, guarded, parseIssue, print, updateMarker, UsageError } from "../markers.ts";
-import { parseSnapshot, SNAPSHOT_QUERY } from "../snapshot.ts";
+import { DEFAULT_WAVE_MAX, inFlight, liveWorker, type Session } from "../plan-next.ts";
 import { parseTicket } from "../ticket.ts";
 
 /** The usage text `spp wave --help` prints. */
@@ -33,10 +35,11 @@ export const USAGE = `usage: spp wave plan <epic> [--max N] [--json]
        spp wave <epic> pr    --ticket 101|owner/repo#7 --pr URL|#n
        spp wave <epic> panel --round R --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE [--report URL]
                              [--severity critical=1,important=2,minor=3] [--persona name=count,...] [--dropped D]
-wave plan prints the ready tickets that can run together (at most --max, default 4) and the held ones with why.
+wave plan prints the ready tickets that can run together (at most --max, default ${DEFAULT_WAVE_MAX}) and the held ones with why;
+a ready ticket that overlaps work in flight (claimed, assigned or with its PR open) is held until that merges.
 wave add replaces every wave with the same --n; wave panel replaces the entry with the same --round
 (a round shown but never posted has no --report and renders unposted);
-wave pr records the PR on the last wave whose tickets hold --ticket, given in the form wave add stored.
+wave pr records the PR on the last wave whose tickets hold --ticket, in any of its forms (number, owner/repo#N, URL).
 A wave ticket is a number, owner/repo#N or an issue URL, stored and rendered as given.
 `;
 
@@ -71,8 +74,18 @@ function render(data: Data): string {
   ].join("\n");
 }
 
+// Whether two forms of a ticket (a number, owner/repo#N or the issue URL) name the same one, a number taken to be in
+// the Epic's repo. shortcut: with the Epic given as a number its repo is unknown, so a number then matches only a number.
+function sameTicket(epicRepo: string | null): (a: string | number, b: string) => boolean {
+  const key = (t: string) => {
+    const m = /^(?:https:\/\/github\.com\/)?([\w.-]+\/[\w.-]+)(?:#|\/issues\/)(\d+)$/.exec(t);
+    return m ? `${m[1].toLowerCase()}#${m[2]}` : `${epicRepo?.toLowerCase() ?? ""}#${t}`;
+  };
+  return (a, b) => key(String(a)) === key(b);
+}
+
 // The merge for each operation, from its flags.
-function merger(op: string, f: Record<string, string>): (d: WaveData) => void {
+function merger(op: string, f: Record<string, string>, epicRepo: string | null): (d: WaveData) => void {
   if (op === "add") {
     if (!/^\d+$/.test(f["--n"] ?? "")) throw new UsageError("wave add needs --n N");
     if (!TICKETS.test(f["--tickets"] ?? "")) throw new UsageError("wave add needs --tickets 101,owner/repo#7,...");
@@ -92,10 +105,12 @@ function merger(op: string, f: Record<string, string>): (d: WaveData) => void {
     const ticket = f["--ticket"] ?? "";
     if (!new RegExp(`^${T}$`).test(ticket)) throw new UsageError("wave pr needs --ticket N|owner/repo#N|URL");
     if (!f["--pr"]) throw new UsageError("wave pr needs --pr URL|#n");
+    const same = sameTicket(epicRepo);
+    // The PR is stored under the ticket as the wave holds it, whichever form --ticket used.
     return (d) => {
-      const w = d.waves.findLast((w) => w.tickets.some((t) => String(t) === ticket));
+      const w = d.waves.findLast((w) => w.tickets.some((t) => same(t, ticket)));
       if (!w) throw new UsageError(`no wave holds ticket ${ticket}`);
-      w.prs[ticket] = f["--pr"];
+      w.prs[String(w.tickets.find((t) => same(t, ticket)))] = f["--pr"];
     };
   }
   const round = f["--round"] ?? "";
@@ -156,14 +171,26 @@ type Parsed = PlanInput & { paths: string[]; consumes: string[]; produces: strin
 // Whether `a` consumes something `b` produces, by symbol or by naming b's ticket.
 const consumes = (a: Parsed, b: Parsed) => a.refs.includes(`${b.repo}#${b.number}`) || a.consumes.some((n) => b.produces.includes(n));
 
-// Considers the tickets by layer, then number: each joins the wave unless it conflicts with a member already in it,
-// so the lower layer and the lower number are the ones kept. Paths are compared per repo; Create counts as well as
-// Modify and Test, since a ticket that modifies what another creates must wait for it.
-function planWave(tickets: PlanInput[], max: number): WavePlan {
-  const parsed: Parsed[] = tickets.map((t) => {
-    const ticket = parseTicket(t.body);
-    return { ...t, paths: ticket.filesOwned.flatMap((f) => f.paths), consumes: names(ticket.consumes), produces: names(ticket.produces), refs: references(ticket.consumes, t.repo) };
-  });
+const parse = (t: PlanInput): Parsed => {
+  const ticket = parseTicket(t.body);
+  return { ...t, paths: ticket.filesOwned.flatMap((f) => f.paths), consumes: names(ticket.consumes), produces: names(ticket.produces), refs: references(ticket.consumes, t.repo) };
+};
+
+// Why `b` cannot run beside `a`, or undefined: a shared path in one repo, `b` consuming what `a` produces, or, unless
+// `a` already runs, the reverse.
+function conflict(b: Parsed, a: Parsed, running = false): string | undefined {
+  const shared = a.repo === b.repo ? b.paths.find((p) => a.paths.some((q) => overlaps(p, q))) : undefined;
+  if (shared) return `shares ${shared} with ${a.id}`;
+  if (consumes(b, a)) return `consumes ${a.id}`;
+  if (!running && consumes(a, b)) return `consumed by ${a.id}`;
+}
+
+// Considers the tickets by layer, then number: each joins the wave unless it conflicts with work in flight or with a
+// member already in it, so the lower layer and the lower number are the ones kept. Paths are compared per repo; Create
+// counts as well as Modify and Test, since a ticket that modifies what another creates must wait for it.
+function planWave(tickets: PlanInput[], max: number, running: PlanInput[]): WavePlan {
+  const parsed = tickets.map(parse);
+  const flight = running.map(parse);
   parsed.sort((a, b) => (a.layer ?? Infinity) - (b.layer ?? Infinity) || a.number - b.number || a.repo.localeCompare(b.repo));
   const wave: Parsed[] = [];
   const held: WavePlan["held"] = [];
@@ -173,14 +200,7 @@ function planWave(tickets: PlanInput[], max: number): WavePlan {
       hold("no Files owned");
       continue;
     }
-    let reason: string | undefined;
-    for (const a of wave) {
-      const shared = a.repo === b.repo ? b.paths.find((p) => a.paths.some((q) => overlaps(p, q))) : undefined;
-      if (shared) reason = `shares ${shared} with ${a.id}`;
-      else if (consumes(b, a)) reason = `consumes ${a.id}`;
-      else if (consumes(a, b)) reason = `consumed by ${a.id}`;
-      if (reason) break;
-    }
+    const reason = flight.map((a) => conflict(b, a, true)).find(Boolean) ?? wave.map((a) => conflict(b, a)).find(Boolean);
     if (reason) hold(reason);
     else if (wave.length >= max) hold("wave full");
     else wave.push(b);
@@ -189,34 +209,32 @@ function planWave(tickets: PlanInput[], max: number): WavePlan {
 }
 
 /**
- * The wave over the state's ready tickets, reading each one's body for its Files owned and Interfaces.
+ * The wave over the state's ready tickets that no live session works on, held against every in-flight ticket (see
+ * `inFlight` in plan-next.ts), reading each one's body for its Files owned and Interfaces.
  *
  * @internal
  */
-export async function wavePlan(state: EpicState, max: number): Promise<WavePlan> {
-  const ready = await Promise.all(
-    state.tickets
-      .filter((t) => t.state === "ready")
-      .map(async (t) => ({
-        id: t.repo === state.epic.repo ? String(t.number) : `${t.repo}#${t.number}`,
-        number: t.number,
-        repo: t.repo,
-        layer: t.layer,
-        body: (JSON.parse(await runGh(["issue", "view", t.url, "--json", "body"])) as { body: string }).body ?? "",
-      })),
-  );
-  return planWave(ready, max);
+export async function wavePlan(state: EpicState, max: number, sessions: Session[] = []): Promise<WavePlan> {
+  const input = async (t: Ticket): Promise<PlanInput> => ({
+    id: t.repo === state.epic.repo ? String(t.number) : `${t.repo}#${t.number}`,
+    number: t.number,
+    repo: t.repo,
+    layer: t.layer,
+    body: (JSON.parse(await runGh(["issue", "view", t.url, "--json", "body"])) as { body: string }).body ?? "",
+  });
+  const [ready, running] = await Promise.all([
+    Promise.all(state.tickets.filter((t) => t.state === "ready" && !liveWorker(t, sessions)).map(input)),
+    Promise.all(state.tickets.filter((t) => inFlight(t, sessions)).map(input)),
+  ]);
+  return planWave(ready, max, running);
 }
 
 async function runPlan(args: string[]): Promise<number> {
   const at = args.indexOf("--max");
-  const max = at < 0 ? 4 : Number(args[at + 1]);
+  const max = at < 0 ? DEFAULT_WAVE_MAX : Number(args[at + 1]);
   const epic = args.filter((a, i) => a !== "--json" && (at < 0 || (i !== at && i !== at + 1)));
   if (epic.length !== 1 || !Number.isInteger(max) || max < 1) throw new UsageError("");
-  const e = parseIssue(epic[0]);
-  const [owner, repo] = e.repoFlag.length ? e.repo.split("/") : ["{owner}", "{repo}"];
-  const vars = e.repoFlag.length ? ["-f", `owner=${owner}`, "-f", `repo=${repo}`] : ["-F", `owner=${owner}`, "-F", `repo=${repo}`];
-  const state = derive(parseSnapshot(JSON.parse(await runGh(["api", "graphql", "-f", `query=${SNAPSHOT_QUERY}`, ...vars, "-F", `number=${e.number}`]))));
+  const state = derive((await fetchSnapshot(parseIssue(epic[0]).arg))!);
   const plan = await wavePlan(state, max);
   process.stdout.write(
     args.includes("--json")
@@ -248,7 +266,8 @@ export function run(args: string[]): Promise<number> {
   return guarded(() => (known ? `wave ${op}` : "wave"), USAGE, async () => {
     if (epic === undefined) throw new UsageError("");
     if (!known) throw new UsageError("wave takes add, pr or panel");
-    const merge = merger(op, Object.fromEntries(flagPairs(rest, FLAGS[op])));
+    const e = parseIssue(epic);
+    const merge = merger(op, Object.fromEntries(flagPairs(rest, FLAGS[op])), e.repoFlag.length ? e.repo : null);
     print(
       await updateMarker(epic, "<!-- sdd-wave -->", render, (old) => {
         const data = { waves: [], panel: [], ...old } as WaveData;

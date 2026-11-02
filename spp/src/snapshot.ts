@@ -1,5 +1,8 @@
 // The Snapshot: what one batched GraphQL query says about an Epic and its Sub-issues.
 // Pure: no network, filesystem or environment, so the epic board can import it.
+import { readVerdict, type Verdict, VERDICT_MARKER } from "./verdict.ts";
+
+export { VERDICT_MARKER };
 
 /** A pull request's state on GitHub. */
 export type PrState = "OPEN" | "MERGED" | "CLOSED";
@@ -13,14 +16,9 @@ export type Pr = {
   state: PrState;
   /** The head commit's full sha. */
   headSha: string;
-  /**
-   * The trailer of the pull request's `<!-- spp-verdict -->` comment, present only when one decodes:
-   * `{ ticket, head, spec: "pass" | "fail", quality: "pass" | "fail" }`, as `spp verdict` writes it.
-   */
-  verdict?: Record<string, unknown>;
+  /** The pull request's `<!-- spp-verdict -->` comment as `spp verdict` writes it, present only when it decodes. */
+  verdict?: Verdict;
 };
-
-export const VERDICT_MARKER = "<!-- spp-verdict -->";
 
 export type SnapshotIssue = {
   number: number;
@@ -39,6 +37,7 @@ export type Snapshot = {
   epic: { number: number; url: string; repo: string; title: string };
   issues: SnapshotIssue[];
   plan: Record<string, unknown> | null; // the Epic's plan comment's data trailer; null without a readable one
+  wave: Record<string, unknown> | null; // the Epic's wave comment's data trailer, the same way
 };
 
 // Variables: $owner, $repo, $number. GitHub caps an Epic at 100 Sub-issues, so one page holds them all.
@@ -165,7 +164,7 @@ function issue(raw: RawIssue, viewer: string | null): SnapshotIssue {
     .filter((s): s is RawPr => !!s?.headRefOid && closes(s.body ?? "", s.repository!.nameWithOwner, raw));
   const prs = new Map<string, Pr>();
   for (const p of [...raw.closedByPullRequestsReferences.nodes, ...crossRefs]) {
-    const verdict = markerData(p.comments, VERDICT_MARKER, viewer);
+    const verdict = readVerdict(markerData(p.comments, VERDICT_MARKER, viewer));
     prs.set(p.url, { number: p.number, url: p.url, state: p.state, headSha: p.headRefOid, ...(verdict && { verdict }) });
   }
   return {
@@ -182,6 +181,30 @@ function issue(raw: RawIssue, viewer: string | null): SnapshotIssue {
   };
 }
 
+/**
+ * gh's arguments for an Epic's snapshot, the Epic given as an issue number (the current repo, through gh's
+ * placeholders) or an issue URL; null for anything else.
+ */
+export function snapshotArgs(epic: string): string[] | null {
+  const m = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)\/?$/.exec(epic);
+  const vars = /^\d+$/.test(epic) ? ["-F", "owner={owner}", "-F", "repo={repo}", "-F", `number=${epic}`] : m && ["-f", `owner=${m[1]}`, "-f", `repo=${m[2]}`, "-F", `number=${m[3]}`];
+  return vars && ["api", "graphql", "-f", `query=${SNAPSHOT_QUERY}`, ...vars];
+}
+
+/**
+ * gh's answer to {@link snapshotArgs} as a Snapshot. gh exits 1 on a missing issue but still prints the response,
+ * which reads as "epic not found"; any other failure throws gh's stderr.
+ */
+export function readSnapshot(r: { exitCode: number | null; stdout: string; stderr: string }): Snapshot {
+  let json: unknown;
+  try {
+    json = JSON.parse(r.stdout);
+  } catch {}
+  const missing = (json as Response | undefined)?.data?.repository?.issue === null;
+  if (r.exitCode !== 0 && !missing) throw new Error(r.stderr.trim() || `gh exited ${r.exitCode}`);
+  return parseSnapshot(json);
+}
+
 export function parseSnapshot(json: unknown): Snapshot {
   const r = json as Response;
   const epic = r?.data?.repository?.issue;
@@ -192,5 +215,6 @@ export function parseSnapshot(json: unknown): Snapshot {
     epic: { number: epic.number, url: epic.url, repo: epic.repository.nameWithOwner, title: epic.title },
     issues: epic.subIssues.nodes.map((i) => issue(i, viewer)),
     plan: markerData(epic.comments, "<!-- sdd-plan -->", viewer),
+    wave: markerData(epic.comments, "<!-- sdd-wave -->", viewer),
   };
 }

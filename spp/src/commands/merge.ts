@@ -10,11 +10,13 @@
  * @module
  */
 import { spawnSync } from "node:child_process";
-import { derive, gateOf } from "../derive.ts";
+import { derive, gateOf, refIn } from "../derive.ts";
 import { GhError, runGh } from "../gh.ts";
 import { find, parseIssue, readTrailer } from "../markers.ts";
 import { readRouting } from "../routing.ts";
-import { CLOSING_KEYWORD, SNAPSHOT_QUERY, parseSnapshot, VERDICT_MARKER } from "../snapshot.ts";
+import { fetchSnapshot } from "../fetch-snapshot.ts";
+import { CLOSING_KEYWORD } from "../snapshot.ts";
+import { readVerdict, VERDICT_MARKER } from "../verdict.ts";
 import { culprits, readChecks } from "./checks.ts";
 
 /** The usage text `spp merge --help` prints. */
@@ -52,10 +54,7 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   const refuse = (reason: string, code = 1) => ({ result: { merged: false, reason }, code });
   const view = JSON.parse(await runGh(["pr", "view", pr, "--json", "number,url,state,body,baseRefName,mergeable"])) as PrView;
   const [, owner, name] = ISSUE_URL.exec(view.url) ?? [];
-  const ref = (url: string) => {
-    const [, o, r, n] = ISSUE_URL.exec(url) ?? [, "", "", url];
-    return o === owner && r === name ? `#${n}` : `${o}/${r}#${n}`;
-  };
+  const ref = refIn(`${owner}/${name}`);
   if (view.state !== "OPEN") return refuse(`${ref(view.url)} is ${view.state}`);
   const ticketUrl = closedIssue(view.body, `${owner}/${name}`);
   if (!ticketUrl) return refuse(`${ref(view.url)} closes no issue`);
@@ -63,8 +62,7 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   const { parent } = JSON.parse(await runGh(["issue", "view", ticketUrl, "--json", "parent"])) as { parent: { url: string } | null };
   const epic = parent && ISSUE_URL.exec(parent.url);
   if (!epic) return refuse(`${ref(ticketUrl)} has no epic`);
-  const snapshot = await runGh(["api", "graphql", "-f", `query=${SNAPSHOT_QUERY}`, "-f", `owner=${epic[1]}`, "-f", `repo=${epic[2]}`, "-F", `number=${epic[3]}`]);
-  const state = derive(parseSnapshot(JSON.parse(snapshot)));
+  const state = derive((await fetchSnapshot(parent.url))!);
   const byUrl = new Map(state.tickets.map((t) => [t.url, t]));
   const ticket = byUrl.get(ticketUrl);
   if (!ticket) return refuse(`${ref(ticketUrl)} is not a sub-issue of ${ref(parent.url)}`);
@@ -72,7 +70,7 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   if (ticket.state !== "gate-pass" || ticket.pr?.url !== view.url) return refuse(`gate not passed: ${ref(ticketUrl)} is ${ticket.state}`);
   // The trust boundary (ADR 0009), checked again on the comment itself: only a verdict a trusted author wrote, passing
   // on the head about to merge, lets the merge through.
-  const verdict = readTrailer((await find(parseIssue(view.url.replace("/pull/", "/issues/")), VERDICT_MARKER))?.body ?? "");
+  const verdict = readVerdict(readTrailer((await find(parseIssue(view.url.replace("/pull/", "/issues/")), VERDICT_MARKER))?.body ?? ""));
   if (gateOf({ ...ticket.pr, verdict: verdict ?? undefined }) !== "gate-pass") return refuse(`no passing verdict from a trusted author on ${ref(view.url)}`);
   for (const b of ticket.blockedBy) {
     const pr = byUrl.get(b)?.pr;
@@ -96,7 +94,7 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
     return refuse(e.message);
   }
 
-  // The wave comment stores a ticket in the Epic's repo as its number and any other as owner/repo#N.
+  // wave pr matches a ticket in any of its forms, whichever one the wave stored.
   const [, to, tr, tn] = ISSUE_URL.exec(ticketUrl)!;
   const waveTicket = to === epic[1] && tr === epic[2] ? tn : `${to}/${tr}#${tn}`;
   const spp = process.argv[1]; // the running bin/spp: its path from here differs between spp/src and the compiled dist/

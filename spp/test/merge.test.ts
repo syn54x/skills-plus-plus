@@ -3,7 +3,9 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, test } from "node:test";
+import type { EpicState, Ticket } from "../src/derive.ts";
 import { readTrailer } from "../src/markers.ts";
+import { planNext } from "../src/plan-next.ts";
 import { runCase } from "./harness.ts";
 
 // One Epic, acme/app#197 on integration branch feat/x: ticket #30 (pull request #40) and ticket #31 (pull request #41),
@@ -30,7 +32,12 @@ type Opts = {
   mergeAnswer?: { stderr: string; code: number };
   forged?: boolean; // the snapshot's only verdict comment is a passing one from an outside author
   recheck?: "forged"; // the verdict comment spp merge re-reads is from an outside author
+  epicMissing?: boolean; // the snapshot query finds no Epic issue: gh exits 1 and prints issue null
+  waveFails?: boolean; // reading the wave comment fails, so recording the merge on it fails
 };
+
+// gh's answer to a query for an issue that does not exist: exit 1, the response still printed.
+const MISSING = { stdout: { data: { repository: { issue: null } }, errors: [{ message: "Could not resolve to an Issue with the number of 197." }] }, stderr: "GraphQL: Could not resolve to an Issue with the number of 197. (repository.issue)", code: 1 };
 
 // A comment by the repository owner, or by an outside author when `outsider`.
 const by = (body: string, outsider = false) => ({ body, author: { login: outsider ? "mallory" : "maint" }, authorAssociation: outsider ? "NONE" : "OWNER" });
@@ -79,9 +86,11 @@ function mergeCase(o: Opts = {}): string {
       stdout: { number: pr, url, state: "OPEN", body, baseRefName: o.base ?? "feat/x", mergeable: o.mergeable ?? "MERGEABLE" },
     },
     [`issue view ${REPO}/issues/${TICKET[pr]} --json parent`]: { stdout: { parent: { url: `${REPO}/issues/197` } } },
-    "api graphql -f query=Snapshot -f owner=acme -f repo=app -F number=197": { stdout: snapshot },
+    "api graphql -f query=Snapshot -f owner=acme -f repo=app -F number=197": o.epicMissing ? MISSING : { stdout: snapshot },
     [`pr checks ${url} --json name,bucket`]: { stdout: o.checks ?? [{ name: "ci", bucket: "pass" }] },
-    [`api repos/acme/app/issues/197/comments --paginate --jq ${JQ}`]: { stdout: JSON.stringify([88, `<!-- sdd-wave -->\nWave 1\n${trailer(WAVE)}\n`, "maint", "OWNER"]) + "\n" },
+    [`api repos/acme/app/issues/197/comments --paginate --jq ${JQ}`]: o.waveFails
+      ? { stderr: "HTTP 502: Bad Gateway", code: 1 }
+      : { stdout: JSON.stringify([88, `<!-- sdd-wave -->\nWave 1\n${trailer(WAVE)}\n`, "maint", "OWNER"]) + "\n" },
     [`api repos/acme/app/issues/${pr}/comments --paginate --jq ${JQ}`]: {
       stdout: JSON.stringify([99, verdict(pr, pr === 40 ? o.spec : "pass"), ...(o.recheck ? ["mallory", "NONE"] : ["maint", "OWNER"])]) + "\n",
     },
@@ -179,11 +188,92 @@ describe("error paths", () => {
     assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
   });
 
+  // F9 on #267: merge reads the snapshot through fetchSnapshot, which names a missing Epic like status and retro do.
+  test("an Epic that does not exist exits 1 with epic not found and merges nothing", async () => {
+    const r = await runCase("merge", mergeCase({ epicMissing: true }));
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /^spp merge: epic not found$/m);
+    assert.deepEqual(r.writes, []);
+  });
+
+  // F6 on #267: the merge happened, so it says merged true, but exit 1 and the stderr line send the orchestrator to record it.
+  test("a merge whose wave record fails exits 1 with merged true and says the record failed", async () => {
+    const r = await runCase("merge", mergeCase({ waveFails: true }));
+    assert.equal(r.code, 1, r.stderr);
+    assert.deepEqual(r.json, { merged: true });
+    assert.match(r.stderr, /^spp merge: merged #40, but recording it on the wave comment failed:\n.*HTTP 502: Bad Gateway/m);
+    assert.deepEqual((r.writes as Write[]).map((w) => w.argv.slice(0, 2)), [["pr", "merge"]]);
+  });
+
   test("a branch policy refusal exits 1 with gh's reason, never rebase needed", async () => {
     const stderr = "Pull request acme/app#40 is not mergeable: the base branch policy prohibits the merge.\n";
     const r = await merge({ mergeable: "MERGEABLE", mergeAnswer: { stderr, code: 1 } }, 1);
     assert.equal(r.out.merged, false);
     assert.match(r.out.reason ?? "", /base branch policy prohibits the merge/);
     assert.doesNotMatch(r.out.reason ?? "", /rebase needed/);
+  });
+});
+
+// F10 on #267: a cross-repo ticket goes from spp next (its issue URL) through wave add to spp merge, whose wave pr
+// names it owner/repo#N; wave pr matches the equivalent forms, so the merge exits 0 and records the pull request.
+describe("integration", () => {
+  const EPIC = `${REPO}/issues/197`;
+  const API = "https://github.com/acme/api";
+  const TICKET_URL = `${API}/issues/7`;
+  const PR_URL = `${API}/pull/50`;
+  const SHA = "7".repeat(40);
+  const VERDICT = `<!-- spp-verdict -->\n${trailer({ ticket: "7", head: SHA, spec: "pass", quality: "pass" })}\n`;
+
+  test("a cross-repo ticket dispatched by next and recorded by wave add merges with exit 0 and its PR on the wave", async () => {
+    // 1. spp next names the cross-repo ticket by its issue URL.
+    const ticket: Ticket = {
+      ...{ number: 7, url: TICKET_URL, repo: "acme/api", title: "Api ticket", size: "S", state: "ready", layer: 0, blockedBy: [] },
+      ...{ claimed: false, assignees: [], labels: ["ready-for-agent"], pr: null, worker: null, note: null },
+    };
+    const counts = { blocked: 0, ready: 1, claimed: 0, "pr-open": 0, "gate-pass": 0, "gate-fail": 0, merged: 0, "handed-back": 0, "not-agent": 0 };
+    const state: EpicState = { epic: { number: 197, url: EPIC, repo: "acme/app", title: "Epic", branch: "feat/x" }, tickets: [ticket], layers: [[TICKET_URL]], cycle: [], counts };
+    const wave = { wave: ["acme/api#7"], held: [] };
+    const [dispatch] = planNext({ state, panel: { tickets: 5, lines: 1000, sizeL: true }, driver: "bg", sessions: [], wave, checks: {}, failedHeads: {}, mainPr: null });
+    assert.deepEqual(dispatch.tickets, [TICKET_URL]);
+
+    // 2. The build records the Wave from those ids.
+    const add = mkdtempSync(join(tmpdir(), "spp-wave-add-"));
+    const addArgs = [EPIC, "add", "--n", "1", "--tickets", dispatch.tickets!.join(","), "--workers", "t-7", "--started", "2026-11-02T00:00:00Z", "--edges", "none"];
+    writeFileSync(join(add, "args"), addArgs.join("\n") + "\n");
+    writeFileSync(join(add, "gh.json"), JSON.stringify({ [`api repos/acme/app/issues/197/comments --paginate --jq ${JQ}`]: { stdout: "" } }));
+    const added = await runCase("wave", add);
+    assert.equal(added.code, 0, added.stderr);
+    const waveBody = (added.writes as Write[])[0].argv.find((a) => a.startsWith("body="))!.slice(5);
+
+    // 3. spp merge merges its pull request and records it on that wave.
+    const dir = mkdtempSync(join(tmpdir(), "spp-merge-xrepo-"));
+    writeFileSync(join(dir, "args"), `${PR_URL}\n--json\n`);
+    const pr = { number: 50, url: PR_URL, state: "OPEN", headRefOid: SHA, repository: { nameWithOwner: "acme/api" }, comments: { nodes: [by(VERDICT)] } };
+    const issue = {
+      ...{ number: 7, url: TICKET_URL, title: "Api ticket", state: "OPEN", repository: { nameWithOwner: "acme/api" } },
+      ...{ labels: { nodes: [{ name: "ready-for-agent" }, { name: "claimed" }] }, assignees: { nodes: [] }, blockedBy: { nodes: [] } },
+      ...{ closedByPullRequestsReferences: { nodes: [pr] }, timelineItems: { nodes: [] } },
+    };
+    const plan = by(`<!-- sdd-plan -->\n${trailer({ branch: "feat/x" })}\n`);
+    const epic = { number: 197, url: EPIC, title: "Epic", repository: { nameWithOwner: "acme/app" }, comments: { nodes: [plan] }, subIssues: { nodes: [issue] } };
+    const row = (id: number, body: string) => JSON.stringify([id, body, "maint", "OWNER"]) + "\n";
+    const gh = {
+      [`pr view ${PR_URL} --json number,url,state,body,baseRefName,mergeable`]: {
+        stdout: { number: 50, url: PR_URL, state: "OPEN", body: "Closes acme/api#7\n", baseRefName: "feat/x", mergeable: "MERGEABLE" },
+      },
+      [`issue view ${TICKET_URL} --json parent`]: { stdout: { parent: { url: EPIC } } },
+      "api graphql -f query=Snapshot -f owner=acme -f repo=app -F number=197": { stdout: { data: { viewer: { login: "maint" }, repository: { issue: epic } } } },
+      [`pr checks ${PR_URL} --json name,bucket`]: { stdout: [{ name: "ci", bucket: "pass" }] },
+      [`api repos/acme/api/issues/50/comments --paginate --jq ${JQ}`]: { stdout: row(99, VERDICT) },
+      [`api repos/acme/app/issues/197/comments --paginate --jq ${JQ}`]: { stdout: row(88, waveBody) },
+    };
+    writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
+    const r = await runCase("merge", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(r.json, { merged: true });
+    const writes = r.writes as Write[];
+    assert.deepEqual(writes[0].argv.slice(0, 3), ["pr", "merge", PR_URL]);
+    assert.deepEqual(writes[1].argv.slice(1, 4), ["-X", "PATCH", "repos/acme/app/issues/comments/88"]);
+    assert.deepEqual((readTrailer(writes[1].argv.find((a) => a.startsWith("body="))!.slice(5)) as typeof WAVE).waves[0].prs, { [TICKET_URL]: PR_URL });
   });
 });

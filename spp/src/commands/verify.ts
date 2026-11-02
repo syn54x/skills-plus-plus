@@ -129,26 +129,38 @@ async function verify(ref: string): Promise<number> {
   return failed ? 1 : 0;
 }
 
-async function check(): Promise<number> {
-  // stop_hook_active is ignored on purpose: a second stop is just as unverified, and Claude Code caps the loop itself
-  // (eight blocked stops in a row end the turn).
-  enterHookCwd(await readHookInput());
+/**
+ * Why the stop gate refuses to let the session in the current directory stop, or null when it may stop. `note --auto`
+ * asks it too, since the Stop hook's commands run side by side and a refused stop is no stop to note.
+ *
+ * @internal
+ */
+export function stopRefusal(): string | null {
   const branch = gitOut("branch", "--show-current") ?? "";
-  if (!branch.startsWith("sdd/")) return 0;
+  if (!branch.startsWith("sdd/")) return null;
   const n = /^sdd\/(\d+)/.exec(branch)?.[1] ?? "<N>";
-  const block = (why: string) => (process.stderr.write(`spp verify: ${why}\n`), 2);
-  if (gitOut("status", "--porcelain")) return block(`uncommitted changes on ${branch}. Commit them, then run spp verify ${n}.`);
+  if (gitOut("status", "--porcelain")) return `uncommitted changes on ${branch}. Commit them, then run spp verify ${n}.`;
   const note = gitOut("notes", "--ref=sdd-verify", "show", "HEAD") ?? "";
-  if (/^(verified|blocked)\b/.test(note)) return 0;
+  if (/^(verified|blocked)\b/.test(note)) return null;
   // HEAD equal to or an ancestor of a remote integration branch (feat/*) or the remote default branch (a One-off's
   // base): the worker committed nothing beyond the base it was cut from (say, a readiness stop), so there is nothing
   // to verify and no claim of its own to hand back. Any other remote branch (wip, another sdd/*) does not count.
   const bases = (gitOut("for-each-ref", "--contains", "HEAD", "--format=%(refname)", "refs/remotes") ?? "").split("\n");
   const defaults = (gitOut("for-each-ref", "--format=%(symref)", "refs/remotes/*/HEAD") ?? "").split("\n");
-  if (bases.some((r) => r && (/^refs\/remotes\/[^/]+\/feat\//.test(r) || defaults.includes(r)))) return 0;
+  if (bases.some((r) => r && (/^refs\/remotes\/[^/]+\/feat\//.test(r) || defaults.includes(r)))) return null;
   const handBack = `If you are stopping BLOCKED, hand the ticket back (spp hand-back ${n} <route> --reason ...), push what is committed, then record it: git notes --ref=sdd-verify add -f -m blocked HEAD`;
-  if (note.startsWith("failed")) return block(`Verify failed on HEAD of ${branch}. Fix it and run spp verify ${n} again. ${handBack}`);
-  return block(`Verify not run on HEAD of ${branch}. Run spp verify ${n} on the committed tree. ${handBack}`);
+  if (note.startsWith("failed")) return `Verify failed on HEAD of ${branch}. Fix it and run spp verify ${n} again. ${handBack}`;
+  return `Verify not run on HEAD of ${branch}. Run spp verify ${n} on the committed tree. ${handBack}`;
+}
+
+async function check(): Promise<number> {
+  // stop_hook_active is ignored on purpose: a second stop is just as unverified, and Claude Code caps the loop itself
+  // (eight blocked stops in a row end the turn).
+  enterHookCwd(await readHookInput());
+  const why = stopRefusal();
+  if (!why) return 0;
+  process.stderr.write(`spp verify: ${why}\n`);
+  return 2;
 }
 
 /**
