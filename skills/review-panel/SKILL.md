@@ -23,7 +23,7 @@ Stop, and say why, when:
 - The pull request is closed, merged or a draft.
 - Its base is not the default branch (or the release line the person names). A slice into an integration branch gets `/review`; a panel there costs nine reviews for one slice.
 
-The pull request body's `Closes #N` names its issue. Run `spp kind N`: for `epic`, `EPIC` is that issue and its body, plan comment and Sub-issues are the spec. For anything else the pull request body is the spec, and the report's Coverage line says so.
+The pull request body's `Closes #N` names its issue. Run `spp kind N`: for `epic`, `EPIC` is that issue and its body, plan comment and Sub-issues are the spec. A `sub-issue` names one slice of an Epic, which gets `/review`, and the panel runs on its Epic's pull request: stop and say so. For `one-off` or `raw` the pull request body is the spec, and the report's Coverage line says so.
 
 Done when the target is open, ready and aimed at the base branch, and you know the spec's source.
 

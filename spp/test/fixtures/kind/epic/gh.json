@@ -1,8 +1,9 @@
 {
-  "issue view 197 --json body,labels,subIssuesSummary": {
+  "issue view 197 --json body,labels,parent,subIssuesSummary": {
     "stdout": {
       "body": "## Problem Statement\n\nbig",
       "labels": [],
+      "parent": null,
       "subIssuesSummary": {
         "total": 33,
         "completed": 0,

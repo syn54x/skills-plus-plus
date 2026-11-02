@@ -12,8 +12,12 @@ describe("happy path", () => {
     await assertCase("kind", fixture("epic")); // expected.json
   });
 
-  test("spp kind 12 on a hardened issue with size:S is a one-off", async () => {
+  test("spp kind 12 on a hardened issue with size:S and no parent is a one-off", async () => {
     await assertCase("kind", fixture("one-off"));
+  });
+
+  test("spp kind 12 on a hardened issue with a parent Epic is a sub-issue", async () => {
+    await assertCase("kind", fixture("sub-issue"));
   });
 });
 

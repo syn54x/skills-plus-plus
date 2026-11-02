@@ -20,7 +20,7 @@ _Avoid_: ticket, except in skill names (`to-tickets`) and for a **Decision ticke
 A state label that triage puts on an **Issue** (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`).
 
 **Kind**:
-What `/build <N>` finds N to be: an **Epic**, a hardened **One-off**, or a raw issue that has to go through triage first. `spp kind` decides it.
+What `/build <N>` finds N to be: an **Epic**, a hardened **Sub-issue** (built through its **Epic**, never as a **One-off**), a hardened **One-off**, or a raw issue that has to go through triage first. `spp kind` decides it.
 
 ### Planning
 
@@ -80,10 +80,10 @@ The routes work takes through spp, which `ask-spp` routes between:
 The block between `<!-- sdd-routing -->` and `<!-- /sdd-routing -->` in a repo's `CLAUDE.md` or `AGENTS.md`, written by `/setup-spp`. Its Mode, Sizes and **Laws line** are what `spp preflight` reads; its presence puts a repo on the spp flow.
 
 **Ready queue**:
-The **Sub-issues** that are open, have no open blockers, are not held (no **Claim mark**, no assignee) and carry `ready-for-agent`. Computed from GitHub, never read from a workflow status label.
+The **Sub-issues** that are open, have no blocker that has not landed (closed, or its pull request merged into the integration branch), are not held (no **Claim mark**, no assignee) and carry `ready-for-agent`. Computed from GitHub, never read from a workflow status label.
 
 **Layer**:
-The **Sub-issues** whose blockers all sit in earlier layers. Layer 0 is the first **Ready queue**.
+The **Sub-issues** whose blockers that have not landed all sit in earlier layers. Layer 0 is the first **Ready queue**.
 
 **Wave**:
 One concurrent dispatch of workers over the **Ready queue**, after the parallel safety check (no two workers own the same file), one worktree each.

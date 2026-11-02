@@ -17,10 +17,11 @@ Run `spp kind <N>`. It prints the kind and the reason.
 | Kind | Meaning | Do |
 | --- | --- | --- |
 | `epic` | N has Sub-issues | The Epic path, [`EPIC.md`](EPIC.md), once steps 2 and 3 are read. |
+| `sub-issue` | N carries the Ticket contract and has a parent Epic | Stop. Print the reason and ask the user to run `/build <epic>` on that parent. A Sub-issue is built through its Epic, never the One-off path. |
 | `one-off` | N carries the Ticket contract and has no Epic: a hardened One-off | The One-off path, [`ONE-OFF.md`](ONE-OFF.md), once steps 2 and 3 are read. |
 | `raw` | N lacks the contract | Stop. Print the reason and ask the user to run `/triage <N>`. A raw issue never reaches a worker. |
 
-Done when you hold the kind and, for `raw`, the user has the reason.
+Done when you hold the kind and, for `sub-issue` or `raw`, the user has the reason.
 
 ## 2. Pick the driver
 

@@ -1,7 +1,9 @@
 /**
- * `spp kind <issue> [--json]` says what an issue is: an Epic (it has Sub-issues), a hardened One-off (it passes
- * `spp lint ticket`) or a raw issue (anything else), and why. `/build` routes on it. Without `--json` the answer is one
- * line, such as `one-off: carries the ticket contract and one size`; with `--json` it prints {@link Kind}.
+ * `spp kind <issue> [--json]` says what an issue is: an Epic (it has Sub-issues), a hardened Sub-issue (it passes
+ * `spp lint ticket` and has a parent Epic), a hardened One-off (it passes the lint and has no Epic) or a raw issue
+ * (anything else), and why. `/build` routes on it, and builds a Sub-issue through its Epic, never as a One-off. Without
+ * `--json` the answer is one line, such as `one-off: carries the ticket contract and one size`; with `--json` it prints
+ * {@link Kind}.
  *
  * @module
  */
@@ -10,9 +12,15 @@ import { isIssueRef, lintTicket } from "../ticket.ts";
 
 /** What an issue is: the `--json` shape of `spp kind`. */
 export type Kind = {
-  /** `epic` when it has Sub-issues, `one-off` when it passes the ticket lint (a hardened One-off), `raw` otherwise. */
-  kind: "epic" | "one-off" | "raw";
-  /** Why: the Sub-issue count for an Epic, and every lint failure, joined by `; `, for a raw issue. */
+  /**
+   * `epic` when it has Sub-issues; when it passes the ticket lint, `sub-issue` if it has a parent Epic and `one-off` if
+   * it has none; `raw` otherwise.
+   */
+  kind: "epic" | "sub-issue" | "one-off" | "raw";
+  /**
+   * Why: the Sub-issue count for an Epic, the parent's URL for a Sub-issue, and every lint failure, joined by `; `, for
+   * a raw issue.
+   */
   reason: string;
 };
 
@@ -37,18 +45,21 @@ export async function run(args: string[]): Promise<number> {
     process.stderr.write(USAGE);
     return 2;
   }
-  const issue = JSON.parse(await runGh(["issue", "view", rest[0], "--json", "body,labels,subIssuesSummary"])) as {
+  const issue = JSON.parse(await runGh(["issue", "view", rest[0], "--json", "body,labels,parent,subIssuesSummary"])) as {
     body: string;
     labels: { name: string }[];
+    parent: { url: string } | null;
     subIssuesSummary: { total: number };
   };
   const failures = lintTicket(issue.body ?? "", issue.labels.map((l) => l.name));
   const result: Kind =
     issue.subIssuesSummary.total > 0
       ? { kind: "epic", reason: `${issue.subIssuesSummary.total} Sub-issues` }
-      : failures.length === 0
-        ? { kind: "one-off", reason: "carries the ticket contract and one size" }
-        : { kind: "raw", reason: failures.map((f) => f.detail).join("; ") };
+      : failures.length > 0
+        ? { kind: "raw", reason: failures.map((f) => f.detail).join("; ") }
+        : issue.parent
+          ? { kind: "sub-issue", reason: `carries the ticket contract and one size; Sub-issue of ${issue.parent.url}` }
+          : { kind: "one-off", reason: "carries the ticket contract and one size" };
   process.stdout.write(args.includes("--json") ? JSON.stringify(result, null, 2) + "\n" : `${result.kind}: ${result.reason}\n`);
   return 0;
 }

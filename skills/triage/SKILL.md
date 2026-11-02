@@ -44,7 +44,7 @@ gh issue view <N> --comments --json number,title,body,labels,comments,createdAt
 spp kind <N>
 ```
 
-Read the body and every comment. A comment that opens with the disclaimer is an earlier triage note: keep what it established and do not re-ask what the reporter has since answered. If `spp kind` prints `epic`, the issue is already a spec with Sub-issues; say that `/build <N>` takes it, and stop.
+Read the body and every comment. A comment that opens with the disclaimer is an earlier triage note: keep what it established and do not re-ask what the reporter has since answered. If `spp kind` prints `epic`, the issue is already a spec with Sub-issues; say that `/build <N>` takes it, and stop. If it prints `sub-issue`, the issue is already a hardened slice of the Epic its reason names; say that `/build` on that Epic takes it, and stop.
 
 ## 2. Put four questions to the issue
 

@@ -6,16 +6,16 @@ To see what an issue is, run `spp kind` with its number:
 spp kind 227 --json
 ```
 
-It prints the issue's kind and why:
+It prints the issue's kind and why. The kind is `epic`, `sub-issue` (a hardened slice of an Epic), `one-off` (a hardened issue with no Epic) or `raw`. Issue 227 is a Sub-issue of Epic 197:
 
 ```json
 {
-  "kind": "one-off",
-  "reason": "carries the ticket contract and one size"
+  "kind": "sub-issue",
+  "reason": "carries the ticket contract and one size; Sub-issue of https://github.com/syn54x/skills-plus-plus/issues/197"
 }
 ```
 
-Without `--json` the same answer is one line, `one-off: carries the ticket contract and one size`.
+Without `--json` the same answer is one line, `sub-issue: carries the ticket contract and one size; Sub-issue of https://github.com/syn54x/skills-plus-plus/issues/197`.
 
 ## Install
 
