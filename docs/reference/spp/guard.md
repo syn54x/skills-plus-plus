@@ -1,5 +1,3 @@
-# guard
-
 `spp guard worktree` is the `PreToolUse` hook on Bash. In a session working in a linked worktree, it reads the
 command from the hook payload on stdin and denies one that would write into the main checkout outside that
 worktree; it allows the rest. It reads the command without running it: `$(...)`, variables and globs are not

@@ -1,5 +1,3 @@
-# wait
-
 `spp wait <epic> [--interval SECONDS]` polls the Epic's state and the `claude` session list every interval
 (default 30 seconds) and exits when something changes, with one line per change: a ticket's state
 (`#12 claimed -> pr-open`) or one of its workers that stopped working (`t-12 done`). Run it in the background so its

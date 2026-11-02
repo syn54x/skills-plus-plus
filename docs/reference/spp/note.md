@@ -1,5 +1,3 @@
-# note
-
 `spp note` keeps a local log of one-line notes, keyed by repo and Sub-issue, in spp's own state directory outside
 every repository: it appends a note, lists the latest notes of an Epic, or notes a hook event.
 

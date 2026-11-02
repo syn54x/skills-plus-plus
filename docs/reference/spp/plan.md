@@ -1,5 +1,3 @@
-# plan
-
 `spp plan <epic> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d] [--narrowed TEXT]... |
 [--narrowed none] [--add-deviation TEXT] [--table-file FILE]` writes the Epic's `<!-- sdd-plan -->` comment,
 rewriting it in place, and prints its URL. A field you do not pass keeps its stored value. `--narrowed` replaces the

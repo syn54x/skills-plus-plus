@@ -1,5 +1,3 @@
-# branch
-
 `spp branch <epic> [--from <base>]` creates the Epic's integration branch `feat/<slug>` from `origin/<base>`
 (default `main`), pushes it, records it on the plan comment through `spp plan --branch`, and prints the branch name.
 When the branch exists it switches to it, and writes the plan comment only when the comment does not already name

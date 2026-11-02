@@ -1,5 +1,3 @@
-# verify
-
 `spp verify` runs a Sub-issue's Verify block and records the result on `HEAD`, and as a stop hook it holds a worker
 on an `sdd/*` branch until that record exists. It has no `--json`.
 

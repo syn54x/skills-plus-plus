@@ -1,5 +1,3 @@
-# findings
-
 `spp findings merge <file...> [--json] [--verdict <round> ...]` merges the review panel's Persona findings. Each
 file is one [PersonaFindings](#personafindings). Findings under 80 confidence are dropped, and findings on the same file,
 less than 5 lines apart and with the same normalised title become one that keeps the highest severity and every Persona.

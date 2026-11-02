@@ -1,5 +1,3 @@
-# claim
-
 `spp claim <issue>` sets the Claim mark: it adds the `claimed` label, creating the label first when the repo lacks
 it, and prints nothing. The Claim mark is a label and never an assignee (ADR 0006). `spp unclaim` removes it.
 

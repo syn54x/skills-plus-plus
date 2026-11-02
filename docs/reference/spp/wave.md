@@ -1,5 +1,3 @@
-# wave
-
 `spp wave` plans the next Wave, and records waves, their pull requests and the review panel's rounds on the
 Epic's one `<!-- sdd-wave -->` comment.
 

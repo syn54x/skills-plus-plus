@@ -1,5 +1,3 @@
-# kind
-
 `spp kind <issue> [--json]` says what an issue is: an Epic (it has Sub-issues), a ticket (it passes
 `spp lint ticket`) or raw (anything else), and why. `/build` routes on it. Without `--json` the answer is one line,
 such as `ticket: carries the ticket contract and one size`; with `--json` it prints [Kind](#kind).

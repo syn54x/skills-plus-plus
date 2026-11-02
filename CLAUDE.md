@@ -17,7 +17,7 @@ Run these before opening a pull request. CI runs the same list on every pull req
 npm ci
 npm run typecheck
 npm test
-npm run docs:reference && git diff --exit-code docs/reference
+npm run docs:reference && git add --intent-to-add docs/reference && git diff --exit-code docs/reference
 node scripts/check-size.ts
 node scripts/check-invocation.ts
 node scripts/check-registry.ts

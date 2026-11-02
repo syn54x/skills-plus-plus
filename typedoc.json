@@ -16,6 +16,7 @@
   "outputFileStrategy": "modules",
   "entryFileName": "index.md",
   "hidePageHeader": true,
+  "hidePageTitle": true,
   "hideBreadcrumbs": true,
   "useCodeBlocks": true,
   "indexFormat": "table",

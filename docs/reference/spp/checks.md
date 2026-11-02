@@ -1,5 +1,3 @@
-# checks
-
 `spp checks <pr | sha> [--json]` reads CI for a pull request (its checks), or for a commit given as 7 to 40 hex
 characters (its check runs). It prints the result, followed by the failing or pending run names. The reading comes
 from each run's bucket, never from `gh`'s exit code: pending is never a pass, a cancelled run counts as a failure,

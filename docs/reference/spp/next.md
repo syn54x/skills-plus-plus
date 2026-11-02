@@ -1,5 +1,3 @@
-# next
-
 `spp next <epic> [--json]` prints the build's next actions, one per line. The build loop is: run `spp next`, do
 what it says, run it again. It reads the Epic's preconditions, its state, CI on open pull requests, the gate's
 verdict history, the pull request to the base branch and the session list, all from GitHub and `claude`, never

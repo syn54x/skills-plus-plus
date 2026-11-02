@@ -1,5 +1,3 @@
-# status
-
 `spp status <epic> [--json]` prints every Sub-issue of an Epic with its state, grouped by Layer, from one GraphQL
 query. Each line is the ticket's state, its number and title, and its pull request when it has one; a blocking
 cycle gets a group of its own. With `--json` it prints the whole [EpicState](#epicstate) instead.

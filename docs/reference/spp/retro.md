@@ -1,5 +1,3 @@
-# retro
-
 `spp retro <epic> [--json]` collects the Epic's retro numbers from GitHub alone: findings by Law tag and by
 Sub-issue from the gate's verdicts, fix rounds, Hand-backs, the panel's rounds, and ponytail's hits. A pull request
 is a Sub-issue's when GitHub links it or the wave comment's trailer records it. An input it cannot read is named on

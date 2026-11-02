@@ -1,5 +1,3 @@
-# verdict
-
 `spp verdict <pr> --ticket N --head SHA --spec pass|fail --quality pass|fail` records the slice gate's two verdicts
 as the pull request's `<!-- spp-verdict -->` Marker comment, rewritten in place, and prints its URL. It writes only
 while the pull request is still at `SHA`, because a verdict counts only on the head it was given on; when the head

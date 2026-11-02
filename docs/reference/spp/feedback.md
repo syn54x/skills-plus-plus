@@ -1,5 +1,3 @@
-# feedback
-
 `spp feedback check <body-file> [--title-file <file>]` is the outbound check on a skill-feedback draft that
 `/close-epic` proposes, run before anyone files it. The Routing block's `upstreamFeedback` profile sets what the
 draft may say. A blocked draft prints one `rule <rule> <name>, line <n>: <text>` line per hit on stdout. It never

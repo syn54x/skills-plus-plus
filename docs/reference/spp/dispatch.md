@@ -1,5 +1,3 @@
-# dispatch
-
 `spp dispatch <issue> --driver bg|desktop|subagent` starts one worker on a Sub-issue that nobody holds, and refuses
 one held by the `claimed` label or an assignee. It has no `--json`.
 

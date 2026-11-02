@@ -1,5 +1,3 @@
-# merge
-
 `spp merge <pr> [--json]` merges a slice pull request into its Epic's integration branch, only when its gate passed
 on the current head, its blockers' pull requests have merged, its base is the integration branch and its checks
 pass. It merges with the Routing block's merge method (squash by default) pinned to the head the gate passed, then

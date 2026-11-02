@@ -1,5 +1,3 @@
-# spp command reference
-
 ## Modules
 
 | Module | Description |

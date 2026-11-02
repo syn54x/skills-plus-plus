@@ -1,5 +1,3 @@
-# progress
-
 `spp progress <issue> [--status S] [--worker TEXT] [--branch NAME] [--pr N|URL] [--verify V] [--notes TEXT]` writes
 the Sub-issue's one `<!-- sdd-progress -->` comment, rewriting it in place, and prints its URL. A field you do not
 pass keeps its stored value. The comment's data trailer holds the fields (ADR 0007); a trailer that does not decode

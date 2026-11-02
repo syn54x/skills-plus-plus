@@ -1,5 +1,3 @@
-# hand-back
-
 `spp hand-back <issue> needs-info|ready-for-human|blocked --reason TEXT [--blocked-by <issue>]` returns a Sub-issue
 to a person or a queue in one call. It writes in this order: the progress comment (status `handed-back` with the
 route and reason), then the route label, then removes the Claim mark, so a failure part-way leaves the ticket held,

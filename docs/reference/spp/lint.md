@@ -1,5 +1,3 @@
-# lint
-
 `spp lint ticket <issue> [--json]` is the mechanical half of hardening. It checks the required sections, a fenced
 Verify block, Files owned lines starting `Create`, `Modify` or `Test`, Test scenarios shaped
 `<category>: ... → ...`, exactly one `size:` label, and no placeholder text. It prints `ok`, or one

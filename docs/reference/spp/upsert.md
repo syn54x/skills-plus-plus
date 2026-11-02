@@ -1,5 +1,3 @@
-# upsert
-
 `spp upsert <issue> <marker> <body-file>` writes a one-writer Marker comment, such as the Epic's summary or retro,
 verbatim and in place, and prints its URL. The body file's first line must be the marker; the comment gets no data
 trailer. It has no `--json`.

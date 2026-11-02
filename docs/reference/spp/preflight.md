@@ -1,5 +1,3 @@
-# preflight
-
 `spp preflight <epic> [--json]` checks the Epic's preconditions before a build, in order: `gh` 2.94 or later, the
 Epic open, at least one Sub-issue, a plan comment, and a Routing block in `CLAUDE.md` or `AGENTS.md`. It prints
 `ok: <check>` per passing check; at the first failure it prints `fail:` and `fix:` lines on stderr. With `--json`

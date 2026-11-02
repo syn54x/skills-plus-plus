@@ -1,5 +1,3 @@
-# unclaim
-
 `spp unclaim <issue>` clears the Claim mark: it removes the `claimed` label and prints nothing. A worker that stops
 without a pull request hands the ticket back with `spp hand-back` instead, which also records why.
 
