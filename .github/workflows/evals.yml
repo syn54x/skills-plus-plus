@@ -15,14 +15,16 @@ jobs:
     name: skill evals
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # Claude Code accepts either credential: an API key, or the org's Claude Code OAuth token.
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
     steps:
       - name: check the model credential
         id: credential
         run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::notice::Repository secret ANTHROPIC_API_KEY is not set; skipping the evals."
+          if [ -z "$ANTHROPIC_API_KEY$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "::notice::Neither ANTHROPIC_API_KEY nor CLAUDE_CODE_OAUTH_TOKEN is set; skipping the evals."
             echo "present=false" >> "$GITHUB_OUTPUT"
           else
             echo "present=true" >> "$GITHUB_OUTPUT"
