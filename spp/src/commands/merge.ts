@@ -92,11 +92,9 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
     return refuse(e.message);
   }
 
-  // wave pr matches a ticket in any of its forms, whichever one the wave stored.
-  const [, to, tr, tn] = ISSUE_URL.exec(ticketUrl)!;
-  const waveTicket = to === epic[1] && tr === epic[2] ? tn : `${to}/${tr}#${tn}`;
+  // wave pr matches a ticket in any of its forms, whichever one the wave stored, so the issue URL does.
   const spp = process.argv[1]; // the running bin/spp: its path from here differs between spp/src and the compiled dist/
-  const wave = spawnSync(process.execPath, [spp, "wave", parent.url, "pr", "--ticket", waveTicket, "--pr", view.url], { encoding: "utf8" });
+  const wave = spawnSync(process.execPath, [spp, "wave", parent.url, "pr", "--ticket", ticketUrl, "--pr", view.url], { encoding: "utf8" });
   const changed = interfacesChanged(view.body);
   const result: MergeResult = { merged: true, ...(changed && { interfacesChanged: changed }) };
   if (wave.status !== 0) {
