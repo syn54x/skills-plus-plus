@@ -1,0 +1,5 @@
+interface:
+  display_name: "Build"
+  short_description: "Build an Epic or a One-off into pull requests"
+policy:
+  allow_implicit_invocation: false
