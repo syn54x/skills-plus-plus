@@ -4,7 +4,7 @@ description: Review one coding session and suggest fixes to the agent's environm
 disable-model-invocation: true
 ---
 
-A look back at one session, aimed at the next one. The output is a ranked list of changes to the environment the agent works in (instructions, checks, tools, access), never a verdict on the code the session wrote. It is the learning loop for work too small for an Epic; `close-epic` is the same loop for an Epic, and both write learnings in one format.
+A look back at one session, aimed at the next one. The output is a ranked list of changes to the agent's surroundings (instructions, checks, tools, access), not a review of the code it produced. It is the learning loop for work too small for an Epic; `close-epic` is the same loop for an Epic, and both write learnings in one format.
 
 Usage: `/retro [session]`
 
