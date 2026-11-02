@@ -218,8 +218,9 @@ export const register: Register = on => {
     // shortcut: rows are keyed by issue number, so a multi-repo Epic with two equal numbers shares a key; key by URL then.
     const row = (t: BoardTicket) => {
       const chip = CHIPS[t.state as TicketState]
-      // A session's name is the worker's whole name; a subagent's description holds it as one word (t-1 is not t-12).
-      const named = (w: BoardWorker) => (w.kind === 'subagent' ? w.name.split(/\s+/).includes(t.worker!) : w.name === t.worker)
+      // The worker's name as a whole token of a session's name or a subagent's description, punctuation aside, so
+      // `t-12: implement` names t-12 and t-1 never matches t-12.
+      const named = (w: BoardWorker) => w.name.split(/[^\w-]+/).includes(t.worker!)
       const w = t.worker ? b.workers.find(named) : undefined
       const pr = t.pr
       return (

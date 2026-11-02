@@ -345,6 +345,23 @@ test('with t-1 and t-12 both live, each row acts on its own worker', async ($, o
   expect(seen.viewed).toEqual(['a1', 'a12'])
 })
 
+test('a subagent whose description carries the name beside punctuation still matches, and t-1 never takes t-12', async ($, on) => {
+  const seen = host(on, {
+    gh: { exitCode: 0, stdout: snapshot([{ n: 1, labels: ['claimed'], worker: 't-1' }, { n: 12, labels: ['claimed'], worker: 't-12' }]) },
+    agents: [
+      { id: 'a12', description: 't-12: implement' },
+      { id: 'a1', description: '(t-1) implement' },
+    ],
+  })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'worker-1' })
+  await ui.press({ key: 'worker-12' })
+  await ui.unmount()
+  expect(seen.viewed).toEqual(['a1', 'a12'])
+})
+
 test('with background sessions t-1 and t-12 both live, attach names the row worker', async ($, on) => {
   const seen = host(on, {
     gh: { exitCode: 0, stdout: snapshot([{ n: 1, labels: ['claimed'], worker: 't-1' }, { n: 12, labels: ['claimed'], worker: 't-12' }]) },
