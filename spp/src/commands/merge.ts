@@ -14,7 +14,8 @@ import { derive, gateOf } from "../derive.ts";
 import { GhError, runGh } from "../gh.ts";
 import { find, parseIssue, readTrailer } from "../markers.ts";
 import { readRouting } from "../routing.ts";
-import { CLOSING_KEYWORD, SNAPSHOT_QUERY, parseSnapshot, VERDICT_MARKER } from "../snapshot.ts";
+import { CLOSING_KEYWORD, SNAPSHOT_QUERY, parseSnapshot } from "../snapshot.ts";
+import { readVerdict, VERDICT_MARKER } from "../verdict.ts";
 import { culprits, readChecks } from "./checks.ts";
 
 /** The usage text `spp merge --help` prints. */
@@ -72,7 +73,7 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   if (ticket.state !== "gate-pass" || ticket.pr?.url !== view.url) return refuse(`gate not passed: ${ref(ticketUrl)} is ${ticket.state}`);
   // The trust boundary (ADR 0009), checked again on the comment itself: only a verdict a trusted author wrote, passing
   // on the head about to merge, lets the merge through.
-  const verdict = readTrailer((await find(parseIssue(view.url.replace("/pull/", "/issues/")), VERDICT_MARKER))?.body ?? "");
+  const verdict = readVerdict(readTrailer((await find(parseIssue(view.url.replace("/pull/", "/issues/")), VERDICT_MARKER))?.body ?? ""));
   if (gateOf({ ...ticket.pr, verdict: verdict ?? undefined }) !== "gate-pass") return refuse(`no passing verdict from a trusted author on ${ref(view.url)}`);
   for (const b of ticket.blockedBy) {
     const pr = byUrl.get(b)?.pr;

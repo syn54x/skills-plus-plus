@@ -1,20 +1,25 @@
 // The slice gate's verdict: one `<!-- spp-verdict -->` Marker comment on the pull request, rewritten in place.
-// derive reads its trailer back: both verdicts pass on the current head is gate-pass, either fail is gate-fail.
-import { writeMarker } from "./markers.ts";
-import { VERDICT_MARKER } from "./snapshot.ts";
+// This module owns the trailer's shape both ways: `renderVerdict` for its writer (`spp verdict`) and `readVerdict` for
+// every reader (the snapshot that derive gates on, `spp next`'s fix rounds, `spp merge`). Pure: no network, filesystem
+// or environment, so derive and the epic board can import it.
 
-export { VERDICT_MARKER };
+export const VERDICT_MARKER = "<!-- spp-verdict -->";
 
 export type Verdict = { ticket: string; head: string; spec: "pass" | "fail"; quality: "pass" | "fail" };
 
-function render(data: Record<string, unknown>): string {
-  const v = data as Verdict;
-  return [`**Spec:** ${v.spec}`, `**Quality:** ${v.quality}`, `**Head:** \`${v.head}\``, `**Ticket:** ${v.ticket}`].join("\n");
+const isResult = (v: unknown): v is Verdict["spec"] => v === "pass" || v === "fail";
+
+/**
+ * A verdict trailer as a Verdict, or null when `head`, `spec` or `quality` is missing or malformed, so a renamed field
+ * reads as no verdict rather than a silent pass. `ticket` is informational and reads as "" when absent.
+ */
+export function readVerdict(data: Record<string, unknown> | null | undefined): Verdict | null {
+  if (!data || typeof data.head !== "string" || !isResult(data.spec) || !isResult(data.quality)) return null;
+  return { ticket: typeof data.ticket === "string" ? data.ticket : "", head: data.head, spec: data.spec, quality: data.quality };
 }
 
-// `pr` is a pull request number in the current repo or its URL; a pull request's comments are its issue comments.
-// Returns the comment's URL.
-export function writeVerdict(pr: string, v: Verdict): Promise<string> {
-  const issue = pr.replace(/^(https:\/\/github\.com\/[^/]+\/[^/]+)\/pull\/(\d+)\/?$/, "$1/issues/$2");
-  return writeMarker(issue, VERDICT_MARKER, render, { ticket: v.ticket, head: v.head, spec: v.spec, quality: v.quality });
+// The comment's human lines; the trailer under them holds the Verdict itself.
+export function renderVerdict(data: Record<string, unknown>): string {
+  const v = data as Verdict;
+  return [`**Spec:** ${v.spec}`, `**Quality:** ${v.quality}`, `**Head:** \`${v.head}\``, `**Ticket:** ${v.ticket}`].join("\n");
 }

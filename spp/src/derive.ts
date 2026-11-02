@@ -73,10 +73,8 @@ const pickPr = (prs: Pr[]) => [...prs].sort((a, b) => PR_RANK[a.state] - PR_RANK
  */
 export function gateOf(pr: Pr): TicketState {
   const v = pr.verdict;
-  const head = text(v?.head);
-  if (!v || !head || head.length < 7 || !pr.headSha.startsWith(head)) return "pr-open";
-  if (v.spec === "fail" || v.quality === "fail") return "gate-fail";
-  return v.spec === "pass" && v.quality === "pass" ? "gate-pass" : "pr-open";
+  if (!v || v.head.length < 7 || !pr.headSha.startsWith(v.head)) return "pr-open";
+  return v.spec === "fail" || v.quality === "fail" ? "gate-fail" : "gate-pass";
 }
 
 // The states overlap (a claimed ticket keeps its mark through pr-open), so the first match wins.

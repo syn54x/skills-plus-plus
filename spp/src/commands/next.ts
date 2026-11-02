@@ -10,7 +10,8 @@ import { spawnSync } from "node:child_process";
 import { runGh } from "../gh.ts";
 import { guarded, parseIssue, readTrailer, UsageError } from "../markers.ts";
 import { type Action, liveWorker, planNext, type Session } from "../plan-next.ts";
-import { trustedMarker, VERDICT_MARKER } from "../snapshot.ts";
+import { trustedMarker } from "../snapshot.ts";
+import { readVerdict, VERDICT_MARKER } from "../verdict.ts";
 import { culprits, readChecks } from "./checks.ts";
 import { Failure, preflight } from "./preflight.ts";
 import { fetchState } from "./status.ts";
@@ -72,8 +73,8 @@ async function failedHeads(pr: string): Promise<number> {
   const comment = trustedMarker(p.comments.nodes as Comment[], VERDICT_MARKER, out.data.viewer?.login);
   const heads = new Set<string>();
   for (const body of [comment?.body ?? "", ...(comment?.userContentEdits.nodes ?? []).map((e) => e.diff ?? "")]) {
-    const v = readTrailer(body);
-    if (v && (v.spec === "fail" || v.quality === "fail") && typeof v.head === "string") heads.add(v.head.slice(0, 7));
+    const v = readVerdict(readTrailer(body));
+    if (v && (v.spec === "fail" || v.quality === "fail")) heads.add(v.head.slice(0, 7));
   }
   type Commit = { oid: string; statusCheckRollup: { state: string } | null } | null;
   const commits: Commit[] = [

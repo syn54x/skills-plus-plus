@@ -6,7 +6,8 @@ import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import type { EpicState, TicketState } from "../src/derive.ts";
 import { readTrailer } from "../src/markers.ts";
-import { type Verdict, VERDICT_MARKER, writeVerdict } from "../src/verdict.ts";
+import { writeVerdict } from "../src/commands/verdict.ts";
+import { readVerdict, type Verdict, VERDICT_MARKER } from "../src/verdict.ts";
 import { assertCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -79,5 +80,19 @@ describe("error paths", () => {
 
   test("quality fail on the current head, recorded by its short sha, is gate-fail", async () => {
     assert.equal(await stateOf(504), "gate-fail");
+  });
+});
+
+// F17 on #267: the read side of the trailer has one owner, so a renamed field reads as no verdict, never a silent pass.
+describe("readVerdict", () => {
+  test("a trailer as spp verdict writes it reads back as the same Verdict", () => {
+    assert.deepEqual(readVerdict({ ...V }), V);
+  });
+
+  test("a trailer with a misspelled or missing field reads as no verdict", () => {
+    assert.equal(readVerdict({ ticket: "205", head: V.head, spec: "pass", qualty: "pass" }), null);
+    assert.equal(readVerdict({ ticket: "205", spec: "pass", quality: "pass" }), null);
+    assert.equal(readVerdict({ ...V, spec: "passed" }), null);
+    assert.equal(readVerdict(null), null);
   });
 });

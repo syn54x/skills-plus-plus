@@ -1,5 +1,8 @@
 // The Snapshot: what one batched GraphQL query says about an Epic and its Sub-issues.
 // Pure: no network, filesystem or environment, so the epic board can import it.
+import { readVerdict, type Verdict, VERDICT_MARKER } from "./verdict.ts";
+
+export { VERDICT_MARKER };
 
 /** A pull request's state on GitHub. */
 export type PrState = "OPEN" | "MERGED" | "CLOSED";
@@ -13,14 +16,9 @@ export type Pr = {
   state: PrState;
   /** The head commit's full sha. */
   headSha: string;
-  /**
-   * The trailer of the pull request's `<!-- spp-verdict -->` comment, present only when one decodes:
-   * `{ ticket, head, spec: "pass" | "fail", quality: "pass" | "fail" }`, as `spp verdict` writes it.
-   */
-  verdict?: Record<string, unknown>;
+  /** The pull request's `<!-- spp-verdict -->` comment as `spp verdict` writes it, present only when it decodes. */
+  verdict?: Verdict;
 };
-
-export const VERDICT_MARKER = "<!-- spp-verdict -->";
 
 export type SnapshotIssue = {
   number: number;
@@ -165,7 +163,7 @@ function issue(raw: RawIssue, viewer: string | null): SnapshotIssue {
     .filter((s): s is RawPr => !!s?.headRefOid && closes(s.body ?? "", s.repository!.nameWithOwner, raw));
   const prs = new Map<string, Pr>();
   for (const p of [...raw.closedByPullRequestsReferences.nodes, ...crossRefs]) {
-    const verdict = markerData(p.comments, VERDICT_MARKER, viewer);
+    const verdict = readVerdict(markerData(p.comments, VERDICT_MARKER, viewer));
     prs.set(p.url, { number: p.number, url: p.url, state: p.state, headSha: p.headRefOid, ...(verdict && { verdict }) });
   }
   return {
