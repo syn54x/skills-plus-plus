@@ -52,32 +52,37 @@ Put all four Depth check questions to every module in scope, reading exactly wha
 
 When the harness can start a helper agent, hand it the reading. It sees nothing of this conversation, so its brief carries the scope list, `BASE` and `HEAD` for a pull request, and where to find `GLOSSARY.md`, the ADRs that apply, and codebase-design's `SKILL.md` and `DEPTH-CHECK.md`. Otherwise read the modules yourself.
 
-Each question that fires is one opportunity, carrying:
+Write up each question that fires as the Depth check's own write-up rule says, Timing included in pull request scope, and keep every `Leave it` one. In repo scope, drop the Timing and record instead the module's churn (commits in the window that touched it) and how many places call it. Then give every opportunity a Strength, judged by how sure you are that deepening pays:
 
-- **Files**: the module and its direct callers.
-- **Problem**: which question fired, in codebase-design's words.
-- **Direction**: the module now and after, a line each; a direction, never a design.
-- **Payoff**: the leverage or locality gained, and which tests shrink or go.
-- **Strength**: `Strong` (it clearly pays and the shape is plain), `Worth exploring` (it likely pays, the shape is open) or `Speculative` (it pays only if a change nobody has planned arrives).
-- **Timing**, pull request scope only: `This PR`, `Follow-up` or `Leave it`, with a line of reason. `Leave it` opportunities are listed too.
-- **ADR**: only when the opportunity contradicts one and the friction is strong enough to reopen it.
+| Strength | When |
+| --- | --- |
+| `Strong` | The callers' cost is visible today and the deeper interface is already easy to picture |
+| `Worth exploring` | The cost is real, but the better interface is not yet clear |
+| `Speculative` | It pays only if a change nobody has planned arrives |
 
-Done when every module in scope has an answer to all four questions (a no counts) and every opportunity carries its calls. Finding none is a valid result: say so and end the run.
+Done when every module in scope has an answer to all four questions (a no counts), every opportunity has its write-up and a Strength, and the modules where nothing fired are listed. Finding none is a valid result: say so and end the run.
 
 ## 4. Report
 
 Read [`FORMATS.md`](FORMATS.md) for the format of your scope, then produce it.
 
-- **Repo scope**: the visual report, written to the session's scratch directory.
-- **Pull request scope**: report cards in the conversation. When a pull request exists, ask whether to post the cards as a comment on it, and comment only when the person clearly says yes. Liking an opportunity is not that yes.
+- **Repo scope**: the HTML page, written to the session's scratch directory.
+- **Pull request scope**: the Markdown summary, in the conversation. When a pull request exists, ask whether to post the summary as a comment on it, and comment only when the person clearly says yes. Liking an opportunity is not that yes.
 
 Then ask which opportunity to explore. Hold back any interface design until the person picks; "none" ends the run.
 
 ## 5. Grill the pick
 
-Call the Skill tool twice, for "grilling" and "domain-modeling". Run the interview by `grilling` over the picked opportunity: the constraints, the callers it must serve, what the deeper module should look like, what goes behind its seam, which of today's tests still hold once callers use the new interface, and in pull request scope whether the Timing still holds. Apply `domain-modeling` throughout: a deepened module named after a concept the glossary lacks gets its entry, and a rejection whose reason a later run would need gets an ADR offer, so the same idea is not raised again.
+Call the Skill tool twice, for "grilling" and "domain-modeling". Run the interview by `grilling`, and apply `domain-modeling` to every name and decision it produces. Settle these, in this order, because each answer narrows the next:
 
-When the interface itself is the open question, run codebase-design's design it twice and put the rivals to the person.
+1. **Is it worth it now?** Weigh the churn and the callers' cost against the work. A no ends the pick here.
+2. **What is the module for?** One sentence in glossary nouns. A purpose that needs an "and" is two modules.
+3. **What does each caller need from it?** Walk the real call sites, one at a time.
+4. **What reaches outside the process?** That decides how it will be tested; codebase-design's deepening strategies give the choice.
+5. **What is the smallest interface that serves every caller?** When this is the open question, run codebase-design's design it twice and put the rivals to the person.
+6. **How do callers move over?** All at once, or one at a time behind the new interface, and which existing tests are rewritten against it or deleted.
+
+In pull request scope, end by asking whether the Timing still holds. When the person drops the opportunity for a reason that will still be true next time, that reason is a candidate ADR: the next survey will find the same module.
 
 Done when the person accepts a shape for the opportunity or rejects it.
 
@@ -90,7 +95,7 @@ Each accepted opportunity becomes one issue in the repo's issue tracker. Decide 
 | One pull request's worth | Single-issue path | Run `/triage <N>`, then `/build <N>` |
 | More than one pull request | Epic path | Run `/to-spec` in this conversation, naming #N, while the grilling is still in it |
 
-Write the body to a file in the session's scratch directory with these sections: Problem, Direction, Files, Payoff, Strength, Timing (and the pull request) in pull request scope, What the grilling settled, and Path. Show it, and file it after the person says yes:
+Write the body to a file in the session's scratch directory. It opens with the module's purpose sentence from the grilling, then holds: the interface the person accepted and the callers that move to it; the order of the move and the tests it rewrites or deletes; the evidence (the Depth check question that fired, the Strength, and the Timing and pull request link or the churn); anything the grilling ruled out of this issue; and the path. Show it, and file it after the person says yes:
 
 ```bash
 gh label create needs-triage 2>/dev/null || true
@@ -99,8 +104,6 @@ gh issue create --title "<deepening, in glossary nouns>" --body-file "<file>" --
 
 Done when every accepted opportunity has an issue URL, or the person declined to file it. Then offer the next opportunity from the report; "none" ends the run.
 
-## Guardrails
+## What the run may write
 
-- Ideas, never a verdict. No approval, no change request, no "fix before merge".
-- Read-only on code. The run writes only the report file, glossary entries and ADRs through `domain-modeling`, the issues the person approved, and a pull request comment after a yes.
-- Every comment and every issue waits for its own explicit yes.
+The report file in the scratch directory; glossary entries and ADRs through `domain-modeling`; the issues the person approved; and the one pull request comment, after its yes. Every comment and every issue waits for its own yes. Code files are only ever read.

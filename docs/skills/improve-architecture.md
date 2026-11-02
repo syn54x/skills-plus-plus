@@ -4,9 +4,9 @@
 
 | You type | It reads | You get |
 | --- | --- | --- |
-| `/improve-architecture` | The repo's hot spots: the files its recent history changed most | A visual report, one card per opportunity with before and after drawings, written to the session's scratch directory |
-| `/improve-architecture src/billing` | That area of the repo | The same visual report, for that area |
-| `/improve-architecture 412` (or `pr`, or a pull request URL) | Every module the pull request touches | Report cards in the conversation, each with a Timing and a Strength, and an offer to post them as a comment on the pull request |
+| `/improve-architecture` | The repo's hot spots: the files its recent history changed most | An HTML page in the session's scratch directory: opportunities ranked by Strength and churn, each drawn from one caller's point of view |
+| `/improve-architecture src/billing` | That area of the repo | The same page, for that area |
+| `/improve-architecture 412` (or `pr`, or a pull request URL) | Every module the pull request touches | A Markdown summary in the conversation, each opportunity with a Timing and a Strength, and an offer to put it on the pull request as a comment |
 
 It reports ideas and never gives a verdict. Nothing it says approves, blocks or holds a merge, and it changes no code. You pick the opportunity worth your time, it grills that one with you (rival interface designs included, when the shape is the open question), and each one you accept is filed as an issue, ready for the single-issue path or the Epic path.
 
@@ -47,20 +47,21 @@ Deepening a module pays off when that module next changes. Code nobody touches g
 The questions are the same; [codebase-design](codebase-design.md) holds the single copy. At a gate, a fired question becomes a finding, rated by severity, that asks for a fix. Here, the same fired question is an idea for you to explore, accept or drop, and nothing waits on your answer.
 
 **Will it comment on my pull request?**
-Only if you say yes to the one question it asks after showing the cards. Agreeing that an opportunity is good is not that yes. It files issues the same way: it shows you each issue body first and files it only when you say so.
+Only if you say yes to the one question it asks after showing the summary. Agreeing that an opportunity is good is not that yes. It files issues the same way: it shows you each issue body first and files it only when you say so.
 
 **Where does the repo report go?**
 To the session's scratch directory (the OS temp directory when there is none), never into the repo. It opens the file for you where it can, and always gives you the path.
 
 **What happens when I pick an opportunity?**
-[grilling](grilling.md) runs the interview: the callers the module must serve, what goes behind its seam, which tests survive. [domain-modeling](domain-modeling.md) runs beside it, adding a glossary entry for a new module name and offering an ADR when you turn an idea down for a reason a later run would need, so the same idea is not raised again.
+[grilling](grilling.md) runs the interview, starting with whether the change is worth making now and ending with how callers move over to the new interface. [domain-modeling](domain-modeling.md) runs beside it and records any new name or lasting decision. If you drop an idea for a reason that will still hold next time, expect an ADR offer, since the next survey would otherwise find the same module again.
 
 **What became of improve-codebase-architecture and improve-pr-architecture?**
 `improve-architecture` replaces both. The argument chooses the scope that used to be a separate command, and filing the accepted opportunities as issues is new.
 
 ## It's working if
 
-- Each opportunity names its module in your glossary's words, and its payoff in leverage or locality rather than "cleaner".
+- Each opportunity points at a real caller and says what that caller would stop having to know.
+- The repo page ends with the modules it read and found nothing in, so you can see how far it looked.
 - Nothing in your checkout changed except, at most, glossary entries and ADRs you agreed to.
 - No comment reached your pull request, and no issue was filed, without your yes.
 - Each accepted opportunity ends as an issue that names its path and what the grilling settled.
