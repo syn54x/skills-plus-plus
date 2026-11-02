@@ -35,7 +35,7 @@ const snapshot = (pr: boolean | "MERGED", assignee?: string) => ({
                 blockedBy: { nodes: [] },
                 comments: { nodes: [{ body: progress, author: { login: "maint" }, authorAssociation: "OWNER" }] },
                 closedByPullRequestsReferences: {
-                  nodes: pr ? [{ number: 40, url: "https://github.com/acme/app/pull/40", state: pr === true ? "OPEN" : pr, headRefOid: "a".repeat(40), baseRefName: "feat/epic", repository: { nameWithOwner: "acme/app" } }] : [],
+                  nodes: pr ? [{ number: 40, url: "https://github.com/acme/app/pull/40", state: pr === true ? "OPEN" : pr, headRefOid: "a".repeat(40), baseRefName: "feat/epic", repository: { nameWithOwner: "acme/app" }, author: { login: "maint" }, authorAssociation: "OWNER" }] : [],
                 },
                 timelineItems: { nodes: [] },
               },

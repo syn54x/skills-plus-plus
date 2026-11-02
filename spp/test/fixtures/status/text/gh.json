@@ -131,7 +131,11 @@
                           "repository": {
                             "nameWithOwner": "acme/api"
                           },
-                          "body": "Closes acme/api#303"
+                          "body": "Closes acme/api#303",
+                          "author": {
+                            "login": "maint"
+                          },
+                          "authorAssociation": "OWNER"
                         }
                       }
                     ]
@@ -206,6 +210,17 @@
                       {}
                     ]
                   }
+                }
+              ]
+            },
+            "comments": {
+              "nodes": [
+                {
+                  "body": "<!-- sdd-plan -->\n<!-- sdd-data: eyJicmFuY2giOiJmZWF0L2VwaWMifQ== -->",
+                  "author": {
+                    "login": "maint"
+                  },
+                  "authorAssociation": "OWNER"
                 }
               ]
             }

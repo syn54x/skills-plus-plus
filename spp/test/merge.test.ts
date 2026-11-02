@@ -34,6 +34,7 @@ type Opts = {
   recheck?: "forged"; // the verdict comment spp merge re-reads is from an outside author
   epicMissing?: boolean; // the snapshot query finds no Epic issue: gh exits 1 and prints issue null
   waveFails?: boolean; // reading the wave comment fails, so recording the merge on it fails
+  foreign?: boolean; // #30 also has an open pull request in mallory/fork that says it closes it
 };
 
 // gh's answer to a query for an issue that does not exist: exit 1, the response still printed.
@@ -42,7 +43,22 @@ const MISSING = { stdout: { data: { repository: { issue: null } }, errors: [{ me
 // A comment by the repository owner, or by an outside author when `outsider`.
 const by = (body: string, outsider = false) => ({ body, author: { login: outsider ? "mallory" : "maint" }, authorAssociation: outsider ? "NONE" : "OWNER" });
 
-function sub(n: number, pr: number, prState: string, blockedBy: number[], spec = "pass", forged = false) {
+// A pull request as the snapshot query returns it, opened by the repository owner.
+const prNode = (pr: number, state: string, repo: string, body: string, comments: unknown[]) => ({
+  number: pr,
+  url: `https://github.com/${repo}/pull/${pr}`,
+  state,
+  headRefOid: HEAD[pr] ?? "9".repeat(40),
+  baseRefName: "feat/x",
+  repository: { nameWithOwner: repo },
+  author: { login: "maint" },
+  authorAssociation: "OWNER",
+  body,
+  comments: { nodes: comments },
+});
+
+// foreign: an open pull request numbered 999 in mallory/fork that also says it closes the ticket.
+function sub(n: number, pr: number, prState: string, blockedBy: number[], spec = "pass", forged = false, foreign = false) {
   return {
     number: n,
     url: `${REPO}/issues/${n}`,
@@ -54,7 +70,10 @@ function sub(n: number, pr: number, prState: string, blockedBy: number[], spec =
     blockedBy: { nodes: blockedBy.map((b) => ({ url: `${REPO}/issues/${b}`, state: "OPEN" })) },
     closedByPullRequestsReferences: { nodes: [] },
     timelineItems: {
-      nodes: [{ source: { number: pr, url: `${REPO}/pull/${pr}`, state: prState, headRefOid: HEAD[pr], baseRefName: "feat/x", repository: { nameWithOwner: "acme/app" }, body: `Closes #${n}`, comments: { nodes: [by(verdict(pr, spec), forged)] } } }],
+      nodes: [
+        { source: prNode(pr, prState, "acme/app", `Closes #${n}`, [by(verdict(pr, spec), forged)]) },
+        ...(foreign ? [{ source: prNode(999, "OPEN", "mallory/fork", `Closes acme/app#${n}`, []) }] : []),
+      ],
     },
   };
 }
@@ -75,7 +94,7 @@ function mergeCase(o: Opts = {}): string {
           title: "Epic",
           repository: { nameWithOwner: "acme/app" },
           comments: { nodes: [by(`<!-- sdd-plan -->\n${trailer({ branch: "feat/x" })}\n`)] },
-          subIssues: { nodes: [sub(30, 40, o.blockerPr ?? "OPEN", [], pr === 40 ? o.spec : "pass", pr === 40 && o.forged), sub(31, 41, "OPEN", [30], pr === 41 ? o.spec : "pass")] },
+          subIssues: { nodes: [sub(30, 40, o.blockerPr ?? "OPEN", [], pr === 40 ? o.spec : "pass", pr === 40 && o.forged, o.foreign), sub(31, 41, "OPEN", [30], pr === 41 ? o.spec : "pass")] },
         },
       },
     },
@@ -140,6 +159,13 @@ describe("happy path", () => {
 });
 
 describe("edge cases", () => {
+  // F39 (Round 3) on #267.
+  test("a stranger's open pull request in another repository that says it closes #30 does not stop #30's own from merging", async () => {
+    const r = await merge({ foreign: true });
+    assert.deepEqual(r.out, { merged: true });
+    assert.deepEqual(r.writes[0].argv, ["pr", "merge", `${REPO}/pull/40`, "--squash", "--match-head-commit", HEAD[40]]);
+  });
+
   test("a body with Interfaces changed: createInvoice(input) prints it in interfacesChanged", async () => {
     const r = await merge({ body: "Closes #30\n\nInterfaces changed: createInvoice(input)\n" });
     assert.deepEqual(r.out, { merged: true, interfacesChanged: "createInvoice(input)" });
@@ -248,7 +274,7 @@ describe("integration", () => {
     // 3. spp merge merges its pull request and records it on that wave.
     const dir = mkdtempSync(join(tmpdir(), "spp-merge-xrepo-"));
     writeFileSync(join(dir, "args"), `${PR_URL}\n--json\n`);
-    const pr = { number: 50, url: PR_URL, state: "OPEN", headRefOid: SHA, repository: { nameWithOwner: "acme/api" }, comments: { nodes: [by(VERDICT)] } };
+    const pr = { number: 50, url: PR_URL, state: "OPEN", headRefOid: SHA, baseRefName: "feat/x", repository: { nameWithOwner: "acme/api" }, author: { login: "maint" }, authorAssociation: "OWNER", comments: { nodes: [by(VERDICT)] } };
     const issue = {
       ...{ number: 7, url: TICKET_URL, title: "Api ticket", state: "OPEN", repository: { nameWithOwner: "acme/api" } },
       ...{ labels: { nodes: [{ name: "ready-for-agent" }, { name: "claimed" }] }, assignees: { nodes: [] }, blockedBy: { nodes: [] } },
