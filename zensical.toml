@@ -1,6 +1,7 @@
 # Site config for docs/ (Zensical). Skill pages live at docs/skills/<name>.md and
 # need a nav entry here, labelled with the skill name, because the pages carry no
-# H1 and the site takes their title from the label (see .agents/writing-docs.md).
+# H1 and the site takes their title from the label (see .agents/writing-docs.md). The pages under docs/reference/spp/
+# are generated from the commands' TSDoc by `npm run docs:reference`; each one needs a nav entry here too.
 # Build: uv run --frozen zensical build --clean --strict   Preview: uv run zensical serve
 
 [project]
@@ -59,7 +60,35 @@ nav = [
     ] },
   ] },
   { "Epic board" = "epic-board.md" },
-  { "spp command" = "spp.md" },
+  { "spp command" = [
+    { "Overview" = "spp.md" },
+    { "Reference" = "reference/spp/index.md" },
+    { "spp branch" = "reference/spp/branch.md" },
+    { "spp brief" = "reference/spp/brief.md" },
+    { "spp checks" = "reference/spp/checks.md" },
+    { "spp claim" = "reference/spp/claim.md" },
+    { "spp dispatch" = "reference/spp/dispatch.md" },
+    { "spp feedback" = "reference/spp/feedback.md" },
+    { "spp findings" = "reference/spp/findings.md" },
+    { "spp guard" = "reference/spp/guard.md" },
+    { "spp hand-back" = "reference/spp/hand-back.md" },
+    { "spp kind" = "reference/spp/kind.md" },
+    { "spp lint" = "reference/spp/lint.md" },
+    { "spp merge" = "reference/spp/merge.md" },
+    { "spp next" = "reference/spp/next.md" },
+    { "spp note" = "reference/spp/note.md" },
+    { "spp plan" = "reference/spp/plan.md" },
+    { "spp preflight" = "reference/spp/preflight.md" },
+    { "spp progress" = "reference/spp/progress.md" },
+    { "spp retro" = "reference/spp/retro.md" },
+    { "spp status" = "reference/spp/status.md" },
+    { "spp unclaim" = "reference/spp/unclaim.md" },
+    { "spp upsert" = "reference/spp/upsert.md" },
+    { "spp verdict" = "reference/spp/verdict.md" },
+    { "spp verify" = "reference/spp/verify.md" },
+    { "spp wait" = "reference/spp/wait.md" },
+    { "spp wave" = "reference/spp/wave.md" },
+  ] },
 ]
 
 [project.theme]

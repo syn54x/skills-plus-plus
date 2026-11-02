@@ -20,6 +20,11 @@ jobs:
         run: npm run typecheck
       - name: tests
         run: npm test
+      - name: the spp command reference matches the commands' TSDoc
+        run: |
+          npm run docs:reference
+          git add --intent-to-add docs/reference
+          git diff --exit-code docs/reference
       - name: skills stay inside the size budget
         run: node scripts/check-size.ts
       - name: invocation flags agree and no skill calls a user-invoked skill

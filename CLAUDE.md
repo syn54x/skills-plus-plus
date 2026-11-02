@@ -7,7 +7,7 @@ This repository is spp 2.0: a Claude Code plugin named `spp` and a TypeScript co
 - `scripts/` holds the repo checks, with tests in `scripts/test/`.
 - `.agents/` holds the laws below and the ADRs under `.agents/adr/`.
 
-Node 22.18 or later runs the `.ts` files directly, so there is no build step. The package has no runtime dependencies; `typescript`, `@types/node` and `@changesets/cli` are its only dev dependencies. Imports use explicit `.ts` extensions. Tests use `node:test` and `node:assert`.
+Node 22.18 or later runs the `.ts` files directly, so there is no build step. The package has no runtime dependencies. Its dev dependencies are `typescript`, `@types/node` and `@changesets/cli`, plus `typedoc` and `typedoc-plugin-markdown`, which generate the command reference under `docs/reference/spp/` from the commands' TSDoc (`npm run docs:reference`). TypeScript stays on 6.0, the last release whose compiler API TypeDoc can load. Imports use explicit `.ts` extensions. Tests use `node:test` and `node:assert`.
 
 ## Checks
 
@@ -17,6 +17,7 @@ Run these before opening a pull request. CI runs the same list on every pull req
 npm ci
 npm run typecheck
 npm test
+npm run docs:reference && git diff --exit-code docs/reference
 node scripts/check-size.ts
 node scripts/check-invocation.ts
 node scripts/check-registry.ts
