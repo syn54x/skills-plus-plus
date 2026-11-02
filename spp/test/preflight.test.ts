@@ -85,6 +85,12 @@ describe("edge cases", () => {
     assert.throws(() => parseRouting(block("- Mode: org", "- Panel: tickes>=6")), /tickes>=6/);
   });
 
+  test("a Merge line sets the merge method, absent leaves it unset, and an unknown one is an error", () => {
+    assert.equal(parseRouting(block("- Mode: org", "- Merge: rebase")).merge, "rebase");
+    assert.equal("merge" in parseRouting(block("- Mode: org")), false);
+    assert.throws(() => parseRouting(block("- Mode: org", "- Merge: octopus")), /Merge.*octopus/);
+  });
+
   test("text without the block is an error", () => {
     assert.throws(() => parseRouting("# nothing"), /Routing block/);
   });

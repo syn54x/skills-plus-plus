@@ -8,7 +8,10 @@ export type Routing = {
   sizes: string;
   laws: string[];
   panel: { tickets: number; sizeL: boolean; lines: number };
+  merge?: "squash" | "merge" | "rebase"; // how spp merge merges a slice; absent means squash
 };
+
+const MERGE_METHODS = ["squash", "merge", "rebase"];
 
 const ROUTING_FILES = ["CLAUDE.md", "AGENTS.md"];
 const PANEL_DEFAULT = { tickets: 4, sizeL: true, lines: 1000 };
@@ -31,11 +34,14 @@ export function parseRouting(text: string): Routing {
   const field = (name: string) => new RegExp(`^[-*]\\s*${name}\\s*:\\s*(.*?)\\s*$`, "im").exec(block[1])?.[1];
   const mode = field("Mode");
   if (mode !== "org" && mode !== "labels-only") throw new Error(`Routing block: Mode must be org or labels-only, got ${mode === undefined ? "nothing" : `"${mode}"`}`);
+  const merge = field("Merge");
+  if (merge !== undefined && !MERGE_METHODS.includes(merge)) throw new Error(`Routing block: Merge must be squash, merge or rebase, got "${merge}"`);
   return {
     mode,
     sizes: field("Sizes") ?? "",
     laws: (field("Laws") ?? "").split(",").map((l) => l.trim()).filter(Boolean),
     panel: parsePanel(field("Panel") ?? ""),
+    ...(merge && { merge: merge as Routing["merge"] }),
   };
 }
 
