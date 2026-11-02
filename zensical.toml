@@ -15,6 +15,51 @@ site_dir = "site"
 
 nav = [
   { "Home" = "index.md" },
+  { "The five paths" = "paths.md" },
+  { "Skills" = [
+    { "Plan" = [
+      { "grill" = "skills/grill.md" },
+      { "auto-grill" = "skills/auto-grill.md" },
+      { "grilling" = "skills/grilling.md" },
+      { "domain-modeling" = "skills/domain-modeling.md" },
+      { "codebase-design" = "skills/codebase-design.md" },
+      { "research" = "skills/research.md" },
+      { "prototype" = "skills/prototype.md" },
+      { "wayfinder" = "skills/wayfinder.md" },
+      { "to-spec" = "skills/to-spec.md" },
+      { "to-tickets" = "skills/to-tickets.md" },
+      { "triage" = "skills/triage.md" },
+      { "harden" = "skills/harden.md" },
+    ] },
+    { "Build" = [
+      { "build" = "skills/build.md" },
+      { "implement-issue" = "skills/implement-issue.md" },
+      { "tdd" = "skills/tdd.md" },
+      { "diagnosing-bugs" = "skills/diagnosing-bugs.md" },
+    ] },
+    { "Review" = [
+      { "review" = "skills/review.md" },
+      { "review-panel" = "skills/review-panel.md" },
+      { "improve-architecture" = "skills/improve-architecture.md" },
+    ] },
+    { "Ship" = [
+      { "pr" = "skills/pr.md" },
+      { "prepare-release-notes" = "skills/prepare-release-notes.md" },
+      { "close-epic" = "skills/close-epic.md" },
+      { "retro" = "skills/retro.md" },
+    ] },
+    { "Write and talk" = [
+      { "writing-for-humans" = "skills/writing-for-humans.md" },
+      { "writing-for-agents" = "skills/writing-for-agents.md" },
+      { "eli5" = "skills/eli5.md" },
+    ] },
+    { "Meta" = [
+      { "setup-spp" = "skills/setup-spp.md" },
+      { "ask-spp" = "skills/ask-spp.md" },
+    ] },
+  ] },
+  { "Epic board" = "epic-board.md" },
+  { "spp command" = "spp.md" },
 ]
 
 [project.theme]
