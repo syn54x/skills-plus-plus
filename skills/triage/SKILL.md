@@ -28,7 +28,12 @@ An issue leaves with one of these and never two. If it arrives holding two, ask 
 
 ## 1. Pick and read
 
-With no issue named, find what is waiting on you. An open issue waits when it holds no role or `needs-triage`, or when it holds `needs-info` and its newest comment is not a triage note (a comment that opens with the disclaimer), which means the reporter has answered. Leave out any issue whose body carries the **Ticket contract** (a `## Verify` heading) or that has a **Marker comment** (a first line starting `<!-- sdd-`): it is already past triage, whatever its labels say. Fetch the candidates, then show the person a table of number, title, days waiting and the reason it is there, longest wait first, and let them pick:
+With no issue named, find what is waiting on you. An open issue waits in two cases, and no other role is listed:
+
+- It holds no role or `needs-triage`, its body has no `## Verify` heading, and it has no **Marker comment** (a comment whose first line starts `<!-- sdd-`). Either of those means it is already past triage.
+- It holds `needs-info`, and once Marker comments are set aside, its newest comment is not a triage note (a comment that opens with the disclaimer). That comment is the reporter's reply, whatever the body holds.
+
+Fetch the candidates, then show the person a table of number, title, days waiting and the reason it is there, longest wait first, and let them pick:
 
 ```bash
 gh issue list --state open --limit 200 --json number,title,body,labels,createdAt,comments
