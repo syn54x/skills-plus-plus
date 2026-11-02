@@ -2,7 +2,6 @@
 // blockers' pull requests are merged and its checks pass, then records it on the wave comment. A conflict is never
 // resolved here: it exits 3 with "rebase needed" and the worker rebases.
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { derive } from "../derive.ts";
 import { GhError, runGh } from "../gh.ts";
 import { readRouting } from "../routing.ts";
@@ -78,7 +77,7 @@ async function decide(pr: string): Promise<{ result: Result; code: number; base?
   // The wave comment stores a ticket in the Epic's repo as its number and any other as owner/repo#N.
   const [, to, tr, tn] = ISSUE_URL.exec(ticketUrl)!;
   const waveTicket = to === epic[1] && tr === epic[2] ? tn : `${to}/${tr}#${tn}`;
-  const spp = fileURLToPath(new URL("../../../bin/spp", import.meta.url));
+  const spp = process.argv[1]; // the running bin/spp: its path from here differs between spp/src and the compiled dist/
   const wave = spawnSync(process.execPath, [spp, "wave", parent.url, "pr", "--ticket", waveTicket, "--pr", view.url], { encoding: "utf8" });
   const changed = interfacesChanged(view.body);
   const result: Result = { merged: true, ...(changed && { interfacesChanged: changed }) };
