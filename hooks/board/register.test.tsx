@@ -76,15 +76,15 @@ function issue(s: Spec) {
 }
 
 // The Epic's snapshot. `waves` is the wave comment by the owner; `forged` is one by an outside author posted before it.
-function snapshot(specs: Spec[], waves: { n: number; tickets: string[] }[] = [], forged?: { n: number; tickets: string[] }[]) {
+function snapshot(specs: Spec[], waves: { n: number; tickets: string[] }[] = [], forged?: { n: number; tickets: string[] }[], epic = 197) {
   const outsider = (body: string) => ({ body, author: { login: 'mallory' }, authorAssociation: 'NONE' })
   return JSON.stringify({
     data: {
       viewer: { login: 'maint' },
       repository: {
         issue: {
-          number: 197,
-          url: `${URL}/issues/197`,
+          number: epic,
+          url: `${URL}/issues/${epic}`,
           title: 'Rebuild spp',
           repository: { nameWithOwner: REPO },
           comments: {
@@ -102,6 +102,7 @@ function snapshot(specs: Spec[], waves: { n: number; tickets: string[] }[] = [],
 
 type Host = {
   gh?: { exitCode: number; stdout: string; stderr?: string }
+  ghByEpic?: Record<number, string> // the snapshot gh answers for each Epic number, in place of `gh`
   ghDelayMs?: number // gh answers this long after it is asked, on the mocked clock
   notes?: { ticket: number; text: string; at: string }[] // the local notes log of the Epic's repo
   sessions?: { name: string; kind: string }[]
@@ -129,7 +130,8 @@ function host(on: On, h: Host) {
     const ok = (stdout: string) => ({ value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
     if (cmd === 'gh') {
       if (h.ghDelayMs) await clock.sleep(h.ghDelayMs)
-      const gh = h.gh ?? { exitCode: 0, stdout: snapshot([]) }
+      const epic = Number(args.map(a => /^number=(\d+)$/.exec(a)?.[1]).find(Boolean))
+      const gh = h.ghByEpic?.[epic] !== undefined ? { exitCode: 0, stdout: h.ghByEpic[epic] } : h.gh ?? { exitCode: 0, stdout: snapshot([]) }
       return { value: { stderr: '', isStdoutTruncated: false, isStderrTruncated: false, ...gh } }
     }
     if (cmd === 'claude' && args[0] === 'agents' && h.agentsError) {
@@ -325,6 +327,29 @@ test('a second refresh while one is in flight makes no second gh call', async ($
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect((await texts(ui)).filter(t => /^#201 /.test(t))).toHaveLength(1)
   await ui.unmount()
+})
+
+// F34 (Round 2) on #267: an Epic opened while the old one's refresh is in flight is loaded once that refresh settles.
+test('opening Epic B while Epic A is still loading draws B\'s rows and status line', async ($, on) => {
+  const seen = host(on, {
+    ghByEpic: { 197: snapshot([{ n: 201 }]), 198: snapshot([{ n: 301 }, { n: 302 }], [], undefined, 198) },
+    ghDelayMs: 1000,
+  })
+  const first = $.command.run(OPEN)
+  await seen.clock.settle()
+  const second = $.command.run({ ...OPEN, args: '198' })
+  await seen.clock.settle()
+  await seen.clock.advance(1000)
+  await seen.clock.settle()
+  await seen.clock.advance(1000)
+  await Promise.all([first, second])
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  const all = await texts(ui)
+  expect(all.filter(t => /^#\d+ Ticket/.test(t))).toEqual(['#301 Ticket 301', '#302 Ticket 302'])
+  expect(all.some(t => t.startsWith('#198 '))).toBe(true)
+  await ui.unmount()
+  expect(seen.status.at(-1)).toBe('#198 0/2 merged')
 })
 
 // A worker is matched by its whole name, so t-1 never takes t-12's row action.
