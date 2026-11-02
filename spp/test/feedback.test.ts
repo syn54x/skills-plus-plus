@@ -165,8 +165,43 @@ describe("rule 3: paths", () => {
   });
 
   test("a different path that merely shares a tail with a tracked one passes", () => {
-    const tracked = ["lib/core.py"];
-    assert.deepEqual(hit("xlib/core.py\nmy-lib/core.py", { paths: tracked }), []);
+    const tracked = ["bin/spp"];
+    assert.deepEqual(hit("xbin/spp\nmy-bin/spp", { paths: tracked }), []);
+  });
+
+  test("the basename of a tracked file with an extension is a hit as a whole word, wherever it sits", () => {
+    const tracked = ["src/billing/invoice.ts", "lib/core.py", "spp/src/routing.ts"];
+    const leaks = ["edited routing.ts by hand", "invoice.ts failed", "core.py", "xlib/core.py", "(see invoice.ts)."];
+    assert.deepEqual(hit(leaks.join("\n"), { paths: tracked }).filter((h) => h.startsWith("3@")), leaks.map((_, i) => `3@${i + 1}`));
+  });
+
+  test("a basename matches case-sensitively and whole, and an extensionless basename is an ordinary word", () => {
+    const tracked = ["lib/core.py", "bin/spp"];
+    assert.deepEqual(hit("Core.py\nscore.py\ncore.pyc\nrun spp today", { paths: tracked }), []);
+  });
+
+  test("the last segment of a nested tracked directory is a hit with a trailing or leading slash, not as a plain word", () => {
+    const tracked = ["src/billing/invoice.ts"];
+    assert.deepEqual(hit("the billing/ module\nthe /billing route\nthe billing module\nbilling-v2/", { paths: tracked }), ["3@1", "3@2"]);
+  });
+
+  test("under attributed, own issue and pull request URLs pass rule 3 when tracked directories share their segments", () => {
+    const paths = ["app/main.py", "acme/x.py", "issues/a.md", "src/app/__init__.py", "docs/issues/b.md", "pkg/acme/c.py"];
+    const body = [
+      ...TEMPLATE.split("\n").slice(0, 4),
+      "**Repo:** acme/app",
+      "**Links:** https://github.com/acme/app/issues/3, https://github.com/acme/app/pull/12",
+      "[epic](https://github.com/acme/app/issues/1) <https://github.com/acme/app/pull/4> github.com/acme/app/pull/5 www.github.com/acme/app/issues/6#issuecomment-7",
+      ...TEMPLATE.split("\n").slice(4),
+    ].join("\n");
+    assert.deepEqual(hit(body, { profile: "attributed", paths }), []);
+  });
+
+  test("under attributed, a tracked path still blocks next to the own repo name, and an own URL still blocks under counts", () => {
+    const paths = ["app/models.py"];
+    const body = "app/models.py\nacme/app/models.py\nthe app/ folder\nmodels.py";
+    assert.deepEqual(hit(body, { profile: "attributed", paths }).filter((h) => h.startsWith("3@")), ["3@1", "3@2", "3@3", "3@4"]);
+    assert.ok(hit("https://github.com/acme/app/pull/12", { paths }).includes("1@1"));
   });
 
   test("any home path is a hit even when nothing under it is tracked", () => {

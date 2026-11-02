@@ -83,7 +83,7 @@ One hit stops that issue. Fix the body by rebuilding it from the template, never
 
 1. **URLs.** None, except under `attributed`, where an issue or pull request URL inside the person's own repo passes. A URL counts with or without its scheme: `www.` hosts and `domain.tld/path` are URLs too.
 2. **Names.** No owner, org or repo name, and no `owner/repo` string, from this Epic or its Sub-issues. Under `attributed`, the person's own `owner/repo` and the bare repo name pass; the bare owner name still does not. Short names count, matched as whole words in any case.
-3. **Paths.** No token naming a file or directory that `git ls-files` lists, wherever it sits in the token (`path#L10`, `path@main`, `file=path`, `a/path`, an absolute path ending in it). Any home path (`/home/<user>/`, `/Users/<user>/`, `~/`) is out as well.
+3. **Paths.** No token naming a file or directory that `git ls-files` lists, wherever it sits in the token (`path#L10`, `path@main`, `file=path`, `a/path`, an absolute path ending in it), nor a tracked file's basename that has an extension (`invoice.ts`), nor a nested directory's last segment written with a slash (`billing/`, `/billing`). Any home path (`/home/<user>/`, `/Users/<user>/`, `~/`) is out as well.
 4. **Code.** No fenced block and no line that reads as code (`;`, `{`, `=>`, `import `, `def `, `func `).
 5. **Titles.** No run of four or more words copied from a Sub-issue or pull request title.
 6. **Error text.** No commit message (a conventional-commit subject line), stack trace (JavaScript, Java, Python, Go, Rust, or any `file:line` frame), or line containing `error`, `fatal:`, `exception`, `traceback`, `panic` or `exit code`, in any case.

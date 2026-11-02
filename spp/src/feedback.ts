@@ -68,6 +68,10 @@ export function checkFeedback(body: string, ctx: FeedbackContext): Hit[] {
   const ownString = new RegExp(`(?<![\\w-])${escape(own)}(?![\\w-])`, "gi");
   const ownBare = new RegExp(`(?<![\\w./-])${escape(ownName)}(?![\\w-])`, "gi");
   const scan = (line: string) => (attributed && own ? line.replace(ownUrl, "").replace(ownString, "").replace(ownBare, "") : line);
+  // Rule 3 drops only the own issue and PR URLs and a standalone own owner/repo (nothing path-like after it), so a tracked
+  // `app/` or `issues/` cannot block them while `app/models.py` and `acme/app/models.py` still hit.
+  const ownToken = new RegExp(`(?<![\\w./-])${escape(own)}(?![\\w/-]|\\.\\w)`, "gi");
+  const scanPaths = (line: string) => (attributed && own ? line.replace(ownUrl, "").replace(ownToken, "") : line);
 
   // Every name, however short, as a whole word in any case: `hp` blocks "the hp team" and "hp-team", not "http".
   const nameTokens = [...new Set([...ctx.names, own].filter(Boolean).flatMap((r) => [r, ...r.split("/")]))].map(
@@ -75,10 +79,22 @@ export function checkFeedback(body: string, ctx: FeedbackContext): Hit[] {
   );
 
   const dirs = [...new Set(ctx.paths.flatMap((p) => p.split("/").slice(0, -1).map((_, i, a) => a.slice(0, i + 1).join("/"))))];
+  // A file's basename counts when it has an extension (`invoice.ts`, not `spp`), and a nested directory's last segment when
+  // written with a slash before or after it (`billing/`, `/billing`); bare words like `spp` or `billing` stay prose.
+  const baseNames = [...new Set(ctx.paths.map((p) => p.slice(p.lastIndexOf("/") + 1)).filter((b) => /\.[^.]+$/.test(b)))];
+  const segments = [...new Set(dirs.filter((d) => d.includes("/")).map((d) => d.slice(d.lastIndexOf("/") + 1)))].map(
+    (s) => new RegExp(`/${escape(s)}(?![\\w-])|(?<![\\w.-])${escape(s)}/`),
+  );
   // A one-segment directory counts only when written with its slash, so the word `skills` is not a path.
   const namesPath = (raw: string) => {
     const line = raw.replace(/\\/g, "/");
-    return HOME_PATH.test(line) || ctx.paths.some((p) => containsPath(line, p, false)) || dirs.some((d) => containsPath(line, d, !d.includes("/")));
+    return (
+      HOME_PATH.test(line) ||
+      ctx.paths.some((p) => containsPath(line, p, false)) ||
+      dirs.some((d) => containsPath(line, d, !d.includes("/"))) ||
+      baseNames.some((b) => containsPath(line, b, false)) ||
+      segments.some((re) => re.test(line))
+    );
   };
 
   const windows = new Set(
@@ -95,7 +111,7 @@ export function checkFeedback(body: string, ctx: FeedbackContext): Hit[] {
     const seen = scan(raw);
     if (URL_LIKE.test(seen) || BARE_HOST.test(seen)) add(1);
     if (nameTokens.some((re) => re.test(seen))) add(2);
-    if (namesPath(raw)) add(3);
+    if (namesPath(scanPaths(raw))) add(3);
     if (FENCE.test(raw) || CODE.test(raw)) add(4);
     const lineWords = ` ${words(raw).join(" ")} `;
     if ([...windows].some((w) => lineWords.includes(` ${w} `))) add(5);
