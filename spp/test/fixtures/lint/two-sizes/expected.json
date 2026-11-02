@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "failures": [
+    {
+      "rule": "one-size",
+      "detail": "found size:S, size:M"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "failures": [
+    {
+      "rule": "files-owned-shape",
+      "detail": "line must start with Create, Modify or Test: Edit: `bin/spp`"
+    }
+  ]
+}
