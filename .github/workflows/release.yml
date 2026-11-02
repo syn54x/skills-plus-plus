@@ -28,7 +28,7 @@ jobs:
       - uses: changesets/action@v1
         with:
           version: npm run version
-          publish: sh -c 'if [ -n "$NODE_AUTH_TOKEN" ]; then npx changeset publish; else echo "NPM_TOKEN is not set: skipping npm publish, tagging only"; npx changeset tag; fi'
+          publish: sh -c 'if [ -n "$NODE_AUTH_TOKEN" ]; then npx changeset publish; else echo "NPM_TOKEN is not set, skipping npm publish and tagging only"; npx changeset tag; fi'
           commit: "chore: version spp"
           title: "chore: version spp"
         env:
