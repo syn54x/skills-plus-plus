@@ -75,7 +75,9 @@ function issue(s: Spec) {
   }
 }
 
-function snapshot(specs: Spec[], waves: { n: number; tickets: string[] }[] = []) {
+// The Epic's snapshot. `waves` is the wave comment by the owner; `forged` is one by an outside author posted before it.
+function snapshot(specs: Spec[], waves: { n: number; tickets: string[] }[] = [], forged?: { n: number; tickets: string[] }[]) {
+  const outsider = (body: string) => ({ body, author: { login: 'mallory' }, authorAssociation: 'NONE' })
   return JSON.stringify({
     data: {
       viewer: { login: 'maint' },
@@ -85,7 +87,12 @@ function snapshot(specs: Spec[], waves: { n: number; tickets: string[] }[] = [])
           url: `${URL}/issues/197`,
           title: 'Rebuild spp',
           repository: { nameWithOwner: REPO },
-          comments: { nodes: waves.length ? [owned(trailer('<!-- sdd-wave -->', { waves, panel: [] }))] : [] },
+          comments: {
+            nodes: [
+              ...(forged ? [outsider(trailer('<!-- sdd-wave -->', { waves: forged, panel: [] }))] : []),
+              ...(waves.length ? [owned(trailer('<!-- sdd-wave -->', { waves, panel: [] }))] : []),
+            ],
+          },
           subIssues: { nodes: specs.map(issue) },
         },
       },
@@ -95,27 +102,35 @@ function snapshot(specs: Spec[], waves: { n: number; tickets: string[] }[] = [])
 
 type Host = {
   gh?: { exitCode: number; stdout: string; stderr?: string }
-  notes?: { ticket: number; text: string; at: string }[]
+  ghDelayMs?: number // gh answers this long after it is asked, on the mocked clock
+  notes?: { ticket: number; text: string; at: string }[] // the local notes log of the Epic's repo
   sessions?: { name: string; kind: string }[]
   agentsError?: string // claude agents exits 1 with this on stderr
   agents?: { id: string; description: string }[]
 }
 
-// Stands for the engine beneath the plugin: the host commands, the agent list and the display calls it records.
+// Where spp note keeps the repo's log, under the HOME the mocked env gives.
+const LOG = `/home/t/.local/state/spp/${REPO.replace('/', '__')}.jsonl`
+
+// Stands for the engine beneath the plugin: the host commands, the notes log, the agent list and the display calls it
+// records.
 function host(on: On, h: Host) {
-  const seen = { status: [] as (string | undefined)[], copied: [] as string[], filled: [] as string[], viewed: [] as string[] }
-  mock.clock(on, { now: NOW })
+  const seen = { status: [] as (string | undefined)[], copied: [] as string[], filled: [] as string[], viewed: [] as string[], argv: [] as string[][] }
+  const clock = mock.clock(on, { now: NOW })
+  mock.env(on, { HOME: '/home/t' })
+  const log = (h.notes ?? []).map(n => JSON.stringify({ repo: REPO, ticket: n.ticket, text: n.text, at: n.at, milestone: false })).join('\n')
+  on('fs.exists', (_, e) => ({ value: e.path === LOG && !!h.notes }))
+  on('fs.read', (_, e) => (e.path === LOG && h.notes ? { value: log + '\n' } : { deny: `ENOENT: ${e.path}` }))
   on('command.register', () => ({ value: { command: 'epic-board' } }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
-  on('process.run', (_, e) => {
+  on('process.run', async (_, e) => {
+    seen.argv.push(e.argv)
     const [cmd, ...args] = e.argv
     const ok = (stdout: string) => ({ value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
     if (cmd === 'gh') {
+      if (h.ghDelayMs) await clock.sleep(h.ghDelayMs)
       const gh = h.gh ?? { exitCode: 0, stdout: snapshot([]) }
       return { value: { stderr: '', isStdoutTruncated: false, isStderrTruncated: false, ...gh } }
-    }
-    if (cmd?.endsWith('/bin/spp') && args[0] === 'note') {
-      return ok(JSON.stringify((h.notes ?? []).map(n => ({ ticket: `${URL}/issues/${n.ticket}`, text: n.text, at: n.at }))))
     }
     if (cmd === 'claude' && args[0] === 'agents' && h.agentsError) {
       return { value: { exitCode: 1, stdout: '', stderr: h.agentsError, isStdoutTruncated: false, isStderrTruncated: false } }
@@ -140,7 +155,7 @@ function host(on: On, h: Host) {
     seen.viewed.push(e.agentId ?? '')
     return { value: {} }
   })
-  return seen
+  return { ...seen, clock }
 }
 
 const texts = async (ui: { findAll: (q: { type: string }) => Promise<{ text: string }[]> }) =>
@@ -256,8 +271,8 @@ test('attach on a background worker row puts claude attach in the prompt', async
 
 test('a subagent worker row shows its transcript', async ($, on) => {
   const seen = host(on, {
-    gh: { exitCode: 0, stdout: snapshot([{ n: 213, labels: ['claimed'], worker: 'worker-213' }]) },
-    agents: [{ id: 'a9', description: 'worker-213 board' }],
+    gh: { exitCode: 0, stdout: snapshot([{ n: 213, labels: ['claimed'], worker: 't-213' }]) },
+    agents: [{ id: 'a9', description: 't-213 board' }],
   })
   await $.command.run(OPEN)
 
@@ -279,4 +294,82 @@ test('the status line after a refresh shows merged of total and the newest note'
   await $.command.run(OPEN)
 
   expect(seen.status.at(-1)).toBe('#197 3/7 merged | #5 Verify passed abc1234')
+})
+
+// F8 on #267: notes come from the local log, so a refresh makes one GraphQL call and runs no spp.
+test('notes are read from the local notes log, with no spp call', async ($, on) => {
+  const seen = host(on, {
+    gh: { exitCode: 0, stdout: snapshot([{ n: 201 }]) },
+    notes: [{ ticket: 201, text: 'tests green', at: '2026-11-02T11:59:00Z' }],
+  })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(await texts(ui)).toContain('tests green, 1m ago')
+  await ui.unmount()
+  expect(seen.argv.filter(a => a[0]?.endsWith('/bin/spp'))).toEqual([])
+  expect(seen.argv.filter(a => a[0] === 'gh')).toHaveLength(1)
+})
+
+// F8 on #267: a refresh asked for while one is in flight is skipped, so the snapshot query never runs twice at once.
+test('a second refresh while one is in flight makes no second gh call', async ($, on) => {
+  const seen = host(on, { gh: { exitCode: 0, stdout: snapshot([{ n: 201 }]) }, ghDelayMs: 1000 })
+  const first = $.command.run(OPEN)
+  await seen.clock.settle()
+  const second = $.command.run(OPEN)
+  await seen.clock.settle()
+  await seen.clock.advance(1000)
+  await Promise.all([first, second])
+
+  expect(seen.argv.filter(a => a[0] === 'gh')).toHaveLength(1)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect((await texts(ui)).filter(t => /^#201 /.test(t))).toHaveLength(1)
+  await ui.unmount()
+})
+
+// A worker is matched by its whole name, so t-1 never takes t-12's row action.
+test('with t-1 and t-12 both live, each row acts on its own worker', async ($, on) => {
+  const seen = host(on, {
+    gh: { exitCode: 0, stdout: snapshot([{ n: 1, labels: ['claimed'], worker: 't-1' }, { n: 12, labels: ['claimed'], worker: 't-12' }]) },
+    agents: [
+      { id: 'a12', description: 't-12 board' },
+      { id: 'a1', description: 't-1 board' },
+    ],
+  })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'worker-1' })
+  await ui.press({ key: 'worker-12' })
+  await ui.unmount()
+  expect(seen.viewed).toEqual(['a1', 'a12'])
+})
+
+test('with background sessions t-1 and t-12 both live, attach names the row worker', async ($, on) => {
+  const seen = host(on, {
+    gh: { exitCode: 0, stdout: snapshot([{ n: 1, labels: ['claimed'], worker: 't-1' }, { n: 12, labels: ['claimed'], worker: 't-12' }]) },
+    sessions: [
+      { name: 't-12', kind: 'background' },
+      { name: 't-1', kind: 'background' },
+    ],
+  })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.press({ key: 'worker-1' })
+  await ui.unmount()
+  expect(seen.filled).toEqual(['claude attach t-1'])
+})
+
+// The trust boundary (ADR 0009): a wave comment from an outside author is skipped, as spp skips it.
+test('a forged wave comment from an outside author does not place the tickets', async ($, on) => {
+  host(on, {
+    gh: { exitCode: 0, stdout: snapshot([{ n: 201 }], [{ n: 1, tickets: ['201'] }], [{ n: 9, tickets: ['201'] }]) },
+  })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  const waves = (await texts(ui)).filter(t => /^Wave \d$/.test(t))
+  expect(waves).toEqual(['Wave 1'])
+  await ui.unmount()
 })

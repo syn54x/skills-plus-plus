@@ -37,6 +37,7 @@ export type Snapshot = {
   epic: { number: number; url: string; repo: string; title: string };
   issues: SnapshotIssue[];
   plan: Record<string, unknown> | null; // the Epic's plan comment's data trailer; null without a readable one
+  wave: Record<string, unknown> | null; // the Epic's wave comment's data trailer, the same way
 };
 
 // Variables: $owner, $repo, $number. GitHub caps an Epic at 100 Sub-issues, so one page holds them all.
@@ -214,5 +215,6 @@ export function parseSnapshot(json: unknown): Snapshot {
     epic: { number: epic.number, url: epic.url, repo: epic.repository.nameWithOwner, title: epic.title },
     issues: epic.subIssues.nodes.map((i) => issue(i, viewer)),
     plan: markerData(epic.comments, "<!-- sdd-plan -->", viewer),
+    wave: markerData(epic.comments, "<!-- sdd-wave -->", viewer),
   };
 }
