@@ -28,7 +28,7 @@ The template below is the whole block. Replace each `{{slot}}` with the answer f
 | --- | --- | --- |
 | `mode` | `org` or `labels-only` | `org` when the repo's owner is an organization, because only organizations have issue types. |
 | `sizes` | `` `size:S/M/L` labels `` | The labels `to-tickets` and triage put on each Sub-issue. |
-| `panel` | `tickets>=N`, `size:L`, `lines>=N`, comma-separated | Each token overrides one threshold; the rest keep their defaults (4 tickets, any size L, 1,000 lines). Leave the line out when there is no override. The `size:L` token is always on. |
+| `panel` | `tickets>=N`, `size:L` or `no-size-L`, `lines>=N`, comma-separated | Each token overrides one threshold; the rest keep their defaults (4 tickets, any size L, 1,000 lines). `no-size-L` stops a size L Sub-issue from starting the panel by itself; `size:L` keeps the default and never goes on one line with `no-size-L`. Leave the line out when there is no override. |
 | `merge` | `squash`, `merge` or `rebase` | How `spp merge` merges a slice. Never asked: leave the line out unless the block already has it or the person names a method. |
 | `feedback` | `off`, `counts`, `detailed` or `attributed` | What `close-epic` may put in a skill-defect issue it proposes, each one shown and approved first. Default `off`. |
 | `laws` | comma-separated paths | The repo documents workers and reviewers must obey. A trailing `/` marks a directory. |

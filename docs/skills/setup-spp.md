@@ -29,7 +29,7 @@ The block holds what `spp` and the skills need to know about this repo:
 | --- | --- |
 | `Mode` | `org` when the repo belongs to an organization, `labels-only` for a personal repo. Taken from the owner, never asked. |
 | `Sizes` | the `size:S/M/L` labels |
-| `Panel` | optional: thresholds that override when the review panel runs by itself. Left out unless you ask for them. |
+| `Panel` | optional: thresholds that override when the review panel runs by itself (`tickets>=N`, `lines>=N`, and `no-size-L` to stop a size L Sub-issue from triggering it). Left out unless you ask for them. |
 | `Merge` | optional: how `spp merge` merges a slice (`squash`, `merge` or `rebase`). Setup never asks for it, and a re-run keeps the line if you added it. |
 | `Upstream feedback` | what `close-epic` may put in a skill-defect issue: `off`, `counts`, `detailed` or `attributed`. Each proposed issue is shown to you first. |
 | `Laws` | the repo documents that bind every worker and reviewer |

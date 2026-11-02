@@ -28,14 +28,17 @@ const FEEDBACK_PROFILES = ["counts", "detailed", "attributed"];
 const ROUTING_FILES = ["CLAUDE.md", "AGENTS.md"];
 const PANEL_DEFAULT = { tickets: 4, sizeL: true, lines: 1000 };
 
-// `Panel: tickets>=6, size:L, lines>=1000`: each token overrides one threshold, the rest keep their defaults.
+// `Panel: tickets>=6, no-size-L, lines>=1000`: each token overrides one threshold, the rest keep their defaults.
+// `size:L` keeps the size-L trigger on (the default) and `no-size-L` turns it off.
 function parsePanel(value: string): Routing["panel"] {
   const panel = { ...PANEL_DEFAULT };
-  for (const token of value.split(",").map((t) => t.trim()).filter(Boolean)) {
+  const tokens = value.split(",").map((t) => t.trim()).filter(Boolean);
+  if (tokens.includes("size:L") && tokens.includes("no-size-L")) throw new Error("Routing block: Panel cannot hold both size:L and no-size-L");
+  for (const token of tokens) {
     const m = /^(tickets|lines)\s*>=\s*(\d+)$/.exec(token);
     if (m) panel[m[1] as "tickets" | "lines"] = Number(m[2]);
-    else if (token === "size:L") panel.sizeL = true;
-    else throw new Error(`Routing block: unknown Panel threshold "${token}" (use tickets>=N, size:L, lines>=N)`);
+    else if (token === "size:L" || token === "no-size-L") panel.sizeL = token === "size:L";
+    else throw new Error(`Routing block: unknown Panel threshold "${token}" (use tickets>=N, size:L, no-size-L, lines>=N)`);
   }
   return panel;
 }
