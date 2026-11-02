@@ -62,7 +62,7 @@ describe("edge cases", () => {
     const s = await state("states");
     assert.equal(ticket(s, 406).state, "not-agent");
     assert.equal(s.counts["not-agent"], 1);
-    assert.equal(s.counts.ready, 1);
+    assert.equal(s.counts.ready, 2); // #407 and #409; #406 is not counted
   });
 
   test("two tickets blocking each other form the cycle and sit in no layer", async () => {

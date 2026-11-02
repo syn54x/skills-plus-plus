@@ -127,7 +127,7 @@
                           "repository": {
                             "nameWithOwner": "acme/api"
                           },
-                          "body": "Closes acme/app#303"
+                          "body": "Closes acme/api#303"
                         }
                       }
                     ]
