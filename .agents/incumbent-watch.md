@@ -6,11 +6,11 @@ A weekly routine keeps one pinned issue, "Incumbent watch", current with what th
 
 - Never file an issue, open a pull request, or edit any file in the repository. The routine writes two things: the watch issue's body and one comment on it.
 - Never add, label, close or assign anything else. The human reads the watch issue and runs `/triage` on any item worth acting on; that is the only way a watch item becomes work.
-- Read only the items the delta script prints. Do not browse an incumbent's whole history.
+- Read only the items the delta script prints, plus the one `read` page of an incumbent that has no `repo` (step 3). Do not browse an incumbent's whole history.
 
 ## Each run
 
-1. Find the watch issue: `gh issue list --state open --search 'Incumbent watch in:title' --json number,title`. If there is none, stop and say so in the run output. Creating it is a human step (below).
+1. Find the watch issue by its exact title: `gh issue list --state open --search '"Incumbent watch" in:title' --json number,title --jq '[.[] | select(.title == "Incumbent watch")]'`. The search is fuzzy and also matches issues that merely mention the watch, so only the exact-title rows count. Use the issue only when exactly one row remains. With none, or with more than one, stop, say which in the run output, and change nothing: step 5 overwrites a body, so a wrong pick destroys an unrelated issue. Creating and pinning it is a human step (below).
 2. Run the delta from the repository root, with the issue number: `node scripts/incumbent-delta.ts --issue <N>`. It prints `{ items, cursor }`, and an `errors` object when `gh` failed for an incumbent. Items are only those newer than the cursor in the issue's data trailer; with no trailer yet, the last 90 days.
 3. Read each new item: the release notes at its `url`, or the commit diff for a changelog commit. Open the `read` pages the [watchlist](./incumbents.md) names for that incumbent only when an item touches them. For an incumbent with no `repo` (Cursor), open its `read` page and compare it with that incumbent's section in the current issue body; treat what is not there as new.
 4. Tag each new item with one S++ area and a verdict.
