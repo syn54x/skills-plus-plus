@@ -20,9 +20,14 @@ Find the **Routing block** (`<!-- sdd-routing -->`) in `CLAUDE.md` or `AGENTS.md
 
 ## 3. Confirm the seams
 
-Call the Skill tool with "codebase-design" for the words. Sketch the points through which tests of the feature will enter the code. Prefer a seam that exists over a new one, and the highest seam that can show the behaviour. A new seam goes as high as it can. Fewer seams is better, and one is ideal.
+Call the Skill tool with "codebase-design" for the words. Then plan where the feature's tests will connect to the code:
 
-Show the person the seams with a recommendation and what each one covers, then wait. Done when the person has confirmed or corrected them. Write nothing before that.
+1. List the behaviours the plan promises that a test must be able to show.
+2. For each, find the outermost point an existing test already enters through (a command, a route, a public function) that can show it.
+3. Where no such point exists, name the new one, as far out as it can sit, and say why none of the existing points works.
+4. Fold points that prove the same behaviour into one. Stop when the list is as short as it can honestly be; a single point is the best outcome.
+
+Send the person the list, each point with the behaviours it covers and your recommendation, and wait. Done when the person has confirmed or changed it. Publish nothing before that.
 
 ## 4. Write the body
 
