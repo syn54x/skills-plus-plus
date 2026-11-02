@@ -10,7 +10,7 @@ import { spawnSync } from "node:child_process";
 import { runGh } from "../gh.ts";
 import { guarded, parseIssue, readTrailer, UsageError } from "../markers.ts";
 import { type Action, liveWorker, planNext, type Session } from "../plan-next.ts";
-import { VERDICT_MARKER } from "../snapshot.ts";
+import { trustedMarker, VERDICT_MARKER } from "../snapshot.ts";
 import { culprits, readChecks } from "./checks.ts";
 import { Failure, preflight } from "./preflight.ts";
 import { fetchState } from "./status.ts";
@@ -32,12 +32,13 @@ Prints the next actions: preflight, branch, dispatch, gate, fix, hand-back, merg
 const PULL_URL = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)$/;
 
 // Every revision of a pull request's verdict comment and the CI result of every head it had (force-pushed ones too),
-// so the fix rounds come from GitHub and never from local state.
+// so the fix rounds come from GitHub and never from local state. Only a trusted author's verdict comment counts (ADR 0009).
 // shortcut: the first 30 comments, 100 edits, last 100 commits and 50 force pushes; raise them if a failure is ever missed.
 const VERDICT_HISTORY = `query VerdictHistory($owner: String!, $repo: String!, $number: Int!) {
+  viewer { login }
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
-      comments(first: 30) { nodes { body userContentEdits(first: 100) { nodes { diff } } } }
+      comments(first: 30) { nodes { body author { login } authorAssociation userContentEdits(first: 100) { nodes { diff } } } }
       commits(last: 100) { nodes { commit { oid statusCheckRollup { state } } } }
       timelineItems(itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT], last: 50) {
         nodes { ... on HeadRefForcePushedEvent { beforeCommit { oid statusCheckRollup { state } } } }
@@ -65,10 +66,10 @@ export function readSessions(): Session[] {
 async function failedHeads(pr: string): Promise<number> {
   const [, owner, repo, number] = PULL_URL.exec(pr) ?? [];
   if (!number) return 1;
-  type Comment = { body: string; userContentEdits: { nodes: { diff: string | null }[] } };
+  type Comment = { body: string; author: { login: string } | null; authorAssociation: string; userContentEdits: { nodes: { diff: string | null }[] } };
   const out = JSON.parse(await runGh(["api", "graphql", "-f", `query=${VERDICT_HISTORY}`, "-f", `owner=${owner}`, "-f", `repo=${repo}`, "-F", `number=${number}`]));
   const p = out.data.repository.pullRequest;
-  const comment = (p.comments.nodes as Comment[]).find((c) => c.body.startsWith(VERDICT_MARKER));
+  const comment = trustedMarker(p.comments.nodes as Comment[], VERDICT_MARKER, out.data.viewer?.login);
   const heads = new Set<string>();
   for (const body of [comment?.body ?? "", ...(comment?.userContentEdits.nodes ?? []).map((e) => e.diff ?? "")]) {
     const v = readTrailer(body);

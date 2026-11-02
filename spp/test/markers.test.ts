@@ -11,10 +11,12 @@ import { assertCase, runCase } from "./harness.ts";
 const here = dirname(fileURLToPath(import.meta.url));
 const fixtures = join(here, "fixtures", "markers");
 const ported = join(fixtures, "ported");
-const JQ = ".[] | [.id, .body] | @json";
+const JQ = ".[] | [.id, .body, .user.login, .author_association] | @json";
+const VIEWER = "api graphql -f query=Viewer --jq .data.viewer.login";
 
 type Write = { cmd: string; argv: string[] };
-type Comment = { id: number; body: string };
+// A comment and its author; the author defaults to the repository owner, whom spp trusts.
+type Comment = { id: number; body: string; login?: string; association?: string };
 
 const trailer = (data: unknown) => `<!-- sdd-data: ${Buffer.from(JSON.stringify(data)).toString("base64")} -->`;
 const body = (w: Write) => w.argv.find((a) => a.startsWith("body="))!.slice(5);
@@ -25,7 +27,7 @@ function scratchCase(args: string[], comments: Comment[] = [], issue = "12", ext
   const dir = mkdtempSync(join(tmpdir(), "spp-markers-"));
   writeFileSync(join(dir, "args"), args.join("\n") + "\n");
   const read = `api repos/{owner}/{repo}/issues/${issue}/comments --paginate --jq ${JQ}`;
-  const stdout = comments.map((c) => JSON.stringify([c.id, c.body]) + "\n").join("");
+  const stdout = comments.map((c) => JSON.stringify([c.id, c.body, c.login ?? "maint", c.association ?? "OWNER"]) + "\n").join("");
   writeFileSync(join(dir, "gh.json"), JSON.stringify({ [read]: { stdout }, ...extra }));
   return dir;
 }
@@ -129,6 +131,42 @@ describe("happy path", () => {
   });
 });
 
+describe("trust boundary (ADR 0009)", () => {
+  const forged = (id: number): Comment => ({ ...progress({ ...PROGRESS, worker: "mallory" }, id), login: "mallory", association: "CONTRIBUTOR" });
+
+  test("a forged progress comment from an outside author before the real one is skipped: the real one is read and rewritten", async () => {
+    const r = await runCase("progress", scratchCase(["12", "--pr", "40"], [forged(800), progress(PROGRESS)], "12", { [VIEWER]: { stdout: "maint\n" } }));
+    assert.equal(r.code, 0, r.stderr);
+    const writes = r.writes as Write[];
+    assert.deepEqual(writes[0].argv.slice(0, 4), ["api", "-X", "PATCH", "repos/{owner}/{repo}/issues/comments/900"]);
+    assert.deepEqual(readTrailer(body(writes[0])), { ...PROGRESS, pr: 40 });
+  });
+
+  test("a forged progress comment alone neither is read nor blocks the writer: a new comment is created", async () => {
+    const dir = scratchCase(["12", "--worker", "w"], [forged(800)], "12", { [VIEWER]: { stdout: "maint\n" } });
+    const r = await runCase("progress", dir);
+    assert.equal(r.code, 0, r.stderr);
+    const writes = r.writes as Write[];
+    assert.deepEqual(writes[0].argv.slice(0, 4), ["api", "-X", "POST", "repos/{owner}/{repo}/issues/12/comments"]);
+    assert.equal(readTrailer(body(writes[0]))?.worker, "w");
+  });
+
+  test("a marker comment by the gh user, whatever its association, is read", async () => {
+    const own = { ...progress(PROGRESS), login: "maint", association: "NONE" };
+    const r = await runCase("progress", scratchCase(["12", "--pr", "40"], [own], "12", { [VIEWER]: { stdout: "maint\n" } }));
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual((r.writes as Write[])[0].argv.slice(0, 4), ["api", "-X", "PATCH", "repos/{owner}/{repo}/issues/comments/900"]);
+  });
+
+  test("MEMBER and COLLABORATOR authors are trusted like OWNER", async () => {
+    for (const association of ["MEMBER", "COLLABORATOR"]) {
+      const r = await runCase("progress", scratchCase(["12", "--pr", "40"], [{ ...progress(PROGRESS), login: "bot", association }]));
+      assert.equal(r.code, 0, r.stderr);
+      assert.equal((r.writes as Write[])[0].argv[2], "PATCH", association);
+    }
+  });
+});
+
 describe("edge cases", () => {
   // ADR 0007: rendering fresh over an unreadable trailer would erase the state, so spp refuses.
   test("a progress comment whose trailer does not decode is left alone: exit 1, the marker named, no write", async () => {
@@ -189,14 +227,14 @@ describe("integration", () => {
       blockedBy: { nodes: [] },
       closedByPullRequestsReferences: { nodes: [] },
       timelineItems: { nodes: [] },
-      comments: { nodes: comments.map((b) => ({ body: b })) },
+      comments: { nodes: comments.map((b) => ({ body: b, author: { login: "maint" }, authorAssociation: "OWNER" })) },
     });
     const epic = {
       number: 197,
       url: "https://github.com/acme/app/issues/197",
       title: "Epic",
       repository: { nameWithOwner: "acme/app" },
-      comments: { nodes: [{ body: "hello" }, { body: `<!-- sdd-plan -->\n## Plan\n${trailer({ goal: "g", branch: "feat/x" })}` }] },
+      comments: { nodes: [{ body: "hello" }, { body: `<!-- sdd-plan -->\n## Plan\n${trailer({ goal: "g", branch: "feat/x" })}`, author: { login: "maint" }, authorAssociation: "OWNER" }] },
       subIssues: { nodes: [sub(12, ["first", progress(PROGRESS).body]), sub(13, [])] },
     };
     const key = "api graphql -f query=Snapshot -F owner={owner} -F repo={repo} -F number=197";

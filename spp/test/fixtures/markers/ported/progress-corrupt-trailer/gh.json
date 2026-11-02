@@ -1,5 +1,5 @@
 {
-  "api repos/{owner}/{repo}/issues/103/comments --paginate --jq .[] | [.id, .body] | @json": {
-    "stdout": "[501,\"<!-- sdd-progress -->\\n(rendered)\\n<!-- sdd-data: bm90IGpzb24= -->\"]\n"
+  "api repos/{owner}/{repo}/issues/103/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json": {
+    "stdout": "[501,\"<!-- sdd-progress -->\\n(rendered)\\n<!-- sdd-data: bm90IGpzb24= -->\",\"maint\",\"OWNER\"]\n"
   }
 }

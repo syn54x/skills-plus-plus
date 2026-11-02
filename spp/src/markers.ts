@@ -2,7 +2,7 @@
 // changes; this module finds the comment through the API, decodes its trailer, merges, renders the whole body
 // and rewrites it in place, or creates it. The trailer is the last line: `<!-- sdd-data: <base64 of JSON> -->`.
 import { runGh } from "./gh.ts";
-import { readTrailer } from "./snapshot.ts";
+import { readTrailer, TRUSTED_ASSOCIATIONS, trustedAuthor } from "./snapshot.ts";
 
 export { readTrailer };
 
@@ -51,12 +51,22 @@ export function print(url: string): void {
   if (url) process.stdout.write(url + "\n");
 }
 
-// The first comment on the issue whose body starts with the marker.
+let viewer: Promise<string> | undefined;
+
+// The gh user's login, asked at most once per run.
+function viewerLogin(): Promise<string> {
+  return (viewer ??= runGh(["api", "graphql", "-f", "query=query Viewer { viewer { login } }", "--jq", ".data.viewer.login"]).then((s) => s.trim()));
+}
+
+// The first comment on the issue whose body starts with the marker and whose author spp trusts (ADR 0009); a forged
+// one before it is skipped. The gh user is looked up only when an author's association does not settle it.
 export async function find(issue: Issue, marker: string): Promise<{ id: number; body: string } | null> {
-  const out = await runGh(["api", `repos/${issue.repo}/issues/${issue.number}/comments`, "--paginate", "--jq", ".[] | [.id, .body] | @json"]);
+  const jq = ".[] | [.id, .body, .user.login, .author_association] | @json";
+  const out = await runGh(["api", `repos/${issue.repo}/issues/${issue.number}/comments`, "--paginate", "--jq", jq]);
   for (const line of out.split("\n").filter(Boolean)) {
-    const [id, body] = JSON.parse(line) as [number, string];
-    if (body.startsWith(marker)) return { id, body };
+    const [id, body, login, association] = JSON.parse(line) as [number, string, string | null, string];
+    if (!body.startsWith(marker)) continue;
+    if (trustedAuthor(login, association, TRUSTED_ASSOCIATIONS.includes(association) ? null : await viewerLogin())) return { id, body };
   }
   return null;
 }

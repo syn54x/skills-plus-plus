@@ -9,7 +9,7 @@
  */
 import { WINDOW } from "../findings.ts";
 import { GhError, runGh } from "../gh.ts";
-import { guarded, parseIssue, readTrailer, UsageError } from "../markers.ts";
+import { find, guarded, parseIssue, readTrailer, UsageError } from "../markers.ts";
 import { parseSnapshot, SNAPSHOT_QUERY, type Snapshot } from "../snapshot.ts";
 
 /** The usage text `spp retro --help` prints. */
@@ -105,10 +105,8 @@ async function collect(arg: string, notFound: string[]): Promise<{ epic: Snapsho
   const ref = (repo: string, n: number) => (repo === snap.epic.repo ? `#${n}` : `${repo}#${n}`);
   if (!snap.issues.length) notFound.push("sub-issues");
 
-  // The wave comment's trailer: recorded pull requests and the panel's rounds.
-  const bodies = (await runGh(["api", `repos/${epic.repo}/issues/${epic.number}/comments`, "--paginate", "--jq", ".[] | .body | @json"]))
-    .split("\n").filter(Boolean).map((l) => JSON.parse(l) as string);
-  const waveBody = bodies.find((b) => b.startsWith("<!-- sdd-wave -->"));
+  // The wave comment's trailer, from a trusted author (ADR 0009): recorded pull requests and the panel's rounds.
+  const waveBody = (await find(epic, "<!-- sdd-wave -->"))?.body;
   let wave: Wave = {};
   if (waveBody) {
     const data = readTrailer(waveBody);

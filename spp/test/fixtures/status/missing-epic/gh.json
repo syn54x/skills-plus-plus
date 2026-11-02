@@ -3,6 +3,9 @@
     "code": 1,
     "stdout": {
       "data": {
+        "viewer": {
+          "login": "maint"
+        },
         "repository": {
           "issue": null
         }

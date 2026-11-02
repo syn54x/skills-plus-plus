@@ -1,7 +1,9 @@
-`spp lint ticket <issue> [--json]` is the mechanical half of hardening. It checks the required sections, a fenced
-Verify block, Files owned lines starting `Create`, `Modify` or `Test`, Test scenarios shaped
+`spp lint ticket <issue> [--pin] [--json]` is the mechanical half of hardening. It checks the required sections, a
+fenced Verify block, Files owned lines starting `Create`, `Modify` or `Test`, Test scenarios shaped
 `<category>: ... → ...`, exactly one `size:` label, and no placeholder text. It prints `ok`, or one
-`<rule>: <detail>` line per failure; with `--json` it prints [LintResult](#lintresult).
+`<rule>: <detail>` line per failure; with `--json` it prints [LintResult](#lintresult). With `--pin`, a passing ticket's
+Verify block is pinned: its sha256 goes into the progress comment's trailer, and `spp verify` refuses to run a
+block that no longer matches it (ADR 0009). Hardening's last step is this run.
 
 ## Functions
 
@@ -17,19 +19,19 @@ Lints one ticket.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `args` | `string`[] | `ticket`, the issue (a number in the current repo or a GitHub issue URL), and `--json` for the [LintResult](#lintresult) shape. |
+| `args` | `string`[] | `ticket`, the issue (a number in the current repo or a GitHub issue URL), `--pin` to pin a passing ticket's Verify block, and `--json` for the [LintResult](#lintresult) shape. |
 
 #### Returns
 
 `Promise`\<`number`\>
 
-0 when the ticket passes; 1 when it breaks a rule; 2 on a usage error, with the usage on stderr. A `gh`
-  error also exits 1, with the reason on stderr.
+0 when the ticket passes (and, with `--pin`, its pin is written); 1 when it breaks a rule, which pins
+  nothing; 2 on a usage error, with the usage on stderr. A `gh` error also exits 1, with the reason on stderr.
 
 #### Example
 
 ```bash
-spp lint ticket 265
+spp lint ticket 265 --pin
 ```
 
 ## Variables
@@ -43,7 +45,7 @@ const USAGE: string;
 The usage text `spp lint --help` prints.
 
 ```text
-usage: spp lint ticket <issue number | issue URL> [--json]
+usage: spp lint ticket <issue number | issue URL> [--pin] [--json]
 ```
 
 ## Type Aliases

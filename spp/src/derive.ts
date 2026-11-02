@@ -65,9 +65,13 @@ const text = (v: unknown) => (typeof v === "string" && v ? v : null);
 // The pull request a ticket shows: an open one first, then a merged one, newest first.
 const pickPr = (prs: Pr[]) => [...prs].sort((a, b) => PR_RANK[a.state] - PR_RANK[b.state] || b.number - a.number)[0] ?? null;
 
-// The slice gate on an open pull request: its verdict counts only for the head it was given on (the full sha, or a
-// prefix of at least 7 characters); a verdict on an older head leaves the pull request pr-open.
-function gateOf(pr: Pr): TicketState {
+/**
+ * The slice gate on an open pull request: its verdict counts only for the head it was given on (the full sha, or a
+ * prefix of at least 7 characters); a verdict on an older head leaves the pull request pr-open.
+ *
+ * @internal
+ */
+export function gateOf(pr: Pr): TicketState {
   const v = pr.verdict;
   const head = text(v?.head);
   if (!v || !head || head.length < 7 || !pr.headSha.startsWith(head)) return "pr-open";

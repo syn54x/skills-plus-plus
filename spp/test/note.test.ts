@@ -9,7 +9,7 @@ import { runCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SNAPSHOT = readFileSync(join(here, "fixtures", "note", "snapshot", "gh.json"), "utf8");
-const JQ = ".[] | [.id, .body] | @json";
+const JQ = ".[] | [.id, .body, .user.login, .author_association] | @json";
 const T301 = "https://github.com/acme/app/issues/301";
 const ISO = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z$/;
 
@@ -65,7 +65,7 @@ describe("happy path", () => {
       const stored = Buffer.from(
         JSON.stringify({ status: "in-progress", worker: "worker-301", branch: "sdd/301-x", pr: null, verify: { state: "not-run", sha: "" }, route: null, reason: "", notes: "" }),
       ).toString("base64");
-      const comment = JSON.stringify([700, `<!-- sdd-progress -->\n(rendered)\n<!-- sdd-data: ${stored} -->\n`]) + "\n";
+      const comment = JSON.stringify([700, `<!-- sdd-progress -->\n(rendered)\n<!-- sdd-data: ${stored} -->\n`, "maint", "OWNER"]) + "\n";
       const r = await note([T301, "PR open", "--milestone"], {
         [`api repos/acme/app/issues/301/comments --paginate --jq ${JQ}`]: { stdout: comment },
       });

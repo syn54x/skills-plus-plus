@@ -2,6 +2,9 @@
   "api graphql -f query=Snapshot -F owner={owner} -F repo={repo} -F number=197": {
     "stdout": {
       "data": {
+        "viewer": {
+          "login": "maint"
+        },
         "repository": {
           "issue": {
             "number": 197,

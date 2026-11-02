@@ -10,7 +10,7 @@ import { type Verdict, VERDICT_MARKER, writeVerdict } from "../src/verdict.ts";
 import { assertCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const JQ = ".[] | [.id, .body] | @json";
+const JQ = ".[] | [.id, .body, .user.login, .author_association] | @json";
 
 async function stateOf(n: number): Promise<TicketState> {
   const s = (await assertCase("status", join(here, "fixtures", "verdict", "states"))).json as EpicState;
@@ -23,7 +23,7 @@ async function stateOf(n: number): Promise<TicketState> {
 async function write(pr: string, v: Verdict, comments: { id: number; body: string }[] = []) {
   const dir = mkdtempSync(join(tmpdir(), "spp-verdict-"));
   const repo = pr.startsWith("https://") ? "acme/app" : "{owner}/{repo}";
-  const stdout = comments.map((c) => JSON.stringify([c.id, c.body]) + "\n").join("");
+  const stdout = comments.map((c) => JSON.stringify([c.id, c.body, "maint", "OWNER"]) + "\n").join("");
   writeFileSync(join(dir, "gh.json"), JSON.stringify({ [`api repos/${repo}/issues/40/comments --paginate --jq ${JQ}`]: { stdout } }));
   const env = { PATH: process.env.PATH, SPP_CASE: process.env.SPP_CASE, SPP_WRITES: process.env.SPP_WRITES };
   Object.assign(process.env, { PATH: `${join(here, "stubs")}${delimiter}${env.PATH}`, SPP_CASE: dir, SPP_WRITES: join(dir, "writes.jsonl") });

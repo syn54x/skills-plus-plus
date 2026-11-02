@@ -1,5 +1,5 @@
 {
-  "api repos/{owner}/{repo}/issues/200/comments --paginate --jq .[] | [.id, .body] | @json": {
-    "stdout": "[701,\"<!-- sdd-wave -->\\n(rendered)\\n<!-- sdd-data: eyJ3YXZlcyI6W3sibiI6MSwidGlja2V0cyI6WzEwMSwxMDJdLCJ3b3JrZXJzIjpbIncxIiwidzIiXSwic3RhcnRlZCI6IjIwMjYtMTAtMjVUMDk6MDA6MDBaIiwiZWRnZXMiOltdLCJwcnMiOnt9fSx7Im4iOjIsInRpY2tldHMiOlsxMDRdLCJ3b3JrZXJzIjpbInczIl0sInN0YXJ0ZWQiOiIyMDI2LTEwLTI1VDExOjAwOjAwWiIsImVkZ2VzIjpbWzEwNCwxMDNdXSwicHJzIjp7fX1dLCJwYW5lbCI6W119 -->\\n\"]\n"
+  "api repos/{owner}/{repo}/issues/200/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json": {
+    "stdout": "[701,\"<!-- sdd-wave -->\\n(rendered)\\n<!-- sdd-data: eyJ3YXZlcyI6W3sibiI6MSwidGlja2V0cyI6WzEwMSwxMDJdLCJ3b3JrZXJzIjpbIncxIiwidzIiXSwic3RhcnRlZCI6IjIwMjYtMTAtMjVUMDk6MDA6MDBaIiwiZWRnZXMiOltdLCJwcnMiOnt9fSx7Im4iOjIsInRpY2tldHMiOlsxMDRdLCJ3b3JrZXJzIjpbInczIl0sInN0YXJ0ZWQiOiIyMDI2LTEwLTI1VDExOjAwOjAwWiIsImVkZ2VzIjpbWzEwNCwxMDNdXSwicHJzIjp7fX1dLCJwYW5lbCI6W119 -->\\n\",\"maint\",\"OWNER\"]\n"
   }
 }

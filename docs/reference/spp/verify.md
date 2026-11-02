@@ -5,7 +5,9 @@ Its two forms:
 
 - `spp verify <issue>` runs the Sub-issue's Verify block from the repository root, one command per line (a trailing
   backslash continues a line), prints `pass:` or `fail:` per command with the commands' own output on stderr, and
-  records the result as a note under `refs/notes/sdd-verify` on `HEAD`.
+  records the result as a note under `refs/notes/sdd-verify` on `HEAD`. It runs only a block that matches the pin
+  hardening wrote in the progress comment (`spp lint ticket <issue> --pin`), since anyone who can edit the issue
+  can change the block after it was approved (ADR 0009), and only on a clean tree, so the note speaks for `HEAD`.
 - `spp verify --check` is the `Stop` and `SubagentStop` hook. On an `sdd/*` branch it blocks the stop when the tree
   is dirty or `HEAD` has no passing (or `blocked`) note, unless `HEAD` adds nothing to an integration branch or the
   default branch; on any other branch it passes unchecked.
@@ -30,7 +32,8 @@ Runs a Sub-issue's Verify block, or checks that `HEAD` carries a passing run.
 
 `Promise`\<`number`\>
 
-With an issue: 0 when every command passed, 1 when any failed (or the issue has no Verify block). With
+With an issue: 0 when every command passed; 1 when any failed, the issue has no Verify block, the block
+  is unpinned or differs from its pin, or the tree is dirty (those last three run nothing and record nothing). With
   `--check`: 0 to let the session stop, 2 to block it, with the reason on stderr. 2 on a usage error, with the
   usage on stderr.
 

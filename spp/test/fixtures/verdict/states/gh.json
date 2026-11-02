@@ -2,6 +2,9 @@
  "api graphql -f query=Snapshot -F owner={owner} -F repo={repo} -F number=197": {
   "stdout": {
    "data": {
+    "viewer": {
+     "login": "maint"
+    },
     "repository": {
      "issue": {
       "number": 197,
@@ -57,10 +60,18 @@
              "comments": {
               "nodes": [
                {
-                "body": "LGTM"
+                "body": "LGTM",
+                "author": {
+                 "login": "maint"
+                },
+                "authorAssociation": "OWNER"
                },
                {
-                "body": "<!-- spp-verdict -->\n**Spec:** pass\n**Quality:** pass\n<!-- sdd-data: eyJ0aWNrZXQiOiI1MDEiLCJoZWFkIjoiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYiIsInNwZWMiOiJwYXNzIiwicXVhbGl0eSI6InBhc3MifQ== -->\n"
+                "body": "<!-- spp-verdict -->\n**Spec:** pass\n**Quality:** pass\n<!-- sdd-data: eyJ0aWNrZXQiOiI1MDEiLCJoZWFkIjoiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYiIsInNwZWMiOiJwYXNzIiwicXVhbGl0eSI6InBhc3MifQ== -->\n",
+                "author": {
+                 "login": "maint"
+                },
+                "authorAssociation": "OWNER"
                }
               ]
              }
@@ -111,7 +122,11 @@
              "comments": {
               "nodes": [
                {
-                "body": "<!-- spp-verdict -->\n**Spec:** pass\n**Quality:** pass\n<!-- sdd-data: eyJ0aWNrZXQiOiI1MDIiLCJoZWFkIjoiYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYSIsInNwZWMiOiJwYXNzIiwicXVhbGl0eSI6InBhc3MifQ== -->\n"
+                "body": "<!-- spp-verdict -->\n**Spec:** pass\n**Quality:** pass\n<!-- sdd-data: eyJ0aWNrZXQiOiI1MDIiLCJoZWFkIjoiYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYSIsInNwZWMiOiJwYXNzIiwicXVhbGl0eSI6InBhc3MifQ== -->\n",
+                "author": {
+                 "login": "maint"
+                },
+                "authorAssociation": "OWNER"
                }
               ]
              }
@@ -162,7 +177,11 @@
              "comments": {
               "nodes": [
                {
-                "body": "<!-- spp-verdict -->\n**Spec:** fail\n**Quality:** pass\n<!-- sdd-data: eyJ0aWNrZXQiOiI1MDMiLCJoZWFkIjoiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYiIsInNwZWMiOiJmYWlsIiwicXVhbGl0eSI6InBhc3MifQ== -->\n"
+                "body": "<!-- spp-verdict -->\n**Spec:** fail\n**Quality:** pass\n<!-- sdd-data: eyJ0aWNrZXQiOiI1MDMiLCJoZWFkIjoiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYiIsInNwZWMiOiJmYWlsIiwicXVhbGl0eSI6InBhc3MifQ== -->\n",
+                "author": {
+                 "login": "maint"
+                },
+                "authorAssociation": "OWNER"
                }
               ]
              }
@@ -213,7 +232,11 @@
              "comments": {
               "nodes": [
                {
-                "body": "<!-- spp-verdict -->\n**Spec:** pass\n**Quality:** fail\n<!-- sdd-data: eyJ0aWNrZXQiOiI1MDQiLCJoZWFkIjoiYmJiYmJiYiIsInNwZWMiOiJwYXNzIiwicXVhbGl0eSI6ImZhaWwifQ== -->\n"
+                "body": "<!-- spp-verdict -->\n**Spec:** pass\n**Quality:** fail\n<!-- sdd-data: eyJ0aWNrZXQiOiI1MDQiLCJoZWFkIjoiYmJiYmJiYiIsInNwZWMiOiJwYXNzIiwicXVhbGl0eSI6ImZhaWwifQ== -->\n",
+                "author": {
+                 "login": "maint"
+                },
+                "authorAssociation": "OWNER"
                }
               ]
              }
@@ -264,7 +287,11 @@
              "comments": {
               "nodes": [
                {
-                "body": "<!-- spp-verdict -->\nunreadable\n<!-- sdd-data: !! -->\n"
+                "body": "<!-- spp-verdict -->\nunreadable\n<!-- sdd-data: !! -->\n",
+                "author": {
+                 "login": "maint"
+                },
+                "authorAssociation": "OWNER"
                }
               ]
              }

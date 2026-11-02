@@ -31,7 +31,7 @@ const snapshot = (pr: boolean) => ({
                 labels: { nodes: [{ name: "ready-for-agent" }, { name: "claimed" }] },
                 assignees: { nodes: [] },
                 blockedBy: { nodes: [] },
-                comments: { nodes: [{ body: progress }] },
+                comments: { nodes: [{ body: progress, author: { login: "maint" }, authorAssociation: "OWNER" }] },
                 closedByPullRequestsReferences: {
                   nodes: pr ? [{ number: 40, url: "https://github.com/acme/app/pull/40", state: "OPEN", headRefOid: "a".repeat(40), repository: { nameWithOwner: "acme/app" } }] : [],
                 },

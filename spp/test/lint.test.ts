@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { readTrailer } from "../src/markers.ts";
 import { parseTicket } from "../src/ticket.ts";
-import { assertCase } from "./harness.ts";
+import { assertCase, runCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixture = (name: string) => join(here, "fixtures", "lint", name);
@@ -73,6 +76,50 @@ describe("edge cases", () => {
   test("anything but lint ticket <issue> exits 2 with usage", async () => {
     const r = await assertCase("lint", fixture("bad-usage"), 2);
     assert.match(r.stderr, /usage: spp lint ticket/);
+  });
+});
+
+// ADR 0009: hardening pins the approved Verify block, so spp verify can refuse a block edited since.
+describe("--pin", () => {
+  const COMMENTS = "api repos/{owner}/{repo}/issues/12/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json";
+  type Write = { argv: string[] };
+  const body = (w: Write) => w.argv.find((a) => a.startsWith("body="))!.slice(5);
+
+  // The lint fixture `name`, run as `spp lint ticket 12 --pin`, with `comments` as the issue's comments.
+  function pinCase(name: string, comments = ""): string {
+    const dir = mkdtempSync(join(tmpdir(), "spp-lint-pin-"));
+    writeFileSync(join(dir, "args"), "ticket\n12\n--pin\n");
+    const gh = JSON.parse(readFileSync(join(fixture(name), "gh.json"), "utf8"));
+    writeFileSync(join(dir, "gh.json"), JSON.stringify({ ...gh, [COMMENTS]: { stdout: comments } }));
+    return dir;
+  }
+
+  test("a passing ticket pins the sha256 of its Verify block in a new progress comment's trailer", async () => {
+    const r = await runCase("lint", pinCase("hardened"));
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "ok\n");
+    const writes = r.writes as Write[];
+    assert.equal(writes.length, 1);
+    assert.deepEqual(writes[0].argv.slice(0, 4), ["api", "-X", "POST", "repos/{owner}/{repo}/issues/12/comments"]);
+    const pin = createHash("sha256").update("npm ci\nnode --test test/greet.test.ts").digest("hex");
+    assert.deepEqual(readTrailer(body(writes[0])), { verifyPin: pin });
+    assert.match(body(writes[0]), /^<!-- sdd-progress -->\n\*\*Verify pin:\*\* `[0-9a-f]{12}`\n/);
+  });
+
+  test("an existing progress comment keeps its fields and gains the pin", async () => {
+    const old = { status: "handed-back", worker: "w", branch: "", pr: null, verify: { state: "not-run", sha: "" }, route: "needs-info", reason: "r", notes: "" };
+    const row = JSON.stringify([5, `<!-- sdd-progress -->\n<!-- sdd-data: ${Buffer.from(JSON.stringify(old)).toString("base64")} -->`, "maint", "OWNER"]) + "\n";
+    const r = await runCase("lint", pinCase("hardened", row));
+    assert.equal(r.code, 0, r.stderr);
+    const writes = r.writes as Write[];
+    assert.deepEqual(writes[0].argv.slice(0, 4), ["api", "-X", "PATCH", "repos/{owner}/{repo}/issues/comments/5"]);
+    assert.deepEqual(Object.keys(readTrailer(body(writes[0]))!), [...Object.keys(old), "verifyPin"]);
+  });
+
+  test("a failing ticket pins nothing", async () => {
+    const r = await runCase("lint", pinCase("placeholder"));
+    assert.equal(r.code, 1);
+    assert.deepEqual(r.writes, []);
   });
 });
 
