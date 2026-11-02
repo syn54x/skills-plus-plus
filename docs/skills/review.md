@@ -1,8 +1,8 @@
 ## What it does
 
-`review` reads one pull request with a reviewer that took no part in writing it, and returns two verdicts: **spec** (did the change deliver what its Sub-issue and Epic asked for) and **quality** (is it correct, are its modules deep, does it keep the repo's Laws). It records them on the pull request and posts one review comment. It never edits the code and never approves on GitHub; whoever started it decides what happens next.
+`review` reads one pull request with a reviewer that took no part in writing it, and returns two verdicts: **spec** (did the change deliver what its Sub-issue or One-off asked for, and the Epic above it) and **quality** (is it correct, are its modules deep, does it keep the repo's Laws). It records them on the pull request and posts one review comment. It never edits the code and never approves on GitHub; whoever started it decides what happens next.
 
-It trusts nothing it did not see run. The author's green tests, the pull request body and its claims are all checked again on the exact head the review read: the reviewer runs the Sub-issue's Verify block itself, reads CI with `spp checks`, and holds each line of the body against the branch. A verdict counts only for that head, so a push during the review sends it back to the start.
+It trusts nothing it did not see run. The author's green tests, the pull request body and its claims are all checked again on the exact head the review read: the reviewer runs the linked issue's Verify block itself, reads CI with `spp checks`, and holds each line of the body against the branch. A verdict counts only for that head, so a push during the review sends it back to the start.
 
 ## When to reach for it
 
@@ -22,7 +22,7 @@ A pull request can do exactly what was asked and still be code nobody should kee
 
 | Verdict | Judged against | Typical finding |
 | --- | --- | --- |
-| Spec | The Sub-issue's acceptance criteria, Test scenarios, Files owned and Interfaces, and the Epic's decisions | A scenario with no test; a function renamed from what a sibling Sub-issue imports |
+| Spec | The Sub-issue's or One-off's acceptance criteria, Test scenarios, Files owned and Interfaces, and the Epic's decisions when there is an Epic | A scenario with no test; a function renamed from what a sibling Sub-issue imports |
 | Quality | Correctness, the Depth check from [codebase-design](codebase-design.md), and the documents on the repo's Laws line | A swallowed error on a write path; a new module that makes its callers learn as much as it does |
 
 Each finding is one line with a severity (Critical, Important or Minor), the file and line, and a **Law tag** naming the rule it enforces, such as `[ticket#Interfaces]` or `[CLAUDE.md#Prose]`. A finding needs at least 80% confidence and a concrete failure behind it; a hunch stays out. Any Critical or Important finding fails its verdict.
@@ -30,7 +30,7 @@ Each finding is one line with a severity (Critical, Important or Minor), the fil
 ## Common questions
 
 **The review says "quality verdict only". Why?**
-The pull request body has no `Closes #N` line, so there is no Sub-issue to judge the spec against. The review still checks correctness, depth and Laws. It records no gate verdict, so `build` will not merge such a pull request until the line is added and the review runs again.
+The pull request body has no `Closes #N` line, or the issue it closes is a raw issue that never got the Ticket contract, so there is no Sub-issue or One-off to judge the spec against. The review still checks correctness, depth and Laws. It records no gate verdict, so `build` will not merge such a pull request until the line is added and the review runs again.
 
 **Every test passed on the branch. Why did Verify fail in review?**
 When the base branch has moved since the branch was cut, the reviewer merges the newer base into a local copy and runs Verify there as well. Two slices can each pass alone and fail together; this is where that shows up, before the merge rather than after it.
