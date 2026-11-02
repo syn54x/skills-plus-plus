@@ -28,6 +28,9 @@ The pull request body is written with [pr](pr.md), and its Ticket, Laws, Interfa
 **What does the `claimed` label mean?**
 The worker added it before any work began, and it marks the issue as held. A held issue is out of the ready queue, so no second worker takes it. The progress comment's Worker line says who holds it, and the label stays until the pull request merges or the worker hands the issue back.
 
+**The worker handed my issue back as `needs-info` before it started. Why?**
+At readiness the worker runs `spp lint ticket <N>`, the same ready gate triage uses. Besides the contract's sections, it checks that the Verify block carries the pin hardening wrote and has not changed since, because anyone who can edit the issue can rewrite the commands the worker would run. If the block is unpinned or was edited, the worker runs none of it and hands the issue back with the lint's output as the reason. Run `/harden <N>` to check and pin the block again.
+
 **Why won't the worker stop?**
 The stop hook refuses to let a worker on an `sdd/*` branch finish while its tree has uncommitted changes, or while `HEAD` has no passing Verify record. The fix is to commit and run Verify. A worker that cannot build the issue hands it back and records the stop as blocked instead, which the hook accepts.
 

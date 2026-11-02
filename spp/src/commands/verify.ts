@@ -17,12 +17,10 @@
  * @module
  */
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { runGh } from "../gh.ts";
-import { find, parseIssue, readTrailer } from "../markers.ts";
+import { checkPin } from "../pin.ts";
 import { isIssueRef, parseTicket } from "../ticket.ts";
-import { MARKER } from "./progress.ts";
 
 /** The usage text `spp verify --help` prints. */
 export const USAGE = `usage: spp verify <issue number | issue URL>
@@ -93,13 +91,6 @@ export function gitOut(...args: string[]): string | null {
   return r.status === 0 ? r.stdout.trim() : null;
 }
 
-/**
- * The pin of a Verify block: the sha256 of the block as `parseTicket` reads it, in hex.
- *
- * @internal
- */
-export const pinOf = (block: string) => createHash("sha256").update(block).digest("hex");
-
 // One command per line; a trailing backslash continues the line, and blank and comment lines are skipped.
 // shortcut: each line runs in its own shell, so a `cd` on its own line does not carry to the next; join them with && instead.
 const commands = (block: string) =>
@@ -113,10 +104,8 @@ async function verify(ref: string): Promise<number> {
   const { body } = JSON.parse(await runGh(["issue", "view", ref, "--json", "body"])) as { body: string | null };
   const block = parseTicket(body ?? "").verify;
   if (block === null) throw new Error(`${ref} has no Verify block`);
-  const pin = readTrailer((await find(parseIssue(ref), MARKER))?.body ?? "")?.verifyPin;
-  const reharden = `Re-harden it (harden ends with spp lint ticket ${ref} --pin <body-file>), then run spp verify again.`;
-  if (typeof pin !== "string") return refuse(`the Verify block of ${ref} is not pinned. ${reharden}`);
-  if (pin !== pinOf(block)) return refuse(`the Verify block of ${ref} changed since it was hardened, so it is not run. ${reharden}`);
+  const refusal = await checkPin(ref, block);
+  if (refusal) return refuse(`${refusal.detail}, then run spp verify again. Nothing was run.`);
   let failed = false;
   for (const cmd of commands(block)) {
     // The command's own output goes to stderr, so stdout carries only the pass and fail lines.

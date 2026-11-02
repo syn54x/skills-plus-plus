@@ -140,8 +140,9 @@ describe("--pin <body-file>", () => {
     assert.deepEqual(r.writes, []);
   });
 
-  // The ready gate (triage step 3) runs the plain lint: a body edited after harden pinned it must not pass it.
-  describe("without --pin, an existing pin is checked", () => {
+  // The ready gate (triage step 3, implement-issue's readiness) runs the plain lint: a body edited after harden
+  // pinned it, or never pinned at all, must not pass it, or the worker builds it only for spp verify to refuse it.
+  describe("without --pin, the ready gate requires a matching pin", () => {
     const PIN = createHash("sha256").update("npm ci\nnode --test test/greet.test.ts").digest("hex");
     const pinned = (pin: string, association = "OWNER") =>
       JSON.stringify([5, `<!-- sdd-progress -->\n<!-- sdd-data: ${Buffer.from(JSON.stringify({ verifyPin: pin })).toString("base64")} -->`, "mallory", association]) + "\n";
@@ -153,6 +154,13 @@ describe("--pin <body-file>", () => {
       assert.deepEqual(r.writes, []);
     });
 
+    test("a ticket with a Verify block and no pin fails pin-present and writes nothing", async () => {
+      const r = await runCase("lint", pinCase("hardened", "", undefined, "ticket\n12\n"));
+      assert.equal(r.code, 1);
+      assert.match(r.stdout, /^pin-present: the Verify block of 12 is not pinned; re-harden it/m);
+      assert.deepEqual(r.writes, []);
+    });
+
     test("a Verify block edited since it was pinned fails pin-match and writes nothing", async () => {
       const r = await runCase("lint", pinCase("hardened", pinned("0".repeat(64)), undefined, "ticket\n12\n"));
       assert.equal(r.code, 1);
@@ -160,13 +168,14 @@ describe("--pin <body-file>", () => {
       assert.deepEqual(r.writes, []);
     });
 
-    test("a pin in a comment from an outside author is not trusted, so it neither passes nor fails the lint", async () => {
-      const dir = pinCase("hardened", pinned("0".repeat(64), "NONE"), undefined, "ticket\n12\n");
+    test("a pin in a comment from an outside author is not trusted, so the ticket counts as unpinned", async () => {
+      const dir = pinCase("hardened", pinned(PIN, "NONE"), undefined, "ticket\n12\n");
       const gh = JSON.parse(readFileSync(join(dir, "gh.json"), "utf8"));
       gh["api graphql -f query=Viewer --jq .data.viewer.login"] = { stdout: "maint\n" };
       writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
       const r = await runCase("lint", dir);
-      assert.equal(r.code, 0, r.stdout + r.stderr);
+      assert.equal(r.code, 1);
+      assert.match(r.stdout, /^pin-present: /m);
     });
   });
 });
