@@ -22,8 +22,8 @@ Refer to a map or ticket by its title wherever the person reads it, with the lin
 Run one interview, calling the Skill tool twice, for "grilling" and "domain-modeling".
 
 - **First, the destination.** Settle it in a line or two and get the person's agreement. It bounds everything that follows: "a spec for where `spp` keeps worker notes" excludes how the board draws them.
-- **Then, a wide pass.** Instead of going deep on one branch, collect the open decisions across the whole space and note which could start today. Sort each into a ticket (you can word the question exactly) or fog (you can only gesture at it). Do not cut fog into ticket-sized pieces.
-- **Early exit.** When the pass finds no fog, because the way is plain and small enough for one session, do not draw a map. Tell the person and ask how to continue.
+- **Then, keep asking yourself one question.** "What else has to be decided before the team could write this spec?" Let each answer open a new area instead of digging into the last one: for the notes store, comment cost, which notes persist and who reads them from another machine all come up before any detail of one of them. Mark the ones someone could take up tomorrow. [`MAP.md`](MAP.md) shows how each lands as a ticket or as fog.
+- **If every answer is already a ticket,** nothing is foggy, and the effort fits in one session without a map. Say so, and ask the person how they want to go on.
 
 Then read [`MAP.md`](MAP.md), file the map issue and file each ticket under it, in dependency order so blockers have numbers before the tickets that wait on them. Finish by naming the map and the tickets that can start now, and tell the person to run `/wayfinder` on the map in a fresh session for each. Done when the map holds its destination and fog and every ticket has a parent, one type label, a `## Question` and its blockers.
 

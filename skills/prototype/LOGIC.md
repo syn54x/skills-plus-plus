@@ -50,13 +50,10 @@ Pick walkthroughs for cases that are hard to simulate in your head: the normal c
 
 Done when each walkthrough runs from a fresh load and each action visibly changes the state panel.
 
-## Signs you are no longer prototyping
+## When the person sees the wrong thing
 
-| You catch yourself | Do this instead |
-| --- | --- |
-| Writing a test for the page | Delete it; the person's reaction is the test |
-| Reading from the real database or API | Seed the example data in the page |
-| Adding a case the question did not ask about | Note it for a second prototype |
-| Reaching for `document` inside the module | Move that line into the page |
-| Installing a framework or starting a dev server | Go back to one file |
-| Thinking of shipping the page | Ship the module's decision, not the page |
+Three ways the latest-note page goes wrong, each visible to whoever is clicking it:
+
+- **The same-second tab picks a different winner after a reload.** `latestNote` read the clock instead of each note's `at`, so the walkthrough no longer starts from a fixed state. Pass time in as data.
+- **A tab asks whether a closed worker's notes should show at all.** The page now poses a second question, and the verdict blurs the two. Take it out and offer it as its own prototype.
+- **The note list shows today's real workers.** The page fetched a live Epic, so the tie may never occur and the person reacts to whatever happened this morning. Seed the notes each tab needs in the page.

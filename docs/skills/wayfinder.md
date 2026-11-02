@@ -63,7 +63,7 @@ No. A chart session writes the map and its tickets, settles none, and stops. Eve
 
 Watch one wayfinder session from outside and you should see:
 
-- Only issues change. The repo has no new commits or branches from the session, and the diff is empty.
+- No pull request opens, and the branch you started on gains no commits. The one branch a session may push is `prototype/<slug>`, from a prototype ticket, and nothing ever merges it.
 - On a work session, one child issue gains the `claimed` label first, then an answer comment, then closes. The map issue gains exactly one entry under Settled.
 - A second session on the same map picks a different ticket and does not ask you again what the first one settled.
 - After a ticket closes, you cannot find the same question under Fog and in an open ticket at once.

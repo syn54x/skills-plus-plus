@@ -17,25 +17,14 @@ Both shapes below share one running example, taken from `spp`'s own epic board. 
    | Behaviour: which state follows which event, what a data shape can express | A logic prototype | [`LOGIC.md`](LOGIC.md) |
    | Appearance: arrangement, emphasis, what leads | UI variants | [`UI.md`](UI.md) |
 
-   When the question straddles both and nobody can be asked, let the code around it break the tie (server-side modules lean logic, pages lean UI) and record that assumption in the intro.
-3. **Branch first.** Create `prototype/<slug>` from the current branch before writing a line, and keep every change there. Put the prototype beside the code it questions and put `prototype` in its file or route name.
+   To tell them apart, ask what the person will argue about. Shown two same-second notes, they argue about which one wins, and the argument is the same however the row is drawn: logic. Shown a row, they argue about what catches the eye first, and the argument is the same whichever note won: UI. A question that starts both arguments is two questions. Build the one the person cares about now and name the other in the intro as left for later.
+3. **Branch first.** Create `prototype/<slug>` from the current branch before writing a line, and keep every change there. Put the prototype beside the code it questions and put `prototype` in its file or route name. It writes nothing unless storage is the question (where `spp` keeps notes, say), and then only to a scratch file or database whose name says it can be wiped.
 
 Done when the intro states the question, the shape is chosen, and the branch you left is untouched.
 
-## Hold the line on effort
-
-The prototype gets only what the verdict needs:
-
-- It starts from one command: a double-click for a logic page, the project's usual dev command for UI variants.
-- Its data sits in the running page. Writing anywhere is justified only when storage is itself the question, and then the target is a scratch file or database whose name says it can be wiped.
-- It carries no tests and no abstractions, and its error handling stops at whatever keeps it running.
-- It shows the whole relevant state after every action or variant switch, so the person sees a change instead of inferring it.
-
-If you catch yourself adding any of the things this list omits, you are building the feature. Stop and return to the question.
-
 ## Show it and listen
 
-Hand over the path or URL with a line on how to move around, and wait. The most useful reactions are objections to the idea itself, such as "two notes in one second should never both be latest", or a blend such as "the note from option B in option C's row". Add the action, scenario or variant a reaction asks for; a prototype is meant to grow under feedback.
+Hand over something the person can open in one move: the logic page's file path, or the project's usual dev command plus the URL with `?variant=`. Add a line on how to move around, and wait. The most useful reactions are objections to the idea itself, such as "two notes in one second should never both be latest", or a blend such as "the note from option B in option C's row". Add the action, scenario or variant a reaction asks for; a prototype is meant to grow under feedback.
 
 Done when you hold the person's verdict in their words and can say which part of the question it answers.
 

@@ -46,5 +46,5 @@ Look at what is left after a prototype session and you should find:
 - A pushed `prototype/<slug>` branch with no pull request against it, and an untouched branch you started from.
 - A question in the prototype's own intro, which you can read without opening any code.
 - A comment on the issue, or a final commit message, that gives the question, the person's verdict and the branch name.
-- No database, file or network call outside a scratch location the prototype named as wipeable.
+- No write to a database, file or service outside a scratch location the prototype named as wipeable. Reads are fine: UI variants render live data.
 - On the real branch afterwards, only the decision, written with tests. Nothing from `prototype/` is there.

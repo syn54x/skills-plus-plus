@@ -36,9 +36,11 @@ Which notes must outlive the worker that wrote them?
 
 **The map is a table of contents.** Each answer lives on its ticket. The Settled line only points there, so a long effort stays cheap to load.
 
-**Ticket or fog.** Test whether you could write the ticket's question today, not whether anyone could answer it. "Which notes must outlive the worker?" is a ticket even while a blocker holds it. "Something about retention" is fog: leave it coarse. Fog may later become several tickets or none, and it must never repeat a Settled line, an open ticket or an Out of scope line.
+**Why "Which notes must outlive the worker" is an open ticket.** It waits behind the scratch-repo task, and nobody can answer it yet. It is filed anyway, because the person could be asked it word for word tomorrow, and that is all a ticket needs.
 
-**Out of scope.** The destination caps the scope, and fog only gathers toward it. A ticket found to lie past it is closed with a reason, and it is not a Settled entry, because Settled records the route taken. Such work can come back only by redrawing the destination, which starts a new effort.
+**Why the retention line is fog.** Nobody can yet say what it asks: which notes, kept for whom, and for how long. Filing it now would mean guessing at a question, so it stays one loose sentence. Once the open ticket is settled it may turn into a ticket on deleting notes after an Epic closes, into two, or into nothing at all. Comment cost appears nowhere in Fog, because a settled question has one home, its Settled line.
+
+**Why chat mirroring is out of scope.** It was filed as a ticket while charting. The comment-cost answer showed it is about how notes reach people, which a spec for where notes are kept never promised, so that session closed it with that reason and wrote the line you see. It has no Settled line, since the route to the spec learned nothing from it. If the team wants chat delivery later, it gets a map of its own with that as its destination.
 
 ## Creating and finding tickets
 
