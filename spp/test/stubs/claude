@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+// Stub claude for the spp CLI tests: answers from the case directory's agents.json (see ../harness.ts).
+import { stub } from "../harness.ts";
+
+stub("claude");

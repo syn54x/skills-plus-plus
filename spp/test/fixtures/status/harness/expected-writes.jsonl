@@ -1,0 +1,3 @@
+{"cmd":"gh","argv":["issue","edit","5","--add-label","claimed"]}
+{"cmd":"gh","argv":["api","repos/acme/app/issues/5/comments","-F","body=<!-- sdd-progress -->\nhello\n"]}
+{"cmd":"gh","argv":["api","graphql","-f","query=AddBlocker","-f","id=I_1"]}

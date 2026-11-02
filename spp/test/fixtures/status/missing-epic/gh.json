@@ -1,0 +1,23 @@
+{
+  "api graphql -f query=Snapshot -F owner={owner} -F repo={repo} -F number=999": {
+    "code": 1,
+    "stdout": {
+      "data": {
+        "repository": {
+          "issue": null
+        }
+      },
+      "errors": [
+        {
+          "type": "NOT_FOUND",
+          "path": [
+            "repository",
+            "issue"
+          ],
+          "message": "Could not resolve to an Issue with the number of 999."
+        }
+      ]
+    },
+    "stderr": "gh: Could not resolve to an Issue with the number of 999.\n"
+  }
+}
