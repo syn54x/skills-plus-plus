@@ -65,7 +65,7 @@ No. Workers keep their claim and their pull requests in GitHub. Run `/build <N>`
 The first Wave is where the plan meets the code. Later Waves that follow the plan start by themselves, and `build` comes back to you only when the plan changes, such as a new blocked-by edge or a re-bundled issue.
 
 **The Epic is large. Do I run the review panel myself?**
-`spp next` decides: four or more Sub-issues, any size L, or 1,000 changed lines runs the panel on the Epic's pull request. Smaller Epics get a single spec verdict from [review](review.md). The panel's skill is user-invoked, so `build` starts its workflow where the session can, and otherwise asks you to type `/review-panel`.
+`spp next` decides: four or more Sub-issues, any size L, or 1,000 changed lines runs the panel on the Epic's pull request. Smaller Epics get a single spec verdict from [review](review.md). The panel's skill is user-invoked, so `build` walks the panel's own steps itself: it gathers the panel folder, picks the Personas, fans them out, and merges what they found into one verdict.
 
 **Can it build an issue from another repo?**
 Give `/build` the issue's URL. Each Sub-issue is built in the repo it lives in, and a cross-repo blocker has to have merged before its consumer is ready.
