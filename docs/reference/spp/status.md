@@ -91,7 +91,7 @@ One Sub-issue of the Epic.
 | <a id="property-state"></a> `state` | [`TicketState`](#ticketstate) | Where the ticket stands. |
 | <a id="property-layer"></a> `layer` | `number` \| `null` | The Layer: one above its highest open blocker inside the Epic, 0 with none; null when caught in a cycle. |
 | <a id="property-blockedby"></a> `blockedBy` | `string`[] | URLs of open blockers, leaving out one that landed while its issue stays open. |
-| <a id="property-landed"></a> `landed` | `boolean` | Whether its work has landed: the issue is closed, or the pull request it shows merged into the integration branch. |
+| <a id="property-landed"></a> `landed` | `boolean` | Whether its work has landed: the issue is closed, or a pull request of its merged into the integration branch. |
 | <a id="property-claimed"></a> `claimed` | `boolean` | Whether it carries the Claim mark (the `claimed` label); an assignee also holds a ticket. |
 | <a id="property-assignees"></a> `assignees` | `string`[] | Assignee logins. |
 | <a id="property-labels"></a> `labels` | `string`[] | Label names. |
