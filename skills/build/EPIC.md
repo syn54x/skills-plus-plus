@@ -85,9 +85,9 @@ A `NEEDS_CONTEXT` of that kind arrives as a handed-back issue. The decision belo
 `main-gate` with a pull request names the gate:
 
 - **The panel runs** (four or more Sub-issues, any size L, or 1,000 changed lines, as the reason says). `/review-panel` is user-invoked, so the Skill tool cannot start it: you walk its steps yourself. Read `review-panel`'s `SKILL.md` (`CLAUDE-CODE.md` says where it sits) and do what its steps say, in this order:
-  1. **Number.** Resolve the action's pull request to its number, `PR`, as its step 1 does. Every later step and the workflow take the number, never the URL. You already know the Epic, so skip its `spp kind` check.
+  1. **Number.** Resolve the action's pull request to its number, `PR`, as its step 1 does. Every later step, and the fan-out, take the number, never the URL. You already know the Epic, so skip its `spp kind` check.
   2. **Folder, Spec, Personas.** Its steps 2 to 4, as written: the panel directory and this round's folder (`R=1` on the first run), the Spec and Coherence sections from a fresh reviewer, and the list of Persona names.
-  3. **Fan out.** Its step 5. With the workflow, start `spp:review-panel` with `{ pr: <PR>, personas: [<the names from step 4>] }` and write each Persona's entry to the round's folder (`CLAUDE-CODE.md`); without it, step 5 says how to start the reviewers yourself.
+  3. **Fan out.** Its step 5: start the panel's fan-out with `PR` and the Persona names from step 4 (see the harness reference, `CLAUDE-CODE.md`), and write each Persona's reply to the round's folder. Where the harness offers no fan-out, step 5 says how to start the reviewers yourself.
   4. **Merge and read the verdict.** Its step 6: `spp findings merge "$ROUND_DIR"/*.json --verdict "$R"` with the readings you hold, then read the output's last line, `Verdict: MERGE`, `FIX FIRST` or `HUMAN DECISION`. That line is the gate's verdict; write the report around it and record the round on the wave comment as that step says.
 - **No panel.** Call the Skill tool with "review" for the pull request. It reads the Epic's pull request in its Epic mode and returns one spec verdict with a coherence check.
 
