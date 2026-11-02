@@ -16,7 +16,7 @@ type Write = { cmd: string; argv: string[] };
 function scratch(args: string[], labels: string[] = ["ready-for-agent"]): string {
   const dir = mkdtempSync(join(tmpdir(), "spp-dispatch-"));
   const gh = {
-    "issue view 12 --json labels,assignees": { stdout: { labels: labels.map((name) => ({ name })), assignees: [] } },
+    "issue view 12 --json url,labels,assignees": { stdout: { url: ISSUE + 12, labels: labels.map((name) => ({ name })), assignees: [] } },
     "issue view 12 --json number,title,url,body,parent": {
       stdout: { number: 12, title: "Invoice endpoint", url: ISSUE + 12, body: "## What to build\n\nAn endpoint.\n", parent: { url: ISSUE + 197 } },
     },
