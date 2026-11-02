@@ -41,7 +41,7 @@ Name the file for the idea in kebab-case (`auto-merge.md`), so a folder listing 
 
 ## A reason that lasts
 
-Test a draft reason by imagining the maintainer had a free month. If the answer would change, the reason is a deferral, and a deferral gets no record: leave the issue open, or ask for information. What survives the test is a fact about the project (what it is for, a constraint the request collides with, a design it chose over the alternative).
+Test a draft reason by imagining the maintainer had a free month. If the answer would change, the reason is a deferral, and a deferral gets no record: leave the issue open, or ask for information. What survives the test is a fact about the project. Most often here it is a design the project picked over the one the request wants; sometimes the request runs into a constraint, and sometimes it simply falls outside what the project is for.
 
 ## Reading a record against a new issue
 
