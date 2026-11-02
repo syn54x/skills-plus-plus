@@ -7,8 +7,9 @@
  * - `spp verify <issue>` runs the Sub-issue's Verify block from the repository root, one command per line (a trailing
  *   backslash continues a line), prints `pass:` or `fail:` per command with the commands' own output on stderr, and
  *   records the result as a note under `refs/notes/sdd-verify` on `HEAD`. It runs only a block that matches the pin
- *   hardening wrote in the progress comment (`spp lint ticket <issue> --pin`), since anyone who can edit the issue
- *   can change the block after it was approved (ADR 0009), and only on a clean tree, so the note speaks for `HEAD`.
+ *   hardening wrote in the progress comment (`spp lint ticket <issue> --pin <body-file>`), since anyone who can edit
+ *   the issue can change the block after it was approved (ADR 0009), and only on a clean tree, so the note speaks for
+ *   `HEAD`.
  * - `spp verify --check` is the `Stop` and `SubagentStop` hook. On an `sdd/*` branch it blocks the stop when the tree
  *   is dirty or `HEAD` has no passing (or `blocked`) note, unless `HEAD` adds nothing to an integration branch or the
  *   default branch; on any other branch it passes unchecked.
@@ -113,7 +114,7 @@ async function verify(ref: string): Promise<number> {
   const block = parseTicket(body ?? "").verify;
   if (block === null) throw new Error(`${ref} has no Verify block`);
   const pin = readTrailer((await find(parseIssue(ref), MARKER))?.body ?? "")?.verifyPin;
-  const reharden = `Re-harden it (spp lint ticket ${ref} --pin once the block is approved), then run spp verify again.`;
+  const reharden = `Re-harden it (harden ends with spp lint ticket ${ref} --pin <body-file>), then run spp verify again.`;
   if (typeof pin !== "string") return refuse(`the Verify block of ${ref} is not pinned. ${reharden}`);
   if (pin !== pinOf(block)) return refuse(`the Verify block of ${ref} changed since it was hardened, so it is not run. ${reharden}`);
   let failed = false;
