@@ -54,9 +54,18 @@ describe("happy path", () => {
   });
 
   test("a stop gives one note stopped", () => {
-    const r = auto(payload("stop", gitRepo("sdd/12-x")));
+    const repo = gitRepo("sdd/12-x");
+    git(repo, "notes", "--ref=sdd-verify", "add", "-m", "verified 2026-11-01T00:00:00Z", "HEAD");
+    const r = auto(payload("stop", repo));
     assert.equal(r.code, 0, r.stderr);
     assert.deepEqual(texts(r), [[12, "stopped"]]);
+  });
+
+  // F20 on #267: the Stop hook's two commands run side by side, so note --auto asks the same question verify --check does.
+  test("a stop that spp verify --check refuses gives no note, since the worker keeps going", () => {
+    const r = auto(payload("stop", gitRepo("sdd/12-x")));
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(r.log, []);
   });
 });
 

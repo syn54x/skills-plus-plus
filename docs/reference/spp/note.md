@@ -9,7 +9,7 @@ Its three forms:
   [LatestNote](#latestnote) list.
 - `spp note --auto` is for the `PostToolUse` and `Stop` hooks: it reads the hook payload on stdin and notes a pull
   request opened, a `spp verify` run or a stop for the ticket of the session's `sdd/<N>-*` branch, so the worker
-  never has to.
+  never has to. A stop that `spp verify --check` refuses is not noted, since the worker keeps going.
 
 ## Functions
 
@@ -58,7 +58,7 @@ usage: spp note <issue> <text> [--milestone]
 <issue> is an issue number in the current repo or a GitHub issue URL. --milestone also writes the text into the
 ticket's progress comment as its notes. --list prints the latest note of each ticket of the Epic: the ticket's
 issue URL, the text and the time. --auto reads a hook payload on stdin and notes a gh pr create that printed a
-pull request URL, a spp verify run, or a stop.
+pull request URL, a spp verify run, or a stop that spp verify --check lets through.
 ```
 
 ## Type Aliases
