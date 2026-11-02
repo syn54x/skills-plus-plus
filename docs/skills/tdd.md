@@ -2,11 +2,11 @@
 
 `tdd` grows code one test at a time, for new behaviour and bug fixes alike. Each test is written first and seen failing (**red**), then the least code that makes it pass is written (**green**), and the next test waits until that one passes. It also carries the rules that make those tests worth keeping: where expected values come from, where test doubles are allowed, and three habits that turn a suite into noise.
 
-No test gets written at a seam nobody agreed to. On a Sub-issue the agreement already exists, because the Sub-issue's Test scenarios name the seams and the cases, and `tdd` writes one test per scenario line in the order given. With no Sub-issue, it proposes the seams first, says what a test at each one would catch and miss, and waits for you.
+No test gets written at a seam nobody agreed to. On a Sub-issue or a One-off the agreement already exists, because the issue's Test scenarios name the seams and the cases, and `tdd` writes one test per scenario line in the order given. With no such issue, it proposes the seams first, says what a test at each one would catch and miss, and waits for you.
 
 ## When to reach for it
 
-Type `/tdd`, or the agent starts it when a task fits: new behaviour or a bug fix to drive with tests written first, or turning a Sub-issue's Test scenarios into tests. On the Epic path and the single-issue path, implement-issue calls it for every Sub-issue it builds, so most of its runs happen inside a worker.
+Type `/tdd`, or the agent starts it when a task fits: new behaviour or a bug fix to drive with tests written first, or turning an issue's Test scenarios into tests. On the Epic path and the single-issue path, implement-issue calls it for every Sub-issue or One-off it builds, so most of its runs happen inside a worker.
 
 | Your situation | Use |
 | --- | --- |
@@ -18,7 +18,7 @@ Type `/tdd`, or the agent starts it when a task fits: new behaviour or a bug fix
 
 ## Red, green, one slice at a time
 
-The loop has five moves: write one test named for a behaviour, watch it fail on that behaviour's assertion, write the least code that passes it, run the neighbouring tests green, and tidy only while everything is green. A failure caused by a typo or a missing import does not count as red, and a test that passes on its first run is suspect until you know why.
+The loop has four moves: write one test named for a behaviour, watch it fail on that behaviour's assertion, write the least code that passes it, and run the neighbouring tests green. A failure caused by a typo or a missing import does not count as red, and a test that passes on its first run is suspect until you know why.
 
 The opening cycle is a **tracer bullet**: the thinnest path through every layer the behaviour crosses. Every later cycle fills in a skeleton that already runs.
 
@@ -35,10 +35,10 @@ Expected values come from somewhere the code does not: a number worked out by ha
 ## Common questions
 
 **It asked me to pick a test seam and I could not tell the options apart.**
-Each proposed seam now comes with what a test there would catch and what it would miss, so you choose between trade-offs rather than labels. On a Sub-issue it does not ask at all, because the Test scenarios were agreed when the Sub-issue was written.
+Each proposed seam now comes with what a test there would catch and what it would miss, so you choose between trade-offs rather than labels. On a Sub-issue or a One-off it does not ask at all, because the Test scenarios were agreed when the issue was written.
 
 **Where is the refactor step?**
-It is the last move of each cycle, and it is small: tidying with every test green, then running them again. A larger restructuring belongs to review, which reads the finished change with fresh eyes.
+There is none inside the cycle. Restructuring belongs to review, which reads the finished change with fresh eyes once every test is green.
 
 **It wrote the code before the test.**
 An agent sometimes falls back on habit even with the rule in front of it. The red run is the evidence to look for: a worker's pull request names the command it saw fail before the change and pass after it. If that line is missing, the loop was not followed.
@@ -50,6 +50,6 @@ Rarely. A slow test stretches every cycle, and a test that cannot pass yet is ea
 
 - The test for each behaviour exists, and was seen failing, before the code that satisfies it.
 - Test names read as behaviours ("a 3 kg parcel costs 9.50 to ship"), not as calls between internals.
-- Every expected value has a source you can point to in the spec or the Sub-issue.
+- Every expected value has a source you can point to in the spec or the issue.
 - Renaming an internal function breaks no test.
 - Doubles appear only around services and clocks the project does not own.

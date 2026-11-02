@@ -1,6 +1,6 @@
 ---
 name: diagnosing-bugs
-description: A disciplined loop for stubborn defects and slowdowns that builds a command which goes red on the bug before any theory is formed. Use when asked to diagnose or debug something, when something is reported broken, throwing, failing, flaky or slow, or when a Sub-issue's Verify block reproduces a bug to fix.
+description: A disciplined loop for stubborn defects and slowdowns that builds a command which goes red on the bug before any theory is formed. Use when asked to diagnose or debug something, when something is reported broken, throwing, failing, flaky or slow, or when an issue's Verify block reproduces a bug to fix.
 ---
 
 Find the cause of one known failure, fix it, and leave a test that keeps it fixed. The hard part is the first step: a command that this bug turns **red**. With that command, every later step is a question it can answer; without it, reading code only produces guesses. Take the steps in order, and start each one only when the check that closes the one before it holds.
@@ -13,7 +13,7 @@ Commands, output and captured files can carry secrets. Write `<REDACTED>` in pla
 
 The loop is one command that reports pass or fail on the reported symptom.
 
-**A Verify block comes first.** When the bug belongs to a Sub-issue whose Verify block already reproduces it (red on the base branch), that block is the loop. Run it, confirm the failure it prints is the reported symptom, and go to step 2.
+**A Verify block comes first.** When the bug belongs to an issue that carries the Ticket contract (a Sub-issue or a One-off) and its Verify block already reproduces the bug (red on the base branch), that block is the loop. Run it, confirm the failure it prints is the reported symptom, and go to step 2.
 
 Otherwise build one, trying the cheapest that reaches the bug first:
 
@@ -27,72 +27,69 @@ Otherwise build one, trying the cheapest that reaches the bug first:
 - the same input run through the old and the new version, with the outputs diffed;
 - last, when a person has to act (click, sign in, read a screen): a script that prints one instruction at a time and reads back what they saw, so their answers return in a form you can parse. Signing in stays their step; the script never asks for a credential.
 
-Then make it **tight**:
+Before trusting the loop, run it three times without changing anything, and read what the three runs say:
 
-- faster: drop setup the bug does not need, and narrow to the one test;
-- sharper: assert the exact symptom (the message, the wrong value, the timing), never only "did not crash";
-- deterministic: fix the clock, seed randomness, isolate the filesystem and the network.
+| The three runs show | Change this |
+| --- | --- |
+| Verdicts that disagree | Pin whatever varies between runs: pass in a fixed time, seed the random source, give each run its own temporary directory, swap live network calls for a recorded response. |
+| Each takes more than a few seconds | Run the one failing case instead of the suite, and skip start-up work the bug never reaches. |
+| A generic failure (`exit 1`, `expected true`) | Assert the wrong value itself. `expected 9.50, got 0.95` points at the bug; a bare exit code points nowhere. |
 
-**A flaky bug** needs a higher failure rate more than a clean repro. Run the trigger many times, in parallel, under load, with timing windows narrowed or delays injected, until it fails often enough to test against.
+A bug that appears only some of the time needs a loop that fails often, which is a different goal from one that fails every time. Raise the rate: repeat the trigger in a loop, run copies side by side, add load, or widen the race with a deliberate delay. Write down the rate you reach, such as 40 failures in 100 runs.
 
 **When no loop can be built**, stop and say so, listing what you tried. Ask the person for access to an environment that reproduces it, a redacted capture (logs, a HAR file, a core dump, a timestamped recording), or leave to add temporary instrumentation where it happens.
 
-Until the loop exists, read code only to build the loop. Done when you can name one command, already run, with its redacted output shown, that is:
+Until the loop exists, read code only to build the loop. Done when you have shown one command and its redacted output, and its three runs agree (or a flaky bug's rate is written down), each finishes in seconds, and each fails on the reported symptom through the real code path. Only the person-driven script may need someone at the keyboard.
 
-- [ ] **red-capable**: it runs the real code path and fails on the reported symptom;
-- [ ] **deterministic**: the same verdict every run, or for a flaky bug a stated, high failure rate;
-- [ ] **fast**: seconds, not minutes;
-- [ ] **unattended**: you can run it alone, the person-driven script aside.
+## 2. Shrink the case
 
-## 2. Reproduce and shrink
+Put the loop's failure next to the report and compare them: the same message, the same wrong value, the same place. A different failure close by is a different bug, so go back to step 1. Keep the exact symptom text; step 4 checks the fix against it.
 
-Run the loop and confirm three things:
+Then make the failing case small by halves. Drop half the input records, half the configuration or half the steps, and run the loop. Still red: keep the cut. Green: restore that half and drop the other one. When halves stop working, remove single pieces. A 4,000-row import that fails often ends as the two rows that collide.
 
-- the failure is the one the person reported, not a neighbour of it;
-- it repeats across runs, or at the stated rate;
-- the exact symptom is recorded, so the fix can be checked against it.
+The small case narrows the suspects for step 3 and becomes the regression test in step 4.
 
-Then shrink the case. Remove one input, caller, setting, record or step at a time, run the loop after each removal, and keep only what the failure needs. A smaller case leaves fewer suspects and becomes the regression test.
+Done when the case fits on one screen and you can give each remaining piece a reason ("row 2 shares an id with row 1") that you checked by removing it once.
 
-Done when removing any remaining piece turns the loop green.
+## 3. Find the cause
 
-## 3. Rank hypotheses
+Before running any experiment, write the candidate causes as a table, most likely first, three to five rows:
 
-Write three to five candidate causes, ranked, before testing any of them. Each states a prediction that could prove it wrong: "If X is the cause, changing Y makes the failure vanish (or changing Z makes it worse)." A candidate with no such prediction is sharpened or dropped.
+| Cause | Experiment | Result that rules it out |
+| --- | --- | --- |
+| The cache key leaves out the locale | Request the page in French, then English, with the cache off | English still shows French text with no cache |
+| A second request reuses the first one's buffer | Send two requests with different bodies 10 ms apart | Each response matches its own body |
 
-Put the ranked list in front of the person before testing. They may know of a recent change, or of a cause already ruled out. If they do not answer, continue with your ranking.
+A row whose last column you cannot fill is not a cause yet: make it specific or drop it. Show the table to the person before the first experiment, since someone who knows the recent changes can reorder it in a sentence. With no reply, start at the top.
 
-Done when the list is shown and every entry carries its prediction.
+Run the experiments in order, changing one thing per run. Watch values at the line where two candidates part ways, with a debugger breakpoint or a REPL where the environment has one, and otherwise with a log line there. Give every log line you add the same unique tag, such as `[DEBUG-7c1e]`.
 
-## 4. Instrument
+A slowdown is found by measuring. Time the fast version and the slow one with the same harness (a timer around the call, a profiler, a query plan), then bisect between them on that number.
 
-Test the top hypothesis through its prediction, changing one thing at a time.
+Done when one row's experiment came out the way its cause predicts and every row above it is ruled out.
 
-- Use a debugger or a REPL breakpoint where the environment offers one.
-- Otherwise log only at the boundaries that separate one hypothesis from another.
-- Tag every debug line with one unique prefix, such as `[DEBUG-7c1e]`, so a single search finds them all at cleanup.
+## 4. Lock it in
 
-For a performance regression, measure before changing anything: record a baseline with a timer, a profiler or a query plan, then bisect between the fast state and the slow one. Logs seldom show where the time goes.
+The regression test is the shrunk case, written as a test, placed where it takes the same route the failure took. If the bug needs two requests sharing a session, the test sends two requests through that session; a unit test of the session store alone would pass with the bug still there. Call the Skill tool with "codebase-design" when choosing the seam.
 
-Done when one hypothesis's prediction held and the others are refuted or ranked below it.
+If no seam reaches that route, write no test. Record the gap in the pull request or the issue instead: the route the bug takes, and why no test can follow it. The gap is input for architecture work.
 
-## 5. Regression test, then fix
+When a seam fits, the test comes before the fix:
 
-A regression test needs a **correct seam**: one where the test triggers the bug the way real callers do. When the only seam available is shallower than that (one caller where the bug needs two, a unit that cannot rebuild the chain that failed), a test there passes while the bug survives. Then the missing seam is the finding: record it in the pull request or the issue, so architecture work can pick it up. Call the Skill tool with "codebase-design" for the words to describe it.
+- Run the test against the unfixed code: red, with the symptom from step 2. A test that is green here does not reach the bug, so move it.
+- Fix the cause, and run the test: green.
+- Run the step 1 loop on the full, unshrunk case. For an issue with a Verify block, that block is the loop.
 
-With a correct seam:
+Done when the test went red before the fix and green after it, and the full loop is green.
 
-1. Turn the shrunk case into a test at that seam and see it fail. When the failure came from an edit you made to code or a fixture, compare against an untouched copy to prove the edit landed.
-2. Fix the cause.
-3. Watch the test pass.
-4. Run the step 1 loop again on the original, unshrunk case (for a Sub-issue, its Verify block).
+## 5. Finish
 
-Done when the new test passes and the original loop is green.
+Write the diagnosis where the next person to debug here will look, in the commit message or the pull request, as three lines:
 
-## 6. Clean up
+- **Symptom**: the exact failure from step 2.
+- **Cause**: the row from step 3 that held, and the experiment that showed it.
+- **Guard**: the regression test's name, or the gap recorded in step 4.
 
-- [ ] The original loop is green.
-- [ ] The regression test passes, or the missing seam is recorded.
-- [ ] A search for the debug prefix finds nothing.
-- [ ] Throwaway harnesses and scripts are deleted, or kept in a folder plainly marked as debugging aids.
-- [ ] The commit or the pull request names the hypothesis that proved right, so the next person debugging here starts from it.
+Before posting it, search the tree for the debug tag and remove every hit, and delete the scratch harnesses and scripts (or move them to a folder whose name says they are debugging aids).
+
+Done when the write-up has all three lines and the tag search returns nothing.
