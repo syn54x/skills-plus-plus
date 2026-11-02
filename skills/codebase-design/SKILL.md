@@ -1,46 +1,39 @@
 ---
 name: codebase-design
-description: The vocabulary and checks for designing deep modules, with small interfaces over a lot of behaviour at a clean seam. Use when designing or reshaping a module's interface, deciding where a seam goes, making code easier to test or navigate, judging whether an extraction pays for itself, when a review runs the Depth check on a pull request, or when another skill needs the deep-module words.
+description: Words and tests for the shape of code, built around deep modules that hide much behind little. Use when designing or reshaping a module's interface, placing a seam, making code easier to test or navigate, judging whether an extraction pays for itself, running the Depth check during a review, or whenever a skill needs these words.
 ---
 
-A reference, not a process: it gives the words and the checks for talking about a module's shape and starts no work of its own. Asked a design question, answer it in these terms and stop. Use the terms exactly; the substitutes listed under each are what they replace.
+Words and tests for talking about the shape of code. This skill is a reference: asked a design question, answer it in these terms and stop. It runs no process of its own; the skills that drive design work call it for the words.
 
-## Vocabulary
+## The words
 
-**Module**: anything with an interface and an implementation, at any scale: a function, a class, a package, a slice through several tiers. _Avoid_: component, service, unit.
+Say the word in the first column; the third column lists what it replaces.
 
-**Interface**: everything a caller has to know to use the module correctly. The type signature is part of it; so are its invariants, the order calls must come in, its error modes, the configuration it needs and how it performs. _Avoid_: API, signature (both name only the typed part).
+| Word | Means here | Instead of |
+| --- | --- | --- |
+| **Module** | Code that callers reach only through what it promises. Size is irrelevant: a single function and a whole service both qualify. | component, service, unit |
+| **Interface** | Every promise and demand the module makes of its callers: the types, what must be true before a call, what holds after it, which call comes first, how it fails, and what it costs to run. | API, signature |
+| **Implementation** | Everything behind those promises. | |
+| **Depth** | What a module does for its callers set against what it makes them learn, counted in caller effort, never in lines of code. **Deep** means much done for little learned; **shallow** means the caller learns nearly as much as the module does. | |
+| **Seam** | A point where what runs can be swapped without editing the code that calls it. Choosing where a seam sits is its own decision, apart from choosing what sits behind it. | boundary |
+| **Adapter** | Whatever is plugged in at a seam. The word describes a job, not contents: an SMTP mailer and a test double that records sent mail both fill the mail seam. | |
+| **Leverage** | What a caller gains from depth. | |
+| **Locality** | What a maintainer gains from depth: a change, a fault or a test lands in one place. | |
 
-**Implementation**: the code inside the module.
+## Tests to apply
 
-**Depth**: how much behaviour a caller or a test gets per unit of interface it has to learn. A **deep** module hides a lot behind a little; a **shallow** one has an interface nearly as large as what it does. Depth is never a ratio of lines, which rewards padding.
+- **Inline it in your head.** Picture the module's body pasted into each of its callers. If the callers barely grow, the module was an extra hop. If each would have to carry the same tangle, the module is paying for itself.
+- **Tests are callers.** A test goes through the same interface every other caller uses. Needing to reach inside to test something means the interface is cut in the wrong place.
+- **Count the adapters.** A seam with one adapter is a guess. Cut it once a second one is real, which is often the test double.
+- **Design it twice.** For an interface that will be hard to change later, produce rival designs before committing to the first.
+- **Depth is measured at the interface only.** A deep module may be assembled from many small parts with seams of their own, so long as callers never see them.
 
-**Seam**: a place where behaviour can be changed without editing the code at that place; the location an interface sits at. Where a seam goes is a decision of its own, separate from what goes behind it. _Avoid_: boundary.
+## When a module resists testing
 
-**Adapter**: a concrete thing that fills an interface at a seam. The word names the role, so a Postgres repository and an in-memory fake are both adapters.
-
-**Leverage**: what callers gain from depth: more capability for each thing they learn.
-
-**Locality**: what maintainers gain from depth: a change, a bug or a test concentrates in one place, so one fix reaches every caller.
-
-## Principles
-
-- **Depth belongs to the interface.** A deep module may be built from many small parts with seams of their own; those internal seams serve its own tests and never surface in the interface.
-- **The deletion test.** Imagine deleting the module. If its complexity disappears with it, it was a pass-through. If the complexity reappears in every caller, the module was earning its place.
-- **The interface is the test surface.** Tests cross the same seam callers do. A test that needs to reach past the interface is a sign the module has the wrong shape.
-- **One adapter is a hypothetical seam; two make it real.** Cut a seam only where something actually varies across it, usually production and test.
-- **Design it twice.** The first interface that comes to mind is rarely the best. Before settling one that matters, produce rival designs and compare them.
-
-## Shaping an interface
-
-Ask of every interface being designed: can it have fewer entry points, simpler parameters, more hidden behind it? Then make it easy to test:
-
-- Take dependencies as arguments rather than constructing them inside.
-- Return results rather than mutating what was passed in.
-- Keep the surface small: each entry point is a test to write and a fact for callers to learn.
+Look first at where it gets its collaborators and what it hands back. A module that builds its own database client, or changes the object it was given instead of returning a value, makes every test set up the world. Pass collaborators in, hand back values a test can compare, and offer as few entry points as the callers need.
 
 ## Going further
 
-- Checking a pull request, at a review gate or in a survey: read [`DEPTH-CHECK.md`](DEPTH-CHECK.md) for the four questions, the reading rule and how a fired question is reported.
-- Deepening a cluster of shallow modules: read [`DEEPENING.md`](DEEPENING.md) for how each kind of dependency is tested across the new seam.
+- Checking a pull request, at a review gate or in a survey: read [`DEPTH-CHECK.md`](DEPTH-CHECK.md).
+- Folding a cluster of shallow modules into one: read [`DEEPENING.md`](DEEPENING.md).
 - Producing rival interfaces for one module: read [`DESIGN-IT-TWICE.md`](DESIGN-IT-TWICE.md).

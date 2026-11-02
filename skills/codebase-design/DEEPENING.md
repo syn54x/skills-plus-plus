@@ -1,25 +1,21 @@
 # Deepening
 
-How to deepen a cluster of shallow modules into one, given what the cluster depends on. Uses the vocabulary in [`SKILL.md`](SKILL.md).
+How to fold a cluster of shallow modules into one deep module without losing the ability to test it. Uses the words in [`SKILL.md`](SKILL.md).
 
-## Sort the dependencies
+## Choose the test strategy by what the cluster reaches
 
-Sort every dependency of the cluster into one of four kinds. The kind decides how the deepened module is tested across its seam.
+Walk these questions in order and take the first that applies:
 
-| Kind | Examples | How to deepen and test |
-| --- | --- | --- |
-| In-process | Pure computation, in-memory state | Merge the modules and test through the new interface directly. No adapter. |
-| Local stand-in | A database with an embedded or in-memory twin, a fake filesystem | Deepen when the stand-in exists, and run it in the tests. The seam stays internal. |
-| Remote, owned | Your own services across a network | Put a port at the seam. Production gets a network adapter, tests an in-memory one, and the logic stays in one module. |
-| Remote, third-party | A payment provider, a mail service | Inject the service as a port, and give the tests a mock adapter. |
+1. **Does the cluster reach nothing outside the process?** (calculation, in-memory state) Merge it, and test the merged module by calling its interface. No adapter is needed.
+2. **Does it reach something that has a faithful local twin?** (a message broker with an embedded mode, a search index that can be built in memory) Merge it and run the twin inside the tests. The seam stays inside the module, and its interface shows no port.
+3. **Does it reach a service your team runs?** (another of your own services over HTTP or a queue) Give the module a port where the network starts. Production plugs in a network adapter and tests plug in an in-memory one, while the logic stays in one place.
+4. **Does it reach a service someone else runs?** (an SMS gateway, a tax-rate provider) Hand the service in as a port, and plug a scripted double into it in the tests.
 
-## Seam discipline
+## Keep seams honest
 
-- A port with one adapter is indirection. Add one only when a second adapter (usually the test one) is real.
-- Keep internal seams internal. A deep module's own tests may use them; its interface does not expose them.
+- Add a port only when it will have two adapters from the start. A port with one adapter is a detour with a name.
+- A seam the module uses for its own tests stays out of its interface.
 
-## Replace the tests, do not layer them
+## Move the tests
 
-- Write the new tests at the deepened module's interface, asserting what a caller can observe.
-- Delete the old unit tests of the shallow modules once the new ones cover the behaviour; keeping both doubles the cost of every change.
-- A test that has to change when only the implementation changes is testing past the interface; rewrite it at the interface.
+Write the new tests against the merged module's interface, asserting only what a caller could observe. Once they cover the behaviour, delete the old tests of the shallow parts: a suite that tests both levels has to be edited twice for every change. A test that breaks when only the inside changes was written against the inside, so rewrite it against the interface.

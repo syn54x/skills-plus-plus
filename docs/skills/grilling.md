@@ -1,53 +1,53 @@
 ## What it does
 
-`grilling` is the interview spp runs whenever a plan, a design or a decision has to be tested before anyone acts on it. It keeps asking until you and the agent understand the subject the same way, and it stops only when you confirm that you do.
+`grilling` is spp's interview for testing a plan, a design or a decision before work starts on it. The agent keeps asking until every choice in the plan has been made out loud, then restates the plan and waits for you to say that the restatement is what you mean.
 
-It asks in rounds. One question at a time is slow, and every question at once asks things your earlier answers would have changed. So each round asks every question that is answerable now and nothing that depends on an answer you have not given yet. Each question comes with the agent's recommended answer, worded so that "yes" accepts it, which lets you answer a whole round by number. Anything the code or the docs can answer, the agent looks up instead of asking you.
+Questions come in batches called Rounds. Each Round holds every question that can be answered now, and holds back any question whose framing would shift with an answer you have not given yet. Every question carries the agent's recommendation, so agreeing costs you one word and a Round can be answered by number. Anything the repo, its docs or a command can settle, the agent looks up itself; you are asked only for choices.
 
 ## When to reach for it
 
-Type `/grilling`, or the agent starts it when a task fits: you ask to be grilled or to have your thinking challenged, or another skill needs an interview before it can act.
+Type `/grilling`, or the agent starts it when a task fits: you ask to be grilled or to have your thinking challenged, or another skill needs an interview before it acts.
 
-You rarely type it. In a repo, [grill](grill.md) is the entry to use: the same interview, plus a glossary and ADRs written as the answers settle. Other spp skills that need an interview, such as auto-grill, triage and improve-architecture, run this one underneath. It sits at the head of the Epic path, ahead of to-spec. `ask-spp` routes between every skill when the right one is unclear.
+You will seldom type it. In a repo, use [grill](grill.md), which runs this interview and also keeps your glossary and ADRs up to date. Other spp skills that need an interview (auto-grill, triage, improve-architecture) start this one underneath. It opens the Epic path, ahead of to-spec. `ask-spp` routes between every skill when the right one is unclear.
 
 ## Rounds and the Frontier
 
-The agent holds your subject as a design tree: each decision, with the decisions that depend on it below. The **Frontier** is every open decision whose prerequisites are settled. A **Round** asks the whole Frontier, then waits. Your answers settle some branches and open others, so the next Round asks what those answers made askable.
+The agent keeps a private tree of the plan's choices, with the choices that constrain others nearer the root. The **Frontier** holds the open choices that no other open choice could reframe. A **Round** asks the Frontier, then waits; your replies close some branches and open others, and the next Round asks whatever they made askable.
 
-A Round looks like this:
+Here is the shape of a Round:
 
 ```markdown
-**1. Where does a split order get split?**
-At checkout, when the customer pays, or at the warehouse, when it ships?
-Recommended: at checkout, so the customer sees each delivery charge before paying.
+**1. When is a ride's fare fixed?**
+When the rider books, or when the car drops them off?
+Recommended: at booking, so the rider accepts the fare before the car is sent.
 
-**2. Can a customer cancel one Shipment of an order?**
-Recommended: yes, until that Shipment is dispatched.
+**2. May a driver decline after accepting?**
+Recommended: yes, until they set off, with the ride offered to the next driver.
 ```
 
-Answering "1 yes, 2 no: cancellation is per order" settles both and moves the Frontier.
+A reply of "1 yes, 2 no: once accepted it is theirs" closes both choices, and the next Round starts from there.
 
 ## Common questions
 
-**Can I have one question at a time instead?**
-Yes. Put a line such as "When grilling, ask one question at a time" in your own `CLAUDE.md` or `AGENTS.md`. Some readers find a single question easier to focus on, or work in a second language and prefer the slower pace; the instruction is honoured.
+**I would rather answer one question at a time.**
+Say so in your own `CLAUDE.md` or `AGENTS.md`, for example "When grilling, ask one question per Round." Some people focus better on a single question, or prefer a slower pace in a second language, and the instruction is followed.
 
-**Doesn't asking a whole round at once lose the questions my answers would have raised?**
-No, because a Round holds only questions that do not depend on each other. Every answer still shapes what comes next, since the agent works out the next Round from the updated tree. The judgement can slip: if one answer should have changed another question in the same Round, say so, and that branch is asked again.
+**If you ask several questions together, don't my answers lose their effect on the others?**
+A Round only holds questions that cannot reframe each other, and every reply feeds the tree that the next Round is drawn from. When the agent misjudges and one answer should have changed a question beside it, point that out and the choice comes back in the next Round.
 
-**It ran out of questions and started building.**
-It should have stopped and asked you to confirm first. Smaller or lower-effort models are the ones that skip the confirmation most. A line in your own `CLAUDE.md` saying not to start work on a plan until you approve it is the reliable guard.
+**It stopped asking and began writing code.**
+It skipped the restatement it should have waited on. Smaller and lower-effort models skip it most often. A line in your own instructions saying that no plan is acted on until you approve it is the dependable guard.
 
-**It answered its own questions.**
-That is a failure of the run. Facts are the agent's to find; decisions are yours. It happens most when another skill runs the interview to unblock its own work and the agent reads that as leave to decide. If you want an interview answered on your behalf from citable sources, auto-grill does that deliberately and lists every answer for you to veto.
+**It made a choice for me.**
+That is a failed run: facts are the agent's to find, and choices are yours. It shows up most when another skill started the interview to clear its own way and the agent took that as permission. When you want choices made for you from sources it can cite, auto-grill does that on purpose and lists each answer so you can overrule it.
 
-**Can I cap the number of questions?**
-No. A plan may need three questions or fifty, and a fixed cap cuts the hard case short. Tell the agent to wrap up when you have heard enough, and accept the plan where it stands. A session that runs very long usually means the subject is too big for one; split it.
+**Is there a limit on how many questions it asks?**
+No. A small plan may settle in a handful of questions and a large one may take dozens, and a limit would cut short exactly the plans that need the most care. Tell it to finish when you have heard enough. When an interview drags on, the subject is usually too large for one; split it.
 
 ## It's working if
 
-- Each Round arrives as a numbered list with a recommendation under every question, and you can answer it by number.
-- No question in a Round needs another question in the same Round answered first.
-- Later Rounds ask things the first Round could not have asked.
-- You are asked for decisions, never for facts the code or the docs hold.
-- It stops at the end and asks you to confirm the shared understanding before doing anything with it.
+- Each Round is a numbered list with a recommendation under every item, and you can answer it by number.
+- No question in a Round depends on the answer to another question in the same Round.
+- Later Rounds contain questions that only made sense once earlier replies were in.
+- You are asked to choose, never to supply facts the repo already holds.
+- At the end you get a short restatement of the plan and a request to confirm it, before anything is built.

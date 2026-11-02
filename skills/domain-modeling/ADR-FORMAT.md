@@ -1,34 +1,35 @@
 # ADR format
 
-How to write an ADR once a decision has passed all three tests in `SKILL.md`.
+How to write an ADR once a decision has three yes answers in `SKILL.md`.
 
-## Name and number
+## File
 
-An ADR is one file in the repo's ADR directory, named `NNNN-<slug>.md`: the next number after the highest one already there, zero-padded to four digits, and a slug of a few lowercase words. Follow the directory's existing pattern where it differs.
+One decision per file in the repo's ADR directory. Take the highest number already there, add one, pad it to four digits, and add a short lowercase slug: `0012-price-rides-at-booking.md`. Where the directory already uses another pattern, follow it.
 
 ## Body
 
-The smallest useful ADR is a title and one paragraph:
+A title that states the decision, and one paragraph:
 
 ```markdown
-# Shipments are split at checkout, not at the warehouse
+# Rides are priced at booking, not at drop-off
 
-Orders that ship from two warehouses are split into Shipments when the customer pays, so the customer sees every Shipment and its cost before paying. Splitting at the warehouse kept checkout simpler but hid the second delivery charge until dispatch.
+A rider sees and accepts the fare before the car is dispatched, and the fare is fixed from then on. Pricing at drop-off matched the distance actually driven, but riders disputed fares they had not seen, and refunds cost more than the occasional detour.
 ```
 
-The paragraph says what forced the choice, what was chosen, and why it beat the alternative. Its value is recording that the decision was made on purpose, so nobody "fixes" it later.
+The paragraph names the pressure, the choice and the losing option with the reason it lost. Most ADRs need nothing else.
 
-Add a section only when it carries something the paragraph cannot:
+Add more only when it carries something the paragraph cannot:
 
-- **Considered options**, when a rejected alternative will be proposed again unless the reason it lost is written down.
-- **Consequences**, when an effect downstream is not obvious from the decision itself.
-- **Status** (`proposed`, `accepted`, `superseded by NNNN`), when the repo revisits decisions. A superseded ADR stays in place and names its successor.
+- a **Status** line (`proposed`, `accepted`, `superseded by 0019`) in a repo that revisits its decisions; a superseded ADR stays and points at its successor;
+- **Options considered**, when a losing option is likely to be proposed again;
+- **Consequences**, when an effect elsewhere would surprise someone.
 
-## Decisions that usually qualify
+## Calibrating
 
-- The shape of the system: what is event-sourced, what is a separate service, where state lives.
-- How two contexts talk to each other, and what each owns.
-- A technology choice that would take weeks to undo.
-- A deliberate departure from the obvious path, which a reasonable reader would otherwise reverse.
-- A constraint the code cannot show: a compliance rule, a partner's contract, a latency budget.
-- A boundary on scope: what the system will not do, when the refusal is not obvious.
+| Decision | ADR? | Why |
+| --- | --- | --- |
+| Rides are priced at booking | Yes | Costly to undo, odd without the dispute history, and drop-off pricing was a real option |
+| Driver payouts run weekly because of the bank's batch window | Yes | The constraint lives outside the code, so the code alone looks arbitrary |
+| Dates are formatted with the standard library | No | Cheap to change |
+| Passwords are hashed | No | No credible alternative |
+| The admin screens use the same component library as the app | No | Nobody would wonder why |

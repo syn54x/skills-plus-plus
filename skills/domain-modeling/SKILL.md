@@ -1,9 +1,9 @@
 ---
 name: domain-modeling
-description: Build and sharpen a project's domain model, its glossary of terms and its ADRs, while a design is being discussed. Use when a term is vague, overloaded or used against the glossary, when writing or editing a glossary or an ADR, or when a hard-to-reverse decision has just been made.
+description: Keeps a project's glossary and ADRs accurate while a design is argued over, writing each settled term or lasting decision as it happens. Use when a term is vague, overloaded or used against the glossary, when writing or editing a glossary or an ADR, or when a hard-to-reverse decision has just been made.
 ---
 
-The active work of changing a project's domain model: challenging the words people use, settling them in the glossary, and recording the few decisions that earn an ADR, each at the moment it happens. Reading the glossary to borrow its terms needs no skill; this one is for changing the model.
+Keep a project's words and its lasting decisions honest while a design is being argued over, and write each one down as soon as it is settled. Consulting the glossary for a term is ordinary reading; this skill is for changing what the glossary and the ADRs say.
 
 ## Find the domain docs
 
@@ -17,30 +17,32 @@ Every path below means the location found here. Create a file only when there is
 
 A `GLOSSARY-MAP.md` means the repo has several contexts, each with its own glossary and possibly its own ADRs. Work out which context the current topic belongs to, and ask when it is unclear.
 
-## While the design is discussed
+## What to listen for
 
-- **Challenge against the glossary.** When a term is used in a sense the glossary defines differently, say so at once and ask which is meant.
-- **Sharpen.** When a word is vague or doing several jobs, propose one precise term for each meaning.
-- **Probe with scenarios.** When concepts meet, invent a concrete edge case that forces the boundary between them to be stated.
-- **Check the code.** When someone states how the system behaves, read the code. When the two disagree, quote the code and ask which is right.
+| You notice | You do |
+| --- | --- |
+| A claim about how the system behaves | Open the code. When it disagrees, show the lines and ask which one is wrong. |
+| Two concepts that sit close together | Pose one specific case that falls between them and ask which side it lands on. |
+| A word the glossary defines, used in another sense | Quote the entry and ask whether the entry or the usage should change. |
+| One word carrying two meanings, or a word too loose to act on | Name each meaning, offer a distinct term for each, and ask which the glossary keeps. |
 
-## Write a term when it settles
+## Settling a term
 
-The moment a term is settled, write it to the glossary; never save terms up for the end. The format and the rules for what belongs are in [`GLOSSARY-FORMAT.md`](GLOSSARY-FORMAT.md); read it before the first glossary write of the session.
+Write a term into the glossary in the same turn it is agreed, so nothing waits for a summary at the end. Before the session's first glossary edit, read [`GLOSSARY-FORMAT.md`](GLOSSARY-FORMAT.md) for the entry shape and the test for what belongs.
 
-The glossary holds vocabulary and nothing else. A decision, a requirement or an implementation detail stays out of it, however recently it was agreed.
+Only vocabulary goes in. A requirement, a decision or a detail of how something is built goes elsewhere, however freshly it was agreed.
 
-## Offer an ADR only when it earns one
+## Recording a decision
 
-Offer an ADR only when the decision is all three:
+An ADR exists to stop a later reader from undoing a choice that was made on purpose. Offer one only when the answer to each of these is yes:
 
-1. **Hard to reverse**: changing course later has a real cost.
-2. **Surprising without context**: a future reader would ask why it was done this way.
-3. **A real trade-off**: there were genuine alternatives, and one was chosen for reasons.
+- Would undoing the choice later cost real work?
+- Would someone meeting the code cold be puzzled by it?
+- Was there a credible option that lost?
 
-When any of the three is missing, write no ADR and say which test failed. When the person accepts, write it with [`ADR-FORMAT.md`](ADR-FORMAT.md).
+When any answer is no, write no ADR and say which question failed. When the person accepts, write it following [`ADR-FORMAT.md`](ADR-FORMAT.md).
 
 ## Done when
 
-- Every term settled in the session is in the glossary, in its format, and nothing else was added there.
-- Every ADR written passes all three tests, and every decision that passed was offered one.
+- Every term agreed in the session is in the glossary in its format, and nothing but vocabulary was added there.
+- Every ADR written has three yes answers, and every decision that had three was offered one.

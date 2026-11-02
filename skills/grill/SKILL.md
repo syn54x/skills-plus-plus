@@ -1,6 +1,6 @@
 ---
 name: grill
-description: Interview me about a plan or design until we agree on it, recording settled terms in the glossary and hard decisions as ADRs along the way.
+description: Question my plan or design until we agree on every choice in it, recording settled terms in the glossary and hard decisions as ADRs along the way.
 disable-model-invocation: true
 ---
 

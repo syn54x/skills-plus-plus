@@ -1,55 +1,65 @@
 # Glossary format
 
-How a glossary file is laid out and what earns a place in it.
+The shape of a glossary entry, the file around it, and the test an entry has to pass.
 
-## Layout
+## An entry
+
+An entry is a bold term, a definition of one or two sentences, and an optional line of rejected words:
 
 ```markdown
-# <Context name> glossary
+**Hold**:
+A patron's place in the queue for a copy that is out on Loan. It lapses if not collected within a week of the copy coming back.
+_Avoid_: reservation, request
+```
 
-<One or two sentences: what this context covers.>
+The definition says what the thing is in this project. How it is stored, which service computes it and which screen shows it belong in code and specs. The `_Avoid_` line lists the words people reach for instead, so the agreed word wins in issues, code and conversation.
+
+## Does it belong?
+
+Add an entry only when every answer is yes:
+
+- Would two people on this project otherwise use different words for it, or one word for different things?
+- Is the meaning particular to this project, rather than something any programmer knows (a queue, a cache, a retry)?
+- Can it be defined without describing a mechanism?
+
+Removal is part of the job. When a term falls out of use, or an entry has grown into a spec, cut it in the edit that notices.
+
+## The file
+
+```markdown
+# Lending glossary
+
+Terms for lending physical copies to patrons and getting them back.
 
 ## Language
 
-**Shipment**:
-One dispatch of goods to one address. An order may need several.
-_Avoid_: delivery, parcel
+**Loan**:
+One copy in one patron's hands, from checkout until return.
+_Avoid_: borrow, issue
 
-**Carrier**:
-The company that moves a shipment between warehouse and customer.
-_Avoid_: courier, provider
+**Hold**:
+...
 
 ## Relationships
 
-- An **Order** produces one or more **Shipments**.
-
-## Flagged ambiguities
-
-- "delivery" was used for both a **Shipment** and its arrival; it now means neither.
+- A **Hold** turns into a **Loan** when the patron collects the copy.
 ```
 
-`Relationships` and `Flagged ambiguities` appear only when there is something to put in them. Group terms under `###` subheadings once clusters appear; a short glossary stays a flat list.
-
-## What earns an entry
-
-- **One word per concept.** Choose the best term and list its rivals under `_Avoid_`, so the rivals stop appearing.
-- **Define what the thing is**, in one or two sentences. What it does, how it is built and where it is stored belong elsewhere.
-- **Only this project's concepts.** A term any programmer already knows (a retry, a cache, a timeout) stays out, however often the project uses it.
-- **Remove as readily as you add.** A term the project no longer uses, or a definition that has grown a spec inside it, is cut in the same edit that notices it.
+Add `###` subheadings once the terms fall into clusters. `Relationships`, and a `Flagged ambiguities` section for words deliberately retired, appear only when they have content.
 
 ## Several contexts
 
-A `GLOSSARY-MAP.md` at the root lists each context, where its glossary lives and how the contexts relate:
+When one glossary would mix areas that nobody needs to hold at once, give each its own file and list them in a root-level `GLOSSARY-MAP.md`:
 
 ```markdown
 # Glossary map
 
-- [Ordering](./src/ordering/GLOSSARY.md): takes and tracks orders
-- [Fulfilment](./src/fulfilment/GLOSSARY.md): picks, packs and ships them
+- [Rostering](./apps/rostering/GLOSSARY.md): who works which shift
+- [Payroll](./apps/payroll/GLOSSARY.md): what each shift pays
 
 ## Relationships
 
-- Ordering publishes `OrderPlaced`; Fulfilment starts a pick from it.
+- A closed Rostering week becomes one Payroll run.
 ```
 
-Split a single glossary into contexts only when it is already lean and still spans two areas a reader would not want to hold at once. Splitting a bloated glossary yields several bloated ones.
+Trim a glossary before splitting it; a long glossary divided in two is two long glossaries.

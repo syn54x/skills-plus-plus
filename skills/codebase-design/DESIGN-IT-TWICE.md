@@ -1,30 +1,24 @@
 # Design it twice
 
-How to produce rival interfaces for one module and choose between them. Run it only when the person has chosen the module and asked to explore its interface. Uses the vocabulary in [`SKILL.md`](SKILL.md) and the dependency kinds in [`DEEPENING.md`](DEEPENING.md).
+Produce rival interfaces for one module and pick between them. Run it only after the person has chosen the module and asked to explore its interface. Uses the words in [`SKILL.md`](SKILL.md) and the strategies in [`DEEPENING.md`](DEEPENING.md).
 
-## 1. Frame the problem
+## 1. Brief the person
 
-Write a short framing for the person: the constraints any interface must meet, the dependencies and their kinds, and a rough code sketch that makes the constraints concrete (an illustration, not a proposal). Show it and go straight on to step 2; the person reads while the designs are drafted.
+Tell the person, in a few lines, what every rival will have to satisfy: the callers it must serve, what it reaches outside the process and which strategy that implies, and a throwaway code fragment that makes those demands concrete. Then go straight to step 2 without waiting; they read while the rivals are drafted.
 
-## 2. Draft rival designs
+## 2. Draft the rivals
 
-Draft at least three designs, each under a different constraint:
+Draft three or more, each under its own brief:
 
-1. The smallest interface: one to three entry points, as much behaviour behind each as possible.
-2. The most flexible: many use cases and room to extend.
-3. The common caller first: the usual call is trivial.
-4. When dependencies cross a seam: ports and adapters.
+- **Fewest entry points**: the smallest number of calls that still serves every caller.
+- **The busiest caller's wish**: the interface the most frequent call site would write if it could choose.
+- **I/O at the edge**: every outside dependency arrives as a port, and the core is pure.
+- **Most code deleted**: the design that lets the most existing code, callers included, disappear.
 
-When the harness can run helper agents in parallel, give each design to its own helper with a technical brief: the files, the coupling, the dependency kinds, what sits behind the seam, and the vocabulary from `SKILL.md` and the project's glossary. Otherwise draft them yourself one at a time, each from the brief alone, without revising an earlier one to match.
+When the harness can run helper agents in parallel, give each brief to its own helper, together with the files involved, what the module reaches, and the words from `SKILL.md` and the project's glossary. Otherwise draft them yourself, one at a time, each from its own brief, without bending an earlier one to match a later one.
 
-Each design gives:
+Every rival shows its interface (calls, types, preconditions, order of calls, failures), one caller using it, what it hides, and its adapters.
 
-- the interface: types, entry points, parameters, invariants, call order and error modes;
-- an example of a caller using it;
-- what the implementation hides;
-- the dependency strategy and its adapters;
-- where leverage is high and where it is thin.
+## 3. Choose
 
-## 3. Compare and recommend
-
-Present the designs one after another, then compare them by depth, locality and where the seam sits. Close with a recommendation: the design you would choose and why, or a hybrid when parts of two combine well. Give one clear pick, not a menu.
+Lay the rivals out one at a time, then set them side by side on three questions: how much does a caller have to learn, where would the next change land, and where does the seam fall? End with one pick and the reason for it, or a named blend of two when that is better than either. The person wants a decision to react to.

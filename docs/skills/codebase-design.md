@@ -1,56 +1,56 @@
 ## What it does
 
-`codebase-design` gives spp one set of words for the shape of code: **module**, **interface**, **depth**, **seam**, **adapter**, **leverage** and **locality**, each defined against the others, with the loose words they replace (component, service, API, boundary). It adds the principles that follow from them, such as the deletion test, and the **Depth check** that both review gates run on a pull request.
+`codebase-design` gives spp one set of words for the shape of code (**module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**) and retires the loose words they replace, such as component, service, API and boundary. It adds a few tests that follow from those words, and the **Depth check** that both review gates run on pull requests.
 
-It is a reference, not a process. It asks no questions, writes no files and starts no work of its own. Started on its own, it answers the design question in front of it in these terms and stops; the skills that drive design work (grill, improve-architecture, review) call it for the words and the checks.
+It only supplies words and tests. It asks you nothing, writes no files and begins no work on its own. Started directly, it answers the design question you put to it in these terms and stops; grill, review and improve-architecture call it when they need the words.
 
 ## When to reach for it
 
-Type `/codebase-design`, or the agent starts it when a task fits: designing or reshaping a module's interface, deciding where a seam goes, making code easier to test, judging whether an extraction pays for itself, or running the Depth check on a pull request.
+Type `/codebase-design`, or the agent starts it when a task fits: designing or reshaping a module's interface, placing a seam, making code easier to test, judging whether an extraction pays for itself, or running the Depth check during a review.
 
-| The problem | Reach for |
+| What is wrong | Use |
 | --- | --- |
-| One module's shape: its interface, its seam, its depth | `codebase-design` |
-| The words of the domain: "account" means three things | [domain-modeling](domain-modeling.md) |
-| You do not yet know which module to reshape | improve-architecture, which surveys the repo or a pull request |
-| You want the design argued with, not only named | [grill](grill.md) |
+| How a single module is cut: what callers see, where it can be swapped, how much it hides | `codebase-design` |
+| A word of the domain means different things to different people | [domain-modeling](domain-modeling.md) |
+| You do not know yet which module needs work | improve-architecture, which surveys a repo or a pull request |
+| You want the design challenged question by question | [grill](grill.md) |
 
 `ask-spp` routes between every skill when the right one is unclear.
 
 ## Deep modules
 
-A module is **deep** when a lot of behaviour sits behind a small interface, and **shallow** when the interface is nearly as large as what it does. Depth is measured as leverage: how much a caller or a test gets for each thing it has to learn. The interface counts everything a caller must know, so invariants, call order and error modes count as much as the type signature.
+A **deep** module does a great deal for its callers while asking them to learn very little; a **shallow** one asks them to learn nearly as much as it does. What callers must learn is the whole interface: the types, but also what must hold before a call, what holds after, the order calls come in, and how things fail.
 
-The **deletion test** is the quick check. Imagine deleting the module: if its complexity disappears with it, it was a pass-through; if the complexity reappears in every caller, it was earning its place.
+One quick test is to picture the module's body pasted into each caller. If the callers barely change, the module was an extra hop. If every caller would have to carry the same tangle, the module is pulling its weight.
 
 ## The Depth check
 
-Four questions, asked of every module a pull request adds or whose interface it changes:
+When a pull request creates a module or changes a module's interface, a review asks four questions about it:
 
-1. Did it introduce shallowness?
-2. Did it extract code only so it could be unit-tested?
-3. Did it touch a module that was already shallow?
-4. Do its tests reach past the interface?
+1. Did the pull request introduce shallowness?
+2. Was code pulled out only so it could be unit-tested?
+3. Was the module already shallow before this change touched it?
+4. Do the new tests reach past the interface?
 
-The check reads each such module whole, with its direct callers and its tests. At a review gate a fired question becomes an Important or Minor finding, never Critical. In improve-architecture it becomes a deepening opportunity for you to explore. The questions live in one reference file inside this skill, so the gates and the survey cannot drift apart.
+To answer them the reviewer reads each such module in full, along with its direct callers and its tests. At a review gate, a question that fires becomes an Important or a Minor finding and never a Critical one. In improve-architecture it becomes a deepening opportunity for you to explore. All three readers take the questions from one file inside this skill, so they cannot drift apart.
 
 ## Common questions
 
-**I started it on its own and it began redesigning things I never asked about.**
-It should answer in its terms and stop; it has no checkpoints because it is not a driver. To explore a design, run `/grill` or `/improve-architecture` and let them call this skill for the vocabulary.
+**I started it by itself and it set about redesigning things I had not asked about.**
+It should answer your question and stop, since it has no checkpoints of its own. To explore a design, run `/grill` or `/improve-architecture`, and they will call this skill for the words.
 
-**Is a deep module a folder layout?**
-No. Depth is about the interface and how callers reach it, whatever the files look like. A tidy folder tree can still hold shallow modules, and one deep module can span several files.
+**Is a deep module a particular folder structure?**
+No. Depth is about what callers must learn and how they reach the module, whatever the files look like. A neat folder tree can hide shallow modules, and one deep module can span many files.
 
-**How do I stop code from reaching past an interface?**
-The skill defines the shape; it does not enforce it. Common enforcement is a package boundary with a single entry file, or a dependency linter that forbids imports past that entry.
+**How do I keep code from going around an interface?**
+This skill names the shape and leaves enforcement to tooling. Teams commonly use a package with a single entry file, or a dependency linter that rejects imports past that entry.
 
-**Why does the Depth check run at the review gates?**
-Because shallow modules found only after merging turn into a stream of refactor pull requests. One Epic's retro counted seven deepening candidates found in a survey afterwards and none at the slice gate, so the check now runs where the author is still in the file.
+**Why do the review gates run the Depth check?**
+Shallow modules found after merge come back as a trickle of refactoring pull requests. In one Epic, a survey after the fact found seven candidates the slice gate had not raised, so the check now runs while the author still has the file open.
 
 ## It's working if
 
-- Design discussions say "module", "interface" and "seam" instead of "component", "service" and "boundary".
-- A proposed extraction comes with a deletion-test verdict nobody needs to hedge.
-- A proposed seam names its second adapter, not only its first.
-- Depth findings on your pull requests name the interface line and a concrete failure, and none is Critical.
+- Design talk uses "module", "interface" and "seam" where it used to say "component", "service" and "boundary".
+- Anyone proposing an extraction can say plainly whether it survives the paste-it-into-the-callers test.
+- A proposed seam comes with its second adapter named.
+- Depth findings on your pull requests point at the line declaring the interface, name a concrete failure, and are never Critical.

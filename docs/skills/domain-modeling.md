@@ -1,51 +1,51 @@
 ## What it does
 
-`domain-modeling` builds and sharpens your project's domain model while a design is being discussed: the glossary of the project's own words, and the ADRs that record its few hard-to-reverse decisions. It challenges a term you use against the glossary, asks for a precise word where you used a vague one, and tests a relationship with a concrete edge case until the boundary is stated.
+`domain-modeling` keeps your project's words and its lasting decisions accurate while a design is being argued over. It catches a word used in a sense the glossary does not give it, splits a word doing two jobs into two terms, checks a claim about the system against the code, and poses a specific case that falls between two concepts until you say where it belongs.
 
-It writes as it goes. A term lands in the glossary the moment you settle it, mid-conversation, not in a summary at the end. And it never assumes where your docs live: it finds the glossary and the ADR directory from your repo before the first write.
+Everything it settles is written at once: a term goes into the glossary in the turn you agree on it, not in a tidy-up at the end. Before the first write it finds out where your repo keeps its glossary and ADRs, so its files never land in a folder it invented.
 
 ## When to reach for it
 
-Type `/domain-modeling`, or the agent starts it when a task fits: a term is vague, overloaded or used against the glossary, a glossary or an ADR is being written or edited, or a decision that is hard to undo has just been made.
+Type `/domain-modeling`, or the agent starts it when a task fits: a term is vague, overloaded or used against the glossary, a glossary or an ADR is being written or edited, or a decision that would be costly to undo has been made.
 
-Most of the time it runs underneath [grill](grill.md), which pairs it with the [grilling](grilling.md) interview. Reach for it directly when the words are the problem and you want the discipline without a full interview. When the problem is a module's shape (its interface, its seam), use [codebase-design](codebase-design.md) instead. Looking a term up needs no skill: read the glossary. `ask-spp` routes between every skill when the right one is unclear.
+It usually runs underneath [grill](grill.md), beside the [grilling](grilling.md) interview. Start it yourself when the words are what is wrong and a whole interview would be too much. When the trouble is a module's shape (its interface or its seam), [codebase-design](codebase-design.md) is the one to use. Looking a term up needs no skill: open the glossary. `ask-spp` routes between every skill when the right one is unclear.
 
 ## Finding your docs
 
-Before it writes anything, the skill works out where the glossary and the ADRs belong, and stops at the first source that answers:
+The skill settles where to write before writing anything, and takes the first source that answers:
 
-1. Your `CLAUDE.md` or `AGENTS.md`, where setup-spp records the domain docs, and the documents named on the Routing block's Laws line.
-2. What is already there: a `GLOSSARY.md` or `GLOSSARY-MAP.md` at the root, and a directory of numbered ADR files.
-3. You: it asks, with a recommendation, and suggests running `/setup-spp` so the answer is recorded.
+1. Your `CLAUDE.md` or `AGENTS.md`, where setup-spp records the domain docs, and the files on the Routing block's Laws line.
+2. The files already present: a `GLOSSARY.md` or `GLOSSARY-MAP.md` at the root, and a directory of numbered ADRs.
+3. You. It asks, proposes a location, and suggests `/setup-spp` so the next session knows.
 
-This repo, for example, keeps its ADRs in `.agents/adr/`, and the skill writes there because `CLAUDE.md` says so.
+This repo is an example: its ADRs live in `.agents/adr/`, and the skill writes there because `CLAUDE.md` says so.
 
-## Two files, two bars
+## Glossary or ADR
 
-| | Glossary | ADR |
+| | Glossary entry | ADR |
 | --- | --- | --- |
-| Holds | What a term means, in a sentence or two, with its rivals under `_Avoid_` | One decision: what forced it, what was chosen, why |
-| Written when | A term is settled | A decision is hard to reverse, surprising without context **and** a real trade-off, and you accept the offer |
-| Never holds | Decisions, requirements, implementation detail | A log of every choice in the session |
+| Records | What one word means in this project, with the words it replaces | One decision, the pressure behind it, and the option that lost |
+| Written when | You agree on a term | Undoing the decision would cost real work, a newcomer would be puzzled by it, and a credible option lost; and you accept the offer |
+| Keeps out | Decisions, requirements, how things are built | Everyday choices that are cheap to reverse |
 
 ## Common questions
 
-**My glossary keeps growing. What do I do?**
-The growth is the symptom: the file has taken in decisions and implementation detail that never belonged there. Ask for exactly that cleanup ("make the glossary concise and remove anything that is not vocabulary"). Split it into contexts with a `GLOSSARY-MAP.md` only once it is lean and still covers two areas nobody wants to hold at once.
+**My glossary keeps getting longer.**
+Length is the symptom. Entries have picked up decisions and implementation detail that are not vocabulary. Ask for that cleanup in so many words ("trim the glossary to vocabulary only"). Split it into contexts with a `GLOSSARY-MAP.md` only after trimming, when it still spans two areas no reader needs together.
 
-**My team already has an ADR convention.**
-The skill follows the directory it finds and that directory's naming pattern, and your `CLAUDE.md` or `AGENTS.md` can state a different template, which wins.
+**We already have our own ADR style.**
+The skill writes into the directory it finds and follows that directory's naming. A template stated in your `CLAUDE.md` or `AGENTS.md` takes precedence over its default.
 
-**Does a glossary earn its keep?**
-Where names cross a boundary (module names, table names, status values, issue titles, commands) a single agreed word saves real confusion. In ordinary prose it matters less, and on a one-day build you can skip it. An unreviewed glossary written by an agent is worse than none, because later sessions treat its claims as true.
+**Is a glossary worth the upkeep?**
+It pays most where a name crosses a boundary: module and table names, status values, issue titles, commands. In everyday prose it matters less, and a short-lived prototype can do without one. A glossary an agent wrote and nobody reviewed does harm, because later sessions take its claims as settled.
 
-**Can it invent the domain language for me?**
-No. It holds you to precision once you understand the domain; vocabulary you do not understand yourself means nothing once written down.
+**Can it come up with the domain language for me?**
+No. It holds a discussion to the precision you already have; a term written down without your own understanding behind it is noise.
 
 ## It's working if
 
-- It stops you to ask which of two things you meant, rather than picking one.
-- The glossary changes during the conversation, and gets shorter as often as longer.
-- It declines an ADR for something you could undo tomorrow, and says which test failed.
-- Its files land where your repo keeps them, never in a folder it made up.
-- It quotes your code back to you when the code and what you said disagree.
+- It interrupts to ask which of two meanings you intend, rather than guessing.
+- The glossary changes during the discussion, and entries are removed about as often as they are added.
+- It turns down an ADR for something cheap to reverse and names the question that failed.
+- Its files land where your repo already keeps them.
+- When the code and your description disagree, it shows you the code.

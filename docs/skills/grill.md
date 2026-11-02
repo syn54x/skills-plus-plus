@@ -1,52 +1,52 @@
 ## What it does
 
-`grill` interviews you about a plan or a design until you and the agent agree on it, and writes what the interview settles into your repo as it goes. It is spp's one entry point for grilling, and it replaces the two that came before it (one with docs, one without).
+`grill` puts your plan or design through an interview until you and the agent agree on every choice in it, and while that happens it keeps your repo's glossary and ADRs current. It is the single grilling command in spp, replacing the earlier pair where one wrote docs and the other did not.
 
-The interview is [grilling](grilling.md): Rounds of questions, each with a recommended answer, until nothing is left open and you confirm. Alongside it runs [domain-modeling](domain-modeling.md), so a term is written to your glossary the moment you settle it, and a decision that is hard to reverse, surprising and a real trade-off is offered an ADR. Everything else you decide stays in the conversation, which is where to-spec reads it from next.
+Two skills do the work. [grilling](grilling.md) runs the interview: Rounds of questions with a recommendation on each, until no choice is left open and you confirm the agent's restatement. [domain-modeling](domain-modeling.md) runs beside it, writing a term into the glossary as soon as you agree on it, and offering an ADR for the rare decision that a later reader would otherwise undo. All the other choices stay in the conversation, which is exactly what to-spec reads from next.
 
 ## When to reach for it
 
-You type `/grill`; the agent never starts it on its own. Add the subject after the command (`/grill splitting orders across warehouses`), or type it bare to grill the plan already in the conversation.
+You type `/grill`; the agent never starts it on its own. Put the subject after the command (`/grill pricing rides at booking`), or type it alone to grill the plan already under discussion.
 
-Reach for it at the start of a change, while the plan is fuzzy and the words for things are not yet agreed. It is the first step of the Epic path: grill, then to-spec in the same conversation, then to-tickets.
+Use it early in a change, while the plan is still loose and people are still using different words for the same thing. It is the first step of the Epic path: grill, then to-spec in the same conversation, then to-tickets.
 
-| What you have | Reach for |
+| Your situation | Use |
 | --- | --- |
-| A plan to settle with you answering every question | `/grill` |
-| A plan where most answers can be cited from the repo and its docs | auto-grill, which answers those for you and asks only the rest |
-| An effort too big for one session | wayfinder, which maps it first |
+| You want to answer every question yourself | `/grill` |
+| Most answers can be cited from the repo and its docs | auto-grill, which answers those and asks you the rest |
+| The effort is too large for one sitting | wayfinder, which maps it first |
 
 `ask-spp` routes between every skill when the right one is unclear.
 
 ## Prerequisites
 
-None to set up. The glossary and the ADRs go wherever your repo keeps them: domain-modeling reads that from your `CLAUDE.md` or `AGENTS.md` (setup-spp records it), then from the files already there, and asks you only when neither answers. Files are created when the first thing is written to them.
+Nothing to prepare. The glossary and ADRs go where your repo already keeps them: domain-modeling looks in your `CLAUDE.md` or `AGENTS.md` first (setup-spp writes the locations there), then at the files that exist, and asks you only when neither tells it. A file is created when its first entry is written.
 
 ## What lands where
 
-| What settled | Where it goes |
+| What you agreed | Where it is kept |
 | --- | --- |
-| A term: the project's word for a thing | The glossary, the moment it settles |
-| A decision that is hard to reverse, surprising without context and a real trade-off | An ADR, offered to you first |
-| Every other decision | The conversation, for to-spec to write up |
+| A term: the word this project uses for a thing | The glossary, in the same turn |
+| A decision that would be costly to undo, puzzling to a newcomer, and chosen over a credible rival | An ADR, if you accept the offer |
+| Any other choice | The conversation, until to-spec writes it into the Epic |
 
 ## Common questions
 
-**It ran, and no glossary entry or ADR appeared.**
-Usually nothing qualified. Most decisions fail at least one of the three ADR tests, and a change that introduces no new words has nothing for the glossary. A session that sharpened the plan and wrote no files has still done its job; the decisions are in the conversation.
+**The session ended and no files changed.**
+Most likely nothing qualified: the plan introduced no new words, and none of its choices passed all three ADR questions. The interview still did its job, and its results are in the conversation.
 
-**Where did all my other decisions go?**
-Into the conversation only, by design: the glossary holds vocabulary and an ADR holds a rare kind of decision. Run to-spec in the same conversation before you clear it, and read the spec against your own answers.
+**Where are the choices that are not in the glossary or an ADR?**
+In the conversation, deliberately. Run to-spec there before clearing it, then check the Epic it writes against what you said.
 
-**Can I use it on a repo that has no docs at all?**
-Yes. Say so after the command (`/grill help me write a glossary for this repo`). Expect a long session: it reads the code and asks you which of the words already in it are the right ones.
+**Can it document a repo that has no glossary yet?**
+Yes: say so after the command (`/grill write a glossary for this repo`). The session is long, because the agent reads the code and asks you which of the words it finds should stand.
 
-**What happened to grill-me and grill-with-docs?**
-`grill` replaces both. In a repo the glossary and ADRs are almost always wanted, and when a session settles no terms and no qualifying decisions, nothing is written anyway.
+**What became of grill-me and grill-with-docs?**
+Both are replaced by `grill`. Inside a repo the glossary and ADRs are nearly always wanted, and a session that settles no terms and no lasting decisions writes nothing anyway.
 
 ## It's working if
 
-- The glossary changes during the session, one term at a time, not in a lump at the end.
-- You are offered few ADRs, and each is a decision you would not want to argue again.
-- It challenges a word you used when your glossary defines it differently.
-- It ends by pointing you at to-spec, not by starting to build.
+- Glossary entries appear one at a time as the session goes, each in the turn its term was agreed.
+- ADR offers are rare, and each one is a choice you would hate to defend again.
+- It stops you when you use a word in a sense your glossary defines differently.
+- It closes by telling you to run to-spec, rather than starting to build.
