@@ -16,8 +16,8 @@ Run `spp kind <N>`. It prints the kind and the reason.
 
 | Kind | Meaning | Do |
 | --- | --- | --- |
-| `epic` | N has Sub-issues | Read [`EPIC.md`](EPIC.md) now and follow it from step 2 on. |
-| `ticket` | N carries the Ticket contract and has no Epic: a One-off | Read [`ONE-OFF.md`](ONE-OFF.md) now and follow it from step 2 on. |
+| `epic` | N has Sub-issues | The Epic path, [`EPIC.md`](EPIC.md), once steps 2 and 3 are read. |
+| `ticket` | N carries the Ticket contract and has no Epic: a One-off | The One-off path, [`ONE-OFF.md`](ONE-OFF.md), once steps 2 and 3 are read. |
 | `raw` | N lacks the contract | Stop. Print the reason and ask the user to run `/triage <N>`. A raw issue never reaches a worker. |
 
 Done when you hold the kind and, for `raw`, the user has the reason.
@@ -55,6 +55,10 @@ Read it before you gate and act on it. Never ignore an escalation, and never re-
 - `BLOCKED`: decide what changes. More context: resume. More capability: dispatch again on a higher tier. A smaller issue: split it into Sub-issues with blocked-by edges. A wrong plan: fix the issue body and record the ruling.
 
 Done when each report has a named next action.
+
+## 4. Run the path
+
+Read the reference file for the kind from step 1 now and follow it. It calls back to steps 2 and 3 for the driver and the report, and it ends the run.
 
 ## Heartbeat
 
