@@ -11,7 +11,7 @@ const sh = (cmd: string, args: string[], cwd: string) => spawnSync(cmd, args, { 
 // npm 11 prints an array of packs, newer npm an object keyed by package name.
 const firstPack = (stdout: string): { filename: string; files: { path: string }[] } => {
   const json = JSON.parse(stdout);
-  return Array.isArray(json) ? json[0] : Object.values(json)[0];
+  return Array.isArray(json) ? json[0] : (Object.values(json) as ReturnType<typeof firstPack>[])[0];
 };
 
 test("npm pack lists only bin, dist and the package files, with a dist file per command", () => {
