@@ -3,50 +3,46 @@ name: prototype
 description: Builds a throwaway prototype on its own branch to answer one design question, either a logic prototype (one page driving a pure module) or UI variants on one route behind a switcher. Use when someone needs to try a state model, data shape or API before committing to it, wants to see several ways a screen could look, or when another skill needs something rough to react to.
 ---
 
-A prototype is code written to be thrown away, and its only product is an answer. Build the least that gets the person a verdict, on a branch that never merges.
+A prototype is the cheapest thing that can be wrong in an informative way. It exists to produce a verdict from a person, and the code is the means of getting one. Everything about it is built to be discarded, and nothing about it is allowed onto the branch the real work lives on.
 
-## 1. State the question
+Both shapes below share one running example, taken from `spp`'s own epic board. Logic question: when two workers post a note in the same second, which one does the board show as the latest? UI question: how should one Sub-issue row arrange its state, its latest note and its worker?
 
-Write the question as one sentence the prototype can answer, such as "Can a booking be cancelled after it is refunded, and what does the rider see?" or "Which of three layouts makes the dashboard's top task fastest?". Show it in the prototype itself (a visible intro, not a code comment), so a reader who opens it cold knows what to judge.
+## Frame it
 
-Pick the shape from the question:
+1. **Write the question.** One sentence, answerable by someone watching the prototype, and shown in the prototype's own intro rather than in a code comment. A reader who opens it cold must be able to tell what they are judging.
+2. **Choose the shape by what the question is about.**
 
-| The question is about | Shape | Read |
-| --- | --- | --- |
-| What happens: states, transitions, data shape, an API's feel | Logic prototype | [`LOGIC.md`](LOGIC.md) |
-| What it looks like: layout, hierarchy, which control comes first | UI variants | [`UI.md`](UI.md) |
+   | If the question is about | Build | Details |
+   | --- | --- | --- |
+   | Behaviour: which state follows which event, what a data shape can express | A logic prototype | [`LOGIC.md`](LOGIC.md) |
+   | Appearance: arrangement, emphasis, what leads | UI variants | [`UI.md`](UI.md) |
 
-When the person cannot be asked and the question fits both, let the code around it decide (server-side modules lean logic, pages and components lean UI) and write that assumption into the intro.
+   When the question straddles both and nobody can be asked, let the code around it break the tie (server-side modules lean logic, pages lean UI) and record that assumption in the intro.
+3. **Branch first.** Create `prototype/<slug>` from the current branch before writing a line, and keep every change there. Put the prototype beside the code it questions and put `prototype` in its file or route name.
 
-Done when the question is written in the prototype's intro and the shape is chosen.
+Done when the intro states the question, the shape is chosen, and the branch you left is untouched.
 
-## 2. Cut the throwaway branch
+## Hold the line on effort
 
-Create the branch `prototype/<slug>` from the current one and do all of the work there. The prototype lives beside the code it questions, so its context is plain, and it is named so nobody mistakes it for production: `prototype` in the file or route name.
+The prototype gets only what the verdict needs:
 
-Done when the current branch is the new one and the branch you left has no changes.
+- It starts from one command: a double-click for a logic page, the project's usual dev command for UI variants.
+- Its data sits in the running page. Writing anywhere is justified only when storage is itself the question, and then the target is a scratch file or database whose name says it can be wiped.
+- It carries no tests and no abstractions, and its error handling stops at whatever keeps it running.
+- It shows the whole relevant state after every action or variant switch, so the person sees a change instead of inferring it.
 
-## 3. Build it rough
+If you catch yourself adding any of the things this list omits, you are building the feature. Stop and return to the question.
 
-Read the file for the shape you chose, then build. These hold for both shapes:
+## Show it and listen
 
-- **One command to run.** A logic prototype opens by double-click, and a UI prototype starts from the project's usual dev command.
-- **Memory only.** State lives in the running page. A question about persistence is the one reason to write anywhere, and then only to a scratch file or database named so that it can be wiped.
-- **Rough on purpose.** Skip tests, skip error handling except what keeps it running, skip abstraction, and ignore the next feature.
-- **State in plain view.** After every action, or every switch of variant, the page shows the full relevant state, so a change is something the person sees and not something they infer.
+Hand over the path or URL with a line on how to move around, and wait. The most useful reactions are objections to the idea itself, such as "two notes in one second should never both be latest", or a blend such as "the note from option B in option C's row". Add the action, scenario or variant a reaction asks for; a prototype is meant to grow under feedback.
 
-Done when the prototype runs from its one command and the intro shows the question.
+Done when you hold the person's verdict in their words and can say which part of the question it answers.
 
-## 4. Hand it over and take the verdict
+## Close out
 
-Give the person the path or URL and how to move around in it, then wait. The useful reactions are the surprised ones ("that should not be possible", "I want B's header with C's sidebar"), because each marks a flaw in the idea itself. Extend the prototype when they ask for another action, scenario or variant.
+1. Record the question and the verdict in a comment on the issue the prototype served, or in the branch's last commit message.
+2. Push the branch and name it in that record. It is the evidence behind the verdict. It never merges and never gets a pull request.
+3. On the real branch, implement only the decision, under the project's normal standards and with tests. The one prototype artefact that may cross over is a pure logic module, after tests have pinned its behaviour.
 
-Done when the person's verdict is in their own words and you can say which part of the question it settles.
-
-## 5. Keep the answer, shelve the code
-
-1. Record what was asked and what the person concluded, where the work will find it: a comment on the issue the prototype served, or the final commit message on the branch.
-2. Push the branch and name it in that record. It is the primary source for the answer, and it is never merged and never opened as a pull request.
-3. Carry only the validated decision into the real branch, rewritten under the project's normal standards with tests. The prototype's own code is not copied across, apart from a pure logic module once its behaviour has been pinned by tests.
-
-Done when the record names the branch and the verdict, and the real branch holds nothing from the prototype that has no test.
+Done when the record names the branch and the verdict, and nothing from the prototype sits on the real branch without a test.

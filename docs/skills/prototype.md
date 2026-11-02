@@ -41,7 +41,10 @@ A prototype answers a question that is still open. When the design is settled, g
 
 ## It's working if
 
-- The question sits in the prototype's intro, where a stranger can read it.
-- Someone who never reads code can drive the logic page and describe what happened in their own words.
-- The UI variants differ in layout or hierarchy, and the feedback sounds like "B's header with C's sidebar".
-- The verdict is recorded with the branch's name, and the real branch holds the decision with its tests but none of the prototype.
+Look at what is left after a prototype session and you should find:
+
+- A pushed `prototype/<slug>` branch with no pull request against it, and an untouched branch you started from.
+- A question in the prototype's own intro, which you can read without opening any code.
+- A comment on the issue, or a final commit message, that gives the question, the person's verdict and the branch name.
+- No database, file or network call outside a scratch location the prototype named as wipeable.
+- On the real branch afterwards, only the decision, written with tests. Nothing from `prototype/` is there.

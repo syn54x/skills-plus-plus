@@ -4,56 +4,61 @@ description: Chart a large effort as a map of decision tickets on GitHub Issues,
 disable-model-invocation: true
 ---
 
-The person has an effort whose route they cannot see yet: more than one session can hold, wrapped in fog. This skill charts the route as a **map**, one GitHub issue labelled `wayfinder:map`, whose children are **decision tickets** (questions whose answers are decisions, not slices of a build). Then it works them one session at a time.
+Use this when a person has a destination in mind but cannot yet see how to get there, and the effort is bigger than one session. The result is a **map**: one GitHub issue labelled `wayfinder:map`, with a **Decision ticket** as each child. Sessions then settle the tickets, one per session.
 
-Read the mode from what follows `/wayfinder`:
+Running example in this file: a team wants a spec for where `spp` keeps worker notes. They do not yet know the options, so the map's first tickets are questions such as "What does a GitHub issue comment cost us in size and rate?" and "Which notes must outlive the worker that wrote them?".
 
-| The person gave | Mode |
-| --- | --- |
-| A loose idea, or nothing | **Chart**: write the map |
-| A map's issue number or URL | **Work**: settle one of its tickets |
-
-An issue without the `wayfinder:map` label is not a map; ask what the person meant. When the `wayfinder:` labels do not exist in the repo, ask them to run `/setup-spp`.
+`/wayfinder` takes a loose idea to chart a map, or a map's number or URL to work one. An issue without the `wayfinder:map` label is not a map; ask what the person meant. If the `wayfinder:` labels are missing from the repo, ask them to run `/setup-spp`.
 
 ## Two laws
 
-1. **One decision per session.** A Work session settles exactly one ticket, of whatever type, and then stops. A Chart session settles none. The person runs other sessions for other tickets, side by side if they like.
-2. **Plan, never build.** Reaching the destination (a spec, a decision, a change) is somebody else's later work. Every ticket here ends in a decision, and a task ticket exists only to unblock one. When you feel like doing the destination's work, you have reached the map's edge: say so and stop.
+1. **One ticket per session.** Charting settles none and working settles exactly one, whatever its type. In the example, a session that has just settled the size-and-rate question stops there, even though the next question is ready, because that answer may change how the next question should be asked. Other sessions can take other tickets meanwhile.
+2. **The map decides; it does not deliver.** The team's spec, and later the code, are built elsewhere. Writing the notes store inside a wayfinder session, or a draft of the spec, is the signal that the map is finished or that a ticket was mis-typed. Say which, then stop.
 
-Name every map and ticket by its title in anything the person reads, with the link wrapped around the title. A run of bare numbers tells them nothing.
+Refer to a map or ticket by its title wherever the person reads it, with the link on the title.
+
+## Chart a map
+
+Run one interview, calling the Skill tool twice, for "grilling" and "domain-modeling".
+
+- **First, the destination.** Settle it in a line or two and get the person's agreement. It bounds everything that follows: "a spec for where `spp` keeps worker notes" excludes how the board draws them.
+- **Then, a wide pass.** Instead of going deep on one branch, collect the open decisions across the whole space and note which could start today. Sort each into a ticket (you can word the question exactly) or fog (you can only gesture at it). Do not cut fog into ticket-sized pieces.
+- **Early exit.** When the pass finds no fog, because the way is plain and small enough for one session, do not draw a map. Tell the person and ask how to continue.
+
+Then read [`MAP.md`](MAP.md), file the map issue and file each ticket under it, in dependency order so blockers have numbers before the tickets that wait on them. Finish by naming the map and the tickets that can start now, and tell the person to run `/wayfinder` on the map in a fresh session for each. Done when the map holds its destination and fog and every ticket has a parent, one type label, a `## Question` and its blockers.
+
+## Work a map
+
+Read the map's body only, and restate its destination to yourself before choosing anything.
+
+**Pick.** The frontier is the map's open children that have no open blocker, no `claimed` label and no assignee. Take the one the person named, or else the earliest filed. Add `claimed` before doing anything else, so a parallel session passes over it. With an empty frontier, skip to Finish.
+
+**Settle.** Follow the type table below. Read a related or closed ticket in full only when its answer bears on this one. The map's Notes hold the effort's domain and standing preferences.
+
+**Leave the map truer.** In this order:
+
+1. Comment the answer on the ticket and close it.
+2. Add an entry under Settled: the title as a link, then a one-line gist.
+3. Read the map again, since other sessions edit it, and apply the answer's effects:
+
+   | The answer... | Edit |
+   | --- | --- |
+   | raises a new sharp question | File a ticket |
+   | sharpens a patch of fog | File its ticket and delete that patch from Fog |
+   | shows an open ticket lies past the destination | Close it and move it to Out of scope with the reason |
+   | invalidates an open ticket | Rewrite or delete it |
+
+**Finish.** The route is mapped when no ticket is open and Fog is empty. If it is not, name the tickets now on the frontier and stop. If it is, say so; when the destination was a spec or a plan to build, ask the person to run `/to-spec` in this same conversation, since it writes from the conversation held and the map is loaded here. A destination that was a single decision to lock ends here.
 
 ## Ticket types
 
-Each ticket carries one label, `wayfinder:<type>`, and no other. The label tells you how to settle it; the body never does.
+The label carries the type; the body never does. Each example is from the notes-storage map.
 
-| Type | Label | Worked | Settled by |
+| Label | Example question | Who supplies the answer | How |
 | --- | --- | --- | --- |
-| Research | `wayfinder:research` | Alone | Call the Skill tool with "research" |
-| Prototype | `wayfinder:prototype` | With the person | Call the Skill tool with "prototype" |
-| Grilling | `wayfinder:grilling` | With the person | Call the Skill tool twice, for "grilling" and "domain-modeling" |
-| Task | `wayfinder:task` | Either | The one piece of manual work a decision is waiting on, such as opening an account to try a vendor's API, or loading sample data to look at its structure |
+| `wayfinder:research` | What does a GitHub issue comment cost us in size and rate? | You, reading sources | Call the Skill tool with "research" |
+| `wayfinder:prototype` | When two workers post in the same second, which note counts as latest? | The person, reacting to something built | Call the Skill tool with "prototype" |
+| `wayfinder:grilling` | Which notes must outlive the worker that wrote them? | The person, in an interview | Call the Skill tool twice, for "grilling" and "domain-modeling" |
+| `wayfinder:task` | Seed a scratch repo with ten sample epics so the options can be tried | Either; the work, not an opinion, is the output | Do it, or give the person an exact checklist |
 
-A ticket worked with the person settles only in a live exchange with them. Answering your own questions on their behalf breaks it. A task ticket you cannot do alone becomes a precise checklist for the person. These four skills are the only ones this skill calls.
-
-## Chart mode
-
-1. **Fix the destination.** To settle what the map is heading for, call the Skill tool twice, for "grilling" and "domain-modeling". It sets the scope, so it comes first. Done when the destination is one or two lines the person has confirmed.
-2. **Survey the frontier.** Grill again, this time wide and shallow: list the open decisions across the whole space and the first steps that could start now. When no fog turns up (the route is clear and small enough for one session), there is no map to draw; stop and ask the person how to go on. Done when every open decision is either a question you can phrase sharply or fog.
-3. **File the map.** Read [`MAP.md`](MAP.md) now for the body shape and the fog rules, then create the map issue labelled `wayfinder:map`. Done when it holds the Destination, the Notes, an empty Settled section and the fog.
-4. **File the tickets.** Read the ticket shape in `MAP.md`. Create every question you can phrase sharply as a child of the map, in dependency order so each ticket can name its blockers by their real numbers as it is created. Done when each ticket has the map as parent, one type label, a `## Question` body and its blocked-by edges, and everything not yet sharp stays in the fog.
-5. **Stop.** Name the map and the tickets that can start now, by title, and tell the person to run `/wayfinder` with the map in a fresh session for each one.
-
-## Work mode
-
-1. **Load the map.** Read its body only: Destination, Notes, Settled, Fog, Out of scope. Done when you can state the destination in your own words.
-2. **Choose the ticket.** The **frontier** is the map's open children with no open blocker, no `claimed` label and no assignee. Use the ticket the person named; otherwise take the first on the frontier, in the order they were filed. With an empty frontier, go to step 7.
-3. **Claim it.** Add the `claimed` label before any work, so a session running beside this one skips the ticket. Done when the label is on the issue.
-4. **Settle it** the way its type says, and read a related or closed ticket in full only when it bears on the answer. The Notes carry the effort's domain and standing preferences; follow them.
-5. **Record the answer.** Post it as a comment on the ticket, close the ticket, and add one entry to the map's Settled section: the ticket's title linked, then a one-line gist. The detail stays on the ticket. Done when all three are in place.
-6. **Redraw the map.** Other sessions edit the same map, so read it again before changing it. From the answer:
-   - File tickets for the questions it raised and for fog it has made sharp, then delete each such patch from the Fog section so the question lives only as its ticket.
-   - A ticket that now sits beyond the destination is closed and moved to Out of scope with its reason, never settled on the route.
-   - A ticket the answer invalidates is edited or deleted.
-
-   Done when no question is both a ticket and a line of fog.
-7. **Stop, having settled one.** The route is **mapped** when the map has no open tickets and an empty Fog section. If it is not mapped, name the tickets now on the frontier by title and stop. If it is, say so, and when the destination is a spec or a plan to build, ask the person to run `/to-spec` in this same conversation, since it writes from the conversation held and the map is loaded here. A destination that was only a decision to lock ends here.
+Where the person is the source of the answer, ask and wait. Never reply on their behalf. A task ticket exists only because a decision is blocked until it is done. These four skills are the only ones this skill calls.

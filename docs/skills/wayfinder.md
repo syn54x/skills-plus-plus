@@ -61,8 +61,10 @@ No. A chart session writes the map and its tickets, settles none, and stops. Eve
 
 ## It's working if
 
-- You agreed on the destination before the first ticket was filed.
-- Every open ticket is phrased as a question, and none says "build the X".
-- The tracker shows you which tickets can start now, without opening the map.
-- Each session ends after one ticket: the answer is a comment on it, the ticket is closed, and the map has one new entry under Settled.
-- The Fog section shrinks, and no question is both a ticket and a line of fog.
+Watch one wayfinder session from outside and you should see:
+
+- Only issues change. The repo has no new commits or branches from the session, and the diff is empty.
+- On a work session, one child issue gains the `claimed` label first, then an answer comment, then closes. The map issue gains exactly one entry under Settled.
+- A second session on the same map picks a different ticket and does not ask you again what the first one settled.
+- After a ticket closes, you cannot find the same question under Fog and in an open ticket at once.
+- The last message of a finished map names `/to-spec`. A map with tickets left names the ones that can start next instead.

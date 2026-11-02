@@ -1,44 +1,62 @@
 # Logic prototype
 
-One HTML page that lets a person push a state model through real cases by clicking. It suits questions about transitions, data shape or an API's feel: models that read fine on paper and only feel wrong once someone presses the buttons. Because it is a single file with nothing to install, it can go to a designer, a product owner or a domain expert, so it speaks their language and not the code's.
+A logic prototype is one HTML file that makes a rule tangible. You build it for questions the whiteboard cannot settle, where only pressing buttons shows whether the rule holds. Anyone can open it, including people who never read code, so its labels use the vocabulary of the people who will judge it.
 
-For a question about appearance, use [`UI.md`](UI.md).
+Running example: the epic board shows each Sub-issue's latest note. The question is "when two workers post a note in the same second, which one does the board call latest?"
 
-## The module comes first
+## Write the rule before the page
 
-Write the logic as a small pure module in one `<script>` block, before any page exists. It answers the question, and it is the one part worth keeping. Choose its form by what the question asks:
+Put the rule in a `<script>` block as plain functions, and make the block usable with no page around it. For the example:
 
-| The question asks | Form |
+```js
+// Notes carry { at, worker, text }. Returns the note the board should show.
+function latestNote(notes) { /* the rule under test */ }
+```
+
+Choose the smallest shape that holds the rule:
+
+1. A single function over plain data, when the answer depends only on its input (as `latestNote` does).
+2. A reducer, `(state, event) => state`, once events accumulate and order matters.
+3. A table of states and allowed transitions, when whether an event is allowed at a given point is itself what you are testing.
+4. An object with a few methods, only when it must remember things between calls.
+
+The module may not mention `document`, handlers or timers. The page calls the module and never the reverse. If this rule survives the verdict, the module moves into the real code, so keeping it clean costs little now and pays then.
+
+Done when the module runs from a console with no page loaded.
+
+## Build the page around it
+
+Inline everything in one file, with no installs or build. Label every control in the domain's words ("Worker B posts", "Clock ticks to next second") instead of the module's.
+
+A layout that works for the example:
+
+```text
+Question: which note is "latest" when two arrive in the same second?
+-------------------------------------------------------------------
+State          notes so far (worker, time, text), and the one the
+               rule picks as latest, highlighted
+Actions        [Worker A posts] [Worker B posts] [Next second] [Reset]
+Walkthroughs   tabs: "Same-second tie" | "Out-of-order arrival" | "Empty list"
+               each tab: setup in a sentence, then its steps as buttons
+```
+
+Three habits make it trustworthy:
+
+- Redraw the whole state after every click and mark what changed.
+- Keep every action enabled. When the rule refuses one, show the refusal rather than disabling the button.
+- Start each walkthrough tab from a fixed state, so it plays identically every time.
+
+Pick walkthroughs for cases that are hard to simulate in your head: the normal case, an awkward ordering, and something the rule should reject.
+
+Done when each walkthrough runs from a fresh load and each action visibly changes the state panel.
+
+## Signs you are no longer prototyping
+
+| You catch yourself | Do this instead |
 | --- | --- |
-| What a sequence of events does to a value | A reducer, `(state, event) => state` |
-| Which events are legal right now | An explicit machine: states and the transitions between them |
-| How one data shape converts into another | A few pure functions over plain data |
-| How something with long-lived internal state behaves | A module with a small method surface |
-
-Pick the form the question needs, not the form that is quickest to hook to the page. The module never touches `document` or a handler. The page calls it, and nothing calls back the other way, which is what lets the validated module move into the real code unchanged.
-
-Done when the module runs in a console with no page loaded.
-
-## The page
-
-Plain HTML, CSS and JavaScript, all inline, with no frameworks, build step or server. Write every label in the domain's words ("Rider cancels", "Refund clears") and never the module's ("DISPATCH_CANCEL"). From the top of the page down:
-
-1. The question, with one line saying what the page lets you explore.
-2. The current state, as labelled fields rather than raw JSON, redrawn after every action, with what just changed called out.
-3. One button for each action, always enabled, so anyone can try events in any order. An action the model forbids still has its button, and the page shows the refusal.
-4. Scenarios, one per tab. A tab gives the setup and the thing to look for in a sentence or two, then lists its steps as buttons to press in order. Opening a tab resets to a known starting state, so a scenario plays the same each time.
-
-Choose scenarios for the cases that are hard on paper: the ordinary path, an awkward interleaving, and an attempt at something that must be refused.
-
-Style it plainly: readable type, room to breathe, one accent colour, no motion.
-
-Done when each scenario runs end to end from a fresh load and every action's result shows in the state panel.
-
-## What to leave out
-
-- Tests. A prototype that needs them has stopped being one.
-- A real database. Use memory unless persistence is the question.
-- Generality. Handle the case in the question and no other.
-- Page code inside the module. The first `document` reference makes the module impossible to lift out.
-- A framework or dev server. The page should open by double-click.
-- The page in production. Only the module behind it is worth carrying over.
+| Writing a test for the page | Delete it; the person's reaction is the test |
+| Reading from the real database or API | Seed the example data in the page |
+| Adding a case the question did not ask about | Note it for a second prototype |
+| Reaching for `document` inside the module | Move that line into the page |
+| Installing a framework or starting a dev server | Go back to one file |
+| Thinking of shipping the page | Ship the module's decision, not the page |

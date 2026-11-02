@@ -1,51 +1,42 @@
 # UI prototype
 
-Several structurally different versions of one screen, shown on a single route and switched with a floating bar. The person flips between them, then keeps one or takes pieces from each. It suits questions about layout, hierarchy and which control leads.
+UI variants put several answers to one layout question in front of a person at once, on a single route, so they can compare by switching. They suit questions about arrangement and emphasis. Behaviour questions belong in [`LOGIC.md`](LOGIC.md).
 
-For a question about behaviour or state, use [`LOGIC.md`](LOGIC.md).
+Running example: how should one Sub-issue row on the epic board arrange its state chip, its latest note and its worker?
 
-## Host the variants in the real page
+## Put the variants in a populated page
 
-A variant judged alone always looks fine. Judged among the real header, navigation, data and density, it shows its faults. So host the variants where the screen would live:
+A variant looks acceptable alone and fails among real neighbours, so mount the variants in a page that already has its navigation, data and density.
 
-| Case | Where the variants go |
-| --- | --- |
-| The page exists, or the screen would be a section, card or step inside an existing page | On that route, below its existing data loading. Only the rendered part changes per variant. |
-| Nothing nearby could hold the screen (a new top-level surface) | A new route that follows the project's routing convention and has `prototype` in its path. |
+- If the screen would live inside an existing page (the board, here), render the variants there, below the page's own data loading. Only the part that differs changes per variant.
+- Create a new route only when nothing could host the screen. Follow the project's routing convention and put `prototype` in the path.
 
-Before choosing the second row, look for a page that could hold the screen; an empty route hides problems a full one would show.
+Before taking the second option, name the page you considered and why it cannot hold the screen.
 
-## Plan, then draw
+## Draw variants that disagree
 
-Default to three variants and stop at five, since more than that blurs together. Write the plan as one line in the file that hosts them:
+Write the plan in one line where the variants live, for example: "Three layouts for a board row, selected with `?variant=`."
 
-> Four variants of the invoice list, on the existing `/invoices` route, picked with `?variant=`.
+Use three variants by default and never more than five. Each one is its own component (`RowTable`, `RowTimeline`, `RowStack`) that reads the same data.
 
-Variants must differ in structure: layout, information hierarchy, the primary control. Three card grids with different colours are one idea shown three times. When two drafts come out alike, redraw one with a stated ban on the shared structure ("no card grid").
+The test for "different enough": hide each variant's name and look only at how it arranges things. If two cannot be told apart, they are one idea; discard one and draw a new one that deliberately breaks the first's arrangement. For the example, a dense table, a vertical timeline of notes and a stacked card per worker are three ideas, while a table in three colour schemes is one.
 
-Give each variant its own exported component, `VariantA`, `VariantB`, and so on, built with the project's own component library and styling. Share small parts (a header) and never the layout, since the layout is what varies. Variants read data and never write it; where one needs to change something, point it at a stub.
+Share small helpers freely and never the layout. Variants only read data. Where a variant needs something to change, wire it to a stub.
 
-Done when each pair of variants differs in its layout or its primary control, and each renders the real data.
+Done when the variants differ in arrangement or in what they lead with, and every one renders live data.
 
-## Wire the switcher
+## Add the switcher
 
-Read `variant` from the URL's search params, default to `A`, and render the matching component. Put a single shared switcher component on the route:
+One shared component, mounted once on the route:
 
-- A bar fixed to the bottom centre with previous and next arrows and the current key and name, such as `B (Sidebar layout)`. Both arrows wrap.
-- An arrow click updates the search param through the project's router, so the choice survives a reload and can be shared.
-- Left and right arrow keys do the same, except while an input, textarea or editable element has focus.
-- Styled to look unlike the page under test, so nobody takes it for part of the design.
-- Rendered only outside production, checked with whatever the project uses for that, so a stray merge cannot put the bar in front of users.
+- Render it only outside production, using whatever check the project already has, so a forgotten merge cannot show it to users.
+- Keep the active variant in the URL's `variant` search param, set through the project's router, so reloads and shared links land on the same variant. Default to the first.
+- Show previous and next controls (both wrap) and the active variant's name, in a bar fixed at the bottom of the viewport.
+- Also bind the left and right arrow keys, except while a text field or editable element has focus.
+- Style the bar so it cannot be mistaken for the design under test.
 
-Done when the URL with `?variant=B` opens variant B after a reload, and the bar is absent from a production build.
+Done when `?variant=<second>` survives a reload and a production build has no bar.
 
 ## After the verdict
 
-The winner is folded into the real page on the real branch, rewritten to the project's standards: it was written without tests or error handling. The other variants and the switcher stay on the throwaway branch as the record of what was tried, and are not carried across.
-
-## What to leave out
-
-- Variants that restyle one layout.
-- A shared layout component, which defeats the comparison.
-- Real mutations behind any variant.
-- Promoting prototype code as it stands.
+Fold the winning variant into the real component on the real branch, rewritten to the project's standards because the draft had no tests or error handling. Losing variants and the switcher stay on the throwaway branch as the record of what was weighed. Do not copy prototype code across as it stands.
