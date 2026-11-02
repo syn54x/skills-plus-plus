@@ -102,9 +102,10 @@ describe("edge cases", () => {
     assert.match(r.stderr, /Verify not run on HEAD of sdd\/12-x/);
   });
 
-  test("stop_hook_active lets the second stop through, so the gate never loops", () => {
+  test("a second stop (stop_hook_active) on an unverified HEAD is blocked too", () => {
     const repo = gitRepo("sdd/12-x");
     const r = runSpp(["verify", "--check"], JSON.stringify({ hook_event_name: "SubagentStop", cwd: repo, stop_hook_active: true }), repo);
-    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /Verify not run on HEAD/);
   });
 });
