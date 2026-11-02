@@ -1,0 +1,13 @@
+{
+  "issue view 197 --json body,labels,subIssuesSummary": {
+    "stdout": {
+      "body": "## Problem Statement\n\nbig",
+      "labels": [],
+      "subIssuesSummary": {
+        "total": 33,
+        "completed": 0,
+        "percentCompleted": 0
+      }
+    }
+  }
+}

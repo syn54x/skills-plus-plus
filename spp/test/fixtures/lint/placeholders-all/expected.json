@@ -1,0 +1,21 @@
+{
+  "ok": false,
+  "failures": [
+    {
+      "rule": "no-placeholder",
+      "detail": "What to build contains a lone ?"
+    },
+    {
+      "rule": "no-placeholder",
+      "detail": "What to build contains similar to ticket"
+    },
+    {
+      "rule": "no-placeholder",
+      "detail": "What to build contains add appropriate"
+    },
+    {
+      "rule": "no-placeholder",
+      "detail": "Acceptance criteria contains TODO"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "failures": [
+    {
+      "rule": "scenario-shape",
+      "detail": "needs Happy path, Edge case, Error path or Integration, and \"→\": Error path: a missing argument exits 2."
+    }
+  ]
+}
