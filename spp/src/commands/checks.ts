@@ -53,6 +53,12 @@ export async function readChecks(target: string): Promise<Checks> {
   return { result: result(runs), runs };
 }
 
+// The runs behind a fail or pending result, by name: the failing ones, else the pending ones.
+export function culprits(c: Checks): string[] {
+  const hit = (b: string) => (c.result === "fail" ? b === "fail" || b === "cancel" : c.result === "pending" && b === "pending");
+  return c.runs.filter((r) => hit(r.bucket)).map((r) => r.name);
+}
+
 export async function run(args: string[]): Promise<number> {
   const rest = args.filter((a) => a !== "--json");
   if (rest.length !== 1) {
@@ -60,8 +66,7 @@ export async function run(args: string[]): Promise<number> {
     return 2;
   }
   const c = await readChecks(rest[0]);
-  const named = c.runs.filter((r) => (c.result === "fail" ? r.bucket === "fail" || r.bucket === "cancel" : r.bucket === "pending")).map((r) => r.name);
-  const text = c.result === "fail" || c.result === "pending" ? `${c.result}: ${named.join(", ")}` : c.result;
+  const text = c.result === "fail" || c.result === "pending" ? `${c.result}: ${culprits(c).join(", ")}` : c.result;
   process.stdout.write(args.includes("--json") ? JSON.stringify(c, null, 2) + "\n" : text + "\n");
   return 0;
 }
