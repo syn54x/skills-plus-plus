@@ -3,8 +3,9 @@ import type { Pr, Snapshot, SnapshotIssue } from "./snapshot.ts";
 
 /**
  * Where a Sub-issue stands, the first that fits: `merged` (the issue is closed), `handed-back` (unheld, with a route
- * label), `pr-open`, `gate-pass` or `gate-fail` (an open pull request, by the slice gate's verdict on its current
- * head), `claimed` (held by the Claim mark or an assignee), `blocked` (an open blocker), `not-agent` (no
+ * label; `blocked` beside `ready-for-agent` is not one, since that route waits on its blocked-by edge), `pr-open`,
+ * `gate-pass` or `gate-fail` (an open pull request, by the slice gate's verdict on its current head), `claimed` (held
+ * by the Claim mark or an assignee), `blocked` (an open blocker whose pull request has not merged), `not-agent` (no
  * `ready-for-agent` label), else `ready`.
  */
 export type TicketState = "blocked" | "ready" | "claimed" | "pr-open" | "gate-pass" | "gate-fail" | "merged" | "handed-back" | "not-agent";
@@ -25,7 +26,7 @@ export type Ticket = {
   state: TicketState;
   /** The Layer: one above its highest open blocker inside the Epic, 0 with none; null when caught in a cycle. */
   layer: number | null;
-  /** URLs of open blockers. */
+  /** URLs of open blockers, leaving out one whose pull request merged while its issue stays open. */
   blockedBy: string[];
   /** Whether it carries the Claim mark (the `claimed` label); an assignee also holds a ticket. */
   claimed: boolean;
@@ -91,7 +92,10 @@ function stateOf(i: SnapshotIssue, blockedBy: string[], pr: Pr | null): TicketSt
   if (i.state === "CLOSED") return "merged";
   const held = i.labels.includes("claimed") || i.assignees.length > 0;
   // A Hand-back clears the claim and may leave its pull request open; the route label wins over that pull request.
-  if (!held && i.labels.some((l) => HANDED_BACK.includes(l))) return "handed-back";
+  // `blocked` with `ready-for-agent` kept is the named-blocker route: its blocked-by edge holds it, and it is ready
+  // again once that blocker is done. Only the unnamed-blocker route, which removes `ready-for-agent`, stays handed back.
+  const routed = i.labels.filter((l) => HANDED_BACK.includes(l) && !(l === "blocked" && i.labels.includes("ready-for-agent")));
+  if (!held && routed.length) return "handed-back";
   if (pr?.state === "OPEN") return gateOf(pr);
   if (held) return "claimed";
   if (blockedBy.length) return "blocked";
@@ -100,8 +104,10 @@ function stateOf(i: SnapshotIssue, blockedBy: string[], pr: Pr | null): TicketSt
 }
 
 export function derive(s: Snapshot): EpicState {
+  // A pull request merged into the integration branch closes nothing, so its issue may stay open; it no longer blocks.
+  const landed = new Set(s.issues.filter((i) => i.prs.some((p) => p.state === "MERGED")).map((i) => i.url));
   const tickets: Ticket[] = s.issues.map((i) => {
-    const blockedBy = i.blockedBy.filter((b) => b.open).map((b) => b.url);
+    const blockedBy = i.blockedBy.filter((b) => b.open && !landed.has(b.url)).map((b) => b.url);
     const pr = pickPr(i.prs);
     const size = i.labels.find((l) => /^size:[SML]$/.test(l))?.slice(5) as Ticket["size"] | undefined;
     return {

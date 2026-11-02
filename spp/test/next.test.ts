@@ -307,6 +307,33 @@ describe("edge cases", () => {
   });
 });
 
+describe("hand-backs and merged blockers (F5, F6 on #267)", () => {
+  const stateOf = async (tickets: Spec[], n: number) =>
+    ((await runCase("status", scratch(tickets))).json as { tickets: { number: number; state: string }[] }).tickets.find((t) => t.number === n)?.state;
+
+  test("a hand-back with --blocked-by whose blocker closed is ready again: dispatch", async () => {
+    const tickets: Spec[] = [merged(11), { n: 12, labels: [...READY, "blocked"], blockedBy: [11] }];
+    const actions = await next(tickets);
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["12"]]]);
+    assert.equal(await stateOf(tickets, 12), "ready");
+  });
+
+  test("a hand-back with --blocked-by whose blocker is still open is blocked, not handed back", async () => {
+    assert.equal(await stateOf([{ n: 11 }, { n: 12, labels: [...READY, "blocked"], blockedBy: [11] }], 12), "blocked");
+  });
+
+  test("an unnamed-blocker hand-back (blocked, no ready-for-agent) stays handed back", async () => {
+    assert.equal(await stateOf([{ n: 12, labels: ["size:S", "blocked"] }], 12), "handed-back");
+  });
+
+  test("a blocker whose pull request merged while its issue stays open no longer blocks: dispatch", async () => {
+    const tickets: Spec[] = [{ n: 11, labels: [...READY, "claimed"], pr: { n: 111, state: "MERGED" } }, { n: 12, blockedBy: [11] }];
+    const actions = await next(tickets);
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["12"]]]);
+    assert.equal(await stateOf(tickets, 12), "ready");
+  });
+});
+
 describe("error paths", () => {
   test("open tickets, none ready, none claimed: stuck with the missing label in reason", async () => {
     const actions = await next([{ n: 12, labels: ["size:S"] }]);
