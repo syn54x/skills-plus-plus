@@ -13,10 +13,12 @@ const PLAN = `<!-- sdd-plan -->\n<!-- sdd-data: ${Buffer.from(JSON.stringify({ b
 type Write = { cmd: string; argv: string[] };
 
 // A case for `spp dispatch 12 <args>`: ticket 12 of Epic 197 in acme/app, held when `labels` says so.
-function scratch(args: string[], labels: string[] = ["ready-for-agent"]): string {
+function scratch(args: string[], labels: string[] = ["ready-for-agent"], assignees: string[] = []): string {
   const dir = mkdtempSync(join(tmpdir(), "spp-dispatch-"));
   const gh = {
-    "issue view 12 --json url,labels,assignees": { stdout: { url: ISSUE + 12, labels: labels.map((name) => ({ name })), assignees: [] } },
+    "issue view 12 --json url,labels,assignees": {
+      stdout: { url: ISSUE + 12, labels: labels.map((name) => ({ name })), assignees: assignees.map((login) => ({ login })) },
+    },
     "issue view 12 --json number,title,url,body,parent": {
       stdout: { number: 12, title: "Invoice endpoint", url: ISSUE + 12, body: "## What to build\n\nAn endpoint.\n", parent: { url: ISSUE + 197 } },
     },
@@ -63,6 +65,26 @@ describe("edge cases", () => {
     assert.equal(r.code, 1);
     assert.match(r.stderr, /#12 is held/);
     assert.deepEqual(r.writes, []);
+  });
+
+  // F23 on #267.
+  test("ticket 12 held only by an assignee: refuses naming the assignee, no claude call", async () => {
+    const r = await runCase("dispatch", scratch(["--driver", "bg"], ["ready-for-agent"], ["alice"]));
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /#12 is held \(alice\)/);
+    assert.deepEqual(r.writes, []);
+  });
+});
+
+describe("error paths: claude", () => {
+  // F23 on #267: a failed spawn records no worker, so the ticket stays dispatchable.
+  test("a failing claude --bg spawn exits 1 with claude's reason and writes no progress comment", async () => {
+    const dir = scratch(["--driver", "bg"]);
+    writeFileSync(join(dir, "agents.json"), JSON.stringify({ "--bg --worktree sdd-12 --name t-12 *": { stderr: "claude: not logged in\n", code: 1 } }));
+    const r = await runCase("dispatch", dir);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /^spp dispatch: claude --bg failed: claude: not logged in$/m);
+    assert.deepEqual((r.writes as Write[]).map((w) => w.cmd), ["claude"]);
   });
 });
 
