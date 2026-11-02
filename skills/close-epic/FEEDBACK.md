@@ -29,7 +29,7 @@ Build the body from this template and nothing else. Each field is a number, a va
 <!-- spp-feedback/1 -->
 **Skill:** harden step 3
 **Category:** verify-unrunnable
-**Observed:** 2 of 7 Sub-issues needed their Verify block rewritten; it caused 1 fix round.
+**Observed:** 2 of 7 Sub-issues needed their Verify block rewritten, which caused 1 fix round.
 **Retro counts:** Sub-issues 7 · fix rounds 3 · by cause: told 4, not told 1, untagged 0 · hand-backs 1 · panel 2 rounds, 5 findings · ponytail did not run
 **Harness:** <harness name and version> · gh <version>
 **Proposed change:** add a check
@@ -81,12 +81,14 @@ spp feedback check "$BODY_FILE" --title-file "$TITLE_FILE"
 
 One hit stops that issue. Fix the body by rebuilding it from the template, never by deleting the offending words, and run the check again; it never rewrites the body itself. The rules:
 
-1. **URLs.** None, except under `attributed`, where an issue or pull request URL inside the person's own repo passes.
-2. **Names.** No owner, org or repo name, and no `owner/repo` string, from this Epic or its Sub-issues. Under `attributed`, the person's own `owner/repo` and the bare repo name pass; the bare owner name still does not.
-3. **Paths.** No token naming a file or directory that `git ls-files` lists.
-4. **Code.** No fenced block and no line that reads as code: one ending in `;`, containing `{` or `=>`, or starting with `import `, `def ` or `func `.
+1. **URLs.** None, except under `attributed`, where an issue or pull request URL inside the person's own repo passes. A URL counts with or without its scheme: `www.` hosts and `domain.tld/path` are URLs too.
+2. **Names.** No owner, org or repo name, and no `owner/repo` string, from this Epic or its Sub-issues. Under `attributed`, the person's own `owner/repo` and the bare repo name pass; the bare owner name still does not. Short names count, matched as whole words in any case.
+3. **Paths.** No token naming a file or directory that `git ls-files` lists, wherever it sits in the token (`path#L10`, `path@main`, `file=path`, `a/path`, an absolute path ending in it). Any home path (`/home/<user>/`, `/Users/<user>/`, `~/`) is out as well.
+4. **Code.** No fenced block and no line that reads as code (`;`, `{`, `=>`, `import `, `def `, `func `).
 5. **Titles.** No run of four or more words copied from a Sub-issue or pull request title.
-6. **Error text.** No commit message (a conventional-commit subject line), stack trace, or line containing `Error`, `Traceback` or `exit code`.
+6. **Error text.** No commit message (a conventional-commit subject line), stack trace (JavaScript, Java, Python, Go, Rust, or any `file:line` frame), or line containing `error`, `fatal:`, `exception`, `traceback`, `panic` or `exit code`, in any case.
+
+The check errs toward blocking. A hit on an innocent line is cheaper than a leak, so rebuild the body from the template and run it again.
 
 ## Filing
 

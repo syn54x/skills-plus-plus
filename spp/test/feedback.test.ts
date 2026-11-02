@@ -17,7 +17,7 @@ const TEMPLATE = [
   "<!-- spp-feedback/1 -->",
   "**Skill:** harden step 3",
   "**Category:** verify-unrunnable",
-  "**Observed:** 2 of 7 Sub-issues needed their Verify block rewritten; it caused 1 fix round.",
+  "**Observed:** 2 of 7 Sub-issues needed their Verify block rewritten, which caused 1 fix round.",
   "**Retro counts:** Sub-issues 7 · fix rounds 3 · by cause: told 4, not told 1, untagged 0 · hand-backs 1 · panel 2 rounds, 5 findings · ponytail did not run",
   "**Harness:** claude-code 2.1.0 · gh 2.94.0",
   "**Proposed change:** add a check",
@@ -72,6 +72,25 @@ describe("rule 1: URLs", () => {
   });
 });
 
+describe("rule 1: URLs without an http scheme", () => {
+  const leaks = ["www.example.com/internal", "github.com/zz/secret/pull/3", "ftp://files.example/x", "ssh://host.example/repo", "//cdn.example.com/x", "see docs.example.org/a"];
+
+  test("a www host, a domain.tld/path, a scheme-relative URL and any other scheme:// are hits", () => {
+    assert.deepEqual(hit(leaks.join("\n")).filter((h) => h.startsWith("1@")), leaks.map((_, i) => `1@${i + 1}`));
+  });
+
+  test("under attributed, the own repo's issue and pull request URLs pass without a scheme, anything else does not", () => {
+    const pass = "github.com/acme/app/pull/12\nwww.github.com/acme/app/issues/3#issuecomment-9\nSee github.com/Acme/App/pull/4.";
+    assert.deepEqual(hit(pass, { profile: "attributed" }), []);
+    const blocked = "github.com/acme/app\ngithub.com/zz/app/pull/12\nxgithub.com/acme/app/pull/12\ngithub.com/acme/app/pull/12/files";
+    assert.deepEqual(hit(blocked, { profile: "attributed" }).filter((h) => h.startsWith("1@")), ["1@1", "1@2", "1@3", "1@4"]);
+  });
+
+  test("a file name and a tracked path are not URLs", () => {
+    assert.deepEqual(hit("see package.json and docs/guide.md"), []);
+  });
+});
+
 describe("rule 2: names", () => {
   test("under attributed, the own owner/repo and bare repo name pass; the bare owner name blocks on its own line", async () => {
     await assertCase("feedback", fixture("attributed"), 2);
@@ -88,9 +107,20 @@ describe("rule 2: names", () => {
     for (const profile of ["counts", "detailed", "attributed"] as const) assert.deepEqual(hit("calls api here\n", { profile, names }), ["2@1"]);
   });
 
-  test("a name inside a longer word is not a hit, and a name under 3 characters is skipped", () => {
+  test("a name inside a longer word is not a hit", () => {
     assert.deepEqual(hit("an application of the rule", { names: ["acme/app"] }), []);
-    assert.deepEqual(hit("ab and cd", { names: ["ab/cd"] }), []);
+  });
+
+  test("short names block too, as whole words in any case: hp blocks the hp team but not http", () => {
+    for (const profile of ["counts", "detailed", "attributed"] as const) {
+      assert.deepEqual(hit("the hp team", { profile, ownRepo: "hp/printer" }), ["2@1"]);
+      assert.deepEqual(hit("the HP team\nab and cd", { profile, ownRepo: "hp/printer", names: ["ab/cd"] }), ["2@1", "2@2"]);
+    }
+    assert.deepEqual(hit("we use http", { ownRepo: "hp/printer" }), []);
+  });
+
+  test("a name glued to another word by a dash still blocks", () => {
+    assert.deepEqual(hit("the acme-corp team"), ["2@1"]);
   });
 
   test("matching ignores case", () => {
@@ -117,6 +147,32 @@ describe("rule 3: paths", () => {
   test("a plain word that names a directory, and an untracked path, pass", () => {
     assert.deepEqual(hit("the skills are fine\nsee docs/other.md", { paths }), []);
   });
+
+  test("a tracked path inside a longer token is a hit: anchors, refs, key=value, diff prefixes, absolute and Windows paths", () => {
+    const tracked = ["src/billing/invoice.ts", "lib/core.py"];
+    const leaks = [
+      "src/billing/invoice.ts#L10",
+      "/home/taylor/work/repo/src/billing/invoice.ts",
+      "--- a/src/billing/invoice.ts",
+      "+++ b/lib/core.py",
+      "src/billing/invoice.ts@main",
+      "file=lib/core.py",
+      "file:lib/core.py",
+      "C:\\work\\repo\\src\\billing\\invoice.ts",
+      "https://x.example/blob/main/lib/core.py?plain=1",
+    ];
+    assert.deepEqual(hit(leaks.join("\n"), { paths: tracked }).filter((h) => h.startsWith("3@")), leaks.map((_, i) => `3@${i + 1}`));
+  });
+
+  test("a different path that merely shares a tail with a tracked one passes", () => {
+    const tracked = ["lib/core.py"];
+    assert.deepEqual(hit("xlib/core.py\nmy-lib/core.py", { paths: tracked }), []);
+  });
+
+  test("any home path is a hit even when nothing under it is tracked", () => {
+    const lines = ["/home/taylor/x", "/Users/taylor/Library", "~/notes", "C:\\Users\\taylor\\Desktop", "cd /Users/zz"];
+    assert.deepEqual(hit(lines.join("\n")).filter((h) => h.startsWith("3@")), lines.map((_, i) => `3@${i + 1}`));
+  });
 });
 
 describe("rule 4: code", () => {
@@ -130,8 +186,13 @@ describe("rule 4: code", () => {
     assert.deepEqual(hit(lines.join("\n")).filter((h) => h.startsWith("4@")), lines.map((_, i) => `4@${i + 1}`));
   });
 
-  test("prose with a mid-line semicolon, or the word import mid-line, is not code", () => {
-    assert.deepEqual(hit("it failed; the worker fixed it\nwe did not import it"), []);
+  test("a semicolon anywhere on a line reads as code, and so does shell or SQL with one", () => {
+    const lines = ["it failed; the worker fixed it", "cd build; make install", "for (i = 0; i < n; i++)", "DROP TABLE users; --"];
+    assert.deepEqual(hit(lines.join("\n")).filter((h) => h.startsWith("4@")), lines.map((_, i) => `4@${i + 1}`));
+  });
+
+  test("the word import mid-line is not code", () => {
+    assert.deepEqual(hit("we did not import it"), []);
   });
 });
 
@@ -160,8 +221,22 @@ describe("rule 6: error text", () => {
     assert.deepEqual(hit("    at run (file.js:10:5)\nfix(parser): handle the thing"), ["6@1", "6@2"]);
   });
 
-  test("a sentence about errors in lower case is not a hit", () => {
-    assert.deepEqual(hit("the step gave no errors"), []);
+  test("error, fatal: and exit code match in any case", () => {
+    const lines = ["error: pathspec did not match", "ERROR something", "fatal: not a git repository", "Exit Code 3", "the step gave no errors"];
+    assert.deepEqual(hit(lines.join("\n")), lines.map((_, i) => `6@${i + 1}`));
+  });
+
+  test("a Python, Go, Rust, Java or generic frame is a hit with no header line", () => {
+    const lines = [
+      '  File "/srv/app/lib/core.py", line 3, in <module>',
+      "\t/srv/app/main.go:12 +0x1d",
+      "goroutine 1 [running]:",
+      "thread 'main' panicked at src/main.rs:2:5",
+      "at com.x.Bar.run(Bar.java:10)",
+      "see main.rs:2:5",
+      "see util.c:77",
+    ];
+    assert.deepEqual(hit(lines.join("\n")).filter((h) => h.startsWith("6@")), lines.map((_, i) => `6@${i + 1}`));
   });
 });
 
@@ -169,6 +244,10 @@ describe("edge cases", () => {
   test("a body with three hits prints three lines and exits 2", async () => {
     const r = await assertCase("feedback", fixture("three-hits"), 2);
     assert.equal(r.stdout.trim().split("\n").length, 3);
+  });
+
+  test("an owner/repo line in the title file turns a body that names that repo into a rule 2 hit", async () => {
+    await assertCase("feedback", fixture("title-file-names"), 2);
   });
 
   test("one rule reports a line once, and hits come in line order", () => {
