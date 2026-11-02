@@ -18,7 +18,7 @@ Both shapes below share one running example, taken from `spp`'s own epic board. 
    | Appearance: arrangement, emphasis, what leads | UI variants | [`UI.md`](UI.md) |
 
    To tell them apart, ask what the person will argue about. Shown two same-second notes, they argue about which one wins, and the argument is the same however the row is drawn: logic. Shown a row, they argue about what catches the eye first, and the argument is the same whichever note won: UI. A question that starts both arguments is two questions. Build the one the person cares about now and name the other in the intro as left for later.
-3. **Branch first.** Create `prototype/<slug>` from the current branch before writing a line, and keep every change there. Put the prototype beside the code it questions and put `prototype` in its file or route name. It writes nothing unless storage is the question (where `spp` keeps notes, say), and then only to a scratch file or database whose name says it can be wiped.
+3. **Branch first.** Create `prototype/<slug>` from the current branch before writing a line, and keep every change there. Put the prototype beside the code it questions and put `prototype` in its file or route name. It writes nothing unless storage is the question (where `spp` keeps notes, say), and then only to a scratch file or database whose name says it can be wiped. Polish waits for the real code: write no tests and no abstractions, and catch an error only where the page would otherwise stop running.
 
 Done when the intro states the question, the shape is chosen, and the branch you left is untouched.
 

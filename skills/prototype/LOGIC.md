@@ -46,7 +46,7 @@ Three habits make it trustworthy:
 - Keep every action enabled. When the rule refuses one, show the refusal rather than disabling the button.
 - Start each walkthrough tab from a fixed state, so it plays identically every time.
 
-Pick walkthroughs for cases that are hard to simulate in your head: the normal case, an awkward ordering, and something the rule should reject.
+The sketch has three tabs because each is a case nobody settles by thinking about it: two notes stamped with the same second, a note that arrives after a newer one, and a Sub-issue with no notes, where `latestNote` has to show that nothing is latest.
 
 Done when each walkthrough runs from a fresh load and each action visibly changes the state panel.
 
