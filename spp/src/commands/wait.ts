@@ -8,7 +8,7 @@ import type { Session } from "../plan-next.ts";
 import { readSessions } from "./next.ts";
 import { fetchState } from "./status.ts";
 
-const USAGE = `usage: spp wait <epic number | issue URL> [--interval SECONDS]
+export const USAGE = `usage: spp wait <epic number | issue URL> [--interval SECONDS]
 Exits 0 with one line per change: a ticket's state ("#12 claimed -> pr-open") or a worker that stopped working
 ("t-12 done"). The interval defaults to 30 seconds.
 `;

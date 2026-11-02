@@ -4,7 +4,7 @@ import { runGh } from "../gh.ts";
 import { find, guarded, type Issue, parseIssue, UsageError } from "../markers.ts";
 import { readRouting, type Routing } from "../routing.ts";
 
-const USAGE = "usage: spp preflight <epic number | issue URL> [--json]\n";
+export const USAGE = "usage: spp preflight <epic number | issue URL> [--json]\n";
 const MIN_GH = [2, 94];
 
 export class Failure extends Error {

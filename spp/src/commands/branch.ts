@@ -5,7 +5,7 @@ import { runGh } from "../gh.ts";
 import { find, flagPairs, guarded, parseIssue, readTrailer, UsageError } from "../markers.ts";
 import { run as plan } from "./plan.ts";
 
-const USAGE = `usage: spp branch <epic number | issue URL> [--from <base>]
+export const USAGE = `usage: spp branch <epic number | issue URL> [--from <base>]
 Creates feat/<slug> from origin/<base> (default main), pushes it and records it with spp plan --branch.
 If the branch exists, switches to it; the plan is written only when it does not already name the branch.
 `;

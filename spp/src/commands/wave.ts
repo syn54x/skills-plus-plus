@@ -6,7 +6,7 @@ import { type Data, flagPairs, guarded, parseIssue, print, updateMarker, UsageEr
 import { parseSnapshot, SNAPSHOT_QUERY } from "../snapshot.ts";
 import { parseTicket } from "../ticket.ts";
 
-const USAGE = `usage: spp wave plan <epic> [--max N] [--json]
+export const USAGE = `usage: spp wave plan <epic> [--max N] [--json]
        spp wave <epic> add  --n N --tickets 101,owner/repo#7 --workers w1,w2 --started ISO8601
                              --edges "104<103,owner/repo#7<101" | --edges none
        spp wave <epic> pr    --ticket 101|owner/repo#7 --pr URL|#n

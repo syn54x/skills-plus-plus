@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { mergeFindings, panelVerdict, parsePersonaFindings, type MergeResult, type Readings } from "../findings.ts";
 import { guarded, UsageError } from "../markers.ts";
 
-const USAGE = `usage: spp findings merge <file...> [--json]
+export const USAGE = `usage: spp findings merge <file...> [--json]
          [--verdict <round> --spec pass|fail --coherence pass|fail --verify pass|fail
           --checks pass|fail|pending|none [--missing name,name]]
 Each file is { "persona": NAME, "findings": [{ file, line, title, severity, confidence, law?, body }] }.

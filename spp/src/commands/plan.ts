@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { type Data, flagPairs, guarded, print, updateMarker, UsageError } from "../markers.ts";
 
-const USAGE = `usage: spp plan <epic> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d]
+export const USAGE = `usage: spp plan <epic> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d]
                        [--narrowed TEXT]... | [--narrowed none] [--add-deviation TEXT] [--table-file FILE]
 --narrowed replaces the stored list with every --narrowed of the call, --narrowed none clears it, and a
 call without --narrowed keeps it; --add-deviation appends.

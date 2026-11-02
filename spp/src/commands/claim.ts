@@ -2,7 +2,7 @@
 import { runGh } from "../gh.ts";
 import { guarded, parseIssue, UsageError } from "../markers.ts";
 
-const USAGE = "usage: spp claim <issue>\n<issue> is an issue number in the current repo or a GitHub issue URL.\n";
+export const USAGE = "usage: spp claim <issue>\n<issue> is an issue number in the current repo or a GitHub issue URL.\n";
 
 export function run(args: string[]): Promise<number> {
   return guarded(() => "claim", USAGE, async () => {

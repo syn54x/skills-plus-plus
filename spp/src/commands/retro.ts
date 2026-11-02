@@ -18,7 +18,7 @@ import { GhError, runGh } from "../gh.ts";
 import { guarded, parseIssue, readTrailer, UsageError } from "../markers.ts";
 import { parseSnapshot, SNAPSHOT_QUERY, type Snapshot } from "../snapshot.ts";
 
-const USAGE = `usage: spp retro <epic number | issue URL> [--json]
+export const USAGE = `usage: spp retro <epic number | issue URL> [--json]
 Prints the Epic's retro numbers from GitHub: findings by Law tag and by ticket, fix rounds, hand-backs,
 the panel's rounds and findings, and ponytail's hits, unique hits and overlap. A number whose input is missing
 reads "not found" (and, for the others, is named on stderr), never 0.

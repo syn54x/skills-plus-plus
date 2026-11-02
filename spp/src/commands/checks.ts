@@ -2,7 +2,7 @@
 // The bucket is the reading, never gh's exit code. Pending is never pass.
 import { GhError, runGh } from "../gh.ts";
 
-const USAGE = "usage: spp checks <pr number | pr URL | commit sha> [--json]\n";
+export const USAGE = "usage: spp checks <pr number | pr URL | commit sha> [--json]\n";
 
 export type CheckRun = { name: string; bucket: string };
 export type Checks = { result: "pass" | "fail" | "pending" | "none"; runs: CheckRun[] };

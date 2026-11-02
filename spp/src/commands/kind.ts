@@ -2,7 +2,7 @@
 import { runGh } from "../gh.ts";
 import { isIssueRef, lintTicket } from "../ticket.ts";
 
-const USAGE = "usage: spp kind <issue number | issue URL> [--json]\n";
+export const USAGE = "usage: spp kind <issue number | issue URL> [--json]\n";
 
 export async function run(args: string[]): Promise<number> {
   const rest = args.filter((a) => a !== "--json");

@@ -5,7 +5,7 @@ import { runGh } from "../gh.ts";
 import { flagPairs, guarded, parseIssue, print, TrailerError, UsageError } from "../markers.ts";
 import { saveProgress } from "./progress.ts";
 
-const USAGE = `usage: spp hand-back <issue> needs-info|ready-for-human|blocked --reason TEXT [--blocked-by <issue>]
+export const USAGE = `usage: spp hand-back <issue> needs-info|ready-for-human|blocked --reason TEXT [--blocked-by <issue>]
 --blocked-by goes only with the blocked route, where it adds the blocked-by edge and keeps ready-for-agent;
 every other hand-back, blocked without --blocked-by included, removes ready-for-agent.
 `;

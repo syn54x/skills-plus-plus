@@ -2,7 +2,7 @@
 // into the Sub-issue's progress comment and rewrites it in place.
 import { type Data, flagPairs, guarded, print, updateMarker, UsageError } from "../markers.ts";
 
-const USAGE = `usage: spp progress <issue> [--status in-progress|pr-open|verify-passed|changes-requested|handed-back]
+export const USAGE = `usage: spp progress <issue> [--status in-progress|pr-open|verify-passed|changes-requested|handed-back]
                            [--worker TEXT] [--branch NAME] [--pr N|URL]
                            [--verify "not-run" | "passed <sha7>" | "failed <sha7>"] [--notes TEXT]
 <issue> is an issue number in the current repo or a GitHub issue URL. A field not passed keeps its value.

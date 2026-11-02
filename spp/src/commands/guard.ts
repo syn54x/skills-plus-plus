@@ -6,7 +6,7 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { enterHookCwd, gitOut, readHookInput } from "./verify.ts";
 
-const USAGE = "usage: spp guard worktree   (a PreToolUse hook on Bash: reads the hook payload on stdin)\n";
+export const USAGE = "usage: spp guard worktree   (a PreToolUse hook on Bash: reads the hook payload on stdin)\n";
 
 const WRITES_EVERY_OPERAND = new Set(["rm", "rmdir", "unlink", "touch", "mkdir", "mv", "tee", "truncate", "chmod", "chown"]);
 const WRITES_LAST_OPERAND = new Set(["cp", "ln", "install", "rsync"]);

@@ -8,7 +8,7 @@ import { readRouting } from "../routing.ts";
 import { CLOSING_KEYWORD, SNAPSHOT_QUERY, parseSnapshot } from "../snapshot.ts";
 import { culprits, readChecks } from "./checks.ts";
 
-const USAGE = "usage: spp merge <pr number | pr URL> [--json]\n";
+export const USAGE = "usage: spp merge <pr number | pr URL> [--json]\n";
 const ISSUE_URL = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/(?:issues|pull)\/(\d+)$/;
 
 type Result = { merged: boolean; reason?: string; interfacesChanged?: string };

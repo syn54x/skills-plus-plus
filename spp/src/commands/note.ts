@@ -8,7 +8,7 @@ import { saveProgress } from "./progress.ts";
 import { fetchState } from "./status.ts";
 import { enterHookCwd, gitOut, readHookInput } from "./verify.ts";
 
-const USAGE = `usage: spp note <issue> <text> [--milestone]
+export const USAGE = `usage: spp note <issue> <text> [--milestone]
        spp note --list <epic number | issue URL> [--json]
        spp note --auto
 <issue> is an issue number in the current repo or a GitHub issue URL. --milestone also writes the text into the

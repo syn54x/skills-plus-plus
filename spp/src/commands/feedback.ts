@@ -7,7 +7,7 @@ import { checkFeedback } from "../feedback.ts";
 import { runGh } from "../gh.ts";
 import { readRouting } from "../routing.ts";
 
-const USAGE = "usage: spp feedback check <body-file> [--title-file <file>]\n";
+export const USAGE = "usage: spp feedback check <body-file> [--title-file <file>]\n";
 const OWNER_REPO = /^[\w.-]+\/[\w.-]+$/;
 
 export async function run(args: string[]): Promise<number> {

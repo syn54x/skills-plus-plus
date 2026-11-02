@@ -5,7 +5,7 @@ import { runGh } from "../gh.ts";
 import { flagPairs, guarded, print, UsageError } from "../markers.ts";
 import { type Verdict, writeVerdict } from "../verdict.ts";
 
-const USAGE = `usage: spp verdict <pr number | pr URL> --ticket N --head SHA --spec pass|fail --quality pass|fail
+export const USAGE = `usage: spp verdict <pr number | pr URL> --ticket N --head SHA --spec pass|fail --quality pass|fail
 Writes the verdict comment while the pull request is still at SHA (7 to 40 hex characters); exits 3 when it moved.
 `;
 

@@ -8,7 +8,7 @@ import { find, flagPairs, guarded, parseIssue, readTrailer, UsageError } from ".
 import { readRouting } from "../routing.ts";
 import { slug } from "./branch.ts";
 
-const USAGE = `usage: spp brief <issue number | issue URL> [--out FILE]
+export const USAGE = `usage: spp brief <issue number | issue URL> [--out FILE]
 Writes the worker brief for the ticket (its body verbatim, the Laws sources, the branch mechanics, the report format)
 and prints the file's path. Without --out the file is a new one in the temp directory.
 `;

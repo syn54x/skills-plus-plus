@@ -7,7 +7,7 @@ import { existsSync } from "node:fs";
 import { runGh } from "../gh.ts";
 import { isIssueRef, parseTicket } from "../ticket.ts";
 
-const USAGE = `usage: spp verify <issue number | issue URL>
+export const USAGE = `usage: spp verify <issue number | issue URL>
        spp verify --check
 The first runs the ticket's Verify block and records the result on HEAD. --check exits 2 on an sdd/* branch whose
 HEAD has no passing record or whose tree is dirty; as a stop hook it reads the hook payload on stdin.

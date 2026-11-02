@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { guarded, print, upsertComment, UsageError } from "../markers.ts";
 
-const USAGE = "usage: spp upsert <issue> <marker> <body-file>\nThe body file's first line must be the marker; it is written verbatim, with no trailer.\n";
+export const USAGE = "usage: spp upsert <issue> <marker> <body-file>\nThe body file's first line must be the marker; it is written verbatim, with no trailer.\n";
 
 export function run(args: string[]): Promise<number> {
   return guarded(() => "upsert", USAGE, async () => {

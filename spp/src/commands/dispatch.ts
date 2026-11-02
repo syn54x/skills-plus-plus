@@ -8,7 +8,7 @@ import { flagPairs, guarded, parseIssue, UsageError } from "../markers.ts";
 import { run as brief } from "./brief.ts";
 import { saveProgress } from "./progress.ts";
 
-const USAGE = `usage: spp dispatch <issue number | issue URL> --driver bg|desktop|subagent
+export const USAGE = `usage: spp dispatch <issue number | issue URL> --driver bg|desktop|subagent
 Refuses a ticket that is held (the claimed label or an assignee). bg writes the brief, starts
 claude --bg --worktree sdd-<N> --name t-<N> on it and records t-<N> as the worker; desktop and subagent
 write the brief and print its path, because those drivers are harness tools the skill calls itself.

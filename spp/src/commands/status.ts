@@ -4,7 +4,7 @@ import { GhError, runGh } from "../gh.ts";
 import { attachNotes } from "../notes.ts";
 import { SNAPSHOT_QUERY, parseSnapshot } from "../snapshot.ts";
 
-const USAGE = "usage: spp status <epic number | issue URL> [--json]\n";
+export const USAGE = "usage: spp status <epic number | issue URL> [--json]\n";
 
 // The query variables for an Epic given as a number (the current repo, through gh's placeholders) or an issue URL.
 function variables(epic: string): string[] | null {

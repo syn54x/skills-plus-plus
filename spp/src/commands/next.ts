@@ -9,7 +9,7 @@ import { Failure, preflight } from "./preflight.ts";
 import { fetchState } from "./status.ts";
 import { wavePlan } from "./wave.ts";
 
-const USAGE = `usage: spp next <epic number | issue URL> [--json]
+export const USAGE = `usage: spp next <epic number | issue URL> [--json]
 Prints the next actions: preflight, branch, dispatch, gate, fix, hand-back, merge, wait, main-gate, close or stuck.
 `;
 
