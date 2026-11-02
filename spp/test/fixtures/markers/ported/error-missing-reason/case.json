@@ -1,0 +1,5 @@
+{
+  "command": "hand-back",
+  "code": 2,
+  "stderr": "spp hand-back: hand-back needs --reason"
+}

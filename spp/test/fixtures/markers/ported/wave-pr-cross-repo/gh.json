@@ -1,0 +1,5 @@
+{
+  "api repos/{owner}/{repo}/issues/200/comments --paginate --jq .[] | [.id, .body] | @json": {
+    "stdout": "[701,\"<!-- sdd-wave -->\\n(rendered)\\n<!-- sdd-data: eyJ3YXZlcyI6W3sibiI6MSwidGlja2V0cyI6WyIxMDEiLCJhY21lL2FwaSM3Il0sIndvcmtlcnMiOlsidzEiLCJ3MiJdLCJzdGFydGVkIjoiMjAyNi0xMC0yNVQwOTowMDowMFoiLCJlZGdlcyI6W1siYWNtZS9hcGkjNyIsIjEwMSJdXSwicHJzIjp7fX1dLCJwYW5lbCI6W119 -->\"]\n"
+  }
+}

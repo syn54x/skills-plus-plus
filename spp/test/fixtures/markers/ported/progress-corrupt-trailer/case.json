@@ -1,0 +1,5 @@
+{
+  "command": "progress",
+  "code": 1,
+  "stderr": "spp progress: <!-- sdd-progress --> on #103 has an sdd-data trailer that does not decode; refusing to overwrite it"
+}

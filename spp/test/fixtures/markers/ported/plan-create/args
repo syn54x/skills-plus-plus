@@ -1,0 +1,9 @@
+200
+--goal
+G
+--branch
+feat/x
+--table-file
+table.md
+--narrowed
+#104 lists invoices without pagination
