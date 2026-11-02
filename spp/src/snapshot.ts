@@ -14,26 +14,32 @@ export type SnapshotIssue = {
   assignees: string[];
   blockedBy: { url: string; open: boolean }[];
   prs: Pr[]; // linked: GitHub's closing references plus cross-referencing pull requests whose body closes the issue
+  progress: Record<string, unknown> | null; // the progress comment's data trailer; null without a readable one
 };
 
 export type Snapshot = {
   epic: { number: number; url: string; repo: string; title: string };
   issues: SnapshotIssue[];
+  plan: Record<string, unknown> | null; // the Epic's plan comment's data trailer; null without a readable one
 };
 
 // Variables: $owner, $repo, $number. GitHub caps an Epic at 100 Sub-issues, so one page holds them all.
 // Pull requests into an integration branch are not closing references, so they are found through cross-references.
 // shortcut: the last 50 cross-references only; raise it if a Sub-issue is ever referenced more often than that.
+// shortcut: Marker comments are looked for in the Epic's first 100 comments and a Sub-issue's first 50; both are
+// written early (the plan, the claim), so raise these only if one is ever missed.
 export const SNAPSHOT_QUERY = `query Snapshot($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       number url title repository { nameWithOwner }
+      comments(first: 100) { nodes { body } }
       subIssues(first: 100) {
         nodes {
           number url title state repository { nameWithOwner }
           labels(first: 50) { nodes { name } }
           assignees(first: 20) { nodes { login } }
           blockedBy(first: 50) { nodes { url state } }
+          comments(first: 50) { nodes { body } }
           closedByPullRequestsReferences(first: 20, includeClosedPrs: true) { nodes { ...pr } }
           timelineItems(last: 50, itemTypes: [CROSS_REFERENCED_EVENT]) {
             nodes { ... on CrossReferencedEvent { source { ... on PullRequest { ...pr body } } } }
@@ -58,11 +64,35 @@ type RawIssue = {
   blockedBy: Nodes<{ url: string; state: string }>;
   closedByPullRequestsReferences: Nodes<RawPr>;
   timelineItems: Nodes<{ source?: Partial<RawPr> }>;
+  comments?: Nodes<{ body: string }>;
 };
 type Response = {
   data?: { repository: { issue: (Omit<RawIssue, "state"> & { subIssues: Nodes<RawIssue> }) | null } | null };
   errors?: { message: string }[];
 };
+
+// The data trailer of a Marker comment body (ADR 0007): {} when it has none, null when one is there but does not
+// decode. Carriage returns are dropped; the last line that starts with `<!-- sdd-data:` once trimmed is the trailer,
+// and only trailing whitespace is tolerated on it. It lives here rather than in markers.ts so that this module and
+// derive import nothing from Node; markers.ts re-exports it.
+export function readTrailer(body: string): Record<string, unknown> | null {
+  const line = body.replace(/\r/g, "").split("\n").filter((l) => l.trim().startsWith("<!-- sdd-data:")).at(-1);
+  if (line === undefined) return {};
+  const m = /^<!-- sdd-data: ([A-Za-z0-9+/=]+) -->$/.exec(line.trimEnd());
+  if (!m) return null;
+  try {
+    const data: unknown = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(m[1]), (c) => c.charCodeAt(0))));
+    return data && typeof data === "object" && !Array.isArray(data) ? (data as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+// The trailer of the first comment that starts with the marker; null when there is none or it does not decode.
+function markerData(comments: Nodes<{ body: string }> | undefined, marker: string): Record<string, unknown> | null {
+  const c = comments?.nodes.find((n) => n.body.startsWith(marker));
+  return c ? readTrailer(c.body) : null;
+}
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -92,6 +122,7 @@ function issue(raw: RawIssue): SnapshotIssue {
     assignees: raw.assignees.nodes.map((a) => a.login),
     blockedBy: raw.blockedBy.nodes.map((b) => ({ url: b.url, open: b.state === "OPEN" })),
     prs: [...prs.values()],
+    progress: markerData(raw.comments, "<!-- sdd-progress -->"),
   };
 }
 
@@ -103,5 +134,6 @@ export function parseSnapshot(json: unknown): Snapshot {
   return {
     epic: { number: epic.number, url: epic.url, repo: epic.repository.nameWithOwner, title: epic.title },
     issues: epic.subIssues.nodes.map(issue),
+    plan: markerData(epic.comments, "<!-- sdd-plan -->"),
   };
 }
