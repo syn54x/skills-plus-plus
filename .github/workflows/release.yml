@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    name: Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Opens or updates the version pull request; once it merges, tags the release.
+      - uses: changesets/action@v1
+        with:
+          version: npm run version
+          publish: npx changeset tag
+          commit: "chore: version spp"
+          title: "chore: version spp"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

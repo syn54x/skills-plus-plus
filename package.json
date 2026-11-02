@@ -1,0 +1,30 @@
+{
+  "name": "@syn54x/spp",
+  "version": "2.0.0-next.0",
+  "private": true,
+  "description": "The spp command-line tool and Claude Code plugin: spec-driven delivery on GitHub Issues.",
+  "type": "module",
+  "bin": {
+    "spp": "bin/spp"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/syn54x/skills-plus-plus.git"
+  },
+  "homepage": "https://skills.x54.sh",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc --noEmit",
+    "changeset": "changeset",
+    "version": "changeset version && node scripts/sync-version.ts"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^3.0.3",
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2"
+  }
+}

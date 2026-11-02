@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main, next]
+
+jobs:
+  checks:
+    name: repo checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: typecheck
+        run: npm run typecheck
+      - name: tests
+        run: npm test
+      - name: skills stay inside the size budget
+        run: node scripts/check-size.ts
+      - name: invocation flags agree and no skill calls a user-invoked skill
+        run: node scripts/check-invocation.ts
+      - name: plugin.json version tracks package.json
+        run: node scripts/sync-version.ts --check
+      - name: plugin manifest validates
+        run: |
+          if npm install --global @anthropic-ai/claude-code >/dev/null 2>&1 && command -v claude >/dev/null; then
+            claude plugin validate .
+          else
+            echo "::notice::claude CLI not available in CI; skipped claude plugin validate"
+          fi
