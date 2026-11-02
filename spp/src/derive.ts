@@ -32,6 +32,9 @@ const STATES: TicketState[] = ["blocked", "ready", "claimed", "pr-open", "gate-p
 const HANDED_BACK = ["needs-info", "ready-for-human", "blocked"];
 const PR_RANK: Record<Pr["state"], number> = { OPEN: 0, MERGED: 1, CLOSED: 2 };
 
+// A Marker comment trailer field as shown: a non-empty string, else null (the trailers store "" for unset).
+const text = (v: unknown) => (typeof v === "string" && v ? v : null);
+
 // The pull request a ticket shows: an open one first, then a merged one, newest first.
 const pickPr = (prs: Pr[]) => [...prs].sort((a, b) => PR_RANK[a.state] - PR_RANK[b.state] || b.number - a.number)[0] ?? null;
 
@@ -65,7 +68,7 @@ export function derive(s: Snapshot): EpicState {
       assignees: i.assignees,
       labels: i.labels,
       pr,
-      worker: null,
+      worker: text(i.progress?.worker),
       note: null,
     };
   });
@@ -88,5 +91,5 @@ export function derive(s: Snapshot): EpicState {
   }
 
   const counts = Object.fromEntries(STATES.map((st) => [st, tickets.filter((t) => t.state === st).length])) as Record<TicketState, number>;
-  return { epic: { ...s.epic, branch: null }, tickets, layers, cycle: rest.map((t) => t.url), counts };
+  return { epic: { ...s.epic, branch: text(s.plan?.branch) }, tickets, layers, cycle: rest.map((t) => t.url), counts };
 }
