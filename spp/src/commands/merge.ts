@@ -72,10 +72,8 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   // on the head about to merge, lets the merge through.
   const verdict = readVerdict(readTrailer((await find(parseIssue(view.url.replace("/pull/", "/issues/")), VERDICT_MARKER))?.body ?? ""));
   if (gateOf({ ...ticket.pr, verdict: verdict ?? undefined }) !== "gate-pass") return refuse(`no passing verdict from a trusted author on ${ref(view.url)}`);
-  for (const b of ticket.blockedBy) {
-    const pr = byUrl.get(b)?.pr;
-    if (pr?.state !== "MERGED") return refuse(`blocked by ${ref(pr?.url ?? b)}`);
-  }
+  // blockedBy already leaves out a blocker that landed, so every one left still blocks.
+  for (const b of ticket.blockedBy) return refuse(`blocked by ${ref(byUrl.get(b)?.pr?.url ?? b)}`);
   const branch = state.epic.branch;
   if (branch && view.baseRefName !== branch) return refuse(`base is ${view.baseRefName}, not the integration branch ${branch}`);
   // shortcut: none (no CI configured) does not block; a repo whose CI registers late could merge before it starts.

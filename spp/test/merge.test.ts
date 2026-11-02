@@ -54,7 +54,7 @@ function sub(n: number, pr: number, prState: string, blockedBy: number[], spec =
     blockedBy: { nodes: blockedBy.map((b) => ({ url: `${REPO}/issues/${b}`, state: "OPEN" })) },
     closedByPullRequestsReferences: { nodes: [] },
     timelineItems: {
-      nodes: [{ source: { number: pr, url: `${REPO}/pull/${pr}`, state: prState, headRefOid: HEAD[pr], repository: { nameWithOwner: "acme/app" }, body: `Closes #${n}`, comments: { nodes: [by(verdict(pr, spec), forged)] } } }],
+      nodes: [{ source: { number: pr, url: `${REPO}/pull/${pr}`, state: prState, headRefOid: HEAD[pr], baseRefName: "feat/x", repository: { nameWithOwner: "acme/app" }, body: `Closes #${n}`, comments: { nodes: [by(verdict(pr, spec), forged)] } } }],
     },
   };
 }
@@ -227,7 +227,7 @@ describe("integration", () => {
   test("a cross-repo ticket dispatched by next and recorded by wave add merges with exit 0 and its PR on the wave", async () => {
     // 1. spp next names the cross-repo ticket by its issue URL.
     const ticket: Ticket = {
-      ...{ number: 7, url: TICKET_URL, repo: "acme/api", title: "Api ticket", size: "S", state: "ready", layer: 0, blockedBy: [] },
+      ...{ number: 7, url: TICKET_URL, repo: "acme/api", title: "Api ticket", size: "S", state: "ready", layer: 0, blockedBy: [], landed: false },
       ...{ claimed: false, assignees: [], labels: ["ready-for-agent"], pr: null, worker: null, note: null },
     };
     const counts = { blocked: 0, ready: 1, claimed: 0, "pr-open": 0, "gate-pass": 0, "gate-fail": 0, merged: 0, "handed-back": 0, "not-agent": 0 };

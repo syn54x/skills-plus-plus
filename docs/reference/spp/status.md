@@ -90,7 +90,8 @@ One Sub-issue of the Epic.
 | <a id="property-size"></a> `size` | `"S"` \| `"M"` \| `"L"` \| `null` | The size its `size:` label gives, or null without one. |
 | <a id="property-state"></a> `state` | [`TicketState`](#ticketstate) | Where the ticket stands. |
 | <a id="property-layer"></a> `layer` | `number` \| `null` | The Layer: one above its highest open blocker inside the Epic, 0 with none; null when caught in a cycle. |
-| <a id="property-blockedby"></a> `blockedBy` | `string`[] | URLs of open blockers, leaving out one that landed (the pull request it shows merged) while its issue stays open. |
+| <a id="property-blockedby"></a> `blockedBy` | `string`[] | URLs of open blockers, leaving out one that landed while its issue stays open. |
+| <a id="property-landed"></a> `landed` | `boolean` | Whether its work has landed: the issue is closed, or the pull request it shows merged into the integration branch. |
 | <a id="property-claimed"></a> `claimed` | `boolean` | Whether it carries the Claim mark (the `claimed` label); an assignee also holds a ticket. |
 | <a id="property-assignees"></a> `assignees` | `string`[] | Assignee logins. |
 | <a id="property-labels"></a> `labels` | `string`[] | Label names. |
@@ -150,6 +151,8 @@ A pull request linked to a Sub-issue.
 | <a id="property-number-1"></a> `number` | `number` | The pull request number. |
 | <a id="property-url-1"></a> `url` | `string` | The pull request URL. |
 | <a id="property-state-1"></a> `state` | [`PrState`](#prstate) | Its state on GitHub. |
+| <a id="property-repo-1"></a> `repo` | `string` | Its repository, `owner/repo`, which may lie outside the Epic: any repository can say it closes an issue. |
+| <a id="property-base"></a> `base` | `string` | The branch it merges into. |
 | <a id="property-headsha"></a> `headSha` | `string` | The head commit's full sha. |
 | <a id="property-verdict"></a> `verdict?` | [`Verdict`](#verdict) | The pull request's `<!-- spp-verdict -->` comment as `spp verdict` writes it, present only when it decodes. |
 

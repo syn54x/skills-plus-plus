@@ -1,6 +1,6 @@
 // The next actions of a build, from the EpicState and what the command read around it (CI, verdict history, the pull
 // request to the base branch, the session list, the wave). Pure: no network, filesystem or environment.
-import { type EpicState, landed, refIn, type Ticket } from "./derive.ts";
+import { type EpicState, refIn, type Ticket } from "./derive.ts";
 import type { Routing } from "./routing.ts";
 import type { PrState } from "./snapshot.ts";
 
@@ -49,16 +49,16 @@ export function liveWorker(t: Ticket, sessions: Session[]): Session | undefined 
 }
 
 /**
- * The stopped session of a worker that was lost: the ticket is held by the Claim mark alone, with no pull request, no
- * live session, and a session named after it listed but no longer live. A person's assignment is a live hold, so an
- * assigned ticket never has one.
+ * The stopped session of a worker that was lost: the ticket has not landed and is held by the Claim mark alone, with no
+ * open pull request, no live session, and a session named after it listed but no longer live. A person's assignment
+ * is a live hold, so an assigned ticket never has one, and a landed ticket's worker finished, so it has none either.
  */
 export function lostWorker(t: Ticket, sessions: Session[]): Session | undefined {
-  if (t.state !== "claimed" || !t.claimed || t.assignees.length || liveWorker(t, sessions)) return undefined;
+  if (t.landed || t.state !== "claimed" || !t.claimed || t.assignees.length || liveWorker(t, sessions)) return undefined;
   return sessions.find((s) => s.name && [t.worker, `t-${t.number}`].includes(s.name));
 }
 
-const done = (t: Ticket) => landed(t.state === "merged", t.pr);
+const done = (t: Ticket) => t.landed;
 
 /**
  * Whether a worker holds or works on the ticket until it merges: claimed or assigned, its pull request open, or a

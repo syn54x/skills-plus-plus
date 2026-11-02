@@ -7,8 +7,9 @@ import { runCase } from "./harness.ts";
 
 type Verdict = { head: string; spec: "pass" | "fail"; quality: "pass" | "fail" };
 // red: earlier heads of the pull request whose checks failed; rebased: failing heads a force push replaced;
-// forged: the revisions of a verdict comment an outside author posted before the real one.
-type PrSpec = { n: number; state?: "OPEN" | "MERGED" | "CLOSED"; head?: string; verdict?: Verdict; checks?: string; history?: Verdict[]; red?: string[]; rebased?: string[]; forged?: Verdict[] };
+// forged: the revisions of a verdict comment an outside author posted before the real one; repo and base default to
+// acme/app and the integration branch.
+type PrSpec = { n: number; state?: "OPEN" | "MERGED" | "CLOSED"; repo?: string; base?: string; head?: string; verdict?: Verdict; checks?: string; history?: Verdict[]; red?: string[]; rebased?: string[]; forged?: Verdict[] };
 type Spec = { n: number; closed?: boolean; labels?: string[]; assignees?: string[]; blockedBy?: number[]; pr?: PrSpec; worker?: string; files?: string[]; extraPrs?: PrSpec[] };
 type Opts = {
   branch?: string | null;
@@ -41,10 +42,11 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
   const plan = trailer("<!-- sdd-plan -->", branch ? { branch } : {});
   const pr = (p: PrSpec) => ({
     number: p.n,
-    url: PULL + p.n,
+    url: p.repo ? `https://github.com/${p.repo}/pull/${p.n}` : PULL + p.n,
     state: p.state ?? "OPEN",
     headRefOid: p.head ?? HEAD,
-    repository: { nameWithOwner: "acme/app" },
+    baseRefName: p.base ?? branch ?? "main",
+    repository: { nameWithOwner: p.repo ?? "acme/app" },
     comments: { nodes: [...(p.forged ? [by(verdictBody(p.forged.at(-1)!), true)] : []), ...(p.verdict ? [by(verdictBody(p.verdict))] : [])] },
   });
   const node = (t: Spec) => ({
@@ -405,6 +407,21 @@ describe("one rule for a landed blocker", () => {
     const s = (await runCase("status", scratch(tickets))).json as { tickets: { number: number; state: string }[] };
     assert.equal(s.tickets.find((t) => t.number === 12)?.state, "blocked");
   });
+
+  // F26 (Round 2) on #267: only a pull request merged into the integration branch, in one of the Epic's repositories,
+  // lands its ticket.
+  for (const [what, foreign] of [
+    ["from a repository outside the Epic", { repo: "mallory/fork" }],
+    ["into a branch other than the integration branch", { base: "main" }],
+  ] as const) {
+    test(`a blocker whose only merged pull request is ${what} has not landed: its dependant stays blocked`, async () => {
+      const tickets: Spec[] = [{ n: 11, pr: { n: 111, state: "MERGED", ...foreign } }, { n: 12, blockedBy: [11] }];
+      const actions = await next(tickets);
+      assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["11"]]]);
+      const s = (await runCase("status", scratch(tickets))).json as { tickets: { number: number; state: string }[] };
+      assert.equal(s.tickets.find((t) => t.number === 12)?.state, "blocked");
+    });
+  }
 });
 
 describe("error paths", () => {
