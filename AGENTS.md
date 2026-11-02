@@ -37,6 +37,10 @@ Claude Code re-attaches about 5,000 tokens of a skill after compaction, and what
 
 When a skill outgrows its budget, move the detail into a reference file in the same skill folder and point to it from the step that needs it.
 
+## Evals
+
+`evals/` holds cases for `claude plugin eval`, which runs them with the plugin and against a no-plugin baseline and reports the score delta; the layout is in [evals/README.md](./evals/README.md). A fix for a skill defect ships with one eval case that reproduces it. `.github/workflows/evals.yml` runs the suite on the Changesets release pull request and on manual dispatch, never on every pull request.
+
 ## Invocation
 
 Every skill is user-invoked or model-invoked, and no skill calls a user-invoked one. The rules, and the friends allowlist, are in [.agents/invocation.md](./.agents/invocation.md); `scripts/check-invocation.ts` enforces them.
