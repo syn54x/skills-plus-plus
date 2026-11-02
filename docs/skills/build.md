@@ -15,7 +15,7 @@ What `build` does depends on what `<N>` is:
 | `epic` | Runs the Epic path: Waves of workers, a gate on each pull request, merges, then the main gate. |
 | `sub-issue` | Stops and points you to `/build` on its Epic. A Sub-issue is built through its Epic, never on its own. |
 | `one-off` | Runs the One-off path: one worker, one gate, a pull request for you to merge. |
-| `raw` | Stops and points you to `/triage`. An issue without the contract never reaches a worker. |
+| `raw` | Stops and points you to `/triage`. An issue without the contract never reaches a worker, and neither does one whose Verify block was never pinned or changed after hardening. |
 
 For work too small to file, skip spp and edit directly. `ask-spp` routes between every skill when the right one is unclear.
 

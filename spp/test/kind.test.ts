@@ -33,6 +33,20 @@ describe("edge cases", () => {
   test("an issue URL is read through gh by that URL", async () => {
     await assertCase("kind", fixture("url"));
   });
+
+  // F44 (Round 3) on #267.
+  test("an issue with a parent Epic that fails the lint is raw, not sub-issue", async () => {
+    await assertCase("kind", fixture("raw-sub-issue"));
+  });
+
+  // F46 (Round 3) on #267: the lint `spp kind` stands for checks the pin too, so /build sends these to /triage.
+  test("a hardened One-off whose Verify block carries no pin is raw, with the pin-present detail", async () => {
+    await assertCase("kind", fixture("raw-unpinned"));
+  });
+
+  test("a hardened One-off whose Verify block changed since its pin is raw, with the pin-match detail", async () => {
+    await assertCase("kind", fixture("raw-pin-changed"));
+  });
 });
 
 describe("integration", () => {

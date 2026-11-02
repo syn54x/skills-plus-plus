@@ -14,5 +14,8 @@
         "percentCompleted": 0
       }
     }
+  },
+  "api repos/{owner}/{repo}/issues/12/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json": {
+    "stdout": "[9,\"<!-- sdd-progress -->\\n<!-- sdd-data: eyJ2ZXJpZnlQaW4iOiIzM2Y3YmNkMTNmZTNlNzViYzRjMDdhZTU4MTk3ZmFiMjk3ZGNmMjBhYjVmMTJlOTUzZDZlNTgyNTQyZDcxMjcxIn0= -->\",\"maint\",\"OWNER\"]\n"
   }
 }
