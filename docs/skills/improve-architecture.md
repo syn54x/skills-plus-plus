@@ -43,7 +43,7 @@ In a pull request, each one also carries a **Timing**:
 **Why does it read only part of my repo?**
 Deepening a module pays off when that module next changes. Code nobody touches gives a refactor nothing to repay, so with no area named it starts from the files the last six months of commits changed most. Name an area after the command to point it elsewhere.
 
-**What separates this from the depth findings a review gate posts?**
+**What separates this from a fired Depth check at a review gate?**
 The questions are the same; [codebase-design](codebase-design.md) holds the single copy. At a gate, a fired question becomes a finding, rated by severity, that asks for a fix. Here, the same fired question is an idea for you to explore, accept or drop, and nothing waits on your answer.
 
 **Will it comment on my pull request?**

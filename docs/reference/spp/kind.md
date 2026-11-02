@@ -1,6 +1,6 @@
-`spp kind <issue> [--json]` says what an issue is: an Epic (it has Sub-issues), a ticket (it passes
-`spp lint ticket`) or raw (anything else), and why. `/build` routes on it. Without `--json` the answer is one line,
-such as `ticket: carries the ticket contract and one size`; with `--json` it prints [Kind](#kind).
+`spp kind <issue> [--json]` says what an issue is: an Epic (it has Sub-issues), a hardened One-off (it passes
+`spp lint ticket`) or a raw issue (anything else), and why. `/build` routes on it. Without `--json` the answer is one
+line, such as `one-off: carries the ticket contract and one size`; with `--json` it prints [Kind](#kind).
 
 ## Functions
 
@@ -59,5 +59,5 @@ What an issue is: the `--json` shape of `spp kind`.
 
 | Property | Type | Description |
 | ------ | ------ | ------ |
-| <a id="property-kind"></a> `kind` | `"epic"` \| `"ticket"` \| `"raw"` | `epic` when it has Sub-issues, `ticket` when it passes the ticket lint, `raw` otherwise. |
+| <a id="property-kind"></a> `kind` | `"epic"` \| `"one-off"` \| `"raw"` | `epic` when it has Sub-issues, `one-off` when it passes the ticket lint (a hardened One-off), `raw` otherwise. |
 | <a id="property-reason"></a> `reason` | `string` | Why: the Sub-issue count for an Epic, and every lint failure, joined by `; `, for a raw issue. |

@@ -37,7 +37,7 @@ At the slice gate, and for the `depth` Persona, every question that fires become
 | 1, 2 or 4 | Important | Minor | not reported |
 | 3 | Minor | Minor | not reported |
 
-No depth finding is ever Critical. Pin it to the line where the interface is declared, whether that is an exported name, a route or a class header, and name a failure someone can verify: how much callers learn for how little, a defect the tests are blind to, or a refactor that would break them. A finding from question 3 is not marked pre-existing, because what the pull request adds is the missed chance. The fix line points in the direction the Timing gives and leaves the design to the author.
+No finding in the depth category is ever Critical. Pin it to the line where the interface is declared, whether that is an exported name, a route or a class header, and name a failure someone can verify: how much callers learn for how little, a defect the tests are blind to, or a refactor that would break them. A finding from question 3 is not marked pre-existing, because what the pull request adds is the missed chance. The fix line points in the direction the Timing gives and leaves the design to the author.
 
 ## In a survey
 

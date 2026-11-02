@@ -31,7 +31,7 @@ Then read [`MAP.md`](MAP.md), file the map issue and file each ticket under it, 
 
 Read the map's body only, and restate its destination to yourself before choosing anything.
 
-**Pick.** The frontier is the map's open children that have no open blocker, no `claimed` label and no assignee. Take the one the person named, or else the earliest filed. Add `claimed` before doing anything else, so a parallel session passes over it. With an empty frontier, skip to Finish.
+**Pick.** The frontier is the map's open children that have no open blocker, no `claimed` label and no assignee. Take the one the person named, or else the earliest filed. Claim it with `spp claim <N>` before doing anything else, so a parallel session passes over it. When the session stops before the ticket is answered and closed, release it with `spp unclaim <N>`, so the next session's frontier offers it again. With an empty frontier, skip to Finish.
 
 **Settle.** Follow the type table below. Read a related or closed ticket in full only when its answer bears on this one. The map's Notes hold the effort's domain and standing preferences.
 

@@ -33,25 +33,19 @@ jobs:
         run: node scripts/check-registry.ts
       - name: plugin.json version tracks package.json
         run: node scripts/sync-version.ts --check
+      # No fallback: a failed install fails the job, so the two steps after it never pass without running.
+      - name: install the claude CLI
+        run: npm install --global @anthropic-ai/claude-code
       - name: plugin manifest validates
-        run: |
-          if npm install --global @anthropic-ai/claude-code >/dev/null 2>&1 && command -v claude >/dev/null; then
-            claude plugin validate .
-          else
-            echo "::notice::claude CLI not available in CI; skipped claude plugin validate"
-          fi
+        run: claude plugin validate .
       - name: epic board mod tests
         run: |
-          if npm install --global @anthropic-ai/claude-code >/dev/null 2>&1 && command -v claude >/dev/null; then
-            # claude plugin test takes the plugin root and runs every test file under it, and the node:test suites
-            # cannot load there, so it runs on a copy of the plugin without them.
-            board="$(mktemp -d)"
-            cp -R .claude-plugin hooks types spp bin package.json "$board"/
-            rm -rf "$board/spp/test"
-            claude plugin test "$board"
-          else
-            echo "::notice::claude CLI not available in CI; skipped claude plugin test"
-          fi
+          # claude plugin test takes the plugin root and runs every test file under it, and the node:test suites
+          # cannot load there, so it runs on a copy of the plugin without them.
+          board="$(mktemp -d)"
+          cp -R .claude-plugin hooks types spp bin package.json "$board"/
+          rm -rf "$board/spp/test"
+          claude plugin test "$board"
       - uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true

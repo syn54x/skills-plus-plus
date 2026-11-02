@@ -74,6 +74,15 @@ describe("edge cases", () => {
     assert.deepEqual(parseRouting(block("- Mode: org")).panel, { tickets: 4, sizeL: true, lines: 1000 });
   });
 
+  test("Panel: no-size-L switches the size-L trigger off and keeps the other thresholds", () => {
+    assert.deepEqual(parseRouting(block("- Mode: org", "- Panel: no-size-L")).panel, { tickets: 4, sizeL: false, lines: 1000 });
+    assert.deepEqual(parseRouting(block("- Mode: org", "- Panel: tickets>=6, no-size-L")).panel, { tickets: 6, sizeL: false, lines: 1000 });
+  });
+
+  test("Panel with both size:L and no-size-L is an error, not a silent pick", () => {
+    assert.throws(() => parseRouting(block("- Mode: org", "- Panel: size:L, no-size-L")), /both size:L and no-size-L/);
+  });
+
   test("Sizes keeps its text and Laws splits on commas", () => {
     const r = parseRouting(block("- Mode: org", "- Sizes: `size:S/M/L` labels", "- Laws: CLAUDE.md, .agents/adr/ , GLOSSARY.md"));
     assert.equal(r.sizes, "`size:S/M/L` labels");

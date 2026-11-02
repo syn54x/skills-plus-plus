@@ -17,7 +17,7 @@ The `spp` plugin puts `spp` on the Bash tool's PATH. Each capability the skill n
 | Hand back | `spp hand-back <N> needs-info\|ready-for-human\|blocked --reason "<why>"`, adding `--blocked-by <issue>` on the `blocked` route when you know the blocker |
 | Record a blocked stop | `git notes --ref=sdd-verify add -f -m blocked HEAD` |
 
-Your name on the Worker line is your agent name (`worker-<N>` when a brief says so) or, for a person, their login.
+Your name on the Worker line is the one your brief gives you, `t-<N>`, which every driver also gives your session; a person writes their login.
 
 ## Pushing the notes ref
 

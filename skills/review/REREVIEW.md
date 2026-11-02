@@ -4,7 +4,7 @@ A fix round answers specific findings, so the second look is aimed at them and a
 
 ## Steps
 
-1. **Find the earlier round.** Read this skill's last review comment on the pull request (`gh pr view "$PR" --json reviews`) and the head it was given on: the `<!-- spp-verdict -->` marker's head, or with no marker the sha on that comment's `Verify:` line. That head is `OLD`; the current `headRefOid` is `HEAD`. Number the earlier Critical and Important findings F1, F2 and on, in the order they appear, Ponytail comment included.
+1. **Find the earlier round.** Read this skill's last review comment on the pull request (`gh pr view "$PR" --json reviews`) and the head it was given on: the `<!-- spp-verdict -->` marker's head, or with no marker the sha on that comment's `Verify:` line. That head is `OLD`; the current `headRefOid` is `HEAD`. Number the earlier Critical and Important findings F1, F2 and on, in the order they appear, Ponytail comment included, except a Ponytail line marked `overlaps`: it repeats a finding already numbered, so it gets no id of its own.
 2. **Read the fix diff.** `git diff "$OLD" "$HEAD"`. It is the whole scope.
 3. **Run the evidence again**, as step 3 of `SKILL.md` says: Verify on `HEAD`, a trial merge when the base has moved past `HEAD`'s merge base, and `spp checks`. Ponytail does not run again.
 4. **Judge each earlier finding.** Addressed means the defect is gone at `HEAD`, shown by a line or a test; a change that tries and leaves the failure in place is not addressed.

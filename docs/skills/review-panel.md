@@ -6,7 +6,7 @@ The Personas only find things. They never rank, merge or judge. `spp findings me
 
 ## When to reach for it
 
-You type `/review-panel <pull request>`; the agent never starts it on its own. On the Epic path, `build` runs it for you when `spp next` says the Epic is big enough: four or more Sub-issues, any size L Sub-issue, or 1,000 or more changed lines. The Routing block's `Panel` line changes those thresholds. When you type the command yourself, none of them is checked, because you already decided.
+You type `/review-panel <pull request>`; the agent never starts it on its own. On the Epic path, `build` runs it for you when `spp next` says the Epic is big enough: four or more Sub-issues, any size L Sub-issue, or 1,000 or more changed lines. The Routing block's `Panel` line changes those thresholds, and `no-size-L` on it turns the size L trigger off. When you type the command yourself, none of them is checked, because you already decided.
 
 | Your situation | Use |
 | --- | --- |
