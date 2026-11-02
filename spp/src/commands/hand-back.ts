@@ -1,10 +1,18 @@
-// spp hand-back <issue> <route> --reason TEXT [--blocked-by <issue>]: returns a Sub-issue to a person or a queue.
-// Why first, then the route, then the claim is released: a failure part-way leaves the ticket held, never released
-// without a route, and a re-run of the same call finishes it.
+/**
+ * `spp hand-back <issue> needs-info|ready-for-human|blocked --reason TEXT [--blocked-by <issue>]` returns a Sub-issue
+ * to a person or a queue in one call. It writes in this order: the progress comment (status `handed-back` with the
+ * route and reason), then the route label, then removes the Claim mark, so a failure part-way leaves the ticket held,
+ * never released without a route, and running the same call again finishes it. `--blocked-by` goes only with
+ * `blocked`, where it adds the blocked-by edge and keeps `ready-for-agent`; every other Hand-back removes
+ * `ready-for-agent`. It prints the progress comment's URL and has no `--json`.
+ *
+ * @module
+ */
 import { runGh } from "../gh.ts";
 import { flagPairs, guarded, parseIssue, print, TrailerError, UsageError } from "../markers.ts";
 import { saveProgress } from "./progress.ts";
 
+/** The usage text `spp hand-back --help` prints. */
 export const USAGE = `usage: spp hand-back <issue> needs-info|ready-for-human|blocked --reason TEXT [--blocked-by <issue>]
 --blocked-by goes only with the blocked route, where it adds the blocked-by edge and keeps ready-for-agent;
 every other hand-back, blocked without --blocked-by included, removes ready-for-agent.
@@ -12,6 +20,19 @@ every other hand-back, blocked without --blocked-by included, removes ready-for-
 
 const ROUTES = ["needs-info", "ready-for-human", "blocked"];
 
+/**
+ * Hands a Sub-issue back along one route.
+ *
+ * @param args - The issue (a number in the current repo or a GitHub issue URL), the route, `--reason TEXT`, and
+ *   with the `blocked` route `--blocked-by <issue>` when the blocker is known.
+ * @returns 0 when all three steps are done; 2 on a usage error, with the usage on stderr; 1 when a step fails, with
+ *   `step <n> (<what>) failed; re-run to finish` on stderr, or when the progress comment's trailer does not decode.
+ * @example
+ * ```bash
+ * spp hand-back 265 needs-info --reason "the ticket cites src/tax.ts, which does not exist"
+ * spp hand-back 265 blocked --reason "needs the auth route" --blocked-by 240
+ * ```
+ */
 export function run(args: string[]): Promise<number> {
   return guarded(() => "hand-back", USAGE, async () => {
     const [arg, route, ...rest] = args;

@@ -1,8 +1,16 @@
-// spp plan <epic> [--goal] [--constraints] [--branch] [--repos] [--narrowed TEXT]... | [--narrowed none]
-//               [--add-deviation TEXT] [--table-file FILE]: owns the Epic's plan comment.
+/**
+ * `spp plan <epic> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d] [--narrowed TEXT]... |
+ * [--narrowed none] [--add-deviation TEXT] [--table-file FILE]` writes the Epic's `<!-- sdd-plan -->` comment,
+ * rewriting it in place, and prints its URL. A field you do not pass keeps its stored value. `--narrowed` replaces the
+ * stored list with every `--narrowed` of the call, `--narrowed none` clears it, and a call without it keeps it;
+ * `--add-deviation` appends to the Deviated list. The table file is copied in verbatim. It has no `--json`.
+ *
+ * @module
+ */
 import { existsSync, readFileSync } from "node:fs";
 import { type Data, flagPairs, guarded, print, updateMarker, UsageError } from "../markers.ts";
 
+/** The usage text `spp plan --help` prints. */
 export const USAGE = `usage: spp plan <epic> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d]
                        [--narrowed TEXT]... | [--narrowed none] [--add-deviation TEXT] [--table-file FILE]
 --narrowed replaces the stored list with every --narrowed of the call, --narrowed none clears it, and a
@@ -26,6 +34,17 @@ function render(data: Data): string {
   ].join("\n");
 }
 
+/**
+ * Merges the given fields into the Epic's plan comment.
+ *
+ * @param args - The Epic (an issue number in the current repo or an issue URL), then any of the flags above.
+ * @returns 0 when the comment is written; 2 on a usage error, with the usage on stderr; 1 when `gh` fails or the
+ *   stored trailer does not decode, with the reason on stderr.
+ * @example
+ * ```bash
+ * spp plan 197 --branch feat/rebuild --add-deviation "#202: an unreadable trailer stops the write"
+ * ```
+ */
 export function run(args: string[]): Promise<number> {
   return guarded(() => "plan", USAGE, async () => {
     const [epic, ...rest] = args;

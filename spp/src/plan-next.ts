@@ -4,8 +4,23 @@ import type { EpicState, Ticket } from "./derive.ts";
 import type { Routing } from "./routing.ts";
 import type { PrState } from "./snapshot.ts";
 
+/** What the build does next: fix a precondition, cut the branch, start workers, gate, fix, hand back, merge, wait, gate the pull request to the base branch, close the Epic, or stop as stuck. */
 export type ActionKind = "preflight" | "branch" | "dispatch" | "gate" | "fix" | "hand-back" | "merge" | "wait" | "main-gate" | "close" | "stuck";
-export type Action = { kind: ActionKind; tickets?: string[]; pr?: string; driver?: "desktop" | "bg" | "subagent"; panel?: boolean; reason: string };
+/** One next action of the build. */
+export type Action = {
+  /** What to do. */
+  kind: ActionKind;
+  /** The tickets it is about, for `dispatch`, `gate`, `fix`, `hand-back` and `merge`. */
+  tickets?: string[];
+  /** The pull request URL it is about. */
+  pr?: string;
+  /** How to start the workers, on `dispatch`. */
+  driver?: "desktop" | "bg" | "subagent";
+  /** On `main-gate`: whether the Epic is large enough for the review panel. */
+  panel?: boolean;
+  /** Why, in a sentence. */
+  reason: string;
+};
 
 // One entry of `claude agents --json --all`: background sessions carry `state`, interactive ones `status`.
 export type Session = { name?: string; state?: string; status?: string };

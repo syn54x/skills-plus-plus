@@ -1,4 +1,17 @@
-// spp dispatch <N> --driver bg|desktop|subagent: starts one worker on a ticket that nobody holds.
+/**
+ * `spp dispatch <issue> --driver bg|desktop|subagent` starts one worker on a Sub-issue that nobody holds, and refuses
+ * one held by the `claimed` label or an assignee. It has no `--json`.
+ *
+ * What it does depends on the driver:
+ *
+ * - `bg` writes the brief, starts a background session named `t-<N>` on it
+ *   (`claude --bg --worktree sdd-<N> --name t-<N>`), records `t-<N>` as the Worker on the progress comment and prints
+ *   `started t-<N>`.
+ * - `desktop` and `subagent` write the brief and print its path, since those drivers are harness tools the skill
+ *   starts itself.
+ *
+ * @module
+ */
 import { spawnSync } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -8,6 +21,7 @@ import { flagPairs, guarded, parseIssue, UsageError } from "../markers.ts";
 import { run as brief } from "./brief.ts";
 import { saveProgress } from "./progress.ts";
 
+/** The usage text `spp dispatch --help` prints. */
 export const USAGE = `usage: spp dispatch <issue number | issue URL> --driver bg|desktop|subagent
 Refuses a ticket that is held (the claimed label or an assignee). bg writes the brief, starts
 claude --bg --worktree sdd-<N> --name t-<N> on it and records t-<N> as the worker; desktop and subagent
@@ -16,6 +30,17 @@ write the brief and print its path, because those drivers are harness tools the 
 
 const DRIVERS = ["bg", "desktop", "subagent"];
 
+/**
+ * Starts a worker on one Sub-issue, or writes the brief for the skill to start one.
+ *
+ * @param args - The Sub-issue (an issue number in the current repo or an issue URL) and `--driver bg|desktop|subagent`.
+ * @returns 0 when the worker started or the brief is written; 2 on a usage error, with the usage on stderr; 1 when
+ *   the ticket is held, `claude --bg` fails or `gh` fails, with the reason on stderr.
+ * @example
+ * ```bash
+ * spp dispatch 265 --driver bg
+ * ```
+ */
 export function run(args: string[]): Promise<number> {
   return guarded(() => "dispatch", USAGE, async () => {
     const [arg, ...rest] = args;

@@ -1,13 +1,25 @@
-// spp progress <issue> [--status S] [--worker W] [--branch B] [--pr N|URL] [--verify V] [--notes T]: merges the fields
-// into the Sub-issue's progress comment and rewrites it in place.
+/**
+ * `spp progress <issue> [--status S] [--worker TEXT] [--branch NAME] [--pr N|URL] [--verify V] [--notes TEXT]` writes
+ * the Sub-issue's one `<!-- sdd-progress -->` comment, rewriting it in place, and prints its URL. A field you do not
+ * pass keeps its stored value. The comment's data trailer holds the fields (ADR 0007); a trailer that does not decode
+ * stops the write rather than erase the state. It has no `--json`.
+ *
+ * @module
+ */
 import { type Data, flagPairs, guarded, print, updateMarker, UsageError } from "../markers.ts";
 
+/** The usage text `spp progress --help` prints. */
 export const USAGE = `usage: spp progress <issue> [--status in-progress|pr-open|verify-passed|changes-requested|handed-back]
                            [--worker TEXT] [--branch NAME] [--pr N|URL]
                            [--verify "not-run" | "passed <sha7>" | "failed <sha7>"] [--notes TEXT]
 <issue> is an issue number in the current repo or a GitHub issue URL. A field not passed keeps its value.
 `;
 
+/**
+ * The progress comment's marker, its first line.
+ *
+ * @internal
+ */
 export const MARKER = "<!-- sdd-progress -->";
 const DEFAULT = { status: "in-progress", worker: "", branch: "", pr: null, verify: { state: "not-run", sha: "" }, route: null, reason: "", notes: "" };
 const STATUSES = ["in-progress", "pr-open", "verify-passed", "changes-requested", "handed-back"];
@@ -26,11 +38,28 @@ function render(data: Data): string {
   ].join("\n");
 }
 
-// Merges `patch` over the stored progress fields and rewrites the comment; returns its URL.
+/**
+ * Merges `patch` over the stored progress fields and rewrites the comment; returns its URL.
+ *
+ * @internal
+ */
 export function saveProgress(issue: string, patch: Data): Promise<string> {
   return updateMarker(issue, MARKER, render, (old) => ({ ...DEFAULT, ...old, ...patch }));
 }
 
+/**
+ * Merges the given fields into the Sub-issue's progress comment.
+ *
+ * @param args - The issue (a number in the current repo or a GitHub issue URL), then any of `--status`
+ *   (`in-progress`, `pr-open`, `verify-passed`, `changes-requested` or `handed-back`), `--worker`, `--branch`,
+ *   `--pr`, `--verify` (`"not-run"`, `"passed <sha7>"` or `"failed <sha7>"`) and `--notes`.
+ * @returns 0 when the comment is written; 2 on a usage error, with the usage on stderr; 1 when the stored trailer
+ *   does not decode or `gh` fails, with the reason on stderr.
+ * @example
+ * ```bash
+ * spp progress 265 --status pr-open --pr 270 --verify "passed abc1234"
+ * ```
+ */
 export function run(args: string[]): Promise<number> {
   return guarded(() => "progress", USAGE, async () => {
     const [issue, ...rest] = args;

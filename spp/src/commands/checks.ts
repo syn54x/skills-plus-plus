@@ -1,11 +1,30 @@
-// spp checks <pr|sha> [--json]: CI's reading for a pull request (its checks) or a commit (its check runs).
-// The bucket is the reading, never gh's exit code. Pending is never pass.
+/**
+ * `spp checks <pr | sha> [--json]` reads CI for a pull request (its checks), or for a commit given as 7 to 40 hex
+ * characters (its check runs). It prints the result, followed by the failing or pending run names. The reading comes
+ * from each run's bucket, never from `gh`'s exit code: pending is never a pass, a cancelled run counts as a failure,
+ * and runs that all skip read as `none`. With `--json` it prints {@link Checks}.
+ *
+ * @module
+ */
 import { GhError, runGh } from "../gh.ts";
 
+/** The usage text `spp checks --help` prints. */
 export const USAGE = "usage: spp checks <pr number | pr URL | commit sha> [--json]\n";
 
-export type CheckRun = { name: string; bucket: string };
-export type Checks = { result: "pass" | "fail" | "pending" | "none"; runs: CheckRun[] };
+/** One CI run. */
+export type CheckRun = {
+  /** The run's name. */
+  name: string;
+  /** `pass`, `fail`, `pending`, `skipping` or `cancel`, as `gh pr checks` buckets it. */
+  bucket: string;
+};
+/** CI's reading: the `--json` shape of `spp checks`. */
+export type Checks = {
+  /** `fail` when any run failed or was cancelled, else `pending` when any has not passed, else `pass`; `none` when no run counts (skipped runs never do). */
+  result: "pass" | "fail" | "pending" | "none";
+  /** Every run, skipped ones included. */
+  runs: CheckRun[];
+};
 
 // A commit check run's status and conclusion as the bucket gh pr checks would give it.
 function bucket(status: string, conclusion: string | null): string {
@@ -47,18 +66,38 @@ async function commitRuns(sha: string): Promise<CheckRun[]> {
   });
 }
 
-// A pull request is a number or a URL; anything else of 7 to 40 hex characters is a commit.
+/**
+ * A pull request is a number or a URL; anything else of 7 to 40 hex characters is a commit.
+ *
+ * @internal
+ */
 export async function readChecks(target: string): Promise<Checks> {
   const runs = /^[0-9a-f]{7,40}$/i.test(target) && !/^\d+$/.test(target) ? await commitRuns(target) : await prRuns(target);
   return { result: result(runs), runs };
 }
 
-// The runs behind a fail or pending result, by name: the failing ones, else the pending ones.
+/**
+ * The runs behind a fail or pending result, by name: the failing ones, else the pending ones.
+ *
+ * @internal
+ */
 export function culprits(c: Checks): string[] {
   const hit = (b: string) => (c.result === "fail" ? b === "fail" || b === "cancel" : c.result === "pending" && b === "pending");
   return c.runs.filter((r) => hit(r.bucket)).map((r) => r.name);
 }
 
+/**
+ * Prints CI's reading for a pull request or a commit.
+ *
+ * @param args - A pull request number or URL, or a commit sha, and `--json` for the {@link Checks} shape.
+ * @returns 0 whatever the reading (read it from the output); 2 on a usage error, with the usage on stderr. A `gh`
+ *   error exits 1 with the reason on stderr.
+ * @example
+ * ```bash
+ * spp checks 264
+ * spp checks 6aa253f --json
+ * ```
+ */
 export async function run(args: string[]): Promise<number> {
   const rest = args.filter((a) => a !== "--json");
   if (rest.length !== 1) {

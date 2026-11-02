@@ -1,19 +1,35 @@
-// spp verify <N | issue URL>: runs the ticket's Verify block from the repository root, prints pass or fail per
-// command, and records the result as a git note under refs/notes/sdd-verify on HEAD.
-// spp verify --check: the Stop and SubagentStop hook. On an sdd/* branch it exits 2 (the reason on stderr, which
-// blocks the stop) unless the tree is clean and HEAD carries a passing note; any other branch exits 0 unchecked.
+/**
+ * `spp verify` runs a Sub-issue's Verify block and records the result on `HEAD`, and as a stop hook it holds a worker
+ * on an `sdd/*` branch until that record exists. It has no `--json`.
+ *
+ * Its two forms:
+ *
+ * - `spp verify <issue>` runs the Sub-issue's Verify block from the repository root, one command per line (a trailing
+ *   backslash continues a line), prints `pass:` or `fail:` per command with the commands' own output on stderr, and
+ *   records the result as a note under `refs/notes/sdd-verify` on `HEAD`.
+ * - `spp verify --check` is the `Stop` and `SubagentStop` hook. On an `sdd/*` branch it blocks the stop when the tree
+ *   is dirty or `HEAD` has no passing (or `blocked`) note, unless `HEAD` adds nothing to an integration branch or the
+ *   default branch; on any other branch it passes unchecked.
+ *
+ * @module
+ */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { runGh } from "../gh.ts";
 import { isIssueRef, parseTicket } from "../ticket.ts";
 
+/** The usage text `spp verify --help` prints. */
 export const USAGE = `usage: spp verify <issue number | issue URL>
        spp verify --check
 The first runs the ticket's Verify block and records the result on HEAD. --check exits 2 on an sdd/* branch whose
 HEAD has no passing record or whose tree is dirty; as a stop hook it reads the hook payload on stdin.
 `;
 
-// The fields of a Claude Code hook payload that spp reads.
+/**
+ * The fields of a Claude Code hook payload that spp reads.
+ *
+ * @internal
+ */
 export type HookInput = {
   cwd?: string;
   hook_event_name?: string;
@@ -22,8 +38,12 @@ export type HookInput = {
   tool_response?: { stdout?: string };
 };
 
-// The hook payload on stdin, or {} when there is none. A stdin that stays open and silent (a command run by hand
-// from a shell that never closes it) is given up on after a second, so the command never hangs.
+/**
+ * The hook payload on stdin, or {} when there is none. A stdin that stays open and silent (a command run by hand
+ * from a shell that never closes it) is given up on after a second, so the command never hangs.
+ *
+ * @internal
+ */
 export function readHookInput(): Promise<HookInput> {
   if (process.stdin.isTTY) return Promise.resolve({});
   return new Promise((resolve) => {
@@ -48,12 +68,20 @@ export function readHookInput(): Promise<HookInput> {
   });
 }
 
-// Moves to the payload's cwd: hooks run from the project directory, which is not the worktree a session entered.
+/**
+ * Moves to the payload's cwd: hooks run from the project directory, which is not the worktree a session entered.
+ *
+ * @internal
+ */
 export function enterHookCwd(input: HookInput): void {
   if (input.cwd && existsSync(input.cwd)) process.chdir(input.cwd);
 }
 
-// git's trimmed stdout, or null when git fails (not a repository, no such note).
+/**
+ * git's trimmed stdout, or null when git fails (not a repository, no such note).
+ *
+ * @internal
+ */
 export function gitOut(...args: string[]): string | null {
   const r = spawnSync("git", args, { encoding: "utf8" });
   return r.status === 0 ? r.stdout.trim() : null;
@@ -104,6 +132,18 @@ async function check(): Promise<number> {
   return block(`Verify not run on HEAD of ${branch}. Run spp verify ${n} on the committed tree. ${handBack}`);
 }
 
+/**
+ * Runs a Sub-issue's Verify block, or checks that `HEAD` carries a passing run.
+ *
+ * @param args - The Sub-issue (an issue number in the current repo or an issue URL), or `--check` alone.
+ * @returns With an issue: 0 when every command passed, 1 when any failed (or the issue has no Verify block). With
+ *   `--check`: 0 to let the session stop, 2 to block it, with the reason on stderr. 2 on a usage error, with the
+ *   usage on stderr.
+ * @example
+ * ```bash
+ * spp verify 265
+ * ```
+ */
 export async function run(args: string[]): Promise<number> {
   if (args.length === 1 && args[0] === "--check") return check();
   if (args.length === 1 && isIssueRef(args[0])) return verify(args[0]);

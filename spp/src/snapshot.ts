@@ -1,9 +1,24 @@
 // The Snapshot: what one batched GraphQL query says about an Epic and its Sub-issues.
 // Pure: no network, filesystem or environment, so the epic board can import it.
 
+/** A pull request's state on GitHub. */
 export type PrState = "OPEN" | "MERGED" | "CLOSED";
-// verdict: the trailer of the pull request's `<!-- spp-verdict -->` comment, present only when one decodes.
-export type Pr = { number: number; url: string; state: PrState; headSha: string; verdict?: Record<string, unknown> };
+/** A pull request linked to a Sub-issue. */
+export type Pr = {
+  /** The pull request number. */
+  number: number;
+  /** The pull request URL. */
+  url: string;
+  /** Its state on GitHub. */
+  state: PrState;
+  /** The head commit's full sha. */
+  headSha: string;
+  /**
+   * The trailer of the pull request's `<!-- spp-verdict -->` comment, present only when one decodes:
+   * `{ ticket, head, spec: "pass" | "fail", quality: "pass" | "fail" }`, as `spp verdict` writes it.
+   */
+  verdict?: Record<string, unknown>;
+};
 
 export const VERDICT_MARKER = "<!-- spp-verdict -->";
 

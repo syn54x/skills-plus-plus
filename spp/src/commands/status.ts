@@ -1,9 +1,19 @@
-// spp status <epic> [--json]: the state of every Sub-issue of an Epic, from one GraphQL query.
+/**
+ * `spp status <epic> [--json]` prints every Sub-issue of an Epic with its state, grouped by Layer, from one GraphQL
+ * query. Each line is the ticket's state, its number and title, and its pull request when it has one; a blocking
+ * cycle gets a group of its own. With `--json` it prints the whole {@link EpicState} instead.
+ *
+ * @module
+ */
 import { derive, type EpicState } from "../derive.ts";
 import { GhError, runGh } from "../gh.ts";
 import { attachNotes } from "../notes.ts";
 import { SNAPSHOT_QUERY, parseSnapshot } from "../snapshot.ts";
 
+export type { EpicState, Ticket, TicketState } from "../derive.ts";
+export type { Pr, PrState } from "../snapshot.ts";
+
+/** The usage text `spp status --help` prints. */
 export const USAGE = "usage: spp status <epic number | issue URL> [--json]\n";
 
 // The query variables for an Epic given as a number (the current repo, through gh's placeholders) or an issue URL.
@@ -37,7 +47,11 @@ function render(s: EpicState): string {
   return lines.join("\n") + "\n";
 }
 
-// The Epic's derived state with each ticket's latest local note, or null when `epic` is not a number or issue URL.
+/**
+ * The Epic's derived state with each ticket's latest local note, or null when `epic` is not a number or issue URL.
+ *
+ * @internal
+ */
 export async function fetchState(epic: string): Promise<EpicState | null> {
   const vars = variables(epic);
   if (!vars) return null;
@@ -52,6 +66,19 @@ export async function fetchState(epic: string): Promise<EpicState | null> {
   return attachNotes(derive(parseSnapshot(JSON.parse(out))));
 }
 
+/**
+ * Prints the Epic's state.
+ *
+ * @param args - The Epic (an issue number in the current repo or an issue URL), and `--json` for the
+ *   {@link EpicState} shape.
+ * @returns 0 when it printed the state; 2 on a usage error, with the usage on stderr. A `gh` error exits 1 with
+ *   the reason on stderr.
+ * @example
+ * ```bash
+ * spp status 197
+ * spp status https://github.com/syn54x/skills-plus-plus/issues/197 --json
+ * ```
+ */
 export async function run(args: string[]): Promise<number> {
   const rest = args.filter((a) => a !== "--json");
   const state = rest.length === 1 ? await fetchState(rest[0]) : null;
