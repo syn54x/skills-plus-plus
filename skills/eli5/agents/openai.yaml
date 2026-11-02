@@ -1,0 +1,5 @@
+interface:
+  display_name: "ELI5"
+  short_description: "Explain anything simply: eli5, adhd or wait-what"
+policy:
+  allow_implicit_invocation: false
