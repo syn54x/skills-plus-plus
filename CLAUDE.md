@@ -23,8 +23,11 @@ node scripts/check-invocation.ts
 node scripts/check-registry.ts
 node scripts/sync-version.ts --check
 claude plugin validate .
+board="$(mktemp -d)" && cp -R .claude-plugin hooks types spp bin package.json "$board"/ && rm -rf "$board/spp/test" && claude plugin test "$board"
 uv run --frozen zensical build --clean --strict
 ```
+
+The `claude plugin test` line runs the epic board's tests on a copy of the plugin without `spp/test`, because `claude plugin test` runs every test file under the root it is given and the `node:test` suites cannot load there.
 
 Each check prints one line per violation and exits non-zero when there is any.
 

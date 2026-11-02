@@ -42,6 +42,9 @@ type Spec = {
   worker?: string
 }
 
+// A comment by the repository owner, an author spp trusts (ADR 0009).
+const owned = (body: string) => ({ body, author: { login: 'maint' }, authorAssociation: 'OWNER' })
+
 // One Sub-issue as the snapshot query returns it.
 function issue(s: Spec) {
   const head = `abc${s.n}def0123`
@@ -53,7 +56,7 @@ function issue(s: Spec) {
     repository: { nameWithOwner: REPO },
     comments: {
       nodes: s.pr.verdict
-        ? [{ body: trailer('<!-- spp-verdict -->', { head, spec: s.pr.verdict, quality: s.pr.verdict }) }]
+        ? [owned(trailer('<!-- spp-verdict -->', { head, spec: s.pr.verdict, quality: s.pr.verdict }))]
         : [],
     },
   }
@@ -66,7 +69,7 @@ function issue(s: Spec) {
     labels: { nodes: (s.labels ?? ['ready-for-agent']).map(name => ({ name })) },
     assignees: { nodes: [] },
     blockedBy: { nodes: (s.blockedBy ?? []).map(b => ({ url: `${URL}/issues/${b}`, state: 'OPEN' })) },
-    comments: { nodes: s.worker ? [{ body: trailer('<!-- sdd-progress -->', { worker: s.worker }) }] : [] },
+    comments: { nodes: s.worker ? [owned(trailer('<!-- sdd-progress -->', { worker: s.worker }))] : [] },
     closedByPullRequestsReferences: { nodes: pr ? [pr] : [] },
     timelineItems: { nodes: [] },
   }
@@ -75,13 +78,14 @@ function issue(s: Spec) {
 function snapshot(specs: Spec[], waves: { n: number; tickets: string[] }[] = []) {
   return JSON.stringify({
     data: {
+      viewer: { login: 'maint' },
       repository: {
         issue: {
           number: 197,
           url: `${URL}/issues/197`,
           title: 'Rebuild spp',
           repository: { nameWithOwner: REPO },
-          comments: { nodes: waves.length ? [{ body: trailer('<!-- sdd-wave -->', { waves, panel: [] }) }] : [] },
+          comments: { nodes: waves.length ? [owned(trailer('<!-- sdd-wave -->', { waves, panel: [] }))] : [] },
           subIssues: { nodes: specs.map(issue) },
         },
       },
