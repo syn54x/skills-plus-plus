@@ -12,6 +12,7 @@ jobs:
     name: Version
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
       pull-requests: write
       id-token: write
@@ -26,6 +27,7 @@ jobs:
       # Opens or updates the version pull request; once it merges, publishes to npm with provenance
       # (the NPM_TOKEN secret), or only tags the release when that secret is not set.
       - uses: changesets/action@v1
+        id: changesets
         with:
           version: npm run version
           publish: npm run release
@@ -34,3 +36,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # The release pull request is opened with GITHUB_TOKEN, which starts no pull_request run, so dispatch the evals on it.
+      - name: run the evals on the release pull request
+        if: steps.changesets.outputs.pullRequestNumber != ''
+        run: gh workflow run evals.yml --ref changeset-release/main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,10 +2,9 @@ name: evals
 
 # Runs the skill evals against a no-plugin baseline. Every case is a real model
 # call, so this runs on the Changesets release pull request and on demand,
-# never on every pull request.
+# never on every pull request. release.yml dispatches it on changeset-release/main
+# whenever it opens or updates the release pull request.
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
@@ -14,9 +13,6 @@ permissions:
 jobs:
   evals:
     name: skill evals
-    # A pull request from any branch other than the Changesets release branch
-    # skips the job. Manual dispatch always runs it.
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'changeset-release/')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
