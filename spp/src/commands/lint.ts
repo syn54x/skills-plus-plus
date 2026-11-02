@@ -16,7 +16,8 @@
  */
 import { readFileSync } from "node:fs";
 import { runGh } from "../gh.ts";
-import { checkPin, savePin } from "../pin.ts";
+import { checkPin } from "../pin.ts";
+import { savePin } from "./progress.ts";
 import { type Failure, isIssueRef, lintTicket, parseTicket } from "../ticket.ts";
 
 export type { Failure } from "../ticket.ts";

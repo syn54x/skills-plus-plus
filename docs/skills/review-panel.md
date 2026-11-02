@@ -49,6 +49,12 @@ When the same rule is broken in files owned by several Sub-issues, fixing it pie
 **What happens after the second fix round?**
 The decision is yours. If the third round would still say FIX FIRST, the verdict is written as HUMAN DECISION with every open finding. You can then name findings to fix and run an overtime round, and each round past the cap is one decision you made.
 
+**Why did the panel stop on a slice's pull request?**
+Its `Closes #N` names a Sub-issue, so `spp kind` reads `sub-issue`. A slice gets [review](review.md), and the panel belongs on its Epic's pull request to the base branch, so run `/review-panel` there instead.
+
+**Why did the panel stop on a refused Verify?**
+The panel runs each closed Sub-issue's Verify block through `spp verify <N>`, which refuses a block that was never pinned or changed after hardening, since anyone who can edit an issue can rewrite its commands. The panel stops the same way when the issue the pull request closes reads `raw` with a `pin-present` or `pin-match` rule from `spp kind`. Run [harden](harden.md) on that issue again, then run the panel again.
+
 **A report I did not post is not on the pull request. Is it lost?**
 No. The skill shows the report and asks before posting. Every round is recorded on the Epic's wave comment either way, marked `unposted` until a comment link exists, so the retro still counts it.
 

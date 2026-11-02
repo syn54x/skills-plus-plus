@@ -7,6 +7,8 @@ import type { On } from 'claude-code'
 
 const REPO = 'syn54x/skills-plus-plus'
 const URL = `https://github.com/${REPO}`
+// The integration branch the Epic's plan comment records, and every Sub-issue's pull request merges into.
+const BRANCH = 'feat/rebuild'
 const NOW = Date.parse('2026-11-02T12:00:00Z')
 
 const PANE = {
@@ -53,7 +55,10 @@ function issue(s: Spec) {
     url: `${URL}/pull/${s.pr.n}`,
     state: s.pr.state ?? 'OPEN',
     headRefOid: head,
+    baseRefName: BRANCH,
     repository: { nameWithOwner: REPO },
+    author: { login: 'maint' },
+    authorAssociation: 'OWNER',
     comments: {
       nodes: s.pr.verdict
         ? [owned(trailer('<!-- spp-verdict -->', { head, spec: s.pr.verdict, quality: s.pr.verdict }))]
@@ -89,6 +94,7 @@ function snapshot(specs: Spec[], waves: { n: number; tickets: string[] }[] = [],
           repository: { nameWithOwner: REPO },
           comments: {
             nodes: [
+              owned(trailer('<!-- sdd-plan -->', { branch: BRANCH })),
               ...(forged ? [outsider(trailer('<!-- sdd-wave -->', { waves: forged, panel: [] }))] : []),
               ...(waves.length ? [owned(trailer('<!-- sdd-wave -->', { waves, panel: [] }))] : []),
             ],

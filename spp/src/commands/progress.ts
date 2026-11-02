@@ -6,8 +6,8 @@
  *
  * @module
  */
-import { type Data, flagPairs, guarded, print, updateMarker, UsageError } from "../markers.ts";
-import { PIN_KEY } from "../pin.ts";
+import { type Data, flagPairs, guarded, print, PROGRESS_MARKER, updateMarker, UsageError, writeMarker } from "../markers.ts";
+import { pinFields, pinLine } from "../pin.ts";
 
 /** The usage text `spp progress --help` prints. */
 export const USAGE = `usage: spp progress <issue> [--status in-progress|pr-open|verify-passed|changes-requested|handed-back]
@@ -16,12 +16,7 @@ export const USAGE = `usage: spp progress <issue> [--status in-progress|pr-open|
 <issue> is an issue number in the current repo or a GitHub issue URL. A field not passed keeps its value.
 `;
 
-/**
- * The progress comment's marker, its first line.
- *
- * @internal
- */
-export const MARKER = "<!-- sdd-progress -->";
+const MARKER = PROGRESS_MARKER;
 const DEFAULT = { status: "in-progress", worker: "", branch: "", pr: null, verify: { state: "not-run", sha: "" }, route: null, reason: "", notes: "" };
 const STATUSES = ["in-progress", "pr-open", "verify-passed", "changes-requested", "handed-back"];
 
@@ -34,8 +29,7 @@ const STATUSES = ["in-progress", "pr-open", "verify-passed", "changes-requested"
  */
 export function renderProgress(data: Data): string {
   const d = data as typeof DEFAULT & { pr: number | string | null; route: string | null };
-  const verifyPin = data[PIN_KEY];
-  const pin = typeof verifyPin === "string" && verifyPin ? [`**Verify pin:** \`${verifyPin.slice(0, 12)}\``] : [];
+  const pin = pinLine(data);
   if (d.status === undefined) return pin.join("\n");
   return [
     `**Status:** ${d.status}`,
@@ -56,6 +50,15 @@ export function renderProgress(data: Data): string {
  */
 export function saveProgress(issue: string, patch: Data): Promise<string> {
   return updateMarker(issue, MARKER, renderProgress, (old) => ({ ...DEFAULT, ...old, ...patch }));
+}
+
+/**
+ * Pins `block` on the issue's progress comment, keeping every other field; returns the comment's URL.
+ *
+ * @internal
+ */
+export function savePin(issue: string, block: string): Promise<string> {
+  return writeMarker(issue, MARKER, renderProgress, pinFields(block));
 }
 
 /**

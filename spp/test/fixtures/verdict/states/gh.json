@@ -14,7 +14,15 @@
        "nameWithOwner": "acme/app"
       },
       "comments": {
-       "nodes": []
+       "nodes": [
+        {
+         "body": "<!-- sdd-plan -->\n<!-- sdd-data: eyJicmFuY2giOiJmZWF0L2VwaWMifQ== -->",
+         "author": {
+          "login": "maint"
+         },
+         "authorAssociation": "OWNER"
+        }
+       ]
       },
       "subIssues": {
        "nodes": [
@@ -75,7 +83,11 @@
                 "authorAssociation": "OWNER"
                }
               ]
-             }
+             },
+             "author": {
+              "login": "maint"
+             },
+             "authorAssociation": "OWNER"
             }
            }
           ]
@@ -131,7 +143,11 @@
                 "authorAssociation": "OWNER"
                }
               ]
-             }
+             },
+             "author": {
+              "login": "maint"
+             },
+             "authorAssociation": "OWNER"
             }
            }
           ]
@@ -187,7 +203,11 @@
                 "authorAssociation": "OWNER"
                }
               ]
-             }
+             },
+             "author": {
+              "login": "maint"
+             },
+             "authorAssociation": "OWNER"
             }
            }
           ]
@@ -243,7 +263,11 @@
                 "authorAssociation": "OWNER"
                }
               ]
-             }
+             },
+             "author": {
+              "login": "maint"
+             },
+             "authorAssociation": "OWNER"
             }
            }
           ]
@@ -299,7 +323,11 @@
                 "authorAssociation": "OWNER"
                }
               ]
-             }
+             },
+             "author": {
+              "login": "maint"
+             },
+             "authorAssociation": "OWNER"
             }
            }
           ]

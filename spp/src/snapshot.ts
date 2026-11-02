@@ -18,6 +18,11 @@ export type Pr = {
   base: string;
   /** The head commit's full sha. */
   headSha: string;
+  /**
+   * Whether spp trusts its author: the gh user, or one GitHub marks OWNER, MEMBER or COLLABORATOR (ADR 0009), so a
+   * stranger's fork pull request into the Epic's repository is never the ticket's.
+   */
+  trusted: boolean;
   /** The pull request's `<!-- spp-verdict -->` comment as `spp verdict` writes it, present only when it decodes. */
   verdict?: Verdict;
 };
@@ -48,7 +53,7 @@ export type Snapshot = {
 // shortcut: Marker comments are looked for in the Epic's first 100 comments and a Sub-issue's first 50; both are
 // written early (the plan, the claim), so raise these only if one is ever missed. The same holds for a pull request's
 // verdict comment in its first 30, written at its first review and rewritten in place after that.
-// `viewer` and each comment's author are there for the trust boundary (ADR 0009).
+// `viewer` and each comment's and pull request's author are there for the trust boundary (ADR 0009).
 export const SNAPSHOT_QUERY = `query Snapshot($owner: String!, $repo: String!, $number: Int!) {
   viewer { login }
   repository(owner: $owner, name: $repo) {
@@ -71,7 +76,7 @@ export const SNAPSHOT_QUERY = `query Snapshot($owner: String!, $repo: String!, $
     }
   }
 }
-fragment pr on PullRequest { number url state headRefOid baseRefName repository { nameWithOwner } comments(first: 30) { nodes { ...comment } } }
+fragment pr on PullRequest { number url state headRefOid baseRefName repository { nameWithOwner } author { login } authorAssociation comments(first: 30) { nodes { ...comment } } }
 fragment comment on IssueComment { body author { login } authorAssociation }`;
 
 type Nodes<T> = { nodes: T[] };
@@ -83,6 +88,8 @@ type RawPr = {
   headRefOid: string;
   baseRefName: string;
   repository: { nameWithOwner: string };
+  author?: { login: string } | null;
+  authorAssociation?: string;
   body?: string;
   comments?: Nodes<Comment>;
 };
@@ -168,7 +175,8 @@ function issue(raw: RawIssue, viewer: string | null): SnapshotIssue {
   const prs = new Map<string, Pr>();
   for (const p of [...raw.closedByPullRequestsReferences.nodes, ...crossRefs]) {
     const verdict = readVerdict(markerData(p.comments, VERDICT_MARKER, viewer));
-    prs.set(p.url, { number: p.number, url: p.url, state: p.state, repo: p.repository.nameWithOwner, base: p.baseRefName, headSha: p.headRefOid, ...(verdict && { verdict }) });
+    const trusted = trustedAuthor(p.author?.login, p.authorAssociation, viewer);
+    prs.set(p.url, { number: p.number, url: p.url, state: p.state, repo: p.repository.nameWithOwner, base: p.baseRefName, headSha: p.headRefOid, trusted, ...(verdict && { verdict }) });
   }
   return {
     number: raw.number,

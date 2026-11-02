@@ -8,8 +8,8 @@ import { runCase } from "./harness.ts";
 type Verdict = { head: string; spec: "pass" | "fail"; quality: "pass" | "fail" };
 // red: earlier heads of the pull request whose checks failed; rebased: failing heads a force push replaced;
 // forged: the revisions of a verdict comment an outside author posted before the real one; repo and base default to
-// acme/app and the integration branch.
-type PrSpec = { n: number; state?: "OPEN" | "MERGED" | "CLOSED"; repo?: string; base?: string; head?: string; verdict?: Verdict; checks?: string; history?: Verdict[]; red?: string[]; rebased?: string[]; forged?: Verdict[] };
+// acme/app and the integration branch; outsider: the pull request was opened by an author spp does not trust.
+type PrSpec = { n: number; state?: "OPEN" | "MERGED" | "CLOSED"; repo?: string; base?: string; head?: string; verdict?: Verdict; checks?: string; history?: Verdict[]; red?: string[]; rebased?: string[]; forged?: Verdict[]; outsider?: boolean };
 type Spec = { n: number; closed?: boolean; labels?: string[]; assignees?: string[]; blockedBy?: number[]; pr?: PrSpec; worker?: string; files?: string[]; extraPrs?: PrSpec[] };
 type Opts = {
   branch?: string | null;
@@ -47,6 +47,8 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
     headRefOid: p.head ?? HEAD,
     baseRefName: p.base ?? branch ?? "main",
     repository: { nameWithOwner: p.repo ?? "acme/app" },
+    author: { login: p.outsider ? "mallory" : "maint" },
+    authorAssociation: p.outsider ? "NONE" : "OWNER",
     comments: { nodes: [...(p.forged ? [by(verdictBody(p.forged.at(-1)!), true)] : []), ...(p.verdict ? [by(verdictBody(p.verdict))] : [])] },
   });
   const node = (t: Spec) => ({
@@ -430,6 +432,38 @@ describe("one rule for a landed blocker", () => {
     ];
     const actions = await next(tickets);
     assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["12"]]]);
+  });
+});
+
+// F39 (Round 3) on #267: a pull request outside the Epic's repositories, an open one into another base, or one an
+// untrusted author opened is no PR of the ticket for any reader, so a stranger can never reach the gate or the merge.
+describe("one set of pull requests for every reader", () => {
+  const status = async (tickets: Spec[], o: Opts = {}) =>
+    ((await runCase("status", scratch(tickets, o))).json as { tickets: { number: number; state: string; pr: { url: string } | null }[] }).tickets;
+
+  for (const [what, foreign] of [
+    ["in a repository outside the Epic", { repo: "mallory/fork" }],
+    ["into a branch other than the integration branch", { base: "main" }],
+    ["from an author spp does not trust (a fork pull request into the Epic's repository)", { outsider: true }],
+  ] as const) {
+    test(`an open pull request ${what} leaves a ready ticket ready: dispatched, never gated`, async () => {
+      const tickets: Spec[] = [{ n: 12, pr: { n: 999, ...foreign } }];
+      assert.deepEqual((await next(tickets)).map((a) => [a.kind, a.tickets]), [["dispatch", ["12"]]]);
+      assert.deepEqual((await status(tickets)).map((t) => [t.state, t.pr]), [["ready", null]]);
+    });
+  }
+
+  test("a foreign open pull request beside the ticket's own gate-passed one: the merge targets its own", async () => {
+    const tickets: Spec[] = [{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, verdict: PASS }, extraPrs: [{ n: 999, repo: "mallory/fork" }] }];
+    const actions = await next(tickets);
+    assert.deepEqual(actions.map((a) => [a.kind, a.pr]), [["merge", PULL + 40]]);
+  });
+
+  // F43 (Round 3) on #267.
+  test("with no integration branch recorded, a merged pull request lands nothing: its dependant stays blocked", async () => {
+    const tickets: Spec[] = [{ n: 11, pr: { n: 111, state: "MERGED", base: "feat/epic" } }, { n: 12, blockedBy: [11] }];
+    const s = await status(tickets, { branch: null });
+    assert.equal(s.find((t) => t.number === 12)?.state, "blocked");
   });
 });
 

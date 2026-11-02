@@ -142,6 +142,46 @@ describe("error path", () => {
   });
 });
 
+// Panel F40 (Round 3) on #267: --print hands the skills the block the pin check read, from one fetch, and runs nothing.
+describe("spp verify <issue> --print", () => {
+  test("a block that matches its pin prints its commands, one per line, runs none of them and records nothing", async () => {
+    const repo = repoCase(["12", "--print"], "fail");
+    const r = await runCase("verify", repo);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "true\nexit 1\n");
+    noNote(repo);
+  });
+
+  for (const [pin, why] of [
+    ["mismatch", /changed since it was hardened.*re-harden/i],
+    ["missing", /not pinned.*re-harden/i],
+    ["forged", /not pinned/],
+  ] as const) {
+    test(`a ${pin} pin refuses and prints nothing`, async () => {
+      const repo = repoCase(["12", "--print"], "pass", "main", pin);
+      const r = await runCase("verify", repo);
+      assert.equal(r.code, 1);
+      assert.equal(r.stdout, "");
+      assert.match(r.stderr, why);
+      noNote(repo);
+    });
+  }
+
+  test("a dirty tree does not stop --print, which runs nothing", async () => {
+    const repo = repoCase(["12", "--print"]);
+    writeFileSync(join(repo, "loose.txt"), "x");
+    const r = await runCase("verify", repo);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "true\n");
+  });
+
+  test("--print with no issue exits 2 with usage", () => {
+    const r = runSpp(["verify", "--print"], "", gitRepo());
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /usage: spp verify/);
+  });
+});
+
 describe("edge cases", () => {
   test("spp verify --check on branch main exits 0 without checking", () => {
     assert.equal(runSpp(["verify", "--check"], "", gitRepo("main")).code, 0);

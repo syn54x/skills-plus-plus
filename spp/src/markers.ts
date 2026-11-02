@@ -8,6 +8,10 @@ export { readTrailer };
 
 export type Data = Record<string, unknown>;
 
+// The Sub-issue's progress comment's marker, kept here so that pin.ts can name it without importing
+// commands/progress.ts, which imports pin.ts.
+export const PROGRESS_MARKER = "<!-- sdd-progress -->";
+
 // A usage error: the command exits 2 with its usage text.
 export class UsageError extends Error {}
 

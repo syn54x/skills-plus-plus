@@ -24,7 +24,7 @@ export type Ticket = {
   size: "S" | "M" | "L" | null;
   /** Where the ticket stands. */
   state: TicketState;
-  /** The Layer: one above its highest open blocker inside the Epic, 0 with none; null when caught in a cycle. */
+  /** The Layer: one above its highest blocker inside the Epic that has not landed, 0 with none; null when caught in a cycle. */
   layer: number | null;
   /** URLs of open blockers, leaving out one that landed while its issue stays open. */
   blockedBy: string[];
@@ -36,7 +36,10 @@ export type Ticket = {
   assignees: string[];
   /** Label names. */
   labels: string[];
-  /** The pull request it shows (an open one first, then a merged one, newest first), or null. */
+  /**
+   * The pull request it shows (an open one first, then a merged one, newest first), or null. Only its own count: in
+   * one of the Epic's repositories, opened by a trusted author and, while open, into the integration branch.
+   */
   pr: Pr | null;
   /** The progress comment's Worker line, or null. */
   worker: string | null;
@@ -106,26 +109,34 @@ function stateOf(i: SnapshotIssue, blockedBy: string[], pr: Pr | null): TicketSt
 }
 
 /**
- * Whether a ticket's work has landed: its issue is closed, or one of its pull requests merged into the integration
- * branch, which closes nothing, so its issue may stay open, while none of them is still open. Only a pull request in
- * one of the Epic's repositories counts, open or merged, since any repository can say it closes the issue (ADR 0009);
- * with no integration branch recorded, none lands it. derive's blockers and planNext both read it, through
+ * The pull requests that are a ticket's own, the one set every reader (its PR, its state, whether it landed) sees.
+ * Any repository can say it closes an issue and anyone can open a fork pull request, so a pull request counts only
+ * when it lies in one of the Epic's repositories and a trusted author opened it, and an open one only when it merges
+ * into the integration branch (ADR 0009). With no integration branch recorded, no open one counts.
+ */
+function ownPrs(prs: Pr[], branch: string | null, repos: Set<string>): Pr[] {
+  return prs.filter((p) => p.trusted && repos.has(p.repo.toLowerCase()) && (p.state !== "OPEN" || p.base === branch));
+}
+
+/**
+ * Whether a ticket's work has landed: its issue is closed, or one of its own pull requests merged into the
+ * integration branch, which closes nothing, so its issue may stay open, while none of them is still open. With no
+ * integration branch recorded, none lands it. derive's blockers and planNext both read it, through
  * {@link Ticket.landed}.
  */
-function landed(closed: boolean, prs: Pr[], branch: string | null, repos: Set<string>): boolean {
-  const own = prs.filter((p) => repos.has(p.repo.toLowerCase()));
+function landed(closed: boolean, own: Pr[], branch: string | null): boolean {
   return closed || (!own.some((p) => p.state === "OPEN") && own.some((p) => p.state === "MERGED" && p.base === branch));
 }
 
 export function derive(s: Snapshot): EpicState {
   const branch = text(s.plan?.branch);
   const repos = new Set([s.epic.repo, ...s.issues.map((i) => i.repo)].map((r) => r.toLowerCase()));
-  const isLanded = (i: SnapshotIssue) => landed(i.state === "CLOSED", i.prs, branch, repos);
+  const own = new Map(s.issues.map((i) => [i.url, ownPrs(i.prs, branch, repos)]));
   // A landed blocker no longer blocks, even while its issue stays open.
-  const done = new Set(s.issues.filter(isLanded).map((i) => i.url));
+  const done = new Set(s.issues.filter((i) => landed(i.state === "CLOSED", own.get(i.url)!, branch)).map((i) => i.url));
   const tickets: Ticket[] = s.issues.map((i) => {
     const blockedBy = i.blockedBy.filter((b) => b.open && !done.has(b.url)).map((b) => b.url);
-    const pr = pickPr(i.prs);
+    const pr = pickPr(own.get(i.url)!);
     const size = i.labels.find((l) => /^size:[SML]$/.test(l))?.slice(5) as Ticket["size"] | undefined;
     return {
       number: i.number,

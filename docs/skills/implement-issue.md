@@ -47,7 +47,7 @@ Review rounds kept citing rules the worker had read up front but never held agai
 Reports used to be written from memory. The worker now checks every test, file and hunk its report and pull request name against the pushed branch before it reports, and either fixes the gap or removes the claim.
 
 **How is a skill-only or docs-only issue built test-first?**
-Its Verify commands stand in for tests. Run before any edit, the commands that fail are the red evidence; the worker then edits until every one of them passes. A command that already passed before any edit is listed as a weak pin, so the reviewer knows that check proves little.
+Its Verify commands stand in for tests. The worker takes them from `spp verify <N> --print`, which checks the pin and prints the block from one read of the issue, so the commands it runs are the ones the check approved. Run before any edit, the commands that fail are the red evidence; the worker then edits until every one of them passes. A command that already passed before any edit is listed as a weak pin, so the reviewer knows that check proves little.
 
 ## It's working if
 

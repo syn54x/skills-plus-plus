@@ -32,6 +32,9 @@ Each finding is one line with a severity (Critical, Important or Minor), the fil
 **The review says "quality verdict only". Why?**
 The pull request body has no `Closes #N` line, or the issue it closes is a raw issue that never got the Ticket contract, so there is no Sub-issue or One-off to judge the spec against. The review still checks correctness, depth and Laws. It records no gate verdict, so `build` will not merge such a pull request until the line is added and the review runs again.
 
+**The review stopped and said the issue needs harden again. Why?**
+The linked issue was hardened, but its Verify block is no longer pinned or has changed since, so `spp kind` reads it as `raw` with a `pin-present` or `pin-match` rule. Anyone who can edit the issue can rewrite those commands, so the review runs none of them and posts no verdict. Run [harden](harden.md) on the issue to check and pin the block again, then run the review again.
+
 **Every test passed on the branch. Why did Verify fail in review?**
 When the base branch has moved since the branch was cut, the reviewer merges the newer base into a local copy and runs Verify there as well. Two slices can each pass alone and fail together; this is where that shows up, before the merge rather than after it.
 

@@ -44,7 +44,7 @@ describe("happy path", () => {
   test("an open linked pull request makes a ticket pr-open with its number and head sha", async () => {
     const t = ticket(await state("states"), 403);
     assert.equal(t.state, "pr-open");
-    assert.deepEqual(t.pr, { number: 503, url: "https://github.com/acme/app/pull/503", state: "OPEN", repo: "acme/app", base: "feat/epic", headSha: "abc1234def" });
+    assert.deepEqual(t.pr, { number: 503, url: "https://github.com/acme/app/pull/503", state: "OPEN", repo: "acme/app", base: "feat/epic", headSha: "abc1234def", trusted: true });
   });
 
   test("a closed ticket whose linked pull request merged is merged", async () => {
@@ -193,7 +193,7 @@ describe("trust boundary", () => {
                 blockedBy: { nodes: [] },
                 comments: { nodes: issueComments },
                 closedByPullRequestsReferences: {
-                  nodes: [{ number: 40, url: "https://github.com/acme/app/pull/40", state: "OPEN", headRefOid: HEAD, repository: { nameWithOwner: "acme/app" }, comments: { nodes: prComments } }],
+                  nodes: [{ number: 40, url: "https://github.com/acme/app/pull/40", state: "OPEN", headRefOid: HEAD, baseRefName: "feat/x", repository: { nameWithOwner: "acme/app" }, author: { login: "maint" }, authorAssociation: "OWNER", comments: { nodes: prComments } }],
                 },
                 timelineItems: { nodes: [] },
               },
@@ -219,7 +219,8 @@ describe("trust boundary", () => {
   });
 
   test("a forged passing verdict alone gives no verdict, so derive leaves the pull request pr-open", () => {
-    const s = parseSnapshot(response([], [], [by("mallory", "NONE", verdict), by(null, "NONE", verdict)]));
+    const plan = by("maint", "OWNER", trailer("<!-- sdd-plan -->", { branch: "feat/x" }));
+    const s = parseSnapshot(response([plan], [], [by("mallory", "NONE", verdict), by(null, "NONE", verdict)]));
     assert.equal(s.issues[0].prs[0].verdict, undefined);
     assert.equal(derive(s).tickets[0].state, "pr-open");
   });

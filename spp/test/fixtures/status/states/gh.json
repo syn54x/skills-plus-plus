@@ -122,7 +122,11 @@
                           "repository": {
                             "nameWithOwner": "acme/app"
                           },
-                          "body": "Closes #403\n\n## What"
+                          "body": "Closes #403\n\n## What",
+                          "author": {
+                            "login": "maint"
+                          },
+                          "authorAssociation": "OWNER"
                         }
                       }
                     ]
@@ -162,7 +166,11 @@
                         "baseRefName": "feat/epic",
                         "repository": {
                           "nameWithOwner": "acme/app"
-                        }
+                        },
+                        "author": {
+                          "login": "maint"
+                        },
+                        "authorAssociation": "OWNER"
                       }
                     ]
                   },
@@ -265,7 +273,11 @@
                           "repository": {
                             "nameWithOwner": "acme/app"
                           },
-                          "body": "Relates to #407"
+                          "body": "Relates to #407",
+                          "author": {
+                            "login": "maint"
+                          },
+                          "authorAssociation": "OWNER"
                         }
                       }
                     ]
@@ -340,6 +352,17 @@
                       {}
                     ]
                   }
+                }
+              ]
+            },
+            "comments": {
+              "nodes": [
+                {
+                  "body": "<!-- sdd-plan -->\n<!-- sdd-data: eyJicmFuY2giOiJmZWF0L2VwaWMifQ== -->",
+                  "author": {
+                    "login": "maint"
+                  },
+                  "authorAssociation": "OWNER"
                 }
               ]
             }
