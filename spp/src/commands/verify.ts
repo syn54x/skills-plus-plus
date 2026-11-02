@@ -1,0 +1,106 @@
+// spp verify <N | issue URL>: runs the ticket's Verify block from the repository root, prints pass or fail per
+// command, and records the result as a git note under refs/notes/sdd-verify on HEAD.
+// spp verify --check: the Stop and SubagentStop hook. On an sdd/* branch it exits 2 (the reason on stderr, which
+// blocks the stop) unless the tree is clean and HEAD carries a passing note; any other branch exits 0 unchecked.
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { runGh } from "../gh.ts";
+import { isIssueRef, parseTicket } from "../ticket.ts";
+
+const USAGE = `usage: spp verify <issue number | issue URL>
+       spp verify --check
+The first runs the ticket's Verify block and records the result on HEAD. --check exits 2 on an sdd/* branch whose
+HEAD has no passing record or whose tree is dirty; as a stop hook it reads the hook payload on stdin.
+`;
+
+// The fields of a Claude Code hook payload that spp reads.
+export type HookInput = {
+  cwd?: string;
+  hook_event_name?: string;
+  tool_name?: string;
+  tool_input?: { command?: string };
+  tool_response?: { stdout?: string };
+};
+
+// The hook payload on stdin, or {} when there is none. A stdin that stays open and silent (a command run by hand
+// from a shell that never closes it) is given up on after a second, so the command never hangs.
+export function readHookInput(): Promise<HookInput> {
+  if (process.stdin.isTTY) return Promise.resolve({});
+  return new Promise((resolve) => {
+    let text = "";
+    const done = () => {
+      clearTimeout(timer);
+      process.stdin.destroy();
+      try {
+        const v = JSON.parse(text);
+        resolve(v && typeof v === "object" ? v : {});
+      } catch {
+        resolve({});
+      }
+    };
+    const timer = setTimeout(done, 1000);
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (d: string) => {
+      clearTimeout(timer);
+      text += d;
+    });
+    process.stdin.on("end", done).on("error", done);
+  });
+}
+
+// Moves to the payload's cwd: hooks run from the project directory, which is not the worktree a session entered.
+export function enterHookCwd(input: HookInput): void {
+  if (input.cwd && existsSync(input.cwd)) process.chdir(input.cwd);
+}
+
+// git's trimmed stdout, or null when git fails (not a repository, no such note).
+export function gitOut(...args: string[]): string | null {
+  const r = spawnSync("git", args, { encoding: "utf8" });
+  return r.status === 0 ? r.stdout.trim() : null;
+}
+
+// One command per line; a trailing backslash continues the line, and blank and comment lines are skipped.
+// shortcut: each line runs in its own shell, so a `cd` on its own line does not carry to the next; join them with && instead.
+const commands = (block: string) =>
+  block.replace(/\\\n/g, " ").split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
+
+async function verify(ref: string): Promise<number> {
+  const { body } = JSON.parse(await runGh(["issue", "view", ref, "--json", "body"])) as { body: string | null };
+  const block = parseTicket(body ?? "").verify;
+  if (block === null) throw new Error(`${ref} has no Verify block`);
+  const root = gitOut("rev-parse", "--show-toplevel");
+  if (!root) throw new Error("not inside a git repository");
+  let failed = false;
+  for (const cmd of commands(block)) {
+    // The command's own output goes to stderr, so stdout carries only the pass and fail lines.
+    const ok = spawnSync("bash", ["-c", cmd], { cwd: root, stdio: ["ignore", 2, 2] }).status === 0;
+    process.stdout.write(`${ok ? "pass" : "fail"}: ${cmd}\n`);
+    failed ||= !ok;
+  }
+  const note = `${failed ? "failed" : "verified"} ${new Date().toISOString()}`;
+  if (gitOut("notes", "--ref=sdd-verify", "add", "-f", "-m", note, "HEAD") === null) throw new Error("could not write the sdd-verify note on HEAD");
+  return failed ? 1 : 0;
+}
+
+async function check(): Promise<number> {
+  // stop_hook_active is ignored on purpose: a second stop is just as unverified, and Claude Code caps the loop itself
+  // (eight blocked stops in a row end the turn).
+  enterHookCwd(await readHookInput());
+  const branch = gitOut("branch", "--show-current") ?? "";
+  if (!branch.startsWith("sdd/")) return 0;
+  const n = /^sdd\/(\d+)/.exec(branch)?.[1] ?? "<N>";
+  const block = (why: string) => (process.stderr.write(`spp verify: ${why}\n`), 2);
+  if (gitOut("status", "--porcelain")) return block(`uncommitted changes on ${branch}. Commit them, then run spp verify ${n}.`);
+  const note = gitOut("notes", "--ref=sdd-verify", "show", "HEAD") ?? "";
+  if (/^(verified|blocked)\b/.test(note)) return 0;
+  const handBack = `If you are stopping BLOCKED, hand the ticket back (spp hand-back ${n} <route> --reason ...), push what is committed, then record it: git notes --ref=sdd-verify add -f -m blocked HEAD`;
+  if (note.startsWith("failed")) return block(`Verify failed on HEAD of ${branch}. Fix it and run spp verify ${n} again. ${handBack}`);
+  return block(`Verify not run on HEAD of ${branch}. Run spp verify ${n} on the committed tree. ${handBack}`);
+}
+
+export async function run(args: string[]): Promise<number> {
+  if (args.length === 1 && args[0] === "--check") return check();
+  if (args.length === 1 && isIssueRef(args[0])) return verify(args[0]);
+  process.stderr.write(USAGE);
+  return 2;
+}
