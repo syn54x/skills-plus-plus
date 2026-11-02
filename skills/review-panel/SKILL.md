@@ -33,7 +33,10 @@ Make the **panel directory** and fill it; every Persona reads from here and noth
 
 ```bash
 PANEL_DIR="${TMPDIR:-/tmp}/spp-panel-$PR"; mkdir -p "$PANEL_DIR"
+R=1; ROUND_DIR="$PANEL_DIR/round-$R"; rm -rf "$ROUND_DIR"; mkdir -p "$ROUND_DIR"
 ```
+
+`R` is the round. The Personas' replies go in the round's own folder, `$ROUND_DIR`, emptied first, so a reply from an earlier round or an earlier run never reaches the merge; a later round starts its folder the same way (`ROUNDS.md`). Everything else below lives in `$PANEL_DIR` and is shared by every round.
 
 Check the head out detached in a throwaway worktree, never in the checkout you stand in, then write into `$PANEL_DIR`: `diff.patch` (`git diff -U8 "$MERGE_BASE" "$HEAD"`, three-dot meaning, so only what the pull request adds), `stat.txt`, `commits.txt`, `spec.md` (the Epic body, plus the plan comment's text, plus each Sub-issue's `## Interfaces` and `## Files owned`: the Sub-issue urls come from `spp status "$EPIC" --json`, which carries no bodies, so read each with `gh issue view <url> --json body`), `laws.txt` (the paths of the documents on the Routing block's Laws line, a directory listed file by file) and a copy of this skill's `PERSONAS.md`.
 
@@ -49,7 +52,11 @@ Done when `$PANEL_DIR` holds all of it and `HEAD` is the head GitHub shows now.
 
 ## 3. Spec and Coherence
 
-Call the Skill tool with "review" for this pull request. It is an Epic's pull request, so `review` follows its Epic mode: the spec verdict against the Epic and the Coherence verdict where Sub-issues meet. Open the request with `For the panel: return, do not post`, which switches on the mode `EPIC.md` in `review` describes for this case: it posts nothing and returns the comment text. Keep that text verbatim for the report.
+Start a fresh read-only reviewer yourself, with exactly this request as its whole input:
+
+> For the panel: return, do not post. Review pull request `<PR>`.
+
+It follows `review`, and since this is an Epic's pull request, `review`'s Epic mode: the spec verdict against the Epic and the Coherence verdict where Sub-issues meet. The opening phrase switches on the mode `EPIC.md` in `review` describes for this case: it posts nothing and returns the comment text. Do not call `review` in this session instead: when `review` hands off to a fresh reviewer it passes on only the pull request, so the phrase is lost and the comment is posted. With no way to start a reviewer, call the Skill tool with "review" and the same request. Keep the returned text verbatim for the report.
 
 A failed Spec does not stop the panel; it makes the verdict FIX FIRST (see `VERDICT.md`).
 
@@ -79,25 +86,25 @@ Start one fresh read-only reviewer per Persona, all at once, and collect each on
 
 With no way to run reviewers at once, run them one after another, each in a fresh context, always-on Personas first. It is slower and no weaker.
 
-Write each reply to `$PANEL_DIR/persona-<name>.json`. A reply that is not the findings JSON is asked for once more; a Persona that fails twice is listed in Coverage as `did not report` and the verdict is FIX FIRST.
+Write each reply to `$ROUND_DIR/persona-<name>.json`. A reply that is not the findings JSON is asked for once more; a Persona that fails twice is listed in Coverage as `did not report` and the verdict is FIX FIRST.
 
-Done when every Persona has a `persona-<name>.json` or a `did not report` line.
+Done when every Persona has a `persona-<name>.json` in `$ROUND_DIR` or a `did not report` line.
 
 ## 6. Merge, then report
 
 ```bash
-spp findings merge "$PANEL_DIR"/persona-*.json --verdict <R> --spec <pass|fail> --coherence <pass|fail> \
+spp findings merge "$ROUND_DIR"/*.json --verdict "$R" --spec <pass|fail> --coherence <pass|fail> \
   --verify <pass|fail> --checks <pass|fail|pending|none> [--missing <name,name>]
 ```
 
-`<R>` is the round (1 for the first panel); the readings are the ones you hold from steps 2 and 3, and `--missing` names each Persona listed as `did not report`. The command drops findings under confidence 80, merges the ones on the same file, within five lines, with the same normalised title (keeping the highest severity and every Persona's name), numbers them `F1`, `F2` and on, prints the three tallies, and ends with a `Verdict:` line. Do not merge, rank, re-number or re-decide by hand.
+It reads this round's folder and nothing else: each Persona's reply and, from round 2 on, the `recheck-<name>.json` files `ROUNDS.md` adds. The readings are the ones you hold from steps 2 and 3, and `--missing` names each Persona listed as `did not report`. The command drops findings under confidence 80, merges the ones on the same file, within five lines, with the same normalised title (keeping the highest severity and every Persona's name), numbers them `F1`, `F2` and on, prints the three tallies, and ends with a `Verdict:` line. Do not merge, rank, re-number or re-decide by hand.
 
 Read `VERDICT.md` now and write the report around the merge output: the verdict line is copied, and you add only its one sentence, the Spec and Coherence sections, the Coverage lines and Residual risk.
 
 Show the report, then record the round when the pull request has an Epic:
 
 ```bash
-spp wave "$EPIC" panel --round <R> --verdict "<verdict>" --severity critical=<n>,important=<n>,minor=<n> --persona <name>=<n>,... --dropped <n>
+spp wave "$EPIC" panel --round "$R" --verdict "<verdict>" --severity critical=<n>,important=<n>,minor=<n> --persona <name>=<n>,... --dropped <n>
 ```
 
 The numbers are the merge output's tallies, with a `--persona` entry for every Persona that ran, `0` included.

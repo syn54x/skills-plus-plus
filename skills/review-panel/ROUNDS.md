@@ -16,13 +16,20 @@ Done when every Critical and Important finding has one owner and the fixes sit o
 
 ## 2. Look again
 
-`LAST` is the head the previous round reviewed and `NEW` is the head now. Save the round's combined fix diff to `$PANEL_DIR/fix-<round>.patch` with `git diff -U8 "$LAST" "$NEW"`, rewrite `context.md` so the Personas' view is that patch and its head is `NEW`, and run steps 3 to 6 of `SKILL.md` on `NEW` in this shape:
+`LAST` is the head the previous round reviewed and `NEW` is the head now. Start the round's own folder first, so nothing an earlier round wrote reaches this round's merge:
 
-1. **Each earlier finding.** One Persona, the one that raised it or `correctness`, answers `ADDRESSED` or `NOT ADDRESSED` for every open Critical and Important id against the fix diff, with a line or a test as evidence. A change that tries and leaves the failure in place is not addressed. It also reports each `NOT ADDRESSED` finding again, at its original severity and in the findings JSON shape, so it joins the merge below and counts toward the verdict.
-2. **Spec and Coherence again.** `review` on `NEW`, then Verify and `spp checks`, read again.
-3. **The Composition pass.** The always-on Personas, plus each conditional Persona the fix diff touches (one it does not touch is dropped, even if round one ran it), run once over the whole fix diff, never slice by slice. This is where defects appear that exist only because two fixes met.
+```bash
+R=2   # 2 after the first fix round, 3 after the second
+ROUND_DIR="$PANEL_DIR/round-$R"; rm -rf "$ROUND_DIR"; mkdir -p "$ROUND_DIR"
+```
 
-Merge as before and write the report in the later-round shape from `VERDICT.md`. The merge command takes the round as its `--verdict` value, so the same rule runs over what is still open: each `NOT ADDRESSED` finding, each new one, and the re-run Spec, Coherence, Verify and checks. Record it with `spp wave "$EPIC" panel --round <R>` as `SKILL.md` step 6 says, `<R>` being 2 after the first fix round and 3 after the second.
+Save the round's combined fix diff to `$PANEL_DIR/fix-$R.patch` with `git diff -U8 "$LAST" "$NEW"`, rewrite `context.md` so the Personas' view is that patch and its head is `NEW`, and run steps 3 to 6 of `SKILL.md` on `NEW` in this shape:
+
+1. **Each earlier finding.** One Persona, the one that raised it or `correctness`, answers `ADDRESSED` or `NOT ADDRESSED` for every open Critical and Important id against the fix diff, with a line or a test as evidence. A change that tries and leaves the failure in place is not addressed. It also reports each `NOT ADDRESSED` finding again, at its original severity and in the findings JSON shape, in `$ROUND_DIR/recheck-<name>.json` (one file per Persona that rechecks, its name in the `persona` field), so it joins the merge below and counts toward the verdict. The `recheck-` prefix keeps it apart from the Composition pass's `persona-<name>.json` when both are the same Persona, `correctness` most often.
+2. **Spec and Coherence again.** `SKILL.md` step 3 on `NEW`, with the same request, then Verify and `spp checks`, read again.
+3. **The Composition pass.** The always-on Personas, plus each conditional Persona the fix diff touches (one it does not touch is dropped, even if round one ran it), run once over the whole fix diff, never slice by slice, each reply written to `$ROUND_DIR/persona-<name>.json`. This is where defects appear that exist only because two fixes met.
+
+Merge as before, over `$ROUND_DIR` only, and write the report in the later-round shape from `VERDICT.md`. The merge command takes the round as its `--verdict` value, so the same rule runs over what is still open: each `NOT ADDRESSED` finding, each new one, and the re-run Spec, Coherence, Verify and checks. A dropped Persona's earlier reply stays in its own round's folder and never counts again. Record the round with `spp wave "$EPIC" panel --round "$R"` as `SKILL.md` step 6 says.
 
 Done when the round's write-up is shown and recorded.
 
