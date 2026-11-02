@@ -52,9 +52,11 @@ function gateOf(pr: Pr): TicketState {
 function stateOf(i: SnapshotIssue, blockedBy: string[], pr: Pr | null): TicketState {
   // shortcut: a closed ticket counts as merged even without a merged pull request (closed by hand, not planned).
   if (i.state === "CLOSED") return "merged";
+  const held = i.labels.includes("claimed") || i.assignees.length > 0;
+  // A Hand-back clears the claim and may leave its pull request open; the route label wins over that pull request.
+  if (!held && i.labels.some((l) => HANDED_BACK.includes(l))) return "handed-back";
   if (pr?.state === "OPEN") return gateOf(pr);
-  if (i.labels.includes("claimed") || i.assignees.length) return "claimed";
-  if (i.labels.some((l) => HANDED_BACK.includes(l))) return "handed-back";
+  if (held) return "claimed";
   if (blockedBy.length) return "blocked";
   if (!i.labels.includes("ready-for-agent")) return "not-agent";
   return "ready";

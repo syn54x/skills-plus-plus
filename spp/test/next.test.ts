@@ -149,10 +149,14 @@ describe("happy path", () => {
   });
 
   test("every ticket merged, five tickets: main-gate with panel true", async () => {
+    const actions = await next([1, 2, 3, 4, 5].map((n) => merged(n)), { mainPr: { state: "OPEN", lines: 300 } });
+    assert.deepEqual(actions, [{ kind: "main-gate", pr: PULL + 900, panel: true, reason: actions[0].reason }]);
+  });
+
+  test("every ticket merged and no pull request to the base branch yet: main-gate says to open it, panel left undecided", async () => {
     const actions = await next([1, 2, 3, 4, 5].map((n) => merged(n)), { mainPr: null });
-    assert.deepEqual(kinds(actions), ["main-gate"]);
-    assert.equal(actions[0].panel, true);
-    assert.equal(actions[0].pr, undefined);
+    assert.deepEqual(actions, [{ kind: "main-gate", reason: actions[0].reason }]);
+    assert.match(actions[0].reason, /open the pull request to the base branch/);
   });
 
   test("the pull request to the base branch merged: close", async () => {
@@ -173,6 +177,34 @@ describe("edge cases", () => {
       { n: 13, blockedBy: [12], pr: { n: 41, verdict: PASS } },
     ]);
     assert.deepEqual(kinds(actions), ["wait"]);
+  });
+
+  test("a handed-back ticket whose pull request stays open is not handed back again: stuck, and spp status agrees", async () => {
+    const tickets: Spec[] = [{ n: 12, labels: ["size:S", "needs-info"], pr: { n: 40, verdict: FAIL, history: [{ ...FAIL, head: "b".repeat(40) }, FAIL] } }];
+    const actions = await next(tickets);
+    assert.deepEqual(kinds(actions), ["stuck"]);
+    assert.match(actions[0].reason, /#12 is handed back/);
+    const status = await runCase("status", scratch(tickets));
+    assert.equal((status.json as { tickets: { state: string }[] }).tickets[0].state, "handed-back");
+  });
+
+  test("a pr-open ticket with failing checks: fix naming the failing check", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, checks: "fail" } }]);
+    assert.deepEqual(kinds(actions), ["fix"]);
+    assert.equal(actions[0].pr, PULL + 40);
+    assert.match(actions[0].reason, /checks fail: test/);
+  });
+
+  test("a pr-open ticket with pending checks stays in flight: wait", async () => {
+    assert.deepEqual(kinds(await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, checks: "pending" } }])), ["wait"]);
+  });
+
+  test("a gate-fail ticket whose worker is still running its fix round: wait, not fix again", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], worker: "t-12", pr: { n: 40, verdict: FAIL } }], {
+      agents: [{ name: "t-12", kind: "background", state: "working" }],
+    });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /t-12 working/);
   });
 
   test("a gate-fail ticket in its first fix round: fix", async () => {

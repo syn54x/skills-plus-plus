@@ -16,17 +16,18 @@ export type NextInput = {
   driver: "bg" | "subagent"; // spp sees the messaging socket or not; desktop detection is the skill's
   sessions: Session[];
   wave: { wave: string[]; held: { ticket: string; reason: string }[] }; // over the dispatchable ready tickets
-  checks: Record<string, string>; // by pull request URL: pass, fail, pending or none
+  checks: Record<string, { result: string; failing: string[] }>; // by pull request URL: pass, fail, pending or none, and the failing runs
   failedHeads: Record<string, number>; // by pull request URL: the heads a verdict failed, across the comment's edits
   mainPr: { url: string; state: PrState; lines: number } | null; // the pull request from the integration branch
 };
 
-const ENDED = ["done", "failed", "stopped"];
+// A background session working or waiting on a person, or an interactive one mid-turn.
+const LIVE = ["working", "blocked", "busy"];
 
-// A ticket's dispatched worker is a live session named after it: the progress comment's worker, or t-<N>.
+// A ticket's live worker: a running session named after it, the progress comment's worker or t-<N>.
 export function liveWorker(t: Ticket, sessions: Session[]): Session | undefined {
   const names = [t.worker, `t-${t.number}`];
-  return sessions.find((s) => s.name && names.includes(s.name) && !ENDED.includes(s.state ?? ""));
+  return sessions.find((s) => s.name && names.includes(s.name) && LIVE.includes(s.state ?? s.status ?? ""));
 }
 
 // A merged pull request into the integration branch does not close its ticket, so it counts as merged too.
@@ -43,21 +44,17 @@ export function planNext(input: NextInput): Action[] {
 
   if (state.tickets.every(done)) {
     if (mainPr?.state === "MERGED") return [{ kind: "close", pr: mainPr.url, reason: `${ref(mainPr.url)} merged into the base branch` }];
-    const open = mainPr?.state === "OPEN" ? mainPr : null;
+    // The panel is decided only once the pull request exists, since its changed lines are one of the thresholds.
+    if (mainPr?.state !== "OPEN") {
+      return [{ kind: "main-gate", reason: "every ticket merged; open the pull request to the base branch, then run spp next again for the panel decision" }];
+    }
     const why = [
       state.tickets.length >= panel.tickets && `${state.tickets.length} tickets (${panel.tickets} or more)`,
       panel.sizeL && state.tickets.some((t) => t.size === "L") && "a size L ticket",
-      open && open.lines >= panel.lines && `${open.lines} changed lines (${panel.lines} or more)`,
+      mainPr.lines >= panel.lines && `${mainPr.lines} changed lines (${panel.lines} or more)`,
     ].filter(Boolean);
-    const lines = open ? `${open.lines} changed lines` : "changed lines are counted once the pull request is open; run spp next again then";
-    return [
-      {
-        kind: "main-gate",
-        ...(open && { pr: open.url }),
-        panel: why.length > 0,
-        reason: `every ticket merged; ${open ? `review ${ref(open.url)}` : "open the pull request to the base branch"}; ${why.length ? `panel: ${why.join(", ")}` : `no panel: ${state.tickets.length} tickets, no size L, ${lines}`}`,
-      },
-    ];
+    const verdict = why.length ? `panel: ${why.join(", ")}` : `no panel: ${state.tickets.length} tickets, no size L, ${mainPr.lines} changed lines`;
+    return [{ kind: "main-gate", pr: mainPr.url, panel: why.length > 0, reason: `every ticket merged; review ${ref(mainPr.url)}; ${verdict}` }];
   }
 
   const byUrl = new Map(state.tickets.map((t) => [t.url, t]));
@@ -75,17 +72,22 @@ export function planNext(input: NextInput): Action[] {
     if (done(t)) continue;
     const pr = t.pr?.url ?? "";
     const one = { tickets: [id(t)], pr };
+    const s = liveWorker(t, sessions);
+    const running = s ? ` (${s.name} ${s.state ?? s.status})` : "";
+    const c = checks[pr] ?? { result: "pending", failing: [] };
     if (t.state === "ready") {
-      const s = liveWorker(t, sessions);
-      if (s) inFlight.push(`${ref(t.url)} dispatched (${s.name} ${s.state ?? s.status ?? "running"})`);
+      if (s) inFlight.push(`${ref(t.url)} dispatched${running}`);
     } else if (t.state === "claimed") {
-      const s = liveWorker(t, sessions);
-      inFlight.push(`${ref(t.url)} claimed${s ? ` (${s.name} ${s.state ?? s.status ?? "running"})` : t.worker ? ` by ${t.worker}` : ""}`);
+      inFlight.push(`${ref(t.url)} claimed${running || (t.worker ? ` by ${t.worker}` : "")}`);
+    } else if (s && (t.state === "pr-open" || t.state === "gate-fail")) {
+      inFlight.push(`${ref(t.url)} ${t.state}, its worker is still running${running}`);
+    } else if (t.state === "pr-open" && c.result === "fail") {
+      // Failing CI on the current head sends the worker back like a Critical finding; it is not a gate round.
+      actions.push({ kind: "fix", ...one, reason: `${ref(pr)} checks fail: ${c.failing.join(", ")}; send the worker back to fix them (Critical)` });
     } else if (t.state === "pr-open") {
-      const c = checks[pr] ?? "pending";
       // shortcut: none (no CI configured) gates like pass, as spp merge does; a repo whose CI registers late could gate early.
-      if (c === "pass" || c === "none") actions.push({ kind: "gate", ...one, reason: `${ref(pr)} checks ${c}, no verdict on its head` });
-      else inFlight.push(`${ref(t.url)} ${ref(pr)} checks ${c}`);
+      if (c.result === "pass" || c.result === "none") actions.push({ kind: "gate", ...one, reason: `${ref(pr)} checks ${c.result}, no verdict on its head` });
+      else inFlight.push(`${ref(t.url)} ${ref(pr)} checks ${c.result}`);
     } else if (t.state === "gate-fail") {
       const rounds = Math.max(0, (failedHeads[pr] ?? 1) - 1);
       if (rounds < 1) actions.push({ kind: "fix", ...one, reason: `${ref(pr)} failed its gate; one fix round by the same worker` });

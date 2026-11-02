@@ -4,7 +4,7 @@ import { runGh } from "../gh.ts";
 import { guarded, parseIssue, readTrailer, UsageError } from "../markers.ts";
 import { type Action, liveWorker, planNext, type Session } from "../plan-next.ts";
 import { VERDICT_MARKER } from "../snapshot.ts";
-import { readChecks } from "./checks.ts";
+import { culprits, readChecks } from "./checks.ts";
 import { Failure, preflight } from "./preflight.ts";
 import { fetchState } from "./status.ts";
 import { wavePlan } from "./wave.ts";
@@ -66,7 +66,7 @@ async function actions(arg: string): Promise<Action[]> {
   const prs = (st: string) => state.tickets.flatMap((t) => (t.pr && t.state === st ? [t.pr.url] : []));
   const [wave, checks, heads, list] = await Promise.all([
     wavePlan({ ...state, tickets: dispatchable }, 4),
-    Promise.all(prs("pr-open").map(async (pr) => [pr, (await readChecks(pr)).result] as const)),
+    Promise.all(prs("pr-open").map(async (pr) => [pr, await readChecks(pr)] as const)),
     Promise.all(prs("gate-fail").map(async (pr) => [pr, await failedHeads(pr)] as const)),
     runGh(["pr", "list", "-R", state.epic.repo, "--head", branch, "--state", "all", "--json", "number,url,state,additions,deletions"]),
   ]);
@@ -78,7 +78,7 @@ async function actions(arg: string): Promise<Action[]> {
     driver: process.env.CLAUDE_CODE_MESSAGING_SOCKET ? "bg" : "subagent",
     sessions,
     wave,
-    checks: Object.fromEntries(checks),
+    checks: Object.fromEntries(checks.map(([pr, c]) => [pr, { result: c.result, failing: culprits(c) }])),
     failedHeads: Object.fromEntries(heads),
     mainPr: main ? { url: main.url, state: main.state, lines: main.additions + main.deletions } : null,
   });
