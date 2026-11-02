@@ -4,63 +4,65 @@ description: Break an Epic into vertical Sub-issues with blocking edges, publish
 disable-model-invocation: true
 ---
 
-Turn an Epic into **Sub-issues** that workers can build without asking anyone a question: vertical slices with their blocked-by edges, each hardened into the **Ticket contract**, published as native children of the Epic, with the plan pinned on the Epic.
+Turn an Epic into **Sub-issues** that workers can each build alone: you choose the slices and the edges between them, the user approves them, harden writes each one's **Ticket contract**, and you check the set as a whole before anything is released to the build.
 
-The Epic is the issue named after `/to-tickets` (a number or URL), or the one to-spec wrote earlier in this conversation. Read its body and every comment. Read the Routing block in `CLAUDE.md` or `AGENTS.md` for its Mode, Sizes and Laws lines; when there is none, the repo is not on the spp flow: stop there, and ask the user to run `/setup-spp`.
+The Epic is the issue named after `/to-tickets` (a number or URL), or the one to-spec wrote earlier in this conversation; read its body and all its comments. The Routing block in `CLAUDE.md` or `AGENTS.md` supplies the Mode, Sizes and Laws lines. A repo with no Routing block is not on the spp flow: stop, and ask the user to run `/setup-spp`.
 
-## 1. Read the code
+The examples follow one Epic: scheduled CSV exports of saved reports.
 
-Read the code the Epic touches, `GLOSSARY.md`, and the documents on the Laws line. Slices are named in the glossary's words; when a slice needs a word the glossary lacks, or the Epic uses one against it, call the Skill tool with "domain-modeling". Look for the prefactoring that would make the feature easy to add, and plan it as the first slices.
+## 1. Slice
 
-## 2. Draft tracer bullets
+Read the code the Epic touches, `GLOSSARY.md`, and the Laws line's documents. Where a slice needs a term the glossary does not have, or the Epic uses a term in a sense the glossary contradicts, call the Skill tool with "domain-modeling" before naming the slice.
 
-Every slice is a *tracer bullet*: one thin path through each layer it needs (storage, logic, interface, tests) that can be demonstrated or verified on its own and built in a single fresh context. The shape to avoid is one slice per layer, where nothing works until every layer lands and each slice's criteria grade work another worker owns.
+Cut the work into *tracer bullets*. A tracer bullet goes end to end through whatever the behaviour needs (data, logic, the surface a user touches, the tests) and, once merged, does something a person can watch happen: "export one saved report as CSV" is a slice, "add the exports table" is not. A worker in a fresh session should be able to finish one. Put any prefactoring that makes the feature easier first, as slices of its own.
 
-Give each slice its blockers, the slices that must merge before it can start. Leave an edge out wherever two slices can run side by side.
+Each slice lists its blockers, meaning only the slices whose merged code it needs. "Schedule a weekly export" needs "export one report"; "email the export" and "schedule it" probably need only the first, so they stay unblocked from each other and can share a Wave.
 
-**A wide refactor** is the exception: one mechanical change that breaks callers across the codebase (a renamed column, a retyped shared symbol), so no thin slice could merge with the build passing. Sequence it in three moves. *Expand*: add the new form next to the old. *Migrate*: move callers over in batches sized by how much each one breaks, every batch blocked by the expand. *Contract*: delete the old form in a slice blocked by every batch. When even a batch cannot stay green alone, the batches share the Epic's integration branch and all block one final slice that integrates and verifies.
+Some changes cannot be sliced end to end, because one edit breaks call sites across the whole codebase: renaming a widely used column, changing the type of a shared symbol. Use *expand and contract* there. The first slice adds the new form while the old one still works. Then one slice per package (or per directory, whatever keeps each slice small) moves its callers to the new form, each blocked by that first slice. A last slice, blocked by all of them, deletes the old form. If the callers are too tangled for any one package to switch and stay green, let those slices land red on the Epic's integration branch, and make the last slice the one that has to verify green.
 
-## 3. Quiz the user
+## 2. Agree the breakdown
 
-Number the slices and show, for each one, its title, its blockers, and what the user can demo once it is done. Ask whether the granularity is right, whether each blocker really gates its slice, and what should merge or split. Revise and show the list again until the user approves it. Nothing is published before that approval.
+Number the slices, and under each give its title, its blockers, and what the user will be able to see work when it merges. Then ask the user to look for three faults: an edge where the later slice does not in fact need the earlier one; a slice that is really one layer and demonstrates nothing; a slice too large for one session, or so small it is not worth a worker. Revise and repeat until the user approves. Nothing is created before that.
 
-## 4. Publish and harden
+## 3. Publish
 
-1. Mark the Epic as being planned: `gh issue edit <epic> --remove-label ready-for-agent --add-label needs-plan`, plus `--type Epic` when the Mode line says org. Only its Sub-issues are ever claimable, and an Epic still carrying `ready-for-agent` would match the readiness rule itself.
-2. Create the Sub-issues with every blocker before the issues it blocks, so that each edge names an issue that already exists:
+1. Put the Epic in planning: `gh issue edit <epic> --remove-label ready-for-agent --add-label needs-plan`, adding `--type Epic` in org mode. A `ready-for-agent` Epic would satisfy the readiness rule itself, and only its Sub-issues are meant to be claimed.
+2. Create each Sub-issue after its blockers exist, so that its edges point at real issue numbers:
 
    ```bash
    gh issue create -R <owner/repo> --title "<title>" --body-file <file> \
      --parent <epic URL> --blocked-by <n>,<n>        # add --type Task in org mode
    ```
 
-   The body holds only `## Parent` (the Epic) and `## Blocked by` (one line per blocker, for people; spp reads the native edge). Add no Triage role label yet. A slice is created in the repo its files live in, and a blocker in another repo is given by URL.
-3. For each Sub-issue, call the Skill tool with "harden", passing the issue, the approved slice and the Epic. harden writes the Ticket contract and the size; to-tickets never writes those sections itself.
+   The body carries `## Parent` with the Epic and `## Blocked by` with the blockers (for human readers; spp reads the native edges). It gets no Triage role label yet. A slice is created in the repo whose files it changes, and a blocker in another repo is given by URL.
+3. Call the Skill tool with "harden" for every Sub-issue, passing the issue, its approved slice and the Epic. harden writes the Ticket contract and the size. The contract sections are harden's alone, so any later change to one goes back through harden with the change spelled out.
 
-## 5. Check the Sub-issues against each other
+## 4. Check the set
 
-harden sees one issue at a time, so these three checks are yours. Read every hardened body. A fix that changes a section goes back through harden with the change to make; a fix to an edge is yours.
+Each harden run saw one Sub-issue. Read all of the hardened bodies together for the three things only the whole set shows.
 
-- **Files owned collisions.** Two Sub-issues that could be in flight together (neither blocks the other, directly or through a chain) never both Modify or Test one path. Both may Create different files in one folder. Merge the two, or add an edge with `gh issue edit <n> --add-blocked-by <m>`; the lost parallelism is the accepted price.
-- **Consumes and Produces.** Every Consumes line matches, by name and signature, a Produces line on a Sub-issue that blocks it, and every Produces line names its consumer. A Consumes with no edge to its producer gets one.
-- **Narrowing against the Epic.** Every requirement in the Epic lands in some Sub-issue at full strength. A Sub-issue narrows the Epic when it leaves out anything the Epic states (a case, an input, a bound, a failure path, a platform), or hedges a requirement with a condition the Epic never set ("for now", "only", "except when"). A narrowing nobody chose goes back to harden to be widened. A deliberate one (feasibility, a split agreed at the quiz) changes scope, so the user decides it. Once they approve, call harden to add the `**Narrows:**` line, and record the same words on the plan in step 6. An unrecorded narrowing is a defect the reviewers will report against its Sub-issue.
+**Locks that would stall a Wave.** spp never puts two Sub-issues in one Wave when their Files owned share a Modify or Test path, so an overlap between two Sub-issues with no chain of edges between them becomes a delay nobody chose. Two Creates clash only on the same file. For each overlap, either add an edge (`gh issue edit <later> --add-blocked-by <earlier>`) or fold the two slices into one; giving up that bit of parallelism is expected.
 
-Then run `spp status <epic> --json`. A non-empty `cycle` means the blocked-by edges loop; break the loop before going on.
+**Names that do not line up.** Read each Consumes line next to the Produces line it relies on. The name and signature must match, the producer must be among the Sub-issue's blockers (add the edge when it is not), and each Produces line must name who consumes it.
 
-## 6. Mark ready and pin the plan
+**Requirements that shrank.** Walk the Epic requirement by requirement, and find the Sub-issue that delivers each one. A requirement shrinks when its Sub-issue covers less than the Epic says (one format where the Epic lists three, no handling for a failure the Epic names, a lower limit) or adds a condition of its own, such as "on the first run only". If nobody intended the difference, send the Sub-issue back to harden to restore the full requirement. If it was intended (the full version is infeasible here, or the user agreed to the split in step 2), it is a change of scope, and only the user can accept it. After they do, ask harden for a `**Narrows:**` line on the Sub-issue, and carry its words to the plan in step 5. Reviewers treat a recorded narrowing as agreed scope, and an unrecorded one as a defect.
 
-Add `ready-for-agent` to each Sub-issue whose `spp lint ticket` prints `ok`. One that harden routed to `needs-info` stays there.
+Finish with `spp status <epic> --json`. A non-empty `cycle` means the edges loop; break the loop before continuing.
 
-Write the plan table to a file, one row per Sub-issue in the layer order `spp status` reports. Test paths stay out, since the build reads them from the bodies:
+## 5. Release and pin the plan
+
+Label each Sub-issue whose `spp lint ticket` prints `ok` with `ready-for-agent`. Any that harden routed to `needs-info` stay there.
+
+The plan is a table in a file, one row per Sub-issue in the layer order `spp status` reports, with Test paths left out:
 
 ```markdown
 | Layer | Sub-issue | Size | Blockers | Creates and modifies |
 | --- | --- | --- | --- | --- |
-| 0 | #41 export one report as CSV | S | none | C: `src/export/csv.ts`; M: `src/reports/menu.ts` |
+| 0 | #41 export one saved report as CSV | S | none | C: `src/export/csv.ts`; M: `src/reports/menu.ts` |
 | 1 | #42 schedule a weekly export | M | #41 | C: `src/export/schedule.ts`; M: `src/jobs/registry.ts` |
 ```
 
-A **Multi-repo epic** adds a Repo column after Layer. Pin the plan:
+A **Multi-repo epic** gets a Repo column after Layer. Pin it with `spp plan`:
 
 ```bash
 spp plan <epic> --goal "<the Epic's goal in a sentence>" \
@@ -68,8 +70,8 @@ spp plan <epic> --goal "<the Epic's goal in a sentence>" \
   --table-file <file> --narrowed "<an approved narrowing>"
 ```
 
-Pass `--narrowed` once per narrowing that still stands, in the words of its `**Narrows:**` line, on every run: the flag replaces the stored list. With none standing, pass `--narrowed none`, which clears it. Add `--repos a/b,c/d` for a Multi-repo epic. Leave `--branch` and `--add-deviation` to build, which owns them. Once the plan is up, remove `needs-plan` from the Epic.
+Each call's `--narrowed` flags become the whole stored list, so repeat one for every narrowing still agreed, in its `**Narrows:**` words, or give `--narrowed none` once none remain. A Multi-repo epic also passes `--repos a/b,c/d`. The integration branch and any Interface deviations are recorded later by build, so pass neither. With the plan pinned, take `needs-plan` off the Epic.
 
-## 7. Report
+## 6. Report
 
-One table: each Sub-issue with its size, its blockers, `ready-for-agent` or `needs-info`, and the narrowing it carries, if any. For each `needs-info` Sub-issue, say what it is waiting for. Then ask the user to run `/build <epic>`.
+Show a table of the Sub-issues: size, blockers, `ready-for-agent` or `needs-info`, and any narrowing. For each `needs-info` one, say what it waits on. Then ask the user to run `/build <epic>`.

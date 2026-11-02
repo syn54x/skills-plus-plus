@@ -1,62 +1,62 @@
 ## What it does
 
-`to-tickets` breaks an Epic into Sub-issues on GitHub: vertical slices, each with native blocked-by edges and a parent link to the Epic, each carrying the Ticket contract, and one plan comment pinned on the Epic that shows them in layers.
+`to-tickets` splits an Epic into Sub-issues on GitHub. Each Sub-issue is a vertical slice, linked to the Epic as its parent, with native blocked-by edges to the slices it needs and the full Ticket contract in its body. The Epic gets a single plan comment that lays them out in layers.
 
-It decides the breakdown and leaves the contents to [harden](harden.md). `to-tickets` chooses the slices and their edges, has you approve them, and publishes them; then it calls `harden` once per Sub-issue to write the contract from the code. What it adds on top is the work no single issue can see: two Sub-issues that would edit the same file at once, a name one issue consumes that no blocker produces, and a Sub-issue that silently promises less than the Epic.
+It decides the breakdown and leaves each Sub-issue's contents to [harden](harden.md). `to-tickets` picks the slices and their edges, gets your approval, creates the issues, and calls `harden` once for each. What it adds is the view across all of them: two Sub-issues that would lock the same file, a name one consumes that its blockers never produce, and a requirement from the Epic that shrank on the way into a Sub-issue.
 
 ## When to reach for it
 
-You type `/to-tickets <epic>`; the agent never starts it on its own. It is the third step of the Epic path: grill, to-spec, then `to-tickets`, then `/build <epic>`. Run it in the same conversation as to-spec when you can, so the reasoning behind the Epic is still in view.
+You type `/to-tickets <epic>`; the agent never starts it on its own. It is the third step of the Epic path (grill, to-spec, `to-tickets`), and `/build <epic>` comes after it. Running it in the same conversation as to-spec keeps the reasoning behind the Epic in view.
 
 | Your situation | Use |
 | --- | --- |
 | A written Epic needs splitting into buildable work | `/to-tickets <epic>` |
-| The plan is not settled yet | [grill](grill.md), then to-spec |
-| One filed issue needs to become buildable | triage, which calls [harden](harden.md) once |
+| The plan is still being argued | [grill](grill.md), then to-spec |
+| A single filed issue needs to become buildable | triage, which calls [harden](harden.md) once |
 | One pull request holds the whole change | no Epic: triage it as a One-off |
 
 `ask-spp` routes between every skill when the right one is unclear.
 
 ## Prerequisites
 
-The repo needs a Routing block in its `CLAUDE.md` or `AGENTS.md`, which `/setup-spp` writes. `to-tickets` reads its Mode, Sizes and Laws lines, and stops without one.
+The repo needs a Routing block in its `CLAUDE.md` or `AGENTS.md`, written by `/setup-spp`. `to-tickets` reads the Mode, Sizes and Laws lines from it, and stops if there is none.
 
 ## Tracer bullets
 
-Each slice is a *tracer bullet*: a thin path through every layer it needs, which works and can be shown on its own once it merges. A slice per layer (all the schema, then all the API, then all the screens) is what it avoids, because nothing in such a slice works until the others land and its tests grade code another worker owns.
+Every slice is a *tracer bullet*: once it merges, a person can watch something work. "Export one saved report as CSV" is a slice; "add the exports table" is a layer, and on its own it shows nothing. Layer-shaped slices leave each worker grading code another worker owns, and nothing runs until the last one lands.
 
-The one exception is a wide refactor, a mechanical change that breaks callers everywhere at once. That is sequenced as expand, migrate in batches, then contract, so the build stays green between batches.
+When a change breaks call sites everywhere at once, such as renaming a widely used column, the slices follow *expand and contract* instead: add the new form, move callers over package by package, then delete the old form.
 
 ## From approval to plan
 
-1. You approve a numbered list of slices, with their blockers and what each lets you demo.
-2. The Epic gets `needs-plan`, so the Epic itself is never picked up as work.
-3. Sub-issues are created blockers first, with native parent and blocked-by edges.
+1. You approve a numbered list of slices, each with its blockers and what you will see working.
+2. The Epic gets `needs-plan`.
+3. The Sub-issues are created with every blocker first, carrying native parent and blocked-by edges.
 4. `harden` writes each contract and its size.
-5. The cross-issue checks run: file collisions, Consumes against Produces, narrowing against the Epic.
-6. Clean Sub-issues get `ready-for-agent`, `spp plan` pins the plan, and `needs-plan` comes off.
+5. The set is checked as a whole: shared file locks, Consumes against Produces, requirements against the Epic.
+6. Clean Sub-issues get `ready-for-agent`, `spp plan` pins the plan, and `needs-plan` comes off the Epic.
 
 ## Common questions
 
-**It produced a dozen Sub-issues for a small change.**
-The model tends toward small atomic units. Push back at the quiz and ask it to merge; nothing is published until you approve. When one pull request can hold all of it, skip the Epic.
+**Why does the Epic get a `needs-plan` label?**
+An Epic that still says `ready-for-agent` matches the readiness rule, so a build could try to claim the Epic itself. `needs-plan` covers the time its Sub-issues are being created and hardened, and comes off once the plan is pinned.
 
-**The slices came out one per layer.**
-Ask of each slice what you could demo once it merges. A slice with no answer is a layer, not a tracer bullet, and should be merged into the slices that use it.
+**Why are Sub-issues created before they are hardened?**
+`harden` writes into an issue, and `spp lint ticket` reads one from GitHub, so the issue must exist first. It gets `ready-for-agent` only after every check has passed, so no worker can pick it up half-written.
+
+**Two Sub-issues that looked independent ended up one after the other. Why?**
+Their Files owned shared a path both would modify. A Wave never runs two workers on the same file, so `to-tickets` either adds an edge between them or merges them. You lose a little parallelism and avoid a conflict nobody would have noticed until the merge.
 
 **What does a `Narrows:` line mean?**
-That Sub-issue promises less than the Epic, and you agreed to it. Without the line, the final review reports the gap as a defect. With it, the plan comment carries the same words on a Narrowed line, and reviewers read it as accepted scope. A narrowing that nobody chose is widened instead of recorded.
+That Sub-issue delivers less of a requirement than the Epic states, and you agreed to it during the run. The same words appear as a Narrowed line on the plan, which reviewers read as accepted scope. A difference nobody agreed to is fixed in the Sub-issue instead of being recorded.
 
-**A worker had to touch a file outside its Files owned.**
-The contract was drafted from the Epic's wording, not from the repository: a missed caller, a fixture pinning old output, or a placement an ADR dictates. Those are the code checks `harden` runs; see [its page](harden.md) for each.
-
-**Why are the Sub-issues created before they are hardened?**
-`harden` writes into an issue and `spp lint ticket` reads one, so each Sub-issue has to exist first. It gets no `ready-for-agent` label until every check has passed, so no worker can claim it half-written.
+**One Sub-issue came out `needs-info`. Can the rest be built?**
+Yes. Only `ready-for-agent` Sub-issues join the Ready queue, so the build takes those. The `needs-info` one waits, with anything it blocks, until its gaps are settled and `harden` runs on it again.
 
 ## It's working if
 
-- Every Sub-issue answers "what can I demo once this merges?" with something a user could see.
-- The Epic carries a single plan comment, and no longer has `needs-plan` or `ready-for-agent`.
-- Each Sub-issue is a native child of the Epic, and its blockers show as native edges.
+- Every Sub-issue answers "what will I see working once this merges?"
+- The Epic has one plan comment and carries neither `needs-plan` nor `ready-for-agent`.
+- Every Sub-issue is a native child of the Epic, and its blockers show as native edges.
 - `spp lint ticket` prints `ok` on every `ready-for-agent` Sub-issue.
-- Every narrowing you agreed to appears both as a `Narrows:` line on its Sub-issue and as a Narrowed line on the plan.
+- Every narrowing you agreed to shows up both as a `Narrows:` line and as a Narrowed line on the plan.

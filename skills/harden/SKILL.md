@@ -3,70 +3,70 @@ name: harden
 description: Write the Ticket contract into one GitHub issue from the code it touches, then gate it with spp lint ticket. Use when to-tickets hands over an approved slice, when triage readies a bug or enhancement for /build, or when spp lint ticket fails on an issue.
 ---
 
-Harden one issue: write the **Ticket contract** into its body, so that a worker who reads nothing else can build it. Read the code before writing any section. A contract drafted from the plan alone sends its worker outside Files owned, or has it quietly rewrite its own Verify block.
+Harden one issue. The worker who later builds it reads that issue and nothing else, so the body has to answer four questions the worker would otherwise ask: what am I making, which files are mine, what do my neighbours call things, and how do I know I am finished. Every answer is checked against the repository before it is written, since an answer taken from the plan is the one that turns out wrong mid-build.
+
+The examples below follow one issue: adding a `--since <date>` flag to a CLI's `report` command.
 
 ## Inputs
 
-- **The issue**, as a number or URL. When to-tickets calls, the Sub-issue already exists with its parent and blocked-by edges. When triage calls, it is the reported issue.
-- **What it must deliver**: the approved slice and its Epic, or for a One-off the issue's own text and triage's findings.
-- **A change to make**, on a later call: an approved narrowing, a corrected Interface, two slices merged into one.
+- **The issue**, a number or URL. From to-tickets it is a fresh Sub-issue whose parent and blocked-by edges already exist; from triage it is the filed issue.
+- **The intent**: the approved slice and its Epic, or for a One-off the issue's own text and what triage found.
+- **A requested change**, on a repeat call: a narrowing the user approved, an Interface to correct, two slices folded into one.
 
-Before drafting, read `GLOSSARY.md` and every document on the Routing block's Laws line. The sections use the glossary's terms.
+Read `GLOSSARY.md` and the Laws line's documents first; the body speaks their terms. Leave the body's existing text in place (a report, `## Parent`, `## Blocked by`) and put the contract under it, overwriting any earlier draft of the same heading.
 
-## 1. Draft the six sections and the size
+## What am I making
 
-Keep what the body already holds (the reporter's text, `## Parent`, `## Blocked by`). Write the six sections beneath it in this order, replacing any earlier draft under the same heading.
+`## What to build` describes the change from where its user stands: "`report --since 2026-01-01` lists only entries on or after that date". Layers and file names belong elsewhere. If the caller hands you an approved narrowing, this section gains a `**Narrows:**` line, in the caller's words, stating which Epic behaviour is reduced and to what.
 
-**What to build.** The behaviour this issue makes work, as its user would see it; a list of layers is not a behaviour. When the caller passes an approved narrowing, this section also holds a `**Narrows:**` line: the Epic's behaviour, then what this issue delivers in its place, in the words the caller gave.
+`## Acceptance criteria` is a checklist in which every box can be ticked by an observation, and none could be ticked on the base commit. A box that is true before work starts measures nothing.
 
-**Acceptance criteria.** Checkboxes. Each criterion says how it is checked, and each is false on the base commit, since a criterion that already holds before any work grades nothing.
+Then pick the size label, one only (or the field the Routing block's Sizes line names). Start from `size:M`. Raise it to `size:L` when the issue runs a migration, changes a contract other issues share, or edits callers in more than one package. Lower it to `size:S` when it fits a single session, touches three files or fewer, and does neither of those things. Remove any other `size:` label as you set it. Whether the issue is ready is the caller's call; harden never adds `ready-for-agent`.
 
-**Files owned.** Lines starting `Create:`, `Modify:` or `Test:`, with paths in backticks. A path here is a claim: it is how two workers in one **Wave** stay out of each other's files. Name files rather than globs, because a glob claims more and shrinks the Wave. All paths sit in one repo; work in two repos is two issues.
+## Which files are mine
 
-**Interfaces.** Two kinds of line, `none` where there is nothing (a One-off is usually `none` on both):
+`## Files owned` holds `Create:`, `Modify:` and `Test:` lines with paths in backticks, all in one repo (two repos means two issues). These paths are a lock: a **Wave** never runs two workers whose paths overlap, so a glob that locks a whole folder holds up everyone else who needs it. List files.
 
-- `Consumes:` what this issue takes from another, naming the producing issue. Each one needs a blocked-by edge to that producer.
-- `Produces:` the exact names, signatures, events or routes that another issue builds against, naming the consumer.
+Three of the five code checks exist to finish this list, because each finds a file the worker would otherwise edit without owning it:
 
-Across repos, write the producer as `owner/repo#N`, state the contract instead of code (a route with its request and response shapes, an event with its payload, a generated client method), and close the line with an **Available when** clause naming the moment the consumer can reach it, such as "merged to the integration branch and deployed to preview". When a Produces line adds a module or changes a module's interface, call the Skill tool with "codebase-design" and shape the line so the Depth check passes on the pull request that ships it.
+- **Output pins.** If the issue changes text a user sees, find every place that asserts the current text, anywhere in the tree: `git grep -F "Entries:"` from the repository root turns up CI steps, docs samples, snapshots, fixtures and expected-output files as well as tests. Each one that would fail on the new text is owned, as Modify or Test. One that only mentions the text in passing, like a changelog line, is not. No visible output changed means nothing to search.
+- **Callers of changed signatures.** Changing what `buildReport(opts)` accepts makes every existing call site a Modify entry.
+- **ADR placement.** For each Modify path, look up the ADRs and Laws documents covering that part of the tree. Some say where a kind of content has to live: in a reference file next to the one that links it, in a folder kept for it, or listed in an index. When one applies, own that file too, and say in What to build which part of the work lands where.
 
-**Test scenarios.** One line each, opening with `Happy path`, `Edge case`, `Error path` or `Integration` and written `<action> → <result>`. The result is something the action produced: the request sent with its payload, a value written to storage, a change on screen. A control named in a result is operated in the action, so a test derived from the line has to press it: "press Save → the draft is stored with today's date", never "Save is enabled". Use only the categories that apply. An issue with no behavioural change carries the single line `Test expectation: none, because <reason>`.
+## What do my neighbours call things
 
-**Verify.** One fenced block of commands, run from the repo root. Passing means finished. The worker runs the block before opening a pull request, and the reviewer repeats it. Every line is a command, never a request to look at something by hand. The test command is limited to the issue's Test paths, or to the selection tool the Laws name, and never runs the whole suite, which is CI's job on the pull request.
+`## Interfaces` has a `Consumes:` line and a `Produces:` line, each `none` when empty (as on most One-offs). Produces gives the exact name and shape another issue will code against, `parseSince(arg: string): Date`, and names that issue. Consumes names what this issue takes and the issue that makes it, and needs a blocked-by edge to that issue.
 
-**Size.** Exactly one label (or the field the Routing block's Sizes line names):
+When the other issue lives in another repo, write it `owner/repo#N` and describe the contract rather than the code (route plus request and response shapes, event plus payload, client method), ending with an **Available when** clause: the moment the consumer can actually reach it, such as "deployed to preview from the integration branch". If a Produces line creates a module or reshapes one's interface, call the Skill tool with "codebase-design" before fixing its wording, so the pull request that ships it passes the Depth check.
 
-| Size | Fits |
-| --- | --- |
-| `size:S` | a single session's context, at most three files, no schema or shared contract change |
-| `size:M` | one worker in one worktree, with sections that need careful reading |
-| `size:L` | cross-cutting: migrations, shared contracts, or callers across packages |
+## How do I know I am finished
 
-Readiness belongs to the caller: harden sets the size and never adds `ready-for-agent`.
+`## Test scenarios` lists what the worker will turn into tests, one line each, in the form `<action> → <result>`, opening with `Happy path`, `Edge case`, `Error path` or `Integration` as fits:
 
-## 2. Check the draft against the code
+- Happy path: run `report --since 2026-01-01` → two of the four sample entries print
+- Error path: run `report --since yesterday` → exit 2 with `invalid date: yesterday`
 
-Five checks, each answered by reading the repository rather than the issue. Fix every failure in the draft before the next step.
+The right side records an effect the left side caused. A control is something to use, never something to look at: "click Export → a CSV downloads" can only be tested by clicking, while "Export is enabled" can pass with nothing exported. If nothing behaves differently afterwards, the section is the one line `Test expectation: none, because <reason>`.
 
-1. **Scenario data exists.** Every value a scenario asserts on (a property, an emitted event, a piece of the screen) exists today on the type or output it names, or a Produces line of this issue or of one of its blockers creates it. Every Error path names an error the code raises now or this issue's Produces adds. Otherwise give this issue the Produces line and the work behind it, or point the scenario at data that is already there.
-2. **Output pins.** When the issue changes output a user sees (a printed line, a heading, an error message), search the whole tree from the repository root for the exact current string (`git grep -F "<string>"`). Pins hide in fixtures, expected-output files, snapshots, CI steps and docs examples as well as tests. Each hit that asserts the string is added to Files owned, under Modify or Test. A hit quoting it as history, such as a changelog entry, is left alone. An issue that changes no output skips this check.
-3. **Callers of changed signatures.** When the issue changes an existing signature, every caller is listed under Modify.
-4. **Verify resolves, and is green on the base branch where it can be.** Each tool exists on the machine or in the repo's toolchain (package scripts, `pyproject.toml`, a Makefile, the CI workflow), and each subcommand answers `--help`. Run every command independent of this issue's new code (a lint, a typecheck, a build, a test path that exists) on an up-to-date checkout of the default branch. It must pass there, or the worker inherits a failure it cannot fix. A command for tests this issue adds is expected to fail today, so only check that it resolves.
-5. **ADR placement.** Each Modify path sits in an area that an ADR or a Laws document may govern; read those. When one fixes where such content lives (a reference file beside the file that points to it, an index that must name each such file, a directory kept for that kind of content), Files owned carries that file as well, and What to build assigns each piece of content to its file.
+The **scenario data exists** check applies here. Whatever a result asserts on, be it a property, a message, a piece of the screen or an error, has to exist in today's code, or be created by a Produces line on this issue or on a blocker. Where it is missing, either add that Produces line and the work to fill it, or rewrite the result against something real.
 
-Then apply the **no-placeholder rule** to all six sections. A section fails when it is empty or holds `TBD`, `TODO` or a lone `?`; when it promises "appropriate" handling, validation or edge cases without naming them; when it asks for tests and lists no scenarios; when it says "similar to #N" in place of content; when an Interface names something no issue produces; or when a criterion cannot be checked. `spp lint ticket` catches the mechanical half of this list. The rest is yours to catch.
+`## Verify` is one fenced block of commands to run from the repo root, and passing it is what done means; the worker runs it, and so does the reviewer after them. Each line is a command, never an instruction to inspect something. Tests are selected to this issue, by its Test paths or the test-selection tool the Laws name, because CI already runs everything on the pull request.
 
-## 3. Write and lint
+The **Verify resolves, and is green on the default branch where it can be** check applies here. Every tool must be on the machine or named in the repo's own tooling (the CI workflow, a Makefile, `pyproject.toml`, package scripts), and every subcommand must answer `--help`. Next, on a fresh checkout of the default branch, run each command that does not wait on this issue's code, such as a lint, a typecheck or an existing test path. Any that fail there would greet the worker with a red it did not cause, so fix the block now. Commands for tests the issue will add fail today by design; for those, resolving is enough.
 
-Write the body to a file unique to this issue, put it with `gh issue edit <N> --body-file <file>`, and set the size label (removing any other `size:` label first). Run `spp lint ticket <N>`. Each line it prints names a rule and what failed; fix the body, write it again, and re-run until it prints `ok`.
+## Nothing left to ask
 
-## 4. A gap only a person can close
+Read the six sections as the worker would, and remove every spot where they would have to come back with a question. `spp lint ticket` catches the literal markers: `TBD`, `TODO`, a lone `?`, "add appropriate ...", "similar to #N", a missing or empty section, a scenario without its category or arrow, and a size count other than one. You catch what a script cannot: a criterion with no way to observe it, a promise of tests with no scenarios, a Consumes name no issue produces.
 
-Some gaps cannot be fixed from the code: a scenario with nothing to assert on until someone decides what the output is, a Verify command red on the default branch for a reason outside this issue, an Interface the Epic leaves open, a placement no law settles. Route the issue: `gh issue edit <N> --add-label needs-info --remove-label ready-for-agent`, then post one comment under the heading **Still open**, one bullet per gap, each naming the section it blocks.
+## Write, lint, or route
+
+Write the body to a file unique to this issue, apply it with `gh issue edit <N> --body-file <file>`, and run `spp lint ticket <N>`. Each line of its output names a rule and the failure; fix, write, and run again until it prints `ok`.
+
+Some gaps need a person: an output nobody has decided, a default-branch failure this issue cannot fix, an Interface the Epic leaves open, a placement no law settles. For those, `gh issue edit <N> --add-label needs-info --remove-label ready-for-agent`, then one comment titled **Still open** with a bullet per gap naming the section it holds up.
 
 ## Done when
 
-One of these holds, and you tell the caller which, with the size:
+You tell the caller the size and one of two outcomes:
 
-- `spp lint ticket <N>` prints `ok`, all five code checks pass, and no placeholder remains.
-- The issue carries `needs-info` and one comment naming every gap still open.
+- `spp lint ticket <N>` printed `ok`, and all five code checks and the read for open questions found nothing.
+- The issue carries `needs-info` and one comment listing every gap that remains.

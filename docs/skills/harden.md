@@ -1,53 +1,52 @@
 ## What it does
 
-`harden` writes the Ticket contract into one GitHub issue: What to build, Acceptance criteria, Files owned, Interfaces, Test scenarios, a Verify block, and one size label. Once it is done, a worker who sees only that issue can build it without asking anyone a question.
+`harden` writes the Ticket contract into one GitHub issue: What to build, Acceptance criteria, Files owned, Interfaces, Test scenarios, a Verify block, and a single size label. After it runs, a worker who reads only that issue can build it.
 
-It reads the code before it writes. Each section is checked against the repository, not against the plan that produced it: the data a scenario asserts on has to exist, every test or fixture that pins the output the issue changes has to be in Files owned, and every Verify command has to run, and pass on the default branch where it can. Then `spp lint ticket` gates the result mechanically. The skill finishes in one of two states: the lint prints `ok`, or the issue is labelled `needs-info` with a comment listing what a person still has to decide.
+It writes from the repository, not from the plan. Before a section goes into the issue, `harden` checks it against the code, because the plan is usually where a wrong file list or an unrunnable command comes from. Then `spp lint ticket` checks the result mechanically. It ends in one of two states: the lint prints `ok`, or the issue is labelled `needs-info` with a comment saying what a person still has to decide.
 
 ## When to reach for it
 
-Type `/harden <N>`, or the agent starts it when a task fits. Mostly it runs underneath other skills: [to-tickets](to-tickets.md) calls it once per Sub-issue of an Epic, and triage calls it once to turn a filed bug or enhancement into a One-off that `/build` can take. Start it yourself when `spp lint ticket` fails on an issue, or when you have written an issue by hand and want it buildable.
+Type `/harden <N>`, or the agent starts it when a task fits. Most runs happen inside other skills: [to-tickets](to-tickets.md) calls it for each Sub-issue of an Epic, and triage calls it once to make a filed bug or enhancement into a One-off that `/build` accepts. Run it yourself when `spp lint ticket` fails on an issue, or when you wrote an issue by hand and want a worker to be able to take it.
 
 | Your situation | Use |
 | --- | --- |
-| An Epic needs splitting into Sub-issues | `/to-tickets`, which calls `harden` for each one |
-| A bug or enhancement was filed by someone | triage, which reproduces or verifies it first |
 | One issue needs its contract written or repaired | `/harden <N>` |
+| An Epic needs splitting into Sub-issues | `/to-tickets`, which calls `harden` for each |
+| Someone filed a bug or a request | triage, which reproduces or verifies it first |
 
 `ask-spp` routes between every skill when the right one is unclear.
 
-## The five code checks
+## Four questions
 
-Each check is answered from the repository, because every one of them has sent a worker outside its Files owned or into rewriting its own Verify block when skipped.
+`harden` organises the contract around what the worker would otherwise have to ask:
 
-| Check | Passes when |
-| --- | --- |
-| Scenario data exists | every value a scenario asserts on exists today, or a Produces line creates it |
-| Output pins | every file in the tree that asserts the output being changed is in Files owned |
-| Callers of changed signatures | every caller of a changed signature is in Files owned as Modify |
-| Verify resolves | every command resolves, and those not waiting on new code pass on the default branch |
-| ADR placement | content goes where the repo's ADRs and Laws say that kind of content lives |
+| The worker's question | Sections | Checked against the code by |
+| --- | --- | --- |
+| What am I making? | What to build, Acceptance criteria, size | each criterion being false before the work starts |
+| Which files are mine? | Files owned | output pins, callers of changed signatures, ADR placement |
+| What do my neighbours call things? | Interfaces | codebase-design, when a module is new or reshaped |
+| How do I know I am finished? | Test scenarios, Verify | scenario data exists, Verify resolves and passes on the default branch |
 
 ## Common questions
 
-**A worker had to add a field nobody asked for.**
-The scenario asserted on data the code did not expose, such as a value only an internal record held. The scenario-data check now finds that before publishing, and either makes the field part of the issue's work or points the scenario at data the code already has.
+**Why is this a separate skill from to-tickets?**
+Both to-tickets and triage need to write the same contract. When the rules lived inside to-tickets, triage had to read another skill's files to follow them, and a user-invoked skill cannot be called by another. One model-invoked skill now holds the rules and both callers use it.
 
-**The Verify block could not run as written.**
-Earlier contracts named a test runner the repo cannot link, a docs tool foreign to the repo, or a lint already failing on main. Every command now has to resolve, and the ones that do not depend on the issue's new code have to pass on the default branch first. A command for tests the issue has yet to write fails until the work lands, and that is expected.
+**What does `spp lint ticket` check, and what is left to `harden`?**
+The lint checks what a script can: every section present, a fenced Verify block, the shape of Files owned and Test scenario lines, exactly one size label, and no `TBD`, `TODO` or similar marker. Whether the scenarios assert on real data, whether the file list is complete, and whether the commands run are questions about the repository, so `harden` answers them before the lint runs.
 
-**The worker missed a fixture that pinned the old output.**
-An earlier search looked only in the folder being changed, and the pins sat in fixtures at the repository root. The output-pins search now covers the whole tree, including fixtures, snapshots, CI steps and docs examples.
+**My issue was labelled `needs-info`. What happens next?**
+The comment titled **Still open** lists each gap and the section it holds up. Settle those (an output wording, an Interface the Epic left open), then run `/harden <N>` again.
 
-**Why does Verify not run the whole test suite?**
-The worker runs Verify, the reviewer runs it again, and so does every fix round. A full suite in each of those runs left agents waiting on tests unrelated to the change. Verify names the issue's own test paths, and CI runs the full suite on the pull request.
+**Why did Files owned list a test fixture the change never mentioned?**
+That fixture asserts the output being changed. The search for those runs over the whole tree, so a pinned string in a root-level fixture or a CI step is owned up front, and the worker never has to edit a file it does not hold.
 
-**Why must a scenario press the button rather than check it is enabled?**
-A test written from "Save is enabled" can pass without anything being saved. Each scenario is written `<action> → <result>`; its right-hand side has to be an effect of the action, so the test derived from it has to use the control.
+**Can a Verify command fail before the work starts?**
+Only one that runs tests the issue will add. Every other command, such as a lint or a typecheck, has to pass on the default branch first; otherwise the worker would start from a failure it did not cause.
 
 ## It's working if
 
-- `spp lint ticket <N>` prints `ok` on the issue, or the issue carries `needs-info` with a comment naming each open gap.
-- Workers do not report a Verify block they had to correct.
-- No pull request edits a file outside its Files owned to get a test or a caller passing.
-- Every Test scenario line reads as something done and what it caused.
+- `spp lint ticket <N>` prints `ok`, or the issue carries `needs-info` and a **Still open** comment.
+- Workers' pull requests never report a corrected Verify block.
+- No pull request edits a file outside its Files owned to make a test or a caller pass.
+- Each Test scenario reads as something done and what it caused.
