@@ -180,6 +180,30 @@ function issue(raw: RawIssue, viewer: string | null): SnapshotIssue {
   };
 }
 
+/**
+ * gh's arguments for an Epic's snapshot, the Epic given as an issue number (the current repo, through gh's
+ * placeholders) or an issue URL; null for anything else.
+ */
+export function snapshotArgs(epic: string): string[] | null {
+  const m = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)\/?$/.exec(epic);
+  const vars = /^\d+$/.test(epic) ? ["-F", "owner={owner}", "-F", "repo={repo}", "-F", `number=${epic}`] : m && ["-f", `owner=${m[1]}`, "-f", `repo=${m[2]}`, "-F", `number=${m[3]}`];
+  return vars && ["api", "graphql", "-f", `query=${SNAPSHOT_QUERY}`, ...vars];
+}
+
+/**
+ * gh's answer to {@link snapshotArgs} as a Snapshot. gh exits 1 on a missing issue but still prints the response,
+ * which reads as "epic not found"; any other failure throws gh's stderr.
+ */
+export function readSnapshot(r: { exitCode: number | null; stdout: string; stderr: string }): Snapshot {
+  let json: unknown;
+  try {
+    json = JSON.parse(r.stdout);
+  } catch {}
+  const missing = (json as Response | undefined)?.data?.repository?.issue === null;
+  if (r.exitCode !== 0 && !missing) throw new Error(r.stderr.trim() || `gh exited ${r.exitCode}`);
+  return parseSnapshot(json);
+}
+
 export function parseSnapshot(json: unknown): Snapshot {
   const r = json as Response;
   const epic = r?.data?.repository?.issue;

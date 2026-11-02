@@ -9,9 +9,10 @@
  */
 import { refIn } from "../derive.ts";
 import { WINDOW } from "../findings.ts";
-import { GhError, runGh } from "../gh.ts";
+import { fetchSnapshot } from "../fetch-snapshot.ts";
+import { runGh } from "../gh.ts";
 import { find, guarded, parseIssue, readTrailer, UsageError } from "../markers.ts";
-import { parseSnapshot, SNAPSHOT_QUERY, type Snapshot } from "../snapshot.ts";
+import type { Snapshot } from "../snapshot.ts";
 
 /** The usage text `spp retro --help` prints. */
 export const USAGE = `usage: spp retro <epic number | issue URL> [--json]
@@ -74,35 +75,11 @@ const count = (keys: string[]) => {
   return Object.fromEntries(Object.entries(n).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)));
 };
 
-// The query variables for an Epic given as a number (the current repo, through gh's placeholders) or an issue URL.
-// shortcut: status.ts keeps the same two helpers private; share them when a third command needs them.
-function variables(epic: ReturnType<typeof parseIssue>): string[] {
-  if (!epic.repoFlag.length) return ["-F", "owner={owner}", "-F", "repo={repo}", "-F", `number=${epic.number}`];
-  const [owner, repo] = epic.repo.split("/");
-  return ["-f", `owner=${owner}`, "-f", `repo=${repo}`, "-F", `number=${epic.number}`];
-}
-
-async function snapshot(epic: ReturnType<typeof parseIssue>): Promise<Snapshot> {
-  let out: string;
-  try {
-    out = await runGh(["api", "graphql", "-f", `query=${SNAPSHOT_QUERY}`, ...variables(epic)]);
-  } catch (e) {
-    // gh exits 1 on a missing issue but still prints the response, which parseSnapshot reports as "epic not found".
-    let missing = false;
-    try {
-      missing = e instanceof GhError && JSON.parse(e.stdout)?.data?.repository?.issue === null;
-    } catch {}
-    if (!missing) throw e;
-    out = (e as GhError).stdout;
-  }
-  return parseSnapshot(JSON.parse(out));
-}
-
 type Wave = { panel?: { round: number; severity?: Record<string, number> }[]; waves?: { prs?: Record<string, string> }[] };
 
 async function collect(arg: string, notFound: string[]): Promise<{ epic: Snapshot["epic"]; retro: Retro }> {
   const epic = parseIssue(arg);
-  const snap = await snapshot(epic);
+  const snap = (await fetchSnapshot(epic.arg))!;
   const ref = refIn(snap.epic.repo);
   if (!snap.issues.length) notFound.push("sub-issues");
 

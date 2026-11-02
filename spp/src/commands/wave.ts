@@ -21,9 +21,9 @@
  * @module
  */
 import { derive, type EpicState } from "../derive.ts";
+import { fetchSnapshot } from "../fetch-snapshot.ts";
 import { runGh } from "../gh.ts";
 import { type Data, flagPairs, guarded, parseIssue, print, updateMarker, UsageError } from "../markers.ts";
-import { parseSnapshot, SNAPSHOT_QUERY } from "../snapshot.ts";
 import { DEFAULT_WAVE_MAX } from "../plan-next.ts";
 import { parseTicket } from "../ticket.ts";
 
@@ -214,10 +214,7 @@ async function runPlan(args: string[]): Promise<number> {
   const max = at < 0 ? DEFAULT_WAVE_MAX : Number(args[at + 1]);
   const epic = args.filter((a, i) => a !== "--json" && (at < 0 || (i !== at && i !== at + 1)));
   if (epic.length !== 1 || !Number.isInteger(max) || max < 1) throw new UsageError("");
-  const e = parseIssue(epic[0]);
-  const [owner, repo] = e.repoFlag.length ? e.repo.split("/") : ["{owner}", "{repo}"];
-  const vars = e.repoFlag.length ? ["-f", `owner=${owner}`, "-f", `repo=${repo}`] : ["-F", `owner=${owner}`, "-F", `repo=${repo}`];
-  const state = derive(parseSnapshot(JSON.parse(await runGh(["api", "graphql", "-f", `query=${SNAPSHOT_QUERY}`, ...vars, "-F", `number=${e.number}`]))));
+  const state = derive((await fetchSnapshot(parseIssue(epic[0]).arg))!);
   const plan = await wavePlan(state, max);
   process.stdout.write(
     args.includes("--json")

@@ -174,6 +174,16 @@ describe("error path", () => {
     assert.match(r.stderr, /spp wave plan <epic>/);
   });
 
+  // F9 on #267: wave plan reads the snapshot through fetchSnapshot, which names a missing Epic like status does.
+  test("an Epic that does not exist exits 1 with epic not found", async () => {
+    const dir = scratch([]);
+    const missing = { stdout: { data: { repository: { issue: null } } }, stderr: "GraphQL: Could not resolve to an Issue with the number of 197.", code: 1 };
+    writeFileSync(join(dir, "gh.json"), JSON.stringify({ "api graphql -f query=Snapshot -F owner={owner} -F repo={repo} -F number=197": missing }));
+    const r = await runCase("wave", dir);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /^spp wave: epic not found$/m);
+  });
+
   test("a ready ticket without a Files owned section is held, not planned", async () => {
     const dir = scratch([{ n: 301, modify: ["src/a.ts"] }, { n: 302, modify: ["src/b.ts"] }]);
     const gh = JSON.parse(readFileSync(join(dir, "gh.json"), "utf8"));

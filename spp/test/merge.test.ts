@@ -30,7 +30,12 @@ type Opts = {
   mergeAnswer?: { stderr: string; code: number };
   forged?: boolean; // the snapshot's only verdict comment is a passing one from an outside author
   recheck?: "forged"; // the verdict comment spp merge re-reads is from an outside author
+  epicMissing?: boolean; // the snapshot query finds no Epic issue: gh exits 1 and prints issue null
+  waveFails?: boolean; // reading the wave comment fails, so recording the merge on it fails
 };
+
+// gh's answer to a query for an issue that does not exist: exit 1, the response still printed.
+const MISSING = { stdout: { data: { repository: { issue: null } }, errors: [{ message: "Could not resolve to an Issue with the number of 197." }] }, stderr: "GraphQL: Could not resolve to an Issue with the number of 197. (repository.issue)", code: 1 };
 
 // A comment by the repository owner, or by an outside author when `outsider`.
 const by = (body: string, outsider = false) => ({ body, author: { login: outsider ? "mallory" : "maint" }, authorAssociation: outsider ? "NONE" : "OWNER" });
@@ -79,9 +84,11 @@ function mergeCase(o: Opts = {}): string {
       stdout: { number: pr, url, state: "OPEN", body, baseRefName: o.base ?? "feat/x", mergeable: o.mergeable ?? "MERGEABLE" },
     },
     [`issue view ${REPO}/issues/${TICKET[pr]} --json parent`]: { stdout: { parent: { url: `${REPO}/issues/197` } } },
-    "api graphql -f query=Snapshot -f owner=acme -f repo=app -F number=197": { stdout: snapshot },
+    "api graphql -f query=Snapshot -f owner=acme -f repo=app -F number=197": o.epicMissing ? MISSING : { stdout: snapshot },
     [`pr checks ${url} --json name,bucket`]: { stdout: o.checks ?? [{ name: "ci", bucket: "pass" }] },
-    [`api repos/acme/app/issues/197/comments --paginate --jq ${JQ}`]: { stdout: JSON.stringify([88, `<!-- sdd-wave -->\nWave 1\n${trailer(WAVE)}\n`, "maint", "OWNER"]) + "\n" },
+    [`api repos/acme/app/issues/197/comments --paginate --jq ${JQ}`]: o.waveFails
+      ? { stderr: "HTTP 502: Bad Gateway", code: 1 }
+      : { stdout: JSON.stringify([88, `<!-- sdd-wave -->\nWave 1\n${trailer(WAVE)}\n`, "maint", "OWNER"]) + "\n" },
     [`api repos/acme/app/issues/${pr}/comments --paginate --jq ${JQ}`]: {
       stdout: JSON.stringify([99, verdict(pr, pr === 40 ? o.spec : "pass"), ...(o.recheck ? ["mallory", "NONE"] : ["maint", "OWNER"])]) + "\n",
     },
@@ -177,6 +184,23 @@ describe("error paths", () => {
     const r = await merge({ mergeable: "UNKNOWN", mergeAnswer }, 3);
     assert.deepEqual(r.out, { merged: false, reason: "rebase needed" });
     assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
+  });
+
+  // F9 on #267: merge reads the snapshot through fetchSnapshot, which names a missing Epic like status and retro do.
+  test("an Epic that does not exist exits 1 with epic not found and merges nothing", async () => {
+    const r = await runCase("merge", mergeCase({ epicMissing: true }));
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /^spp merge: epic not found$/m);
+    assert.deepEqual(r.writes, []);
+  });
+
+  // F6 on #267: the merge happened, so it says merged true, but exit 1 and the stderr line send the orchestrator to record it.
+  test("a merge whose wave record fails exits 1 with merged true and says the record failed", async () => {
+    const r = await runCase("merge", mergeCase({ waveFails: true }));
+    assert.equal(r.code, 1, r.stderr);
+    assert.deepEqual(r.json, { merged: true });
+    assert.match(r.stderr, /^spp merge: merged #40, but recording it on the wave comment failed:\n.*HTTP 502: Bad Gateway/m);
+    assert.deepEqual((r.writes as Write[]).map((w) => w.argv.slice(0, 2)), [["pr", "merge"]]);
   });
 
   test("a branch policy refusal exits 1 with gh's reason, never rebase needed", async () => {

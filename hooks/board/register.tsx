@@ -5,7 +5,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import { derive, type EpicState, type TicketState } from '../../spp/src/derive.ts'
-import { parseSnapshot, readTrailer, SNAPSHOT_QUERY } from '../../spp/src/snapshot.ts'
+import { readSnapshot, readTrailer, snapshotArgs } from '../../spp/src/snapshot.ts'
 import type { Board, BoardTicket, BoardWorker } from '../../types/index.d.ts'
 
 const PANE = 'epic-board'
@@ -28,13 +28,6 @@ const CHIPS: Record<TicketState, { label: string; color: string }> = {
 }
 
 const firstLine = (s: string) => s.trim().split('\n')[0] ?? ''
-
-// The query variables for an Epic given as a number (the session's repo, through gh's placeholders) or an issue URL.
-function variables(epic: string): string[] | null {
-  if (/^\d+$/.test(epic)) return ['-F', 'owner={owner}', '-F', 'repo={repo}', '-F', `number=${epic}`]
-  const m = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)\/?$/.exec(epic)
-  return m ? ['-f', `owner=${m[1]}`, '-f', `repo=${m[2]}`, '-F', `number=${m[3]}`] : null
-}
 
 // Runs a host command; resolves its stdout, or throws one line naming the command and its stderr.
 async function run($: EngineInterface, name: string, argv: string[]): Promise<string> {
@@ -77,18 +70,14 @@ async function workersOf($: EngineInterface): Promise<BoardWorker[]> {
 // One refresh: the snapshot through gh, then notes and workers. A failing gh call leaves no ticket rows; a failing
 // spp or claude call keeps them and shows its error.
 async function load($: EngineInterface, epic: string): Promise<Board> {
-  const vars = variables(epic)
-  if (!vars) return { ...EMPTY, epic, error: `not an issue number or URL: ${epic}` }
+  const args = snapshotArgs(epic)
+  if (!args) return { ...EMPTY, epic, error: `not an issue number or URL: ${epic}` }
   let raw: unknown
   let state: EpicState
   try {
-    const r = await $.process.run(['gh', 'api', 'graphql', '-f', `query=${SNAPSHOT_QUERY}`, ...vars], { timeoutMs: 60_000 })
-    try {
-      raw = JSON.parse(r.stdout) // gh exits 1 on a missing issue but still prints the response
-    } catch {
-      throw new Error(firstLine(r.stderr) || `exited ${r.exitCode}`)
-    }
-    state = derive(parseSnapshot(raw))
+    const r = await $.process.run(['gh', ...args], { timeoutMs: 60_000 })
+    state = derive(readSnapshot(r))
+    raw = JSON.parse(r.stdout)
   } catch (e) {
     return { ...EMPTY, epic, error: `gh: ${firstLine((e as Error).message)}` }
   }
