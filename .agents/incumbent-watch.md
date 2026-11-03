@@ -1,6 +1,6 @@
 # Incumbent watch
 
-A weekly routine keeps one pinned issue, "Incumbent watch", current with what the projects in [incumbents.md](./incumbents.md) ship. Repo maintenance only: nothing here ships to users, and the routine does not use the `spp` plugin (cloud routines load claude.ai plugins, and claude.ai refuses plugins that carry executables). This file is the whole instruction set. The routine's own prompt only points here.
+A weekly routine keeps one pinned issue, "Incumbent watch", current with what the projects in [incumbents.md](./incumbents.md) ship. Repo maintenance only: nothing here ships to users, and the routine does not use the `spp` plugin. It runs as a scheduled GitHub Action, [incumbent-watch.yml](../.github/workflows/incumbent-watch.yml), which runs Claude Code headless. This file is the whole instruction set. The routine's own prompt only points here.
 
 ## Rules
 
@@ -27,8 +27,8 @@ The routine cannot do these, and neither does the pull request that added this f
 
 1. Create the issue. Title `Incumbent watch`, body `Weekly watch of the incumbents in .agents/incumbents.md. The routine rewrites this body.` No labels are required. The label set in `/triage` is not applied; the routine never triages.
 2. Pin it: open the issue, then choose Pin issue in the sidebar.
-3. Create the routine with `/schedule`, weekly, on `syn54x/skills-plus-plus`, with this one-line prompt: `Follow .agents/incumbent-watch.md.` Give it a `gh` login that can edit issues and comment, and Node 22.18 or later so the script runs without a build.
-4. Fallback if the routine is unavailable: a scheduled GitHub Action, added by hand, on a weekly `schedule:` cron plus `workflow_dispatch:`, with `issues: write` permission, that checks out the repository and runs Claude Code headless with the same one-line prompt. It needs a repository secret for the model key. It is a fallback: do not run both at once, or two comments land each week.
+3. Nothing to schedule: [incumbent-watch.yml](../.github/workflows/incumbent-watch.yml) runs every Friday at 14:00 UTC, and on demand with `gh workflow run incumbent-watch.yml`. It needs the `CLAUDE_CODE_OAUTH_TOKEN` repository secret the evals use; the job's own `GITHUB_TOKEN` edits the issue and comments.
+4. Do not also run it as a cloud routine (`/schedule`), or two comments land each week. The cloud sandbox cannot run it anyway: it reaches only the repositories attached to the routine, and it blocks the GraphQL calls `gh issue` makes.
 
 ## Checking it
 
