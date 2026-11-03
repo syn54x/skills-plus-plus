@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: A round-based interview that stress-tests a plan, design or decision until you and the person hold the same understanding of it. Use when the user asks to be grilled or to have their thinking challenged, or when another skill needs an interview before it acts.
+description: Interview the user, one round at a time, until a plan or design holds up. Use when the user asks to be grilled or wants their thinking stress-tested.
 ---
 
 An interview that lets no plan through until every choice in it has been made out loud. The person makes the choices. You bring the questions, the evidence, and a proposal for each one. A vague reply is not an answer; it becomes the next question.

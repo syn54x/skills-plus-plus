@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Grows code test-first in thin vertical slices, each test seen red before any code turns it green, at seams agreed before the first test is written. Use when new behaviour or a bug fix should be driven by tests written first, when an issue's Test scenarios are to become tests, or when asked for red-green or test-first work.
+description: Test-driven development in thin red-green slices. Use when the user wants to build a feature or fix a bug test-first, or mentions red-green-refactor.
 ---
 
 Build behaviour one test at a time. Each cycle writes one failing test at an agreed seam, watches it go **red**, then writes the least code that turns it **green**. Tests made this way check what the code does for its callers, so they keep passing when its insides change.

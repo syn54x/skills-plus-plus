@@ -1,6 +1,6 @@
 ---
 name: prototype
-description: Builds a throwaway prototype on its own branch to answer one design question, either a logic prototype (one page driving a pure module) or UI variants on one route behind a switcher. Use when someone needs to try a state model, data shape or API before committing to it, wants to see several ways a screen could look, or when another skill needs something rough to react to.
+description: Build a throwaway prototype that answers one design question. Use when the user wants to try a state model, data shape or API before committing, or see several ways a screen could look.
 ---
 
 A prototype is the cheapest thing that can be wrong in an informative way. It exists to produce a verdict from a person, and the code is the means of getting one. Everything about it is built to be discarded, and nothing about it is allowed onto the branch the real work lives on.

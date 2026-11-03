@@ -1,6 +1,6 @@
 ---
 name: writing-for-agents
-description: How to write a document an agent reads and then acts on, such as a skill, a CLAUDE.md or AGENTS.md, a spec or a prompt. Use when creating, editing or trimming one, when a skill nears its size budget, or when an agent follows a document unevenly from one run to the next.
+description: Writing documents an agent reads and acts on. Use when creating or editing a skill, CLAUDE.md, AGENTS.md, a spec or a prompt.
 ---
 
 The reference for any document an agent reads and then acts on. A good one makes the agent take the same path every run (the same process, not always the same output), and its first tool is deletion. When drafting, write with each section below in mind. When reviewing, walk the draft through every section in order and fix what each one finds.

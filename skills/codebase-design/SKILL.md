@@ -1,6 +1,6 @@
 ---
 name: codebase-design
-description: Words and tests for the shape of code, built around deep modules that hide much behind little. Use when designing or reshaping a module's interface, placing a seam, making code easier to test or navigate, judging whether an extraction pays for itself, running the Depth check during a review, or whenever a skill needs these words.
+description: Vocabulary and tests for deep modules. Use when designing or reshaping a module's interface, deciding where a seam goes, or making code easier to test or navigate.
 ---
 
 Words and tests for talking about the shape of code. This skill is a reference: asked a design question, answer it in these terms and stop. It runs no process of its own; the skills that drive design work call it for the words.

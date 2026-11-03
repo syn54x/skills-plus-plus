@@ -1,6 +1,6 @@
 ---
 name: diagnosing-bugs
-description: A disciplined loop for stubborn defects and slowdowns that builds a command which goes red on the bug before any theory is formed. Use when asked to diagnose or debug something, when something is reported broken, throwing, failing, flaky or slow, or when an issue's Verify block reproduces a bug to fix.
+description: A diagnosis loop for hard bugs and slowdowns. Use when the user says diagnose or debug this, or reports something broken, throwing, failing, flaky or slow.
 ---
 
 Find the cause of one known failure, fix it, and leave a test that keeps it fixed. The hard part is the first step: a command that this bug turns **red**. With that command, every later step is a question it can answer; without it, reading code only produces guesses. Take the steps in order, and start each one only when the check that closes the one before it holds.

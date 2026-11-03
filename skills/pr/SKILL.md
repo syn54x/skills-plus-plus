@@ -1,6 +1,6 @@
 ---
 name: pr
-description: The pull request body, from the summary visual to the sections a review gate checks. Use when writing or rewriting a pull request description, including a worker opening the pull request for a Sub-issue or One-off and a fix round that changes what the body claims.
+description: Write a pull request body. Use whenever you open a pull request or rewrite its description.
 ---
 
 The person reading a pull request body has one decision to make, merge or not, and three questions on the way to it: what is this, how bad is it if it is wrong, and why should I believe it works. The body answers them in that order, because the answer to the second sets how much proof the third needs. When the pull request builds an issue that carries the **Ticket contract**, the body goes on to make claims the review gate tests against the diff line by line; those sections are mandatory and have no stock wording.

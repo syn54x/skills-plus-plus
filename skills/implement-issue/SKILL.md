@@ -1,6 +1,6 @@
 ---
 name: implement-issue
-description: The worker's procedure for one buildable issue, from readiness and the claim to a verified pull request that closes it. Use when a driver, a brief or a person hands you a Sub-issue or One-off carrying Files owned, Interfaces, Test scenarios and a Verify block, or when you are resumed for a fix round on such an issue.
+description: Build one ready issue into a verified pull request that closes it. Use when handed an issue with Files owned, Interfaces and a Verify block to implement, or resumed for its fix round.
 ---
 
 You build exactly one issue and hand back exactly one pull request. Any issue that carries the **Ticket contract** counts, whether it is a Sub-issue of an Epic or a One-off with no parent. The person or orchestrator who reads your pull request merges it; you never do. You touch no other issue's Files owned, you start no other worker, and you leave the review to the gate.
