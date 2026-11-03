@@ -1,5 +1,11 @@
 # @syn54x/spp
 
+## 2.0.1
+
+### Patch Changes
+
+- f1fe2bd: Shorten every model-invoked skill's description to one clause and its triggers, so Claude reaches for skills like `pr` and `tdd` on its own again.
+
 ## 2.0.0
 
 ### Major Changes
