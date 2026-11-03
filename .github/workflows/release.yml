@@ -45,7 +45,9 @@ jobs:
           name="$(node -p "require('./package.json').name")"
           version="$(node -p "require('./package.json').version")"
           if git ls-remote --exit-code --tags origin "v$version" > /dev/null; then exit 0; fi
-          npm view "$name@$version" version > /dev/null 2>&1 || exit 0
+          # The registry can take minutes to show a fresh publish, so wait for it, and fail rather than skip the release.
+          for i in $(seq 30); do npm view "$name@$version" version > /dev/null 2>&1 && break; sleep 10; done
+          npm view "$name@$version" version > /dev/null 2>&1 || { echo "::error::$name@$version is not on npm"; exit 1; }
           awk -v h="## $version" '$0 == h {f = 1; next} /^## / {if (f) exit} f' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
           gh release create "v$version" --target "$GITHUB_SHA" --title "v$version" --notes-file "$RUNNER_TEMP/notes.md"
         env:
