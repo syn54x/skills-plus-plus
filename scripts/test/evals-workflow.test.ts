@@ -68,7 +68,8 @@ describe("release.yml tags and releases a published version", () => {
   // The step's shell, cut from its `run: |` block and run with stub git, npm and gh on the PATH.
   const step = release.slice(release.indexOf("name: tag and release the published version"));
   const script = step.slice(step.indexOf("run: |") + "run: |".length, step.indexOf("\n        env:")).replace(/^ {10}/gm, "");
-  const run = (stubs: { tagExists: boolean; published: boolean }) => {
+  // published: on npm from the start, never, or only from the nth npm call (the registry lagging behind a publish).
+  const run = (stubs: { tagExists: boolean; published: boolean | number }, status = 0) => {
     const dir = mkdtempSync(join(tmpdir(), "spp-release-"));
     const bin = join(dir, "bin");
     const log = join(dir, "gh.log");
@@ -78,7 +79,9 @@ describe("release.yml tags and releases a published version", () => {
     };
     mkdirSync(bin);
     write("git", `exit ${stubs.tagExists ? 0 : 2}`);
-    write("npm", `exit ${stubs.published ? 0 : 1}`);
+    const n = stubs.published === true ? 1 : stubs.published === false ? Infinity : stubs.published;
+    write("npm", `c=$(( $(cat "${dir}/npm.count" 2>/dev/null || echo 0) + 1 )); echo $c > "${dir}/npm.count"; [ $c -ge ${n === Infinity ? 99999 : n} ]`);
+    write("sleep", "exit 0");
     write("gh", `echo "$@" >> "${log}"`);
     writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "@syn54x/spp", version: "2.0.1" }));
     writeFileSync(join(dir, "CHANGELOG.md"), "# @syn54x/spp\n\n## 2.0.1\n\n- fixed a thing\n\n## 2.0.0\n\n- old\n");
@@ -87,7 +90,7 @@ describe("release.yml tags and releases a published version", () => {
       encoding: "utf8",
       env: { PATH: `${bin}:${process.env.PATH}`, RUNNER_TEMP: dir, GITHUB_SHA: "abc123" },
     });
-    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.status, status, r.stderr);
     return { gh: existsSync(log) ? readFileSync(log, "utf8").trim() : "", notes: existsSync(join(dir, "notes.md")) ? readFileSync(join(dir, "notes.md"), "utf8") : "" };
   };
 
@@ -103,8 +106,15 @@ describe("release.yml tags and releases a published version", () => {
     assert.doesNotMatch(notes, /old/);
   });
 
-  test("an existing tag or an unpublished version creates nothing", () => {
+  test("a version npm shows only after a few tries still gets its tag and release", () => {
+    assert.match(run({ tagExists: false, published: 4 }).gh, /^release create v2\.0\.1 /);
+  });
+
+  test("an existing tag creates nothing", () => {
     assert.equal(run({ tagExists: true, published: true }).gh, "");
-    assert.equal(run({ tagExists: false, published: false }).gh, "");
+  });
+
+  test("a version npm never shows fails the step and creates nothing", () => {
+    assert.equal(run({ tagExists: false, published: false }, 1).gh, "");
   });
 });
