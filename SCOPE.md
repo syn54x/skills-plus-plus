@@ -6,7 +6,7 @@ spp is a spec-driven delivery system for one maintainer's daily work, shared in 
 
 - The five paths in `GLOSSARY.md`: an Epic from grilling to close, a single filed issue through triage to build, wayfinding unknown territory, architecture scans that file issues, and tiny work that needs no spp at all.
 - The `spp` command-line tool, which computes the pipeline's state from GitHub.
-- The skills those paths call, written in spp's own voice, and their docs pages.
+- The skills those paths call, written in spp's own voice (with an incumbent's text only where ADR 0010 allows), and their docs pages.
 - Claude Code as the one harness 2.0.0 ships for. Codex and Cursor come later through the portability law in `CLAUDE.md`, not through harness-specific branches in the skills.
 
 ## The bar
