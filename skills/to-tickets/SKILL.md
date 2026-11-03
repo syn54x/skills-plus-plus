@@ -2,6 +2,11 @@
 name: to-tickets
 description: Break an Epic into vertical Sub-issues with blocking edges, publish them under it on GitHub, and pin the plan.
 disable-model-invocation: true
+metadata:
+  credits:
+    - skill: to-tickets
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/to-tickets"
 ---
 
 Turn an Epic into **Sub-issues** that workers can each build alone: you choose the slices and the edges between them, the user approves them, harden writes each one's **Ticket contract**, and you check the set as a whole before anything is released to the build.

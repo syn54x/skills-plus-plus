@@ -1,6 +1,11 @@
 ---
 name: research
 description: Answer a question from primary sources, with a background agent writing a cited note. Use when the user asks for research, or a decision waits on how a library, API or spec behaves.
+metadata:
+  credits:
+    - skill: research
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/research"
 ---
 
 Answer one question from the sources that own the facts, and hand back a note in which every claim can be traced. The reading runs in one background agent, so the work that asked can carry on.

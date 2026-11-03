@@ -2,6 +2,11 @@
 name: retro
 description: Review one coding session and suggest fixes to the agent's environment (pointers, checks, reviewer rules, a leaner CLAUDE.md), ranked by severity.
 disable-model-invocation: true
+metadata:
+  credits:
+    - skill: retro
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/retro"
 ---
 
 A look back at one session, aimed at the next one. The output is a ranked list of changes to the agent's surroundings (instructions, checks, tools, access), not a review of the code it produced. It is the learning loop for work too small for an Epic; `close-epic` is the same loop for an Epic, and both write learnings in one format.

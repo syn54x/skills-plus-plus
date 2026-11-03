@@ -1,6 +1,14 @@
 ---
 name: implement-issue
 description: Build one ready issue into a verified pull request that closes it. Use when handed an issue with Files owned, Interfaces and a Verify block to implement, or resumed for its fix round.
+metadata:
+  credits:
+    - skill: implement
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/implement"
+    - skill: subagent-driven-development
+      author: Jesse Vincent
+      url: "https://github.com/obra/superpowers/tree/main/skills/subagent-driven-development"
 ---
 
 You build exactly one issue and hand back exactly one pull request. Any issue that carries the **Ticket contract** counts, whether it is a Sub-issue of an Epic or a One-off with no parent. The person or orchestrator who reads your pull request merges it; you never do. You touch no other issue's Files owned, you start no other worker, and you leave the review to the gate.

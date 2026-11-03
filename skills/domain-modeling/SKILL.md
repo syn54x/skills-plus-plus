@@ -1,6 +1,11 @@
 ---
 name: domain-modeling
 description: Keep the glossary and ADRs accurate. Use when discussing what a term means, writing or editing GLOSSARY.md or an ADR, or right after a hard-to-reverse decision.
+metadata:
+  credits:
+    - skill: domain-modeling
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/domain-modeling"
 ---
 
 Keep a project's words and its lasting decisions honest while a design is being argued over, and write each one down as soon as it is settled. Consulting the glossary for a term is ordinary reading; this skill is for changing what the glossary and the ADRs say.

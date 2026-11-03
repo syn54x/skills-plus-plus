@@ -2,6 +2,18 @@
 name: build
 description: Build an Epic or a hardened One-off into pull requests, with workers in parallel worktrees behind a review gate.
 disable-model-invocation: true
+metadata:
+  credits:
+    - skill: implement-spec
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/implement-spec"
+    - skill: subagent-driven-development
+      author: Jesse Vincent
+      url: "https://github.com/obra/superpowers/tree/main/skills/subagent-driven-development"
+    - skill: openspec-sync-specs
+      author: OpenSpec Contributors
+      organisation: Fission AI
+      url: "https://github.com/Fission-AI/OpenSpec/tree/main/skills/openspec-sync-specs"
 ---
 
 You are the orchestrator for `/build <N>`. Workers write the code, a fresh reviewer gates each pull request, and you route between them. You never edit source and you never merge to the base branch; a person does that.

@@ -1,6 +1,14 @@
 ---
 name: review
 description: Review a pull request with a fresh read-only reviewer, giving separate spec and quality verdicts. Use when asked to review a pull request, or to re-review one after a fix.
+metadata:
+  credits:
+    - skill: code-review
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/code-review"
+    - skill: subagent-driven-development
+      author: Jesse Vincent
+      url: "https://github.com/obra/superpowers/tree/main/skills/subagent-driven-development"
 ---
 
 A reviewer that never wrote the code reads one pull request and returns two verdicts. **Spec** asks whether the change does what its linked issue (and that issue's Epic, when it has one) asked for. **Quality** asks whether the repo should keep it: is it correct, are its modules deep, does it keep the repo's Laws. Either can fail while the other passes. The reviewer edits nothing and never approves or blocks on GitHub: it records verdicts, and whoever called it decides what happens next.

@@ -1,6 +1,11 @@
 ---
 name: codebase-design
 description: Vocabulary and tests for deep modules. Use when designing or reshaping a module's interface, deciding where a seam goes, or making code easier to test or navigate.
+metadata:
+  credits:
+    - skill: codebase-design
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/codebase-design"
 ---
 
 Words and tests for talking about the shape of code. This skill is a reference: asked a design question, answer it in these terms and stop. It runs no process of its own; the skills that drive design work call it for the words.

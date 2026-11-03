@@ -1,6 +1,11 @@
 ---
 name: prototype
 description: Build a throwaway prototype that answers one design question. Use when the user wants to try a state model, data shape or API before committing, or see several ways a screen could look.
+metadata:
+  credits:
+    - skill: prototype
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/prototype"
 ---
 
 A prototype is the cheapest thing that can be wrong in an informative way. It exists to produce a verdict from a person, and the code is the means of getting one. Everything about it is built to be discarded, and nothing about it is allowed onto the branch the real work lives on.

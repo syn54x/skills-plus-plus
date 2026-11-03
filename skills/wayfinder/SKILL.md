@@ -2,6 +2,11 @@
 name: wayfinder
 description: Chart a large effort as a map of decision tickets on GitHub Issues, then settle one decision per session until no decision stands between you and building.
 disable-model-invocation: true
+metadata:
+  credits:
+    - skill: wayfinder
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/wayfinder"
 ---
 
 Use this when a person has a destination in mind but cannot yet see how to get there, and the effort is bigger than one session. The result is a **map**: one GitHub issue labelled `wayfinder:map`, with a **Decision ticket** as each child. Sessions then settle the tickets, one per session.

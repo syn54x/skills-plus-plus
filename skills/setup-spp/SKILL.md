@@ -2,6 +2,11 @@
 name: setup-spp
 description: Prepare this repository for spp, with its labels, the Routing block and the domain docs pointers, and offer ponytail.
 disable-model-invocation: true
+metadata:
+  credits:
+    - skill: setup-matt-pocock-skills
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/setup-matt-pocock-skills"
 ---
 
 Make this repository ready for the spp pipeline, and change only what is not already right. A second run over a finished repo finds nothing to do, says so, and writes nothing. Every change is shown to the person before it is written, and the person confirms.

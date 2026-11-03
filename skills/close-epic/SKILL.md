@@ -2,6 +2,16 @@
 name: close-epic
 description: Finish a merged Epic. Checks that all Sub-issues are closed and the integration branch has merged, posts the summary and the retro, confirms the Spec deltas shipped, offers skill feedback with your consent, and closes the Epic.
 disable-model-invocation: true
+metadata:
+  credits:
+    - skill: ce-compound
+      author: Kieran Klaassen and Trevin Chow
+      organisation: Every
+      url: "https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-compound"
+    - skill: openspec-archive-change
+      author: OpenSpec Contributors
+      organisation: Fission AI
+      url: "https://github.com/Fission-AI/OpenSpec/tree/main/skills/openspec-archive-change"
 ---
 
 The last step of the Epic path. It runs after a person has merged the Epic's integration branch, and it reads everything it reports from GitHub, so it needs nothing from the session that built the Epic. Every number comes from `spp`; the judgement in it is the Learnings.

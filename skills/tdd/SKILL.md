@@ -1,6 +1,11 @@
 ---
 name: tdd
 description: Test-driven development in thin red-green slices. Use when the user wants to build a feature or fix a bug test-first, or mentions red-green-refactor.
+metadata:
+  credits:
+    - skill: tdd
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd"
 ---
 
 Build behaviour one test at a time. Each cycle writes one failing test at an agreed seam, watches it go **red**, then writes the least code that turns it **green**. Tests made this way check what the code does for its callers, so they keep passing when its insides change.
