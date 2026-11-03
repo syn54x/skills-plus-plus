@@ -108,6 +108,19 @@ test("an empty quoted author counts as missing", () => {
   failsOnce(credited("demo", entry({ ...FULL, author: '""' })), /skills\/demo\/SKILL\.md.*'author'/);
 });
 
+test("a trailing comment on the metadata: and credits: lines still has the credits checked", () => {
+  const files = credited("demo", `    - ${BAD}`);
+  files["skills/demo/SKILL.md"] = files["skills/demo/SKILL.md"].replace(
+    "metadata:\n  credits:\n",
+    "metadata: # sources  \n  credits:   # one per entry\n",
+  );
+  failsOnce(files, /skills\/demo\/SKILL\.md.*'author'/);
+});
+
+test("an empty url is reported once, as missing", () => {
+  failsOnce(credited("demo", entry({ ...FULL, url: '""' })), /skills\/demo\/SKILL\.md.*no 'url'/);
+});
+
 test("the repository passes, with grilling credited", () => {
   const result = run("check-credits.ts", repoRoot);
   assert.equal(result.stderr, "");
