@@ -3,7 +3,7 @@
 Each skill sits at `skills/<name>/SKILL.md`. What separates one skill from another, for this law, is who is allowed to start it.
 
 - **User-invoked**: only a person can start it, by typing `/<name>`. Its frontmatter sets `disable-model-invocation: true` (Claude Code), and its `agents/openai.yaml` sets `policy.allow_implicit_invocation: false` (Codex). The `description` is written for a person scanning the slash-command menu: one line saying what the skill does, with no list of trigger phrases.
-- **Model-invoked**: a person or the model can start it. This is the default: leave out `disable-model-invocation` and the `policy` block. The `description` is written for the model, so it names the situations that should trigger it ("Use when ..."). Keep a skill model-invoked when the model could sensibly reach for it unprompted.
+- **Model-invoked**: a person or the model can start it. This is the default: leave out `disable-model-invocation` and the `policy` block. The `description` is written for the model, so it is short and names the situations that should trigger it ("Use when ..."), under about 200 characters. Claude Code lists skills by name alone once their descriptions outgrow its budget, and a bare name rarely triggers. Keep a skill model-invoked when the model could sensibly reach for it unprompted.
 
 Every skill carries `agents/openai.yaml` next to its `SKILL.md`, holding the Codex picker fields (`interface.display_name`, `interface.short_description`) and, for a user-invoked skill, the policy line. The frontmatter flag and the policy line always agree: a skill is user-invoked on every harness or on none.
 

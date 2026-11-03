@@ -1,6 +1,6 @@
 ---
 name: domain-modeling
-description: Keeps a project's glossary and ADRs accurate while a design is argued over, writing each settled term or lasting decision as it happens. Use when a term is vague, overloaded or used against the glossary, when writing or editing a glossary or an ADR, or when a hard-to-reverse decision has just been made.
+description: Keep the glossary and ADRs accurate. Use when discussing what a term means, writing or editing GLOSSARY.md or an ADR, or right after a hard-to-reverse decision.
 ---
 
 Keep a project's words and its lasting decisions honest while a design is being argued over, and write each one down as soon as it is settled. Consulting the glossary for a term is ordinary reading; this skill is for changing what the glossary and the ADRs say.

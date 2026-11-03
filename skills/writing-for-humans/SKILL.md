@@ -1,6 +1,6 @@
 ---
 name: writing-for-humans
-description: The prose rules for anything a person reads, such as a docs page, a docstring, release notes, a pull request body or an issue or summary comment. Use before drafting one, and again to check the draft before it is posted or committed.
+description: Prose rules for anything a person reads. Use before drafting a pull request body, release notes, a docs page, a docstring or an issue comment.
 ---
 
 How to write text that people, not agents, will read: docs pages, docstrings, release notes, pull request bodies, and comments on issues and Epics. Draft with these rules in view, then go through the finished draft one rule at a time before it is posted or committed. Every rule gives its reason, which is what lets you apply it to a case it never names. [`EVIDENCE.md`](EVIDENCE.md) lists the source behind each rule under the same number; open it only to check or cite a rule.

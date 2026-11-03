@@ -1,6 +1,6 @@
 ---
 name: review
-description: Gate a pull request with a fresh read-only reviewer that runs the linked issue's Verify block, reads CI and returns separate spec and quality verdicts with Law-tagged findings. Use when a slice pull request needs its gate, when asked to review a pull request, when a fix round lands and needs a scoped re-review, or when an Epic's pull request needs its spec verdict.
+description: Review a pull request with a fresh read-only reviewer, giving separate spec and quality verdicts. Use when asked to review a pull request, or to re-review one after a fix.
 ---
 
 A reviewer that never wrote the code reads one pull request and returns two verdicts. **Spec** asks whether the change does what its linked issue (and that issue's Epic, when it has one) asked for. **Quality** asks whether the repo should keep it: is it correct, are its modules deep, does it keep the repo's Laws. Either can fail while the other passes. The reviewer edits nothing and never approves or blocks on GitHub: it records verdicts, and whoever called it decides what happens next.

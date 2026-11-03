@@ -18,7 +18,7 @@ The choice is the two loads traded against each other.
 | Who can start it | The agent, another skill, or the person | Only the person, by typing `/<name>` |
 | Frontmatter | No `disable-model-invocation` | `disable-model-invocation: true` |
 | `agents/openai.yaml` | No `policy` block | `policy.allow_implicit_invocation: false` |
-| Description written for | The model: what it is, then each case that should start it ("Use when ...") | The person scanning a menu: one line, no trigger list |
+| Description written for | The model: one short clause on what it does, then the situations a person would be in when it should start ("Use when ..."), under about 200 characters. Leave out cases where another skill calls it by name | The person scanning a menu: one line, no trigger list |
 | What it costs | Context load on every turn | Cognitive load: the person must remember it exists |
 
 Model-invoked is the default: keep a skill model-invoked whenever the agent could sensibly reach for it unprompted, or another skill must call it. Make it user-invoked when only a person should ever start it, which takes its description out of context entirely. The flag and the policy line always agree, so a skill is user-invoked on every harness or on none.
