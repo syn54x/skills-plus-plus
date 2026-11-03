@@ -12,7 +12,7 @@ We rebuild from scratch, in this repository, on an orphan branch named `next`, a
 - **Out of the fork network.** The repository leaves the `mattpocock/skills` network at cutover. There is no upstream sync, and its process is retired.
 - **The model judges; `spp` computes.** Anything that must come out the same every time (readiness, layers, waves, the next action, briefs, marker comments, CI state, merge order, retro numbers) moves into the TypeScript `spp` tool, with no runtime dependencies and tested through recorded GitHub snapshots.
 - **Flat skills, a size budget.** Skills live at `skills/<name>/`, and CI fails a `SKILL.md` over 12 KB so no skill is cut after compaction (see `CLAUDE.md`).
-- **Own words.** Every skill is rewritten in this project's voice. Concepts from mattpocock/skills, Superpowers, Compound Engineering, ECC, OpenSpec and GSD carry over and are credited in the README; their text does not.
+- **Own words.** Every skill is rewritten in this project's voice. Concepts from mattpocock/skills, Superpowers, Compound Engineering, ECC, OpenSpec and GSD carry over and are credited in the README; their text does not. Amended by [ADR 0010](./0010-credit-each-skill-and-copy-only-better-text.md), which credits each skill's sources and allows copying text that beats ours.
 - **License.** MIT, keeping Matt Pocock's copyright line while any of his text survives, beside the maintainer's.
 
 ## Carried decisions

@@ -71,7 +71,7 @@ Every promoted skill gets a human-facing page on the docs site at `https://skill
 
 No em-dashes anywhere in this repository: skills, docs, README, changelog, ADRs, changesets and code comments. Where a sentence reaches for one, rewrite it with whatever it wants (a comma, colon, period, parentheses or a conjunction); never swap the character mechanically.
 
-Every skill is written in this project's own voice. Concepts from the projects credited in the README carry over; their text does not.
+Every skill is written in this project's own voice. A skill may copy an incumbent's text only when its license allows it and the text works at least as well as anything we would write; a skill that draws on an incumbent credits it in its frontmatter and a `CREDITS.md` beside it. The rules are in [ADR 0010](./.agents/adr/0010-credit-each-skill-and-copy-only-better-text.md).
 
 ## Domain
 
