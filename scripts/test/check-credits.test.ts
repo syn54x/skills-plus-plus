@@ -75,6 +75,39 @@ test("a CREDITS.md beside a SKILL.md with no credits fails, naming the skill", (
   assert.match(result.stderr, /skills\/own\b.*CREDITS\.md/);
 });
 
+const BAD = `skill: grill-me\n      url: ${GRILL_ME}\n`;
+
+function failsOnce(files: Record<string, string>, pattern: RegExp) {
+  const result = run("check-credits.ts", tree(files));
+  assert.equal(result.status, 1);
+  assert.equal(result.stderr.trim().split("\n").length, 1, result.stderr);
+  assert.match(result.stderr, pattern);
+}
+
+test("a list written at the same indent as credits: is still checked", () => {
+  const sameIndent = `  - ${BAD.replace("      url", "    url")}`;
+  failsOnce(credited("demo", sameIndent), /skills\/demo\/SKILL\.md.*'author'/);
+});
+
+test("an entry after a blank line inside the list is still checked", () => {
+  failsOnce(credited("demo", `${entry(FULL)}\n    - ${BAD}`), /skills\/demo\/SKILL\.md.*entry 2.*'author'/);
+});
+
+test("a SKILL.md with CRLF line endings is still checked", () => {
+  const files = credited("demo", `    - ${BAD}`);
+  files["skills/demo/SKILL.md"] = files["skills/demo/SKILL.md"].replace(/\n/g, "\r\n");
+  failsOnce(files, /skills\/demo\/SKILL\.md.*'author'/);
+});
+
+test("a credits: key with no entry that parses fails, naming the skill", () => {
+  const map = `    skill: grill-me\n    author: Matt Pocock\n    url: ${GRILL_ME}\n`;
+  failsOnce(credited("demo", map), /skills\/demo\/SKILL\.md.*credits/);
+});
+
+test("an empty quoted author counts as missing", () => {
+  failsOnce(credited("demo", entry({ ...FULL, author: '""' })), /skills\/demo\/SKILL\.md.*'author'/);
+});
+
 test("the repository passes, with grilling credited", () => {
   const result = run("check-credits.ts", repoRoot);
   assert.equal(result.stderr, "");
