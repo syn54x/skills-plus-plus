@@ -29,8 +29,9 @@ function under(lines: string[], key: RegExp, depth: number): string[] | undefine
 
 // undefined when there is no `metadata.credits` key; otherwise each list entry as its raw `key: value`
 // pairs, so the url's quotes survive to be checked. An empty array means the key holds no list.
+// A key line may carry trailing spaces or a YAML comment.
 function credits(fm: string): Map<string, string>[] | undefined {
-  const metadata = under(fm.split("\n"), /^metadata:$/, 0);
+  const metadata = under(fm.split("\n"), /^metadata:\s*(#.*)?$/, 0);
   const inner = metadata?.find((line) => line.trim());
   const list = metadata && inner && under(metadata, /^credits:(\s|$)/, indent(inner));
   if (!list) return undefined;
@@ -56,7 +57,7 @@ for (const dir of skillsRoot.map((name) => join("skills", name))) {
       if (!entry.get(key)?.replace(/^(["'])(.*)\1$/, "$2").trim())
         errors.push(`${skillMd}: credits entry ${i + 1} has no '${key}'`);
     const url = entry.get("url");
-    if (url && !/^"https:\/\/[^"]+"$/.test(url))
+    if (url && !/^(["'])\1$/.test(url) && !/^"https:\/\/[^"]+"$/.test(url))
       errors.push(`${skillMd}: credits entry ${i + 1} 'url' must be in double quotes and start with https://`);
   });
   const hasCreditsMd = existsSync(join(dir, "CREDITS.md"));
