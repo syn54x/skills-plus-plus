@@ -20,6 +20,7 @@ npm test
 npm run docs:reference && git add --intent-to-add docs/reference && git diff --exit-code docs/reference
 node scripts/check-size.ts
 node scripts/check-invocation.ts
+node scripts/check-credits.ts
 node scripts/check-registry.ts
 node scripts/sync-version.ts --check
 claude plugin validate .
