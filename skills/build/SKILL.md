@@ -31,7 +31,7 @@ A **Driver** is the mechanism a worker runs in. Every driver keeps one contract:
 2. **Background sessions**, when the cross-session messaging socket is present. On the Epic path `spp next <epic> --json` reports it as the `driver` of its `dispatch` action (`bg` or `subagent`). A One-off has no `spp next`, so test for the socket yourself, as `CLAUDE-CODE.md` says. `spp dispatch <N> --driver bg` starts the worker, and `spp wait <epic>` run in the background wakes you.
 3. **Isolated subagents** otherwise: one worker agent per issue, each in a worktree of its own.
 
-Never take a lower driver while a higher one is available, and never take a higher one on a guess. On Claude Code, [`CLAUDE-CODE.md`](CLAUDE-CODE.md) names the tool or command behind each capability here; read it now.
+Never take a lower driver while a higher one is available, and never take a higher one on a guess. The one exception is the user's own choice: a Driver the user chose at the first Wave's approval (`EPIC.md`) stands for the run, even when a higher one is available. The desktop app starts linked sessions only on a turn the user started, so desktop Waves after the first wait for a user message; that is why the user is asked. On Claude Code, [`CLAUDE-CODE.md`](CLAUDE-CODE.md) names the tool or command behind each capability here; read it now.
 
 | Capability | How |
 | --- | --- |

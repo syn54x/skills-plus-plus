@@ -182,6 +182,33 @@ describe("edge cases", () => {
     assert.deepEqual(readTrailer(body((r.writes as Write[])[0])), { ...PROGRESS, worker: "w", branch: "" });
   });
 
+  test("spp plan --driver desktop stores the driver, renders its line and keeps the other fields", async () => {
+    const plan = { id: 601, body: `<!-- sdd-plan -->\n${trailer({ goal: "G", constraints: "C", branch: "feat/x" })}` };
+    const r = await runCase("plan", scratchCase(["197", "--driver", "desktop"], [plan], "197"));
+    assert.equal(r.code, 0, r.stderr);
+    const b = body((r.writes as Write[])[0]);
+    assert.deepEqual(
+      (({ driver, goal, constraints, branch }) => ({ driver, goal, constraints, branch }))(readTrailer(b) ?? {}),
+      { driver: "desktop", goal: "G", constraints: "C", branch: "feat/x" },
+    );
+    assert.match(b, /\*\*Driver:\*\* desktop\n/);
+  });
+
+  test("spp plan --driver cloud exits 2 naming the unknown driver", async () => {
+    const r = await runCase("plan", scratchCase(["197", "--driver", "cloud"], [], "197"));
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /unknown driver cloud/);
+    assert.match(r.stderr, /usage: spp plan/);
+    assert.deepEqual(r.writes, []);
+  });
+
+  test("spp plan --goal on a plan comment with no driver renders no Driver line", async () => {
+    const plan = { id: 601, body: `<!-- sdd-plan -->\n${trailer({ goal: "G" })}` };
+    const r = await runCase("plan", scratchCase(["197", "--goal", "X"], [plan], "197"));
+    assert.equal(r.code, 0, r.stderr);
+    assert.doesNotMatch(body((r.writes as Write[])[0]), /\*\*Driver:\*\*/);
+  });
+
   test("spp plan --narrowed none empties the narrowing list", async () => {
     const plan = { id: 601, body: `<!-- sdd-plan -->\n${trailer({ goal: "G", narrowed: ["a"] })}` };
     const r = await runCase("plan", scratchCase(["197", "--narrowed", "none"], [plan], "197"));

@@ -2,7 +2,7 @@
 
 Read only when `spp kind` says `epic`. `<epic>` is the Epic's number or URL. The loop is one rule: run `spp next <epic> --json`, do every action in its `actions` array, run it again. It ends at `close` or `stuck`.
 
-Each action has a `kind`, the `tickets` and `pr` it concerns, a `reason`, and on `dispatch` the `driver` (`bg` or `subagent`) that `spp` detected from the messaging socket, which step 2 of `SKILL.md` uses. Handle by `kind`:
+Each action has a `kind`, the `tickets` and `pr` it concerns, a `reason`, and on `dispatch` the `driver`: the one the plan comment records (`desktop`, `bg` or `subagent`), or else `bg` or `subagent` as `spp` detected from the messaging socket. Step 2 of `SKILL.md` uses it. Handle by `kind`:
 
 | Action | Do |
 | --- | --- |
@@ -28,7 +28,15 @@ Run `spp branch <epic>`. It cuts `feat/<slug>` from `origin/<base>`, pushes it a
 
 The tickets in the action are one **Wave**: ready, with no two owning the same file, as `spp` checked. Take them as given.
 
-**First Wave only: ask.** It is the first Wave when the Epic's wave comment lists none (`gh issue view <epic> --comments`, looking for `Wave 1:`). Show one table from `spp wave plan <epic>` and each issue's size label: issue, size, Files owned, tier, and the held-back issues with their reasons. Wait for the user's yes. Later Waves that follow the plan start on their own; a new blocked-by edge, a re-bundled issue or a changed tier comes back to the user first.
+**First Wave only: ask.** It is the first Wave when the Epic's wave comment lists none (`gh issue view <epic> --comments`, looking for `Wave 1:`). Show one table from `spp wave plan <epic>` and each issue's size label: issue, size, Files owned, tier, and the held-back issues with their reasons. When the session can start desktop linked sessions, ask in the same message which Driver to use, with one row per Driver available here:
+
+| Driver | Waves start | You see | Cost |
+| --- | --- | --- | --- |
+| Desktop linked sessions | Only on a user message: one per Wave after the first, because the app refuses to start a session on a turn an automated wake-up started | A sidebar row per worker, which you can open and steer | The run waits on you at every Wave boundary |
+| Background sessions (when the messaging socket is present) | On their own | `claude agents` and `claude attach t-<N>` | Workers take no tier and inherit the orchestrator's model |
+| Subagents | On their own, including on wake-ups | Only what the orchestrator reports | No direct steering of a worker |
+
+Wait for the user's yes, with their Driver when you asked. Record it before starting any worker: `spp plan <epic> --driver desktop|bg|subagent`; from then on `spp next` reports it on `dispatch`. A resumed run uses the recorded Driver and does not ask again. When that Driver is not available in this session (`desktop` recorded, now running in a terminal), take the best Driver step 2 of `SKILL.md` detects for this run, tell the user so, and leave the record unchanged. Later Waves that follow the plan start on their own; a new blocked-by edge, a re-bundled issue or a changed tier comes back to the user first.
 
 Then, for each issue in the action:
 

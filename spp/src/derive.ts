@@ -1,6 +1,15 @@
 // derive: the EpicState computed from a Snapshot. Pure: no network, filesystem or environment.
 import type { Pr, Snapshot, SnapshotIssue } from "./snapshot.ts";
 
+/** A Driver a worker can run in, as `spp plan --driver`, `spp dispatch --driver` and `spp next` name it. */
+export type Driver = "desktop" | "bg" | "subagent";
+const DRIVERS: Driver[] = ["desktop", "bg", "subagent"];
+
+/** The Driver a value names, or null for anything else (a hand-edited trailer, a mistyped flag). */
+export function asDriver(v: unknown): Driver | null {
+  return DRIVERS.find((d) => d === v) ?? null;
+}
+
 /**
  * Where a Sub-issue stands, the first that fits: `merged` (the issue is closed), `handed-back` (unheld, with a route
  * label; `blocked` beside `ready-for-agent` is not one, since that route waits on its blocked-by edge), `pr-open`,
@@ -49,8 +58,8 @@ export type Ticket = {
 
 /** An Epic and its Sub-issues as one snapshot derives them: the `--json` shape of `spp status`. */
 export type EpicState = {
-  /** The Epic; `branch` is the integration branch its plan comment records, or null. */
-  epic: { number: number; url: string; repo: string; title: string; branch: string | null };
+  /** The Epic; `branch` is the integration branch and `driver` the Driver the user chose, as its plan comment records them, or null. */
+  epic: { number: number; url: string; repo: string; title: string; branch: string | null; driver: Driver | null };
   /** Every Sub-issue. */
   tickets: Ticket[];
   /** Issue URLs by Layer, Layer 0 first. */
@@ -175,5 +184,5 @@ export function derive(s: Snapshot): EpicState {
   }
 
   const counts = Object.fromEntries(STATES.map((st) => [st, tickets.filter((t) => t.state === st).length])) as Record<TicketState, number>;
-  return { epic: { ...s.epic, branch }, tickets, layers, cycle: rest.map((t) => t.url), counts };
+  return { epic: { ...s.epic, branch, driver: asDriver(s.plan?.driver) }, tickets, layers, cycle: rest.map((t) => t.url), counts };
 }

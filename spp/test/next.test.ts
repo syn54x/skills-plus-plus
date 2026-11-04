@@ -18,6 +18,7 @@ type Opts = {
   agents?: unknown[];
   env?: Record<string, string>;
   epicState?: string;
+  driver?: string;
 };
 type Action = { kind: string; tickets?: string[]; pr?: string; driver?: string; panel?: boolean; reason: string };
 
@@ -39,7 +40,7 @@ const ticketBody = (t: Spec) => `## Files owned\n\n- Modify: ${(t.files ?? [`src
 function scratch(tickets: Spec[], o: Opts = {}): string {
   const dir = mkdtempSync(join(tmpdir(), "spp-next-"));
   const branch = o.branch === undefined ? "feat/epic" : o.branch;
-  const plan = trailer("<!-- sdd-plan -->", branch ? { branch } : {});
+  const plan = trailer("<!-- sdd-plan -->", { ...(branch ? { branch } : {}), ...(o.driver ? { driver: o.driver } : {}) });
   const pr = (p: PrSpec) => ({
     number: p.n,
     url: p.repo ? `https://github.com/${p.repo}/pull/${p.n}` : PULL + p.n,
@@ -190,6 +191,21 @@ describe("happy path", () => {
 });
 
 describe("edge cases", () => {
+  test("dispatch names the driver the plan comment records, desktop included, with the socket unset", async () => {
+    const actions = await next([{ n: 12 }], { driver: "desktop" });
+    assert.equal(actions[0].driver, "desktop");
+  });
+
+  test("a recorded subagent driver wins over the messaging socket", async () => {
+    const actions = await next([{ n: 12 }], { driver: "subagent", env: { CLAUDE_CODE_MESSAGING_SOCKET: "/tmp/sock" } });
+    assert.equal(actions[0].driver, "subagent");
+  });
+
+  test("an unknown recorded driver is ignored: detection applies", async () => {
+    const actions = await next([{ n: 12 }], { driver: "cloud", env: { CLAUDE_CODE_MESSAGING_SOCKET: "/tmp/sock" } });
+    assert.equal(actions[0].driver, "bg");
+  });
+
   test("a gate-pass ticket whose blocker is still open: no merge, wait instead", async () => {
     const actions = await next([
       { n: 12, labels: [...READY, "claimed"] },

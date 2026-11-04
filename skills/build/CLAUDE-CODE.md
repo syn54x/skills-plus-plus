@@ -6,7 +6,7 @@ Read only when running on Claude Code. Each capability the skill names, and the 
 
 | Driver | Detect | Start a worker |
 | --- | --- | --- |
-| Desktop linked sessions | The `start_session` tool (`mcp__ccd_session__start_session`) is available | Run `spp dispatch <N> --driver desktop`; it prints the brief's path. Call `start_session` with `initiation: "user_asked"` (the person's `/build` is the ask), `name: "t-<N>"`, `title`, `use_worktree: true`, `branch_name: "sdd-<N>"`, `wake_when_done: true`, `model` set to the tier (same family or cheaper than yours; a higher one is ignored), `prompt` as below, and `background` of at least 80 characters stating the Epic's goal. |
+| Desktop linked sessions | The `start_session` tool (`mcp__ccd_session__start_session`) is available. It works only on a turn the user started, so Waves after the first wait for a user message. | Run `spp dispatch <N> --driver desktop`; it prints the brief's path. Call `start_session` with `initiation: "user_asked"` (the person's `/build` is the ask), `name: "t-<N>"`, `title`, `use_worktree: true`, `branch_name: "sdd-<N>"`, `wake_when_done: true`, `model` set to the tier (same family or cheaper than yours; a higher one is ignored), `prompt` as below, and `background` of at least 80 characters stating the Epic's goal. |
 | Background sessions | `CLAUDE_CODE_MESSAGING_SOCKET` is set (`test -n "$CLAUDE_CODE_MESSAGING_SOCKET"`). On the Epic path, `spp next <epic> --json` reads the same variable and reports `bg` in its `dispatch` action; a One-off tests the variable itself. | `spp dispatch <N> --driver bg`. It runs `claude --bg --worktree sdd-<N> --name t-<N>` and records `t-<N>` as the worker. It takes no tier yet, so the worker inherits your model: the tier guardrail cannot be met on this driver. |
 | Subagents | Neither of the above | One Agent call per issue, every call in one response so the Wave runs together: `subagent_type: "spp:worker"`, `name: "t-<N>"`, `model` set to the tier, `prompt` as below. The `spp:worker` agent already runs in its own worktree, in the background, with `implement-issue` preloaded. |
 
@@ -32,7 +32,7 @@ A worker's name is `t-<N>` under every driver, the same name `spp brief` tells t
 - `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` must be unset. Worktree Waves and agent teams exclude each other in one session; if the flag is set, stop and tell the user.
 - Subagent worktrees land under `.claude/worktrees/`; check it is gitignored before the first Wave.
 - Pass no permission mode to a worker; the user's configured permissions apply. A session worker stuck on a permission prompt shows as `blocked` in `claude agents`: tell the user to run `claude attach t-<N>`.
-- A long run of wake-ups with no user message can stall the desktop driver. Nothing is lost: ask the user to run `/build <N>` again.
+- `start_session` works only on a turn the user started. The app refuses it on a turn an automated event started, such as a worker ending and waking you, so on the desktop driver every Wave after the first stops at its `dispatch` until the user sends a message. Nothing is lost: tell the user the Wave is ready and start it on their next message.
 - The plugin's Stop and SubagentStop hooks refuse to let a worker finish on an `sdd/*` branch without a Verify record on `HEAD`, so a worker that stops early is told why instead of leaving.
 
 ## Cleanup

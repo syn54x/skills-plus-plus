@@ -18,6 +18,7 @@ import { fetchState } from "./status.ts";
 import { wavePlan } from "./wave.ts";
 
 export type { Action, ActionKind } from "../plan-next.ts";
+export type { Driver } from "../derive.ts";
 
 /** The build's next actions: the `--json` shape of `spp next`. */
 export type NextActions = {
@@ -112,7 +113,7 @@ async function actions(arg: string): Promise<Action[]> {
   return planNext({
     state,
     panel,
-    driver: process.env.CLAUDE_CODE_MESSAGING_SOCKET ? "bg" : "subagent",
+    driver: state.epic.driver ?? (process.env.CLAUDE_CODE_MESSAGING_SOCKET ? "bg" : "subagent"),
     sessions,
     wave,
     checks: Object.fromEntries(checks.map(([pr, c]) => [pr, { result: c.result, failing: culprits(c) }])),
