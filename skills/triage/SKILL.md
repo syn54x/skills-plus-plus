@@ -2,6 +2,11 @@
 name: triage
 description: Move a filed bug or enhancement to one triage role, hardened and sized when it is ready to build.
 disable-model-invocation: true
+metadata:
+  credits:
+    - skill: triage
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/triage"
 ---
 
 Triage is step one of the single-issue path. A filed bug or enhancement goes in and comes out holding exactly one **Triage role**. An issue that leaves as `ready-for-agent` carries the **Ticket contract** and one size, so it is a **One-off** that `/build` takes directly.

@@ -1,6 +1,11 @@
 ---
 name: harden
 description: Make one GitHub issue buildable by writing its Ticket contract. Use when asked to harden an issue or make it ready to build, or when spp lint ticket fails on one.
+metadata:
+  credits:
+    - skill: writing-plans
+      author: Jesse Vincent
+      url: "https://github.com/obra/superpowers/tree/main/skills/writing-plans"
 ---
 
 Harden one issue. The worker who later builds it reads that issue and nothing else, so the body has to answer four questions the worker would otherwise ask: what am I making, which files are mine, what do my neighbours call things, and how do I know I am finished. Every answer is checked against the repository before it is written, since an answer taken from the plan is the one that turns out wrong mid-build.

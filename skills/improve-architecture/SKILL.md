@@ -3,6 +3,11 @@ name: improve-architecture
 description: Hunt for deepening opportunities across the repo or in one pull request, explore the one you pick, and file each one you accept as an issue.
 disable-model-invocation: true
 argument-hint: "[area | pr | PR number or URL]"
+metadata:
+  credits:
+    - skill: improve-codebase-architecture
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/improve-codebase-architecture"
 ---
 
 Look for modules that make their callers learn too much, show them to the person as **Deepening opportunities**, explore the one they pick, and file each one they accept as an issue. The run produces ideas and issues. It changes no code and passes no verdict: nothing it says approves, blocks or holds a merge.

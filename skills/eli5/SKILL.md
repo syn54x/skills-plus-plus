@@ -3,6 +3,11 @@ name: eli5
 description: Explain anything simply, in one of three modes (eli5, adhd or wait-what).
 disable-model-invocation: true
 argument-hint: "[eli5|adhd|wait-what] [topic]"
+metadata:
+  credits:
+    - skill: wait-what
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/productivity/wait-what"
 ---
 
 Re-explain a topic so the reader can use it. The first word of the arguments selects the mode (`eli5`, `adhd` or `wait-what`); with none of those, the mode is `eli5`. The topic is the remaining arguments, or the most recent subject in the conversation when there are none.

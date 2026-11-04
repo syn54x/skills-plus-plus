@@ -29,6 +29,8 @@ jobs:
         run: node scripts/check-size.ts
       - name: invocation flags agree and no skill calls a user-invoked skill
         run: node scripts/check-invocation.ts
+      - name: each credited skill has well-formed credits and a CREDITS.md
+        run: node scripts/check-credits.ts
       - name: README, docs nav, ask-spp and docs pages list every skill
         run: node scripts/check-registry.ts
       - name: plugin.json version tracks package.json

@@ -3,6 +3,11 @@ name: ask-spp
 description: Name the spp path and skill that fit what you are doing, and the command to type next.
 disable-model-invocation: true
 argument-hint: "[what you are trying to do]"
+metadata:
+  credits:
+    - skill: ask-matt
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/ask-matt"
 ---
 
 Route the person to the path and skill that fit their situation. You recommend and they type: a router starts nothing, and only the person can start a user-invoked skill.

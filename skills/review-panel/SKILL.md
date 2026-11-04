@@ -2,6 +2,18 @@
 name: review-panel
 description: Run the review panel on a pull request to the base branch, usually an Epic's. Several Personas read it in parallel, and one report ends in MERGE, FIX FIRST or HUMAN DECISION.
 disable-model-invocation: true
+metadata:
+  credits:
+    - skill: ce-code-review
+      author: Kieran Klaassen and Trevin Chow
+      organisation: Every
+      url: "https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-code-review"
+    - skill: requesting-code-review
+      author: Jesse Vincent
+      url: "https://github.com/obra/superpowers/tree/main/skills/requesting-code-review"
+    - skill: code-review
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/code-review"
 ---
 
 The main gate for a big Epic. A slice gets one reviewer; the pull request that carries a whole Epic to the base branch gets a **panel**: the Epic's spec verdict, then several **Personas**, each reading the same diff with a fixed focus. The Personas only find. `spp findings merge` deduplicates what they found, and this skill turns the result into one report whose verdict follows from the findings, so the same findings always give the same report. The panel edits nothing and never merges; the person does.

@@ -1,6 +1,11 @@
 ---
 name: pr
 description: Write a pull request body. Use whenever you open a pull request or rewrite its description.
+metadata:
+  credits:
+    - skill: pr
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/pr"
 ---
 
 The person reading a pull request body has one decision to make, merge or not, and three questions on the way to it: what is this, how bad is it if it is wrong, and why should I believe it works. The body answers them in that order, because the answer to the second sets how much proof the third needs. When the pull request builds an issue that carries the **Ticket contract**, the body goes on to make claims the review gate tests against the diff line by line; those sections are mandatory and have no stock wording.

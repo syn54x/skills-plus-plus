@@ -1,6 +1,11 @@
 ---
 name: diagnosing-bugs
 description: A diagnosis loop for hard bugs and slowdowns. Use when the user says diagnose or debug this, or reports something broken, throwing, failing, flaky or slow.
+metadata:
+  credits:
+    - skill: diagnosing-bugs
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/diagnosing-bugs"
 ---
 
 Find the cause of one known failure, fix it, and leave a test that keeps it fixed. The hard part is the first step: a command that this bug turns **red**. With that command, every later step is a question it can answer; without it, reading code only produces guesses. Take the steps in order, and start each one only when the check that closes the one before it holds.

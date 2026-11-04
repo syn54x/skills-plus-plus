@@ -81,7 +81,7 @@ The docs site is at [skills.x54.sh](https://skills.x54.sh). How the repository i
 
 ## Credits
 
-spp carries concepts from these projects, rewritten in its own words:
+spp carries concepts from these projects. Each skill that drew on one lists its sources in its `SKILL.md` frontmatter, and a `CREDITS.md` beside it (for example [`skills/grilling/CREDITS.md`](./skills/grilling/CREDITS.md)) says which part came from where, as [ADR 0010](./.agents/adr/0010-credit-each-skill-and-copy-only-better-text.md) sets out. Across the project:
 
 - [mattpocock/skills](https://github.com/mattpocock/skills): the skill set this project began as a fork of, including grilling, to-spec and to-tickets, triage, TDD, diagnosing bugs, domain modelling and the deep-module vocabulary.
 - [Superpowers](https://github.com/obra/superpowers): skills as disciplined workflows, subagent-driven development, and a fresh reviewer for each task.

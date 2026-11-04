@@ -2,6 +2,11 @@
 name: to-spec
 description: Write up the plan this conversation settled as an Epic issue on the issue tracker, with no new interview.
 disable-model-invocation: true
+metadata:
+  credits:
+    - skill: to-spec
+      author: Matt Pocock
+      url: "https://github.com/mattpocock/skills/tree/main/skills/engineering/to-spec"
 ---
 
 Write the plan this conversation has settled as an **Epic**: one issue whose body is the spec and serves as the PRD. This is synthesis. Put one question to the person, the test seams in step 3, and no other. A choice the plan needs but nobody made is not yours to make: stop and ask the person to run `/grill` here first.
