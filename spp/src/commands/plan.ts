@@ -9,6 +9,7 @@
  * @module
  */
 import { existsSync, readFileSync } from "node:fs";
+import { asDriver } from "../derive.ts";
 import { type Data, flagPairs, guarded, print, updateMarker, UsageError } from "../markers.ts";
 
 /** The usage text `spp plan --help` prints. */
@@ -18,8 +19,6 @@ export const USAGE = `usage: spp plan <epic> [--goal TEXT] [--constraints TEXT] 
 --narrowed replaces the stored list with every --narrowed of the call, --narrowed none clears it, and a
 call without --narrowed keeps it; --add-deviation appends. --driver records the run's Driver.
 `;
-
-const DRIVERS = ["desktop", "bg", "subagent"];
 
 const DEFAULT = { goal: "", constraints: "", branch: "", repos: [] as string[], narrowed: [] as string[], deviated: [] as string[], table: "" };
 // Absent from DEFAULT so a plan with no Driver keeps the trailer it had.
@@ -66,7 +65,7 @@ export function run(args: string[]): Promise<number> {
       else if (flag === "--table-file") {
         if (!existsSync(v)) throw new UsageError(`no table file: ${v}`);
         patch.table = readFileSync(v, "utf8").replace(/\n+$/, "");
-      } else if (flag === "--driver" && !DRIVERS.includes(v)) throw new UsageError(`unknown driver ${v}`);
+      } else if (flag === "--driver" && !asDriver(v)) throw new UsageError(`unknown driver ${v}`);
       else patch[flag.slice(2) as "goal" | "constraints" | "branch" | "driver"] = v;
     }
     print(

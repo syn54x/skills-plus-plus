@@ -201,6 +201,11 @@ describe("edge cases", () => {
     assert.equal(actions[0].driver, "subagent");
   });
 
+  test("an unknown recorded driver is ignored: detection applies", async () => {
+    const actions = await next([{ n: 12 }], { driver: "cloud", env: { CLAUDE_CODE_MESSAGING_SOCKET: "/tmp/sock" } });
+    assert.equal(actions[0].driver, "bg");
+  });
+
   test("a gate-pass ticket whose blocker is still open: no merge, wait instead", async () => {
     const actions = await next([
       { n: 12, labels: [...READY, "claimed"] },

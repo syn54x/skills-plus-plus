@@ -16,6 +16,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { asDriver } from "../derive.ts";
 import { runGh } from "../gh.ts";
 import { flagPairs, guarded, parseIssue, UsageError } from "../markers.ts";
 import { run as brief } from "./brief.ts";
@@ -27,8 +28,6 @@ Refuses a ticket that is held (the claimed label or an assignee). bg writes the 
 claude --bg --worktree sdd-<N> --name t-<N> on it and records t-<N> as the worker; desktop and subagent
 write the brief and print its path, because those drivers are harness tools the skill calls itself.
 `;
-
-const DRIVERS = ["bg", "desktop", "subagent"];
 
 /**
  * Starts a worker on one Sub-issue, or writes the brief for the skill to start one.
@@ -45,7 +44,7 @@ export function run(args: string[]): Promise<number> {
   return guarded(() => "dispatch", USAGE, async () => {
     const [arg, ...rest] = args;
     const driver = flagPairs(rest, ["--driver"]).find(([f]) => f === "--driver")?.[1];
-    if (arg === undefined || !driver || !DRIVERS.includes(driver)) throw new UsageError(driver ? `unknown driver ${driver}` : "");
+    if (arg === undefined || !driver || !asDriver(driver)) throw new UsageError(driver ? `unknown driver ${driver}` : "");
     const issue = parseIssue(arg);
 
     type View = { url: string; labels: { name: string }[]; assignees: { login: string }[] };

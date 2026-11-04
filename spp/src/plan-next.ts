@@ -1,6 +1,6 @@
 // The next actions of a build, from the EpicState and what the command read around it (CI, verdict history, the pull
 // request to the base branch, the session list, the wave). Pure: no network, filesystem or environment.
-import { type EpicState, refIn, type Ticket } from "./derive.ts";
+import { type Driver, type EpicState, refIn, type Ticket } from "./derive.ts";
 import type { Routing } from "./routing.ts";
 import type { PrState } from "./snapshot.ts";
 
@@ -15,7 +15,7 @@ export type Action = {
   /** The pull request URL it is about. */
   pr?: string;
   /** How to start the workers, on `dispatch`. */
-  driver?: "desktop" | "bg" | "subagent";
+  driver?: Driver;
   /** On `main-gate`: whether the Epic is large enough for the review panel. */
   panel?: boolean;
   /** Why, in a sentence. */
@@ -31,7 +31,7 @@ export type Session = { name?: string; state?: string; status?: string };
 export type NextInput = {
   state: EpicState;
   panel: Routing["panel"];
-  driver: "desktop" | "bg" | "subagent"; // the plan comment's recorded Driver, else bg or subagent from the messaging socket
+  driver: Driver; // the plan comment's recorded Driver, else bg or subagent from the messaging socket
   sessions: Session[];
   wave: { wave: string[]; held: { ticket: string; reason: string }[] }; // over the dispatchable ready tickets
   checks: Record<string, { result: string; failing: string[] }>; // by pull request URL: pass, fail, pending or none, and the failing runs

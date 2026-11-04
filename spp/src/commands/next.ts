@@ -9,7 +9,7 @@
 import { spawnSync } from "node:child_process";
 import { runGh } from "../gh.ts";
 import { guarded, parseIssue, readTrailer, UsageError } from "../markers.ts";
-import { type Action, DEFAULT_WAVE_MAX, type NextInput, planNext, type Session } from "../plan-next.ts";
+import { type Action, DEFAULT_WAVE_MAX, planNext, type Session } from "../plan-next.ts";
 import { trustedMarker } from "../snapshot.ts";
 import { readVerdict, VERDICT_MARKER } from "../verdict.ts";
 import { culprits, readChecks } from "./checks.ts";
@@ -112,7 +112,7 @@ async function actions(arg: string): Promise<Action[]> {
   return planNext({
     state,
     panel,
-    driver: (state.epic.driver ?? (process.env.CLAUDE_CODE_MESSAGING_SOCKET ? "bg" : "subagent")) as NextInput["driver"],
+    driver: state.epic.driver ?? (process.env.CLAUDE_CODE_MESSAGING_SOCKET ? "bg" : "subagent"),
     sessions,
     wave,
     checks: Object.fromEntries(checks.map(([pr, c]) => [pr, { result: c.result, failing: culprits(c) }])),
