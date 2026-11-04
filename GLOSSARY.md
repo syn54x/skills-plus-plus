@@ -89,7 +89,7 @@ The **Sub-issues** whose blockers that have not landed all sit in earlier layers
 One concurrent dispatch of workers over the **Ready queue**, after the parallel safety check (no two workers own the same file), one worktree each.
 
 **Driver**:
-The mechanism a worker runs in, chosen by capability in this order: a desktop linked session, a background session, or an isolated subagent. Every driver keeps the same contract: a ticket number in, a pull request out, all state in GitHub.
+The mechanism a worker runs in, chosen by capability in this order: a desktop linked session, a background session, or an isolated subagent. A Driver the user chose at the first Wave's approval stands for the run, even when a higher one is available. Every driver keeps the same contract: a ticket number in, a pull request out, all state in GitHub.
 _Avoid_: harness dispatch
 
 **Claim**:

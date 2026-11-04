@@ -39,13 +39,20 @@ When the Epic gets stuck, `spp next` says so (`stuck`) and `build` reports why. 
 
 ## Drivers
 
-A worker runs in the best session mechanism the session offers. `build` checks for each by capability, in this order, and uses the first that is present:
+A worker runs in the best session mechanism the session offers. `build` checks for each by capability, in this order, and uses the first that is present, unless you chose one:
 
 | Driver | Chosen when | What you see |
 | --- | --- | --- |
 | Desktop linked sessions | The desktop app's session tool is available | A sidebar row per worker that you can open and steer |
 | Background sessions | The cross-session messaging socket is present | Workers listed by `claude agents`; `claude attach t-<N>` opens one |
 | Isolated subagents | Neither of the above | Workers inside the session, each in its own worktree |
+
+In the Claude desktop app, `build` asks you which driver to use when you approve the first Wave, because the choice changes how the run moves:
+
+- **Desktop linked sessions** start a Wave only on a message from you. The app refuses to start a session on a turn an automated wake-up started, so after the first Wave, each Wave waits for you to reply.
+- **Background sessions** and **subagents** start each Wave on their own. Background workers inherit the orchestrator's model; subagents cannot be steered directly.
+
+`build` records your choice on the Epic's plan comment (`spp plan <epic> --driver desktop|bg|subagent`), and a resumed `/build` reuses it without asking. If the recorded driver is not available where you resume (say, `desktop` from a terminal), `build` takes the best one it detects, tells you so, and leaves the record alone.
 
 All three keep one contract: an issue number goes in, a pull request comes out, and all state lives in GitHub. That is why you can change driver between runs.
 
