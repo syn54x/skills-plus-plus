@@ -65,6 +65,16 @@ The build's next actions: the `--json` shape of `spp next`.
 
 ***
 
+### Driver
+
+```ts
+type Driver = "desktop" | "bg" | "subagent";
+```
+
+A Driver a worker can run in, as `spp plan --driver`, `spp dispatch --driver` and `spp next` name it.
+
+***
+
 ### ActionKind
 
 ```ts
@@ -101,6 +111,6 @@ One next action of the build.
 | <a id="property-kind"></a> `kind` | [`ActionKind`](#actionkind) | What to do. |
 | <a id="property-tickets"></a> `tickets?` | `string`[] | The tickets it is about, for `dispatch`, `gate`, `fix`, `hand-back` and `merge`. |
 | <a id="property-pr"></a> `pr?` | `string` | The pull request URL it is about. |
-| <a id="property-driver"></a> `driver?` | `"desktop"` \| `"bg"` \| `"subagent"` | How to start the workers, on `dispatch`. |
+| <a id="property-driver"></a> `driver?` | [`Driver`](#driver) | How to start the workers, on `dispatch`. |
 | <a id="property-panel"></a> `panel?` | `boolean` | On `main-gate`: whether the Epic is large enough for the review panel. |
 | <a id="property-reason"></a> `reason` | `string` | Why, in a sentence. |

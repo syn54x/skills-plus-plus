@@ -119,7 +119,7 @@ An Epic and its Sub-issues as one snapshot derives them: the `--json` shape of `
 | `epic.repo` | `string` | - |
 | `epic.title` | `string` | - |
 | `epic.branch` | `string` \| `null` | - |
-| `epic.driver` | `string` \| `null` | - |
+| `epic.driver` | [`Driver`](next.md#driver) \| `null` | - |
 | <a id="property-tickets"></a> `tickets` | [`Ticket`](#ticket)[] | Every Sub-issue. |
 | <a id="property-layers"></a> `layers` | `string`[][] | Issue URLs by Layer, Layer 0 first. |
 | <a id="property-cycle"></a> `cycle` | `string`[] | Issue URLs caught in a blocking cycle. |

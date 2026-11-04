@@ -1,9 +1,9 @@
 // derive: the EpicState computed from a Snapshot. Pure: no network, filesystem or environment.
 import type { Pr, Snapshot, SnapshotIssue } from "./snapshot.ts";
 
-/** The Drivers a worker can run in, as `spp plan --driver`, `spp dispatch --driver` and `spp next` name them. */
-export const DRIVERS = ["desktop", "bg", "subagent"] as const;
-export type Driver = (typeof DRIVERS)[number];
+/** A Driver a worker can run in, as `spp plan --driver`, `spp dispatch --driver` and `spp next` name it. */
+export type Driver = "desktop" | "bg" | "subagent";
+const DRIVERS: Driver[] = ["desktop", "bg", "subagent"];
 
 /** The Driver a value names, or null for anything else (a hand-edited trailer, a mistyped flag). */
 export function asDriver(v: unknown): Driver | null {

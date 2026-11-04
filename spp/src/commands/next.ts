@@ -18,6 +18,7 @@ import { fetchState } from "./status.ts";
 import { wavePlan } from "./wave.ts";
 
 export type { Action, ActionKind } from "../plan-next.ts";
+export type { Driver } from "../derive.ts";
 
 /** The build's next actions: the `--json` shape of `spp next`. */
 export type NextActions = {
