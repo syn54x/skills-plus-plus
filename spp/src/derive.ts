@@ -49,8 +49,8 @@ export type Ticket = {
 
 /** An Epic and its Sub-issues as one snapshot derives them: the `--json` shape of `spp status`. */
 export type EpicState = {
-  /** The Epic; `branch` is the integration branch its plan comment records, or null. */
-  epic: { number: number; url: string; repo: string; title: string; branch: string | null };
+  /** The Epic; `branch` is the integration branch and `driver` the Driver the user chose, as its plan comment records them, or null. */
+  epic: { number: number; url: string; repo: string; title: string; branch: string | null; driver: string | null };
   /** Every Sub-issue. */
   tickets: Ticket[];
   /** Issue URLs by Layer, Layer 0 first. */
@@ -175,5 +175,5 @@ export function derive(s: Snapshot): EpicState {
   }
 
   const counts = Object.fromEntries(STATES.map((st) => [st, tickets.filter((t) => t.state === st).length])) as Record<TicketState, number>;
-  return { epic: { ...s.epic, branch }, tickets, layers, cycle: rest.map((t) => t.url), counts };
+  return { epic: { ...s.epic, branch, driver: text(s.plan?.driver) }, tickets, layers, cycle: rest.map((t) => t.url), counts };
 }

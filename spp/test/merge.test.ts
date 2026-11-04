@@ -257,7 +257,7 @@ describe("integration", () => {
       ...{ claimed: false, assignees: [], labels: ["ready-for-agent"], pr: null, worker: null, note: null },
     };
     const counts = { blocked: 0, ready: 1, claimed: 0, "pr-open": 0, "gate-pass": 0, "gate-fail": 0, merged: 0, "handed-back": 0, "not-agent": 0 };
-    const state: EpicState = { epic: { number: 197, url: EPIC, repo: "acme/app", title: "Epic", branch: "feat/x" }, tickets: [ticket], layers: [[TICKET_URL]], cycle: [], counts };
+    const state: EpicState = { epic: { number: 197, url: EPIC, repo: "acme/app", title: "Epic", branch: "feat/x", driver: null }, tickets: [ticket], layers: [[TICKET_URL]], cycle: [], counts };
     const wave = { wave: ["acme/api#7"], held: [] };
     const [dispatch] = planNext({ state, panel: { tickets: 5, lines: 1000, sizeL: true }, driver: "bg", sessions: [], wave, checks: {}, failedHeads: {}, mainPr: null });
     assert.deepEqual(dispatch.tickets, [TICKET_URL]);

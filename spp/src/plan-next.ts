@@ -31,7 +31,7 @@ export type Session = { name?: string; state?: string; status?: string };
 export type NextInput = {
   state: EpicState;
   panel: Routing["panel"];
-  driver: "bg" | "subagent"; // spp sees the messaging socket or not; desktop detection is the skill's
+  driver: "desktop" | "bg" | "subagent"; // the plan comment's recorded Driver, else bg or subagent from the messaging socket
   sessions: Session[];
   wave: { wave: string[]; held: { ticket: string; reason: string }[] }; // over the dispatchable ready tickets
   checks: Record<string, { result: string; failing: string[] }>; // by pull request URL: pass, fail, pending or none, and the failing runs
