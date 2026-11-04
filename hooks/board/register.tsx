@@ -163,12 +163,12 @@ async function pickEpic($: EngineInterface): Promise<{ epic: string } | { text: 
   }
   let epics
   try {
-    epics = readEpics(await $.process.run(['gh', ...epicsArgs()], { timeoutMs: 60_000 }))
+    epics = readEpics(await $.process.run(['gh', ...epicsArgs()], { timeoutMs: 60_000 }), true)
   } catch (e) {
     return { text: `gh: ${firstLine((e as Error).message)}` }
   }
   const named = branch.startsWith('feat/') ? epics.filter(e => e.branch === branch) : []
-  const flying = named.length ? named : epics.filter(e => e.branch)
+  const flying = named.length ? named : epics.filter(e => e.branch && e.completed < e.total)
   if (flying.length === 1) return { epic: String(flying[0].number) }
   if (!flying.length) return { text: 'No Epic is in flight in this repo. Run /epic-board <epic number or issue URL>.' }
   return { text: [...flying.map(e => `#${e.number} ${e.title}, ${e.completed}/${e.total}`), 'Run /epic-board <N>.'].join('\n') }

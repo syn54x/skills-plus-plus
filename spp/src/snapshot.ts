@@ -230,12 +230,12 @@ export function parseSnapshot(json: unknown): Snapshot {
   };
 }
 
-// Open issues with Sub-issues, each with the comments that can hold its plan (written early, so the first 20 do).
+// Open issues with Sub-issues, each with the comments that can hold its plan (written early, so the first 100 do), most recently updated first so a busy repo's first page holds the live ones.
 const EPICS_QUERY = `query Epics($owner: String!, $repo: String!) {
   viewer { login }
   repository(owner: $owner, name: $repo) {
-    issues(states: OPEN, first: 100) {
-      nodes { number url title subIssuesSummary { total completed } comments(first: 20) { nodes { ...comment } } }
+    issues(states: OPEN, first: 100, orderBy: { field: UPDATED_AT, direction: DESC }) {
+      nodes { number url title subIssuesSummary { total completed } comments(first: 100) { nodes { ...comment } } }
     }
   }
 }
@@ -255,17 +255,17 @@ type EpicInFlight = { number: number; url: string; title: string; total: number;
 
 /**
  * gh's answer to {@link epicsArgs}: the issues whose Sub-issues are not all completed, each with the integration
- * branch from its first trusted plan comment. Throws gh's first stderr line on failure.
+ * branch from its first trusted plan comment; `all` keeps the completed ones too. Throws gh's first stderr line on failure.
  *
  * @internal
  */
-export function readEpics(r: { exitCode: number; stdout: string; stderr?: string }): EpicInFlight[] {
+export function readEpics(r: { exitCode: number | null; stdout: string; stderr?: string }, all = false): EpicInFlight[] {
   if (r.exitCode !== 0) throw new Error((r.stderr ?? "").trim().split("\n")[0] || `gh exited ${r.exitCode}`);
   type Raw = { number: number; url: string; title: string; subIssuesSummary: { total: number; completed: number }; comments?: Nodes<Comment> };
   const data = (JSON.parse(r.stdout) as { data?: { viewer?: { login: string }; repository?: { issues: Nodes<Raw> } } }).data;
   const viewer = data?.viewer?.login ?? null;
   return (data?.repository?.issues.nodes ?? [])
-    .filter((i) => i.subIssuesSummary.total > 0 && i.subIssuesSummary.completed < i.subIssuesSummary.total)
+    .filter((i) => i.subIssuesSummary.total > 0 && (all || i.subIssuesSummary.completed < i.subIssuesSummary.total))
     .map((i) => {
       const branch = markerData(i.comments, "<!-- sdd-plan -->", viewer)?.branch;
       const { total, completed } = i.subIssuesSummary;

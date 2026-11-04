@@ -31,6 +31,10 @@ describe("readEpics", () => {
     assert.deepEqual(readEpics(result(issue(1, 0, 0), issue(2, 2, 2, [plan("feat/y")]))), []);
   });
 
+  test("`all` keeps an Epic whose Sub-issues are all completed", () => {
+    assert.deepEqual(readEpics(result(issue(2, 2, 2, [plan("feat/y")])), true).map((e) => e.number), [2]);
+  });
+
   test("an untrusted plan comment gives a null branch", () => {
     assert.equal(readEpics(result(issue(3, 2, 0, [plan("feat/evil", "NONE")])))[0].branch, null);
   });

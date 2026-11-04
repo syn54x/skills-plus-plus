@@ -498,3 +498,14 @@ test('on sdd/12-x with no argument the board opens on the parent of #12', async 
   expect(seen.opened).toHaveLength(1)
   expect((await titleOf($)).some(t => t.startsWith('#197 '))).toBe(true)
 })
+
+test('on feat/x the Epic recording it opens even with every Sub-issue completed, ahead of one in progress', async ($, on) => {
+  const seen = host(on, {
+    branch: 'feat/x',
+    epics: [epic(5, 1, 'feat/other'), epic(197, 3, 'feat/x')],
+    ghByEpic: { 197: snapshot([{ n: 201 }]) },
+  })
+  await $.command.run(NO_ARG)
+  expect(seen.opened).toHaveLength(1)
+  expect((await titleOf($)).some(t => t.startsWith('#197 '))).toBe(true)
+})
