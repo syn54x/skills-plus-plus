@@ -229,3 +229,46 @@ export function parseSnapshot(json: unknown): Snapshot {
     wave: markerData(epic.comments, "<!-- sdd-wave -->", viewer),
   };
 }
+
+// Open issues with Sub-issues, each with the comments that can hold its plan (written early, so the first 100 do), most recently updated first so a busy repo's first page holds the live ones.
+const EPICS_QUERY = `query Epics($owner: String!, $repo: String!) {
+  viewer { login }
+  repository(owner: $owner, name: $repo) {
+    issues(states: OPEN, first: 100, orderBy: { field: UPDATED_AT, direction: DESC }) {
+      nodes { number url title subIssuesSummary { total completed } comments(first: 100) { nodes { ...comment } } }
+    }
+  }
+}
+fragment comment on IssueComment { body author { login } authorAssociation }`;
+
+/**
+ * gh's arguments for the current repo's open issues that have Sub-issues, with the gh user for the trust boundary.
+ *
+ * @internal
+ */
+export function epicsArgs(): string[] {
+  return ["api", "graphql", "-f", `query=${EPICS_QUERY}`, "-F", "owner={owner}", "-F", "repo={repo}"];
+}
+
+/** An Epic with Sub-issues not all completed; `branch` is its integration branch, null without a trusted plan comment. */
+type EpicInFlight = { number: number; url: string; title: string; total: number; completed: number; branch: string | null };
+
+/**
+ * gh's answer to {@link epicsArgs}: the issues whose Sub-issues are not all completed, each with the integration
+ * branch from its first trusted plan comment; `all` keeps the completed ones too. Throws gh's first stderr line on failure.
+ *
+ * @internal
+ */
+export function readEpics(r: { exitCode: number | null; stdout: string; stderr?: string }, all = false): EpicInFlight[] {
+  if (r.exitCode !== 0) throw new Error((r.stderr ?? "").trim().split("\n")[0] || `gh exited ${r.exitCode}`);
+  type Raw = { number: number; url: string; title: string; subIssuesSummary: { total: number; completed: number }; comments?: Nodes<Comment> };
+  const data = (JSON.parse(r.stdout) as { data?: { viewer?: { login: string }; repository?: { issues: Nodes<Raw> } } }).data;
+  const viewer = data?.viewer?.login ?? null;
+  return (data?.repository?.issues.nodes ?? [])
+    .filter((i) => i.subIssuesSummary.total > 0 && (all || i.subIssuesSummary.completed < i.subIssuesSummary.total))
+    .map((i) => {
+      const branch = markerData(i.comments, "<!-- sdd-plan -->", viewer)?.branch;
+      const { total, completed } = i.subIssuesSummary;
+      return { number: i.number, url: i.url, title: i.title, total, completed, branch: typeof branch === "string" ? branch : null };
+    });
+}

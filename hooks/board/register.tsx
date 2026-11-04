@@ -7,7 +7,7 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import { derive, type EpicState, type TicketState } from '../../spp/src/derive.ts'
 import { latestNotes, notesFile } from '../../spp/src/notes-log.ts'
-import { readSnapshot, type Snapshot, snapshotArgs } from '../../spp/src/snapshot.ts'
+import { epicsArgs, readEpics, readSnapshot, type Snapshot, snapshotArgs } from '../../spp/src/snapshot.ts'
 import type { Board, BoardTicket, BoardWorker } from '../../types/index.d.ts'
 
 const PANE = 'epic-board'
@@ -150,18 +150,28 @@ async function refresh($: EngineInterface) {
   }
 }
 
-// The Epic of the current branch's plan, when it can tell: a worker branch sdd/<N>-* names a Sub-issue, whose
-// parent is the Epic.
-async function currentEpic($: EngineInterface): Promise<string | null> {
-  try {
-    const branch = (await run($, 'git', ['git', 'branch', '--show-current'])).trim()
-    const ticket = /^sdd\/(\d+)/.exec(branch)?.[1]
-    if (!ticket) return null
-    const parent = (await run($, 'gh', ['gh', 'issue', 'view', ticket, '--json', 'parent', '--jq', '.parent.url // ""'])).trim()
-    return parent || null
-  } catch {
-    return null
+// The Epic to show when none is named, by the first rule that answers: a worker branch sdd/<N>-* names a Sub-issue,
+// whose parent is the Epic; a branch feat/<slug> names the open Epic whose plan records it as its integration branch;
+// otherwise the Epics in flight in this repo (a plan records a branch and a Sub-issue is not merged): one opens, several
+// are listed, none says so. The reply is what to tell the person when no Epic opens.
+async function pickEpic($: EngineInterface): Promise<{ epic: string } | { text: string }> {
+  const branch = await run($, 'git', ['git', 'branch', '--show-current']).then(b => b.trim(), () => '')
+  const ticket = /^sdd\/(\d+)/.exec(branch)?.[1]
+  if (ticket) {
+    const parent = await run($, 'gh', ['gh', 'issue', 'view', ticket, '--json', 'parent', '--jq', '.parent.url // ""']).then(p => p.trim(), () => '')
+    if (parent) return { epic: parent }
   }
+  let epics
+  try {
+    epics = readEpics(await $.process.run(['gh', ...epicsArgs()], { timeoutMs: 60_000 }), true)
+  } catch (e) {
+    return { text: `gh: ${firstLine((e as Error).message)}` }
+  }
+  const named = branch.startsWith('feat/') ? epics.filter(e => e.branch === branch) : []
+  const flying = named.length ? named : epics.filter(e => e.branch && e.completed < e.total)
+  if (flying.length === 1) return { epic: String(flying[0].number) }
+  if (!flying.length) return { text: 'No Epic is in flight in this repo. Run /epic-board <epic number or issue URL>.' }
+  return { text: [...flying.map(e => `#${e.number} ${e.title}, ${e.completed}/${e.total}`), 'Run /epic-board <N>.'].join('\n') }
 }
 
 // Refreshes every two minutes once an Epic is chosen; turns and inbound messages refresh it in between. Timers end with
@@ -183,8 +193,9 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'epic-board' }, async ($, e) => {
-    const epic = e.args.trim() || (await currentEpic($))
-    if (!epic) return { text: 'Which Epic? Run /epic-board <epic number or issue URL>.' }
+    const picked = e.args.trim() ? { epic: e.args.trim() } : await pickEpic($)
+    if (!('epic' in picked)) return picked
+    const epic = picked.epic
     wanted = epic
     await update($, board, () => ({ ...EMPTY, epic }))
     await refresh($)

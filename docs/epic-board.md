@@ -14,7 +14,7 @@ The pane opens with one group per Wave and a status line entry such as `#197 3/7
 
 You type `/epic-board`; the agent never opens it on its own. Reach for it while `/build` runs an Epic, when you want to see where every ticket stands without asking the orchestrator. It belongs to the Epic path. `ask-spp` routes between every skill when the right one is unclear.
 
-The argument is the Epic as an issue number in the current repo or as an issue URL. Left out, the board uses the Epic of the branch you are on when it can tell: on a worker branch `sdd/<N>-<slug>`, that is the parent of issue N.
+The argument is the Epic as an issue number in the current repo or as an issue URL. Left out, the board picks the Epic by the first rule that answers. On a worker branch `sdd/<N>-<slug>`, it is the parent of issue N. On `feat/<slug>`, it is the open Epic whose plan comment records that branch as its integration branch. Anywhere else, it is the Epic in flight in the current repo: an open issue whose plan comment (from a trusted author) records an integration branch and that still has a Sub-issue not merged. With one, the board opens on it; with several, nothing opens and each is listed as `#N title, merged/total`, so you can run `/epic-board <N>`; with none, you are told so.
 
 ## Reading a row
 

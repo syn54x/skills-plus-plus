@@ -114,6 +114,9 @@ type Host = {
   sessions?: { name: string; kind: string }[]
   agentsError?: string // claude agents exits 1 with this on stderr
   agents?: { id: string; description: string }[]
+  branch?: string // the checkout's current branch
+  parent?: string // the parent URL `gh issue view` answers for a worker branch's issue
+  epics?: object[] // the open issues with Sub-issues the epics query answers
 }
 
 // Where spp note keeps the repo's log, under the HOME the mocked env gives.
@@ -122,18 +125,26 @@ const LOG = `/home/t/.local/state/spp/${REPO.replace('/', '__')}.jsonl`
 // Stands for the engine beneath the plugin: the host commands, the notes log, the agent list and the display calls it
 // records.
 function host(on: On, h: Host) {
-  const seen = { status: [] as (string | undefined)[], copied: [] as string[], filled: [] as string[], viewed: [] as string[], argv: [] as string[][] }
+  const seen = { opened: [] as number[], status: [] as (string | undefined)[], copied: [] as string[], filled: [] as string[], viewed: [] as string[], argv: [] as string[][] }
   const clock = mock.clock(on, { now: NOW })
   mock.env(on, { HOME: '/home/t' })
   const log = (h.notes ?? []).map(n => JSON.stringify({ repo: REPO, ticket: n.ticket, text: n.text, at: n.at, milestone: false })).join('\n')
   on('fs.exists', (_, e) => ({ value: e.path === LOG && !!h.notes }))
   on('fs.read', (_, e) => (e.path === LOG && h.notes ? { value: log + '\n' } : { deny: `ENOENT: ${e.path}` }))
   on('command.register', () => ({ value: { command: 'epic-board' } }))
-  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('ui.open', () => {
+    seen.opened.push(1)
+    return { value: { isPlaced: true } }
+  })
   on('process.run', async (_, e) => {
     seen.argv.push(e.argv)
     const [cmd, ...args] = e.argv
     const ok = (stdout: string) => ({ value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
+    if (cmd === 'git') return ok((h.branch ?? 'main') + '\n')
+    if (cmd === 'gh' && args[0] === 'issue') return ok((h.parent ?? '') + '\n')
+    if (cmd === 'gh' && args.some(a => a.includes('query Epics'))) {
+      return ok(JSON.stringify({ data: { viewer: { login: 'maint' }, repository: { issues: { nodes: h.epics ?? [] } } } }))
+    }
     if (cmd === 'gh') {
       if (h.ghDelayMs) await clock.sleep(h.ghDelayMs)
       const epic = Number(args.map(a => /^number=(\d+)$/.exec(a)?.[1]).find(Boolean))
@@ -420,4 +431,81 @@ test('a forged wave comment from an outside author does not place the tickets', 
   const waves = (await texts(ui)).filter(t => /^Wave \d$/.test(t))
   expect(waves).toEqual(['Wave 1'])
   await ui.unmount()
+})
+
+// An open issue with Sub-issues as the epics query returns it; `branch` is what its plan comment records.
+const epic = (n: number, completed: number, branch?: string, author = 'OWNER') => ({
+  number: n,
+  url: `${URL}/issues/${n}`,
+  title: `Epic ${n}`,
+  subIssuesSummary: { total: 3, completed },
+  comments: {
+    nodes: branch ? [{ body: trailer('<!-- sdd-plan -->', { branch }), author: { login: author === 'OWNER' ? 'maint' : 'mallory' }, authorAssociation: author }] : [],
+  },
+})
+const NO_ARG = { ...OPEN, args: '' }
+const titleOf = async ($: Parameters<Parameters<typeof test>[1]>[0]) => {
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  const all = await texts(ui)
+  await ui.unmount()
+  return all
+}
+
+test('on feat/x with no argument the board opens on the Epic recording feat/x', async ($, on) => {
+  const seen = host(on, {
+    branch: 'feat/x',
+    epics: [epic(5, 0, 'feat/other'), epic(197, 1, 'feat/x')],
+    ghByEpic: { 197: snapshot([{ n: 201 }]) },
+  })
+  await $.command.run(NO_ARG)
+  expect(seen.opened).toHaveLength(1)
+  expect((await titleOf($)).some(t => t.startsWith('#197 '))).toBe(true)
+})
+
+test('on main with one Epic in flight the board opens on it', async ($, on) => {
+  const seen = host(on, { epics: [epic(197, 1, BRANCH), epic(9, 1)], ghByEpic: { 197: snapshot([{ n: 201 }]) } })
+  await $.command.run(NO_ARG)
+  expect(seen.opened).toHaveLength(1)
+  expect((await titleOf($)).some(t => t.startsWith('#197 '))).toBe(true)
+})
+
+test('an Epic whose plan comment is untrusted is not in flight', async ($, on) => {
+  const seen = host(on, { epics: [epic(197, 1, BRANCH, 'NONE')] })
+  const r = await $.command.run(NO_ARG)
+  expect(seen.opened).toHaveLength(0)
+  expect(JSON.stringify(r)).toContain('No Epic is in flight')
+})
+
+test('on main with two Epics in flight nothing opens and both are listed', async ($, on) => {
+  const seen = host(on, { epics: [epic(197, 1, BRANCH), epic(198, 2, 'feat/y')] })
+  const r = JSON.stringify(await $.command.run(NO_ARG))
+  expect(seen.opened).toHaveLength(0)
+  expect(r).toContain('#197 Epic 197, 1/3')
+  expect(r).toContain('#198 Epic 198, 2/3')
+  expect(r).toContain('Run /epic-board <N>.')
+})
+
+test('on main with no Epic in flight nothing opens and the reply says so', async ($, on) => {
+  const seen = host(on, { epics: [] })
+  const r = JSON.stringify(await $.command.run(NO_ARG))
+  expect(seen.opened).toHaveLength(0)
+  expect(r).toContain('No Epic is in flight in this repo')
+})
+
+test('on sdd/12-x with no argument the board opens on the parent of #12', async ($, on) => {
+  const seen = host(on, { branch: 'sdd/12-x', parent: `${URL}/issues/197`, ghByEpic: { 197: snapshot([{ n: 201 }]) } })
+  await $.command.run(NO_ARG)
+  expect(seen.opened).toHaveLength(1)
+  expect((await titleOf($)).some(t => t.startsWith('#197 '))).toBe(true)
+})
+
+test('on feat/x the Epic recording it opens even with every Sub-issue completed, ahead of one in progress', async ($, on) => {
+  const seen = host(on, {
+    branch: 'feat/x',
+    epics: [epic(5, 1, 'feat/other'), epic(197, 3, 'feat/x')],
+    ghByEpic: { 197: snapshot([{ n: 201 }]) },
+  })
+  await $.command.run(NO_ARG)
+  expect(seen.opened).toHaveLength(1)
+  expect((await titleOf($)).some(t => t.startsWith('#197 '))).toBe(true)
 })
