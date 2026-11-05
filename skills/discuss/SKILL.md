@@ -75,7 +75,7 @@ Name one route and start none: the next step is the person's to take. `/grill`, 
 
 Nothing: no file, no glossary term and no ADR. Recording belongs to the interview `/grill` runs, which reads this conversation and its restatement.
 
-A parked idea is the one exception. Offer to file the restatement as one issue, and file it only on the person's yes. The issue opens with a line saying an AI wrote it, and it gets no Triage role, so triage finds it in its queue.
+A parked idea is the one exception. Offer to file the restatement as one issue, and file it only on the person's yes. In the issue, **Already exists** carries the research note's Answer and Sources in place of its path, which no reader of the issue can open. The issue opens with a line saying an AI wrote it, and it gets no Triage role, so triage finds it in its queue.
 
 ## Done when
 
