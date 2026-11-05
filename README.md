@@ -61,6 +61,7 @@ You can type these too, but the agent starts them when a task fits, and other sk
 
 | Flow | Skill | What it does |
 | --- | --- | --- |
+| Plan | [discuss](./skills/discuss/SKILL.md) | Experimental: talks a vague idea over before it is a plan, and settles nothing |
 | Plan | [grilling](./skills/grilling/SKILL.md) | The round-based interview that grill and auto-grill run |
 | Plan | [domain-modeling](./skills/domain-modeling/SKILL.md) | Keeps the glossary and ADRs accurate while a design is argued over |
 | Plan | [codebase-design](./skills/codebase-design/SKILL.md) | The deep-module vocabulary and the Depth check |
