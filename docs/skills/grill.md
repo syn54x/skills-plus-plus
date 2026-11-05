@@ -15,6 +15,7 @@ Use it early in a change, while the plan is still loose and people are still usi
 | You want to answer every question yourself | `/grill` |
 | Most answers can be cited from the repo and its docs | auto-grill, which answers those and asks you the rest |
 | The effort is too large for one sitting | wayfinder, which maps it first |
+| The idea is not yet a plan | [discuss](discuss.md), which explores it first |
 
 `ask-spp` routes between every skill when the right one is unclear.
 

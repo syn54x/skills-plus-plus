@@ -12,6 +12,8 @@ Every path but the last needs the repo set up once with [setup-spp](skills/setup
 
 ## 1. Epic
 
+If you have an idea that is not yet a plan, you can first explore it with [discuss](skills/discuss.md), an experimental skill. The step is optional, and you can skip it when you already know what you would build.
+
 1. **Grill the plan.** [grill](skills/grill.md) asks until every choice is settled, recording terms and decisions as they land. [auto-grill](skills/auto-grill.md) runs the same interview but settles, with a citation, each question the code, ADRs or docs already answer.
 2. **Write the spec.** [to-spec](skills/to-spec.md) turns the conversation into one Epic issue, asking nothing new.
 3. **Cut the Sub-issues.** [to-tickets](skills/to-tickets.md) splits the Epic into vertical Sub-issues with blocking edges, and calls [harden](skills/harden.md) to give each one its Ticket contract.
@@ -27,6 +29,8 @@ Every path but the last needs the repo set up once with [setup-spp](skills/setup
 3. **Merge.** You merge the pull request.
 
 ## 3. Unknown territory
+
+If the idea is still too loose to chart, you can first explore it with [discuss](skills/discuss.md). The step is optional, and it is not a path of its own, because a discussion may end in nothing.
 
 1. **Chart the map.** [wayfinder](skills/wayfinder.md) turns a loose idea into a map of decision tickets on GitHub Issues.
 2. **Settle one decision per session.** Each ticket's label says how it settles: an interview with [grilling](skills/grilling.md), a cited note from [research](skills/research.md), a [prototype](skills/prototype.md), or one piece of manual work. Keep going until no decision stands between you and building.
