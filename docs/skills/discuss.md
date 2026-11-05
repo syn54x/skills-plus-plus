@@ -34,7 +34,7 @@ A session is built from four *moves*, made in whatever order the talk calls for.
 
 You can wave a move off ("skip the far-out version"), and you can close the session whenever you like. The agent offers to close only once each move has been made or waved off, so every session covers the same ground.
 
-For the part of Survey that lies outside your repo, the agent starts [research](research.md), which reads in the background while the talk carries on.
+For the part of Survey that lies outside your repo, the agent starts [research](research.md) after your first reply, once it can tell which version of the idea is worth a survey. The reading runs in the background while the talk carries on.
 
 ## The closing restatement
 

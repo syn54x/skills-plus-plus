@@ -45,7 +45,7 @@ Make them in whatever order the conversation calls for, one or two to a turn.
 | **Survey** | What exists today, in the repo and outside it |
 | **Shrink** | The smallest version that still matters, including doing nothing |
 
-Survey has two halves. Inside the repo it is plain reading, mostly done before the first turn. For what exists outside the repo, Call the Skill tool with "research", and give it a question whose answer is a short list. The note is written in the background, so carry on with the other moves and bring its findings in when it lands.
+Survey has two halves. Inside the repo it is plain reading, mostly done before the first turn. The outside half starts after the person's first reply, which shows which version of the idea is worth a survey: Call the Skill tool with "research", and give it a question whose answer is a short list. The note is written in the background, so carry on with the other moves and bring its findings in when it lands.
 
 The person may wave a move off, and a move waved off counts as made.
 
