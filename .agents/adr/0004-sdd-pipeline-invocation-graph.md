@@ -6,7 +6,7 @@ We give each step a person takes exactly one user-invoked entry, and make every 
 
 | Flow | User-invoked entries | Model-invoked skills underneath |
 | --- | --- | --- |
-| Plan | `grill`, `auto-grill`, `wayfinder`, `to-spec`, `to-tickets`, `triage` | `grilling`, `domain-modeling`, `codebase-design`, `research`, `prototype`, `harden` |
+| Plan | `grill`, `auto-grill`, `discuss` (also model-invoked), `wayfinder`, `to-spec`, `to-tickets`, `triage` | `grilling`, `domain-modeling`, `codebase-design`, `research`, `prototype`, `harden` |
 | Build | `build` | `implement-issue`, `tdd`, `diagnosing-bugs` |
 | Review | `review` (also model-invoked), `review-panel`, `improve-architecture` | `review` |
 | Ship | `prepare-release-notes`, `close-epic`, `retro` | `pr` |
@@ -17,6 +17,7 @@ We give each step a person takes exactly one user-invoked entry, and make every 
 
 - `implement-issue` acts only on an issue carrying the ticket contract, and `review` adds its spec verdict only when a ticket is linked.
 - `harden` writes the contract into one issue it was handed; `spp lint` gates the result.
+- `discuss` writes nothing on its own, and files an issue only when the person says yes to its offer.
 - The rest read or write prose and post nothing on their own.
 
 ## How `build` reaches the panel
