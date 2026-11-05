@@ -3,11 +3,11 @@ type: llm
 focus: last_message
 ---
 
-The reply is the first turn of a discussion about letting a rider lend a booked bike to a friend. The person said they have no plan yet.
+The reply opens a discussion about letting a rider lend a booked bike to a friend.
 
-PASS if all of these hold:
-- It brings material about the idea itself, as statements the person can react to: at least one of a bolder version of the idea, an objection or boundary case that could break it, something that already exists and resembles it, or a smaller version of it.
-- It asks the person at most one question. Asking none is fine.
-- It holds no numbered list of decisions or questions for the person to answer.
+PASS if all three of these hold:
+- Material: the reply says something about the idea that the person did not say, such as a bolder version of it, an objection or awkward case, something similar that already exists, or a smaller version of it. Describing how one version would work counts as material.
+- One question at most: the reply puts zero or one question to the person. A question that offers two options to pick between is one question.
+- No numbered list of decisions or questions for the person to answer.
 
-FAIL if it asks the person two or more questions, sends a numbered list of decisions or questions, asks without bringing any material, or writes a finished plan, spec or implementation.
+FAIL if the reply puts two or more questions to the person, holds a numbered list of decisions or questions, or only asks and brings no material.
