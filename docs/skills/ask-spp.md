@@ -26,7 +26,7 @@ The routes it gives are the [five paths](../paths.md):
 
 ## Paths, not keywords
 
-The router's leading idea is the **path**: a route through several skills, from the situation you are in to merged work. It finds where on a path your situation sits rather than matching your words to the nearest skill, which is why it tells you what comes after the command it gives. Where two skills sit close together, it names the fact that decides between them: [grill](grill.md) or [wayfinder](wayfinder.md) turns on whether one sitting can settle every decision, and [to-spec](to-spec.md) or [triage](triage.md) on whether the work needs several Sub-issues.
+The router's leading idea is the **path**: a route through several skills, from the situation you are in to merged work. It finds where on a path your situation sits rather than matching your words to the nearest skill, which is why it tells you what comes after the command it gives. Where two skills sit close together, it names the fact that decides between them: [discuss](discuss.md) or [grill](grill.md) turns on whether the idea is a plan yet, [grill](grill.md) or [wayfinder](wayfinder.md) on whether one sitting can settle every decision, and [to-spec](to-spec.md) or [triage](triage.md) on whether the work needs several Sub-issues.
 
 ## Common questions
 

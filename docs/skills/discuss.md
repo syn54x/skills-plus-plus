@@ -60,7 +60,7 @@ The agent names one of five routes and starts none of them:
 
 Run `/grill` in the same conversation and the interview starts from the restatement, so nothing ruled out is argued again.
 
-A session writes no file, no glossary term and no ADR. The one exception is a parked idea: the agent offers to file the restatement as one issue, and files it only when you say yes. That issue opens with a line saying an AI wrote it and carries no Triage role, so [triage](triage.md) finds it in its queue.
+A session writes no file, no glossary term and no ADR. The one exception is a parked idea: the agent offers to file the restatement as one issue, and files it only when you say yes. The research note sits in your session's scratchpad, where nobody reading the issue can open it, so the issue carries the note's answer and sources in place of its path. That issue opens with a line saying an AI wrote it and carries no Triage role, so [triage](triage.md) finds it in its queue.
 
 ## It's working if
 
