@@ -2,7 +2,7 @@
 
 `to-tickets` splits an Epic into Sub-issues on GitHub. Each Sub-issue is a vertical slice, linked to the Epic as its parent, with native blocked-by edges to the slices it needs and the full Ticket contract in its body. The Epic gets a single plan comment that lays them out in layers.
 
-It decides the breakdown and leaves each Sub-issue's contents to [harden](harden.md). `to-tickets` picks the slices and their edges, gets your approval, creates the issues, and calls `harden` once for each. What it adds is the view across all of them: two Sub-issues that would lock the same file, a name one consumes that its blockers never produce, and a requirement from the Epic that shrank on the way into a Sub-issue.
+It decides the breakdown and leaves each Sub-issue's contents to [harden](harden.md). `to-tickets` picks the slices and their edges, gets your approval, creates the issues, and calls `harden` once for each. What it adds is the view across all of them: two Sub-issues that would lock the same file, a name one consumes that its blockers never produce, a requirement from the Epic that shrank on the way into a Sub-issue, and a value one Sub-issue works out from another module's output when that module could hand it over.
 
 ## When to reach for it
 
@@ -33,7 +33,7 @@ When one change breaks every reader at once, such as renaming the field that the
 2. The Epic gets `needs-plan`.
 3. The Sub-issues are created with every blocker first, carrying native parent and blocked-by edges.
 4. `harden` writes each contract and its size.
-5. The set is checked as a whole: shared file locks, Consumes against Produces, requirements against the Epic.
+5. The set is checked as a whole: shared file locks, Consumes against Produces, requirements against the Epic, and values worked out twice (one Sub-issue deriving what another module already holds).
 6. Clean Sub-issues get `ready-for-agent`, `spp plan` pins the plan, and `needs-plan` comes off the Epic.
 
 ## Common questions

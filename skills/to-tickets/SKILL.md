@@ -52,13 +52,15 @@ Number the slices, and under each give its title, its blockers, and what the use
 
 ## 4. Check the set
 
-Each harden run saw one Sub-issue. Read all of the hardened bodies together for the three things only the whole set shows.
+Each harden run saw one Sub-issue. Read all of the hardened bodies together for the four things only the whole set shows.
 
 **Locks that would stall a Wave.** spp never puts two Sub-issues in one Wave when their Files owned share a Modify or Test path, so an overlap between two Sub-issues with no chain of edges between them becomes a delay nobody chose. Two Creates clash only on the same file. For each overlap, either add an edge (`gh issue edit <later> --add-blocked-by <earlier>`) or fold the two slices into one; giving up that bit of parallelism is expected.
 
 **Names that do not line up.** Read each Consumes line next to the Produces line it relies on. The name and signature must match, the producer must be among the Sub-issue's blockers (add the edge when it is not), and each Produces line must name who consumes it.
 
 **Requirements that shrank.** Walk the Epic requirement by requirement, and find the Sub-issue that delivers each one. A requirement shrinks when its Sub-issue covers less than the Epic says (one format where the Epic lists three, no handling for a failure the Epic names, a lower limit) or adds a condition of its own, such as "on the first run only". If nobody intended the difference, send the Sub-issue back to harden to restore the full requirement. If it was intended (the full version is infeasible here, or the user agreed to the split in step 2), it is a change of scope, and only the user can accept it. After they do, ask harden for a `**Narrows:**` line on the Sub-issue, and carry its words to the plan in step 5. Reviewers treat a recorded narrowing as agreed scope, and an unrecorded one as a defect.
+
+**Values worked out twice.** Look for a Sub-issue that works a value out from another module's output: a client that infers each row's state from a summary the server returns, a report that recomputes a total a service already holds. The second derivation has to match the first in every case, and review finds the misses one round at a time. Name each such value to the user and ask whether the module that holds the inputs should produce it itself. If it should, fix the set before release: send the producing Sub-issue back to harden for a Produces line that carries the value, or add a Sub-issue that produces it as step 3 does, with its consumer blocked by it. Either way, send the consuming Sub-issue back to harden to read the value in place of working it out. If the derivation is intended, only the user can accept it; once they do, both Sub-issues stand as written, with no line added.
 
 Finish with `spp status <epic> --json`. A non-empty `cycle` means the edges loop; break the loop before continuing.
 
