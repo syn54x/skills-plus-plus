@@ -16,7 +16,9 @@
  *   same bytes (ADR 0009). It needs no clean tree.
  * - `spp verify --check` is the `Stop` and `SubagentStop` hook. On an `sdd/*` branch it blocks the stop when the tree
  *   is dirty or `HEAD` has no passing (or `blocked`) note, unless `HEAD` adds nothing to an integration branch or the
- *   default branch; on any other branch it passes unchecked.
+ *   default branch; on any other branch it passes unchecked. The check judges the tree the session stands in and
+ *   cannot tell whose work is there, so a refused `Stop` also tells a session that is not the branch's worker to cd
+ *   back to its own checkout and stop again.
  *
  * @module
  */
@@ -165,10 +167,14 @@ export function stopRefusal(): string | null {
 async function check(): Promise<number> {
   // stop_hook_active is ignored on purpose: a second stop is just as unverified, and Claude Code caps the loop itself
   // (eight blocked stops in a row end the turn).
-  enterHookCwd(await readHookInput());
+  const input = await readHookInput();
+  enterHookCwd(input);
   const why = stopRefusal();
   if (!why) return 0;
-  process.stderr.write(`spp verify: ${why}\n`);
+  // A Stop payload from an orchestrator whose shell was left in a worker's worktree is the same as the worker's own,
+  // so the refusal names the way out. A subagent (SubagentStop) stands in the worktree it was given.
+  const wayOut = input.hook_event_name === "Stop" ? " If this is a worker's worktree and you are not that worker, cd back to your own checkout and stop again." : "";
+  process.stderr.write(`spp verify: ${why}${wayOut}\n`);
   return 2;
 }
 

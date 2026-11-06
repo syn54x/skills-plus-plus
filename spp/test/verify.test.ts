@@ -182,6 +182,57 @@ describe("spp verify <issue> --print", () => {
   });
 });
 
+// #304: an orchestrator whose shell was left in a worker's worktree is refused like the worker, so a refused Stop names the way out.
+describe("a refused Stop names the way out for a session that is not the branch's worker", () => {
+  const WAY_OUT = /cd back to your own checkout/;
+  const payload = (event: string, cwd: string) => JSON.stringify({ hook_event_name: event, cwd });
+  const dirtyRepo = () => {
+    const repo = gitRepo("sdd/12-x");
+    writeFileSync(join(repo, "loose.txt"), "x");
+    return repo;
+  };
+
+  test("a Stop in a tree with an untracked file is refused for its uncommitted changes and told to cd back to its own checkout", () => {
+    const repo = dirtyRepo();
+    const r = runSpp(["verify", "--check"], payload("Stop", repo), tempDir("spp-elsewhere-"));
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /uncommitted changes on sdd\/12-x/);
+    assert.match(r.stderr, WAY_OUT);
+  });
+
+  test("a Stop in a clean tree one commit beyond its base with no Verify record is told the same", () => {
+    const repo = gitRepo("sdd/12-x");
+    git(repo, "update-ref", "refs/remotes/origin/feat/epic", "HEAD");
+    git(repo, "commit", "-q", "--allow-empty", "-m", "work");
+    const r = runSpp(["verify", "--check"], payload("Stop", repo), tempDir("spp-elsewhere-"));
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, WAY_OUT);
+  });
+
+  test("a SubagentStop in the same dirty tree is refused as before, with no way out named", () => {
+    const repo = dirtyRepo();
+    const r = runSpp(["verify", "--check"], payload("SubagentStop", repo), tempDir("spp-elsewhere-"));
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /uncommitted changes on sdd\/12-x/);
+    assert.doesNotMatch(r.stderr, WAY_OUT);
+  });
+
+  test("a run by hand in the dirty tree, with no payload on stdin, is refused as before", () => {
+    const r = runSpp(["verify", "--check"], "", dirtyRepo());
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /uncommitted changes on sdd\/12-x/);
+    assert.doesNotMatch(r.stderr, WAY_OUT);
+  });
+
+  test("a Stop in a tree with a passing Verify record on HEAD goes through and prints nothing", () => {
+    const repo = gitRepo("sdd/12-x");
+    git(repo, "notes", "--ref=sdd-verify", "add", "-m", "verified 2026-11-01T00:00:00Z", "HEAD");
+    const r = runSpp(["verify", "--check"], payload("Stop", repo), tempDir("spp-elsewhere-"));
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stderr, "");
+  });
+});
+
 describe("edge cases", () => {
   test("spp verify --check on branch main exits 0 without checking", () => {
     assert.equal(runSpp(["verify", "--check"], "", gitRepo("main")).code, 0);
