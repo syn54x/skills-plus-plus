@@ -15,7 +15,9 @@ Its three forms:
   same bytes (ADR 0009). It needs no clean tree.
 - `spp verify --check` is the `Stop` and `SubagentStop` hook. On an `sdd/*` branch it blocks the stop when the tree
   is dirty or `HEAD` has no passing (or `blocked`) note, unless `HEAD` adds nothing to an integration branch or the
-  default branch; on any other branch it passes unchecked.
+  default branch; on any other branch it passes unchecked. The check judges the tree the session stands in and
+  cannot tell whose work is there, so a refused `Stop` also tells a session that is not the branch's worker to cd
+  back to its own checkout and stop again.
 
 ## Functions
 
