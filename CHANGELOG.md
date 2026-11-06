@@ -1,5 +1,12 @@
 # @syn54x/spp
 
+## 2.2.0
+
+### Minor Changes
+
+- 5a6a9ac: New skill `discuss`: type `/discuss <idea>`, or say you want to brainstorm or kick an idea around, and the agent talks a vague idea over with you before it is a plan, then names where it should go next. It is experimental, so it may change or be removed.
+- 1ca3abf: `/epic-board` with no argument now picks the Epic itself: the parent of an `sdd/<N>-*` branch, the Epic whose plan records a `feat/<slug>` branch, or the one Epic in flight in the repo. With several in flight it lists them; with none it says so.
+
 ## 2.1.0
 
 ### Minor Changes
