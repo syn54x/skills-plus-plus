@@ -10,6 +10,9 @@
  * - `desktop` and `subagent` write the brief and print its path, since those drivers are harness tools the skill
  *   starts itself.
  *
+ * `subagent` refuses a folder that is not inside a git repository, before it reads GitHub. The `spp:worker` agent
+ * cuts its worktree from the session's folder, so every worker started from such a folder would fail.
+ *
  * @module
  */
 import { spawnSync } from "node:child_process";
@@ -27,6 +30,7 @@ export const USAGE = `usage: spp dispatch <issue number | issue URL> --driver bg
 Refuses a ticket that is held (the claimed label or an assignee). bg writes the brief, starts
 claude --bg --worktree sdd-<N> --name t-<N> on it and records t-<N> as the worker; desktop and subagent
 write the brief and print its path, because those drivers are harness tools the skill calls itself.
+subagent refuses a folder outside a git repository, because the spp:worker agent cuts its worktree from it.
 `;
 
 /**
@@ -34,7 +38,8 @@ write the brief and print its path, because those drivers are harness tools the 
  *
  * @param args - The Sub-issue (an issue number in the current repo or an issue URL) and `--driver bg|desktop|subagent`.
  * @returns 0 when the worker started or the brief is written; 2 on a usage error, with the usage on stderr; 1 when
- *   the ticket is held, `claude --bg` fails or `gh` fails, with the reason on stderr.
+ *   the ticket is held, `--driver subagent` runs outside a git repository, `claude --bg` fails or `gh` fails, with
+ *   the reason on stderr.
  * @example
  * ```bash
  * spp dispatch 265 --driver bg
@@ -46,6 +51,13 @@ export function run(args: string[]): Promise<number> {
     const driver = flagPairs(rest, ["--driver"]).find(([f]) => f === "--driver")?.[1];
     if (arg === undefined || !driver || !asDriver(driver)) throw new UsageError(driver ? `unknown driver ${driver}` : "");
     const issue = parseIssue(arg);
+    // Claude Code makes the spp:worker agent's worktree from the session folder, so outside a repository every start fails.
+    if (driver === "subagent" && spawnSync("git", ["rev-parse", "--git-dir"]).status !== 0) {
+      process.stderr.write(
+        `spp dispatch: this folder is not inside a git repository, and the spp:worker agent cuts its worktree from this folder; run /build from inside the checkout of the repository that owns ${issue.label}, or choose another Driver\n`,
+      );
+      return 1;
+    }
 
     type View = { url: string; labels: { name: string }[]; assignees: { login: string }[] };
     const view = JSON.parse(await runGh(["issue", "view", issue.arg, "--json", "url,labels,assignees"])) as View;

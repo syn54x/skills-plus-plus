@@ -9,6 +9,9 @@ What it does depends on the driver:
 - `desktop` and `subagent` write the brief and print its path, since those drivers are harness tools the skill
   starts itself.
 
+`subagent` refuses a folder that is not inside a git repository, before it reads GitHub. The `spp:worker` agent
+cuts its worktree from the session's folder, so every worker started from such a folder would fail.
+
 ## Functions
 
 ### run()
@@ -30,7 +33,8 @@ Starts a worker on one Sub-issue, or writes the brief for the skill to start one
 `Promise`\<`number`\>
 
 0 when the worker started or the brief is written; 2 on a usage error, with the usage on stderr; 1 when
-  the ticket is held, `claude --bg` fails or `gh` fails, with the reason on stderr.
+  the ticket is held, `--driver subagent` runs outside a git repository, `claude --bg` fails or `gh` fails, with
+  the reason on stderr.
 
 #### Example
 
@@ -53,4 +57,5 @@ usage: spp dispatch <issue number | issue URL> --driver bg|desktop|subagent
 Refuses a ticket that is held (the claimed label or an assignee). bg writes the brief, starts
 claude --bg --worktree sdd-<N> --name t-<N> on it and records t-<N> as the worker; desktop and subagent
 write the brief and print its path, because those drivers are harness tools the skill calls itself.
+subagent refuses a folder outside a git repository, because the spp:worker agent cuts its worktree from it.
 ```
