@@ -35,6 +35,7 @@ A worker's name is `t-<N>` under every driver, the same name `spp brief` tells t
 - Pass no permission mode to a worker; the user's configured permissions apply. A session worker stuck on a permission prompt shows as `blocked` in `claude agents`: tell the user to run `claude attach t-<N>`.
 - `start_session` works only on a turn the user started. The app refuses it on a turn an automated event started, such as a worker ending and waking you, so on the desktop driver every Wave after the first stops at its `dispatch` until the user sends a message. Nothing is lost: tell the user the Wave is ready and start it on their next message.
 - The plugin's Stop and SubagentStop hooks refuse to let a worker finish on an `sdd/*` branch without a Verify record on `HEAD`, so a worker that stops early is told why instead of leaving.
+- Read a worker's worktree with `git -C <path>` and never leave your shell inside one. The Stop hook judges the tree the session stands in, so from inside a worker's worktree it refuses your stop for the worker's uncommitted or unverified work, though you edited nothing. When a stop is refused that way, `cd` back to your own checkout and stop again; never wait there for the worker to commit.
 
 ## Cleanup
 
