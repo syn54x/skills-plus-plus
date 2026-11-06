@@ -32,8 +32,9 @@ Every path but tiny unfiled work needs the repo set up once with `/setup-spp`, s
 | 4. Architecture | Code that resists change, or a pull request whose shape you want judged | `/improve-architecture`; each issue it files enters path 1 or path 2 |
 | 5. Tiny unfiled work | A change one session finishes, with no issue behind it | No spp: make the change directly |
 
-Two pairs get confused:
+Three pairs get confused:
 
+- `/discuss` or `/grill`: the idea is not yet a plan, or it is.
 - `/grill` or `/wayfinder`: one sitting can settle every decision, or it cannot.
 - `/to-spec` or `/triage`: the work needs several Sub-issues, or one pull request holds it.
 
@@ -43,6 +44,7 @@ The person can type any of these. Model-invoked skills also start on their own w
 
 | Skill | Flow | Started by | Reach for it when |
 | --- | --- | --- | --- |
+| `/discuss` | Plan | either | an idea is still vague and wants talking over before any plan (experimental) |
 | `/grill` | Plan | person | a plan needs every choice settled, with terms and decisions recorded as they land |
 | `/auto-grill` | Plan | person | the same interview, with the answers the code, ADRs or docs hold settled for you |
 | `/grilling` | Plan | either | a plan, design or decision needs stress-testing round by round, with no recording |

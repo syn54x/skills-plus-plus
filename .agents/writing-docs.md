@@ -10,6 +10,8 @@ Every promoted skill has a page for people at `docs/skills/<name>.md`, published
 | Renamed | Move the file to the new name and update the nav entry, because the URL follows the name. |
 | Behaviour changed | Re-sync the sections the change touches. |
 | Removed | Keep the page, opening it with `> **Archived.**` naming the version that removed it and any replacement, so the URL keeps resolving. |
+| Shipped as experimental | Open the page with `> **Experimental.**` and one sentence saying the skill may change or be removed, which is what the marker means. |
+| Graduated from experimental | Take the marker off. |
 
 ## Page shape
 

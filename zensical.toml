@@ -19,6 +19,7 @@ nav = [
   { "The five paths" = "paths.md" },
   { "Skills" = [
     { "Plan" = [
+      { "discuss" = "skills/discuss.md" },
       { "grill" = "skills/grill.md" },
       { "auto-grill" = "skills/auto-grill.md" },
       { "grilling" = "skills/grilling.md" },
