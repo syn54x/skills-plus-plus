@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -51,8 +52,10 @@ describe("happy path", () => {
     assert.match(r.stdout, /started t-12/);
   });
 
-  test("spp dispatch 12 --driver subagent writes the brief and prints its path, with no claude call", async () => {
-    const r = await runCase("dispatch", scratch(["--driver", "subagent"]));
+  test("spp dispatch 12 --driver subagent inside a git repository writes the brief and prints its path, with no claude call", async () => {
+    const dir = scratch(["--driver", "subagent"]);
+    assert.equal(spawnSync("git", ["init", "-q"], { cwd: dir }).status, 0);
+    const r = await runCase("dispatch", dir);
     assert.equal(r.code, 0, r.stderr);
     assert.deepEqual(r.writes, []);
     assert.ok(existsSync(r.stdout.trim()), r.stdout);
@@ -60,6 +63,19 @@ describe("happy path", () => {
 });
 
 describe("edge cases", () => {
+  // #305: only the subagent Driver needs the session folder to be a checkout.
+  test("spp dispatch 12 --driver desktop outside a git repository still writes the brief and prints its path", async () => {
+    const r = await runCase("dispatch", scratch(["--driver", "desktop"]));
+    assert.equal(r.code, 0, r.stderr);
+    assert.ok(existsSync(r.stdout.trim()), r.stdout);
+  });
+
+  test("spp dispatch 12 --driver bg outside a git repository still starts one claude --bg session", async () => {
+    const r = await runCase("dispatch", scratch(["--driver", "bg"]));
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual((r.writes as Write[]).filter((w) => w.cmd === "claude").map((w) => w.argv[0]), ["--bg"]);
+  });
+
   test("ticket 12 claimed: refuses, no claude call", async () => {
     const r = await runCase("dispatch", scratch(["--driver", "bg"], ["ready-for-agent", "claimed"]));
     assert.equal(r.code, 1);
@@ -89,6 +105,17 @@ describe("error paths: claude", () => {
 });
 
 describe("error paths", () => {
+  // #305: the spp:worker agent's worktree comes from the session folder, so a folder outside any repository cannot start one.
+  test("spp dispatch 12 --driver subagent outside a git repository refuses before it reads GitHub", async () => {
+    const dir = scratch(["--driver", "subagent"]);
+    writeFileSync(join(dir, "gh.json"), "{}"); // any gh call now fails with "stub gh: no answer"
+    const r = await runCase("dispatch", dir);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /cuts its worktree/);
+    assert.doesNotMatch(r.stderr, /stub gh/);
+    assert.deepEqual(r.writes, []);
+  });
+
   test("an unknown driver exits 2 with usage", async () => {
     const r = await runCase("dispatch", scratch(["--driver", "cloud"]));
     assert.equal(r.code, 2);

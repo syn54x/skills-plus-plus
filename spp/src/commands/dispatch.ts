@@ -46,6 +46,13 @@ export function run(args: string[]): Promise<number> {
     const driver = flagPairs(rest, ["--driver"]).find(([f]) => f === "--driver")?.[1];
     if (arg === undefined || !driver || !asDriver(driver)) throw new UsageError(driver ? `unknown driver ${driver}` : "");
     const issue = parseIssue(arg);
+    // Claude Code makes the spp:worker agent's worktree from the session folder, so outside a repository every start fails.
+    if (driver === "subagent" && spawnSync("git", ["rev-parse", "--git-dir"]).status !== 0) {
+      process.stderr.write(
+        `spp dispatch: this folder is not inside a git repository, and the spp:worker agent cuts its worktree from this folder; run /build from inside the checkout of the repository that owns ${issue.label}, or choose another Driver\n`,
+      );
+      return 1;
+    }
 
     type View = { url: string; labels: { name: string }[]; assignees: { login: string }[] };
     const view = JSON.parse(await runGh(["issue", "view", issue.arg, "--json", "url,labels,assignees"])) as View;
