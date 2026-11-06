@@ -1,6 +1,6 @@
 {
   "name": "@syn54x/spp",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "The spp command-line tool and Claude Code plugin: spec-driven delivery on GitHub Issues.",
   "type": "module",
   "bin": {
