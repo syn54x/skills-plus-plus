@@ -1,9 +1,11 @@
-`spp merge <pr> [--json]` merges a slice pull request into its Epic's integration branch, only when its gate passed
+`spp merge <pr> [--json]` merges a slice pull request, or a Fix pull request, into its Epic's integration branch, only when its gate passed
 on the current head, its blockers' pull requests have merged, its base is the integration branch and its checks
 pass. The gate's verdict counts only from a trusted author (the gh user, or an OWNER, MEMBER or COLLABORATOR), and
 `spp merge` re-reads the verdict comment to check that before it merges (ADR 0009). It merges with the Routing
 block's merge method (squash by default) pinned to the head the gate passed, then records the pull request on the
-wave comment. A conflict is never resolved here: the worker rebases. It prints
+wave comment. A Fix pull request (it closes no issue; its body `Refs` a Sub-issue) merges the same way when a
+trusted author's verdict passes on its head, its base is the Epic's integration branch and its checks pass, and
+writes nothing to the wave comment. A conflict is never resolved here: the worker rebases. It prints
 `merged <pr> into <branch>` or `not merged: <reason>`; with `--json` it prints [MergeResult](#mergeresult).
 
 ## Functions

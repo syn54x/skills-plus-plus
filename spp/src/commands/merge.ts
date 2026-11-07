@@ -1,10 +1,12 @@
 /**
- * `spp merge <pr> [--json]` merges a slice pull request into its Epic's integration branch, only when its gate passed
+ * `spp merge <pr> [--json]` merges a slice pull request, or a Fix pull request, into its Epic's integration branch, only when its gate passed
  * on the current head, its blockers' pull requests have merged, its base is the integration branch and its checks
  * pass. The gate's verdict counts only from a trusted author (the gh user, or an OWNER, MEMBER or COLLABORATOR), and
  * `spp merge` re-reads the verdict comment to check that before it merges (ADR 0009). It merges with the Routing
  * block's merge method (squash by default) pinned to the head the gate passed, then records the pull request on the
- * wave comment. A conflict is never resolved here: the worker rebases. It prints
+ * wave comment. A Fix pull request (it closes no issue; its body `Refs` a Sub-issue) merges the same way when a
+ * trusted author's verdict passes on its head, its base is the Epic's integration branch and its checks pass, and
+ * writes nothing to the wave comment. A conflict is never resolved here: the worker rebases. It prints
  * `merged <pr> into <branch>` or `not merged: <reason>`; with `--json` it prints {@link MergeResult}.
  *
  * @module
@@ -41,6 +43,12 @@ function closedIssue(body: string, prRepo: string): string | null {
   return m ? `https://github.com/${m[1] ?? m[3] ?? prRepo}/issues/${m[2] ?? m[4]}` : null;
 }
 
+// The issue URL of the body's first `Refs` reference, read as snapshot.ts reads it for a fix's attribution.
+function refsIssue(body: string, prRepo: string): string | null {
+  const m = /\brefs:?\s+(?:https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/issues\/(\d+)|([\w.-]+\/[\w.-]+)#(\d+)|#(\d+))(?![\w/])/i.exec(body);
+  return m ? `https://github.com/${m[1] ?? m[3] ?? prRepo}/issues/${m[2] ?? m[4] ?? m[5]}` : null;
+}
+
 // Every `Interfaces changed:` value but `none`, one per line.
 function interfacesChanged(body: string): string | undefined {
   const values = [...body.matchAll(/^Interfaces changed:(.*)$/gm)]
@@ -50,6 +58,50 @@ function interfacesChanged(body: string): string | undefined {
 }
 
 
+// The checks and the merge itself, shared by a slice and a fix; a refusal, or null once merged.
+async function land(view: PrView, headSha: string): Promise<{ result: MergeResult; code: number } | null> {
+  const refuse = (reason: string, code = 1) => ({ result: { merged: false, reason }, code });
+  // shortcut: none (no CI configured) does not block; a repo whose CI registers late could merge before it starts.
+  const checks = await readChecks(view.url);
+  if (checks.result === "fail") return refuse(`checks failing: ${culprits(checks).join(", ")}`);
+  if (checks.result === "pending") return refuse(`checks pending: ${culprits(checks).join(", ")}`);
+  if (view.mergeable === "CONFLICTING") return refuse("rebase needed", 3);
+
+  // Exit 3 sends the worker to rebase, so it is kept for a real conflict; any other refusal (a branch policy, a
+  // required approval) exits 1 with gh's own reason, which a rebase could never fix.
+  try {
+    await runGh(["pr", "merge", view.url, `--${readRouting(process.cwd())?.routing.merge ?? "squash"}`, "--match-head-commit", headSha]);
+  } catch (e) {
+    if (!(e instanceof GhError)) throw e;
+    if (/cannot be cleanly created|merge conflict/i.test(e.message)) return refuse("rebase needed", 3);
+    return refuse(e.message);
+  }
+
+  return null;
+}
+
+// A pull request that closes no issue merges only as a Fix pull request: its body `Refs` a Sub-issue of an Epic whose
+// state lists it among its fixes (ADR 0011). It writes no wave record.
+async function decideFix(view: PrView, prRepo: string): Promise<{ result: MergeResult; code: number; base?: string }> {
+  const refuse = (reason: string, code = 1) => ({ result: { merged: false, reason }, code });
+  const none = refuse("closes no issue and refs no Sub-issue");
+  const ref = refIn(prRepo);
+  const ticketUrl = refsIssue(view.body, prRepo);
+  if (!ticketUrl) return none;
+  const { parent } = JSON.parse(await runGh(["issue", "view", ticketUrl, "--json", "parent"])) as { parent: { url: string } | null };
+  if (!parent || !ISSUE_URL.exec(parent.url)) return none;
+  const state = derive((await fetchSnapshot(parent.url))!);
+  if (!state.tickets.some((t) => t.url === ticketUrl)) return none;
+  const branch = state.epic.branch;
+  if (branch && view.baseRefName !== branch) return refuse(`base is ${view.baseRefName}, not the integration branch ${branch}`);
+  const fix = state.fixes.find((f) => f.url === view.url);
+  if (!fix) return refuse(`${ref(view.url)} is not a fix of ${ref(parent.url)}`);
+  // The trust boundary (ADR 0009), checked again on the comment itself, as for a slice.
+  const verdict = readVerdict(readTrailer((await find(parseIssue(view.url.replace("/pull/", "/issues/")), VERDICT_MARKER))?.body ?? ""));
+  if (gateOf({ ...fix, trusted: true, refs: null, verdict: verdict ?? undefined }) !== "gate-pass") return refuse(`no passing verdict from a trusted author on ${ref(view.url)}`);
+  return (await land(view, fix.headSha)) ?? { result: { merged: true }, code: 0, base: view.baseRefName };
+}
+
 async function decide(pr: string): Promise<{ result: MergeResult; code: number; base?: string }> {
   const refuse = (reason: string, code = 1) => ({ result: { merged: false, reason }, code });
   const view = JSON.parse(await runGh(["pr", "view", pr, "--json", "number,url,state,body,baseRefName,mergeable"])) as PrView;
@@ -57,7 +109,7 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   const ref = refIn(`${owner}/${name}`);
   if (view.state !== "OPEN") return refuse(`${ref(view.url)} is ${view.state}`);
   const ticketUrl = closedIssue(view.body, `${owner}/${name}`);
-  if (!ticketUrl) return refuse(`${ref(view.url)} closes no issue`);
+  if (!ticketUrl) return decideFix(view, `${owner}/${name}`);
 
   const { parent } = JSON.parse(await runGh(["issue", "view", ticketUrl, "--json", "parent"])) as { parent: { url: string } | null };
   const epic = parent && ISSUE_URL.exec(parent.url);
@@ -77,21 +129,8 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   if (blocker) return refuse(`blocked by ${ref(byUrl.get(blocker)?.pr?.url ?? blocker)}`);
   const branch = state.epic.branch;
   if (branch && view.baseRefName !== branch) return refuse(`base is ${view.baseRefName}, not the integration branch ${branch}`);
-  // shortcut: none (no CI configured) does not block; a repo whose CI registers late could merge before it starts.
-  const checks = await readChecks(view.url);
-  if (checks.result === "fail") return refuse(`checks failing: ${culprits(checks).join(", ")}`);
-  if (checks.result === "pending") return refuse(`checks pending: ${culprits(checks).join(", ")}`);
-  if (view.mergeable === "CONFLICTING") return refuse("rebase needed", 3);
-
-  // Exit 3 sends the worker to rebase, so it is kept for a real conflict; any other refusal (a branch policy, a
-  // required approval) exits 1 with gh's own reason, which a rebase could never fix.
-  try {
-    await runGh(["pr", "merge", view.url, `--${readRouting(process.cwd())?.routing.merge ?? "squash"}`, "--match-head-commit", ticket.pr.headSha]);
-  } catch (e) {
-    if (!(e instanceof GhError)) throw e;
-    if (/cannot be cleanly created|merge conflict/i.test(e.message)) return refuse("rebase needed", 3);
-    return refuse(e.message);
-  }
+  const refused = await land(view, ticket.pr.headSha);
+  if (refused) return refused;
 
   // wave pr matches a ticket in any of its forms, whichever one the wave stored, so the issue URL does.
   const spp = process.argv[1]; // the running bin/spp: its path from here differs between spp/src and the compiled dist/
