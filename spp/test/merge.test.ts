@@ -114,6 +114,7 @@ function mergeCase(o: Opts = {}): string {
       stdout: JSON.stringify([99, verdict(pr, pr === 40 ? o.spec : "pass"), ...(o.recheck ? ["mallory", "NONE"] : ["maint", "OWNER"])]) + "\n",
     },
     [VIEWER]: { stdout: "maint\n" },
+    "api graphql -f query=PullRequests *": { stdout: { data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: [] } } } } },
     ...(o.mergeAnswer && { [`pr merge ${url} --squash --match-head-commit ${HEAD[pr]}`]: o.mergeAnswer }),
   };
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
@@ -292,6 +293,7 @@ describe("integration", () => {
       [`pr checks ${PR_URL} --json name,bucket`]: { stdout: [{ name: "ci", bucket: "pass" }] },
       [`api repos/acme/api/issues/50/comments --paginate --jq ${JQ}`]: { stdout: row(99, VERDICT) },
       [`api repos/acme/app/issues/197/comments --paginate --jq ${JQ}`]: { stdout: row(88, waveBody) },
+      "api graphql -f query=PullRequests *": { stdout: { data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: [] } } } } },
     };
     writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
     const r = await runCase("merge", dir);

@@ -120,6 +120,7 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
     const prs = m ? [{ number: 900, url: PULL + 900, state: m.state, additions: m.lines - 10, deletions: 10 }] : [];
     gh[`pr list -R acme/app --head ${branch} --state all --json number,url,state,additions,deletions`] = { stdout: prs };
   }
+  gh["api graphql -f query=PullRequests *"] = { stdout: { data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: [] } } } } }; // no fix pull requests into the integration branch
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
   if (o.agents) writeFileSync(join(dir, "agents.json"), JSON.stringify({ "agents --json --all": { stdout: o.agents } }));
   const routing = ["<!-- sdd-routing -->", "- Mode: org", "- Laws: CLAUDE.md", ...(o.panel ? [`- Panel: ${o.panel}`] : []), "<!-- /sdd-routing -->"];
