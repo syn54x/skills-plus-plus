@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { derive, type EpicState, type Fix, refIn, type Ticket } from "../src/derive.ts";
-import { parseSnapshot, pullRequestsArgs, readPullRequests, type Snapshot, withPullRequests } from "../src/snapshot.ts";
+import { fixRepos, parseSnapshot, pullRequestsArgs, readPullRequests, type Snapshot, withPullRequests } from "../src/snapshot.ts";
 import { assertCase, runCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -102,14 +102,14 @@ describe("fixes", () => {
   // The fixes fixture: Epic 197 on feat/epic with #301 closed by PR 501, #302 open and #303 in acme/api, which the plan
   // also names as `Acme/API`; eight pull requests are listed in acme/app and one in acme/api.
   const API = "api graphql -f query=PullRequests -f owner=acme -f repo=api -f branch=feat/epic";
-  async function fixesCase(patch: Record<string, unknown> = {}) {
+  async function fixesCase(patch: Record<string, unknown> = {}, code = 0) {
     const dir = mkdtempSync(join(tmpdir(), "spp-fixes-"));
     cpSync(fixture("fixes"), dir, { recursive: true });
     writeFileSync(join(dir, "args"), "197\n--json\n");
     const gh = JSON.parse(readFileSync(join(dir, "gh.json"), "utf8")) as Record<string, unknown>;
     writeFileSync(join(dir, "gh.json"), JSON.stringify({ ...gh, ...patch }));
     const r = await runCase("status", dir);
-    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.code, code, r.stderr);
     return r;
   }
   const fixes = async () => (await fixesCase()).json as EpicState;
@@ -151,10 +151,23 @@ describe("fixes", () => {
   });
 
   // F11 on #317: one unreadable repo loses only its fixes.
-  test("a repo whose pull-request request fails is warned about on stderr and the rest of the state stands", async () => {
-    const r = await fixesCase({ [API]: { stderr: "HTTP 404: Not Found (https://api.github.com/graphql)\n", code: 1 } });
+  test("a repo whose pull-request request answers not found is warned about on stderr and the rest of the state stands", async () => {
+    const r = await fixesCase({ [API]: { stderr: "GraphQL: Could not resolve to a Repository with the name 'acme/api'. (repository)\n", code: 1 } });
     assert.deepEqual((r.json as EpicState).fixes.map((f) => f.number), [77, 78, 79, 83]);
-    assert.match(r.stderr, /acme\/api.*HTTP 404/);
+    assert.match(r.stderr, /acme\/api.*Could not resolve/);
+  });
+
+  // R2-F10 on #317: only a repo that is not there, or not readable, is skipped; a transient failure must not hide a fix
+  // from spp next, so it fails the snapshot as the snapshot request itself does.
+  test("a repo whose pull-request request fails for any other reason fails the command with gh's message", async () => {
+    const r = await fixesCase({ [API]: { stderr: "HTTP 502: Bad Gateway (https://api.github.com/graphql)\n", code: 1 } }, 1);
+    assert.match(r.stderr, /HTTP 502: Bad Gateway/);
+  });
+
+  // The gate on #333: a rate limit is a 403 too, and it is transient, so it must fail the command rather than hide a fix.
+  test("a repo whose pull-request request hits a 403 rate limit fails the command with gh's message", async () => {
+    const r = await fixesCase({ [API]: { stderr: "gh: You have exceeded a secondary rate limit. Please wait a few minutes before you try again. (HTTP 403)\n", code: 1 } }, 1);
+    assert.match(r.stderr, /secondary rate limit/);
   });
 
   // F13 on #317: the fix-fetch policy (branch, repos, dedupe) lives behind snapshot.ts; callers only run gh.
@@ -164,6 +177,7 @@ describe("fixes", () => {
     const repoOf = (args: string[]) => args.filter((a) => /^(owner|repo)=/.test(a)).map((a) => a.slice(a.indexOf("=") + 1)).join("/");
     const args = pullRequestsArgs(snapshot);
     assert.deepEqual(args.map(repoOf), ["acme/app", "acme/api", "acme/lib"]);
+    assert.deepEqual(fixRepos(snapshot), ["acme/app", "acme/api", "acme/lib"]); // pairs with the lists by index
     assert.ok(args.every((a) => a.includes("branch=feat/x")));
     assert.deepEqual(pullRequestsArgs({ ...snapshot, plan: { branch: "" } }), []);
     assert.deepEqual(pullRequestsArgs({ ...snapshot, plan: null }), []);

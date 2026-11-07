@@ -12,7 +12,7 @@
  * @module
  */
 import { setTimeout as sleep } from "node:timers/promises";
-import { type EpicState, type Fix, gateOf, refIn } from "../derive.ts";
+import { type EpicState, refIn } from "../derive.ts";
 import { flagPairs, guarded, parseIssue, UsageError } from "../markers.ts";
 import { lostWorker, type Session } from "../plan-next.ts";
 import { readSessions } from "./next.ts";
@@ -38,11 +38,10 @@ function changes(before: Poll, now: Poll): string[] {
   // round, or gets the gate's verdict on that head.
   const fixWas = new Map(before.state.fixes.map((f) => [f.url, f]));
   const fixNow = new Map(now.state.fixes.map((f) => [f.url, f]));
-  const gate = (f: Fix) => gateOf({ ...f, trusted: true, refs: f.ticket });
   const fixes = [...new Set([...fixWas.keys(), ...fixNow.keys()])].flatMap((u) => {
     const [a, b] = [fixWas.get(u), fixNow.get(u)];
-    if (a?.state === b?.state && a?.headSha === b?.headSha && (!a || !b || gate(a) === gate(b))) return [];
-    const why = a && b && a.state === b.state ? ` (${a.headSha !== b.headSha ? "new head" : gate(b)})` : "";
+    if (a?.state === b?.state && a?.headSha === b?.headSha && a?.gate === b?.gate) return [];
+    const why = a && b && a.state === b.state ? ` (${a.headSha !== b.headSha ? "new head" : b.gate})` : "";
     return [`${ref(u)} ${a?.state ?? "absent"} -> ${b?.state ?? "absent"}${why}`];
   });
   // A ticket's workers: the progress comment's worker and the name spp dispatch gives, t-<N>.

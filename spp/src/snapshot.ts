@@ -271,12 +271,21 @@ fragment comment on IssueComment { body author { login } authorAssociation }`;
 export function pullRequestsArgs(s: Snapshot): string[][] {
   const branch = s.plan?.branch;
   if (typeof branch !== "string" || !branch) return [];
+  return fixRepos(s).map((r) => {
+    const [owner, name] = r.split("/");
+    return ["api", "graphql", "-f", `query=${PULL_REQUESTS_QUERY}`, "-f", `owner=${owner}`, "-f", `repo=${name}`, "-f", `branch=${branch}`];
+  });
+}
+
+/**
+ * The repos {@link pullRequestsArgs} asks, in its order: the Epic's, each Sub-issue's and each the plan comment's
+ * `repos` names, lowercased and deduped, leaving out a name that is not `owner/repo`. Pairs with the argument lists
+ * by index, so a caller can name the repo a request was for.
+ */
+export function fixRepos(s: Snapshot): string[] {
   const planned = Array.isArray(s.plan?.repos) ? s.plan.repos.filter((r): r is string => typeof r === "string") : [];
   const repos = new Set([s.epic.repo, ...s.issues.map((i) => i.repo), ...planned].map((r) => r.toLowerCase()));
-  return [...repos]
-    .map((r) => /^([\w.-]+)\/([\w.-]+)$/.exec(r))
-    .filter((m): m is RegExpExecArray => !!m)
-    .map(([, owner, name]) => ["api", "graphql", "-f", `query=${PULL_REQUESTS_QUERY}`, "-f", `owner=${owner}`, "-f", `repo=${name}`, "-f", `branch=${branch}`]);
+  return [...repos].filter((r) => /^[\w.-]+\/[\w.-]+$/.test(r));
 }
 
 /** The snapshot with its pull requests set to the parsed answers to {@link pullRequestsArgs}, flattened; `s` is left as it was. */
