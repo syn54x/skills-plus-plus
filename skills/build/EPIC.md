@@ -11,7 +11,7 @@ Each action has a `kind`, the `tickets` and `pr` it concerns, a `reason`, and on
 | `dispatch` | Approval of the first Wave, then start the workers. |
 | `gate` | Gate the pull request. |
 | `fix` | One fix round by the same worker, for a slice or a fix pull request. |
-| `hand-back` | The fix round is spent. For a slice, hand the issue back; for a fix pull request, give the person its open findings and stop (no label change on the closed Sub-issue, nothing on the wave comment). You know it is a fix because a fix pull request is one whose `pr` is not its Sub-issue's own pull request and whose Sub-issue is already closed (its reason also ends "no Sub-issue is relabelled"). A reason saying `worker lost` goes to the user first, as Hand-back says. |
+| `hand-back` | The fix round is spent. Hand the issue back; for a fix pull request, see Hand-back. A reason saying `worker lost` goes to the user first, as Hand-back says. |
 | `merge` | Merge the pull request. |
 | `wait` | Wait for the next change. |
 | `main-gate` | The Epic's pull request to the base branch. |
@@ -57,7 +57,7 @@ The action names the issue and its pull request. Send the Critical and Important
 
 ## Hand-back
 
-A `hand-back` for a fix pull request (a fix pull request is one whose `pr` is not its Sub-issue's own pull request and whose Sub-issue is already closed (its reason also ends "no Sub-issue is relabelled")) needs none of this: report its open findings to the user, leave the pull request open, and write nothing to the issue or the wave comment. A `hand-back` whose reason says `worker lost` goes to the user first, as Wait below says. For any other, run `spp hand-back <N> ready-for-human --reason "<the open findings>"`. Leave the pull request open, and record it with `spp wave <epic> pr --ticket <N> --pr <URL>`. The issue now idles in `spp next`; carry on with what else is ready. The Epic ends at `stuck` if nothing else can move, and you report the handed-back issue to the user.
+A `hand-back` for a fix pull request needs none of this. It is a fix when the action's `pr` is not the Sub-issue's own pull request, or its reason ends "no Sub-issue is relabelled". Report its open findings to the user: report its open findings to the user, leave the pull request open, and write nothing to the issue or the wave comment. A `hand-back` whose reason says `worker lost` goes to the user first, as Wait below says. For any other, run `spp hand-back <N> ready-for-human --reason "<the open findings>"`. Leave the pull request open, and record it with `spp wave <epic> pr --ticket <N> --pr <URL>`. The issue now idles in `spp next`; carry on with what else is ready. The Epic ends at `stuck` if nothing else can move, and you report the handed-back issue to the user.
 
 ## Merge
 
