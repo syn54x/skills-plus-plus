@@ -11,7 +11,7 @@ Each action has a `kind`, the `tickets` and `pr` it concerns, a `reason`, and on
 | `dispatch` | Approval of the first Wave, then start the workers. |
 | `gate` | Gate the pull request. |
 | `fix` | One fix round by the same worker, for a slice or a fix pull request. |
-| `hand-back` | The fix round is spent. For a slice, hand the issue back; for a fix pull request, give the person its open findings and stop (no label change on the closed Sub-issue, nothing on the wave comment). A reason saying `worker lost` goes to the user first, as Hand-back says. |
+| `hand-back` | The fix round is spent. For a slice, hand the issue back; for a fix pull request, give the person its open findings and stop (no label change on the closed Sub-issue, nothing on the wave comment). You know it is a fix because a fix pull request is one whose `pr` is not its Sub-issue's own pull request and whose Sub-issue is already closed (its reason also ends "no Sub-issue is relabelled"). A reason saying `worker lost` goes to the user first, as Hand-back says. |
 | `merge` | Merge the pull request. |
 | `wait` | Wait for the next change. |
 | `main-gate` | The Epic's pull request to the base branch. |
@@ -49,7 +49,7 @@ Done when every issue in the action has a worker and the Wave is recorded.
 
 Read the worker's report first (step 3 of `SKILL.md`). Then call the Skill tool with "review" for the pull request. It starts the fresh reviewer, runs the issue's Verify block, and records the spec and quality verdicts on the pull request. Run `spp next` again; the verdicts decide the next action.
 
-Take the issue number from the pull request body's `Closes #N` line. GitHub does not link a closing keyword on a pull request into a branch that is not the default, so its own link is empty.
+Take the issue number from the action's `tickets` entry, or for a fix from the body's `Refs #N` line; a slice's body also has a `Closes #N` line. GitHub does not link a closing keyword on a pull request into a branch that is not the default, so its own link is empty.
 
 ## Fix round
 
@@ -57,7 +57,7 @@ The action names the issue and its pull request. Send the Critical and Important
 
 ## Hand-back
 
-A `hand-back` for a fix pull request needs none of this: report its open findings to the user, leave the pull request open, and write nothing to the issue or the wave comment. A `hand-back` whose reason says `worker lost` goes to the user first, as Wait below says. For any other, run `spp hand-back <N> ready-for-human --reason "<the open findings>"`. Leave the pull request open, and record it with `spp wave <epic> pr --ticket <N> --pr <URL>`. The issue now idles in `spp next`; carry on with what else is ready. The Epic ends at `stuck` if nothing else can move, and you report the handed-back issue to the user.
+A `hand-back` for a fix pull request (a fix pull request is one whose `pr` is not its Sub-issue's own pull request and whose Sub-issue is already closed (its reason also ends "no Sub-issue is relabelled")) needs none of this: report its open findings to the user, leave the pull request open, and write nothing to the issue or the wave comment. A `hand-back` whose reason says `worker lost` goes to the user first, as Wait below says. For any other, run `spp hand-back <N> ready-for-human --reason "<the open findings>"`. Leave the pull request open, and record it with `spp wave <epic> pr --ticket <N> --pr <URL>`. The issue now idles in `spp next`; carry on with what else is ready. The Epic ends at `stuck` if nothing else can move, and you report the handed-back issue to the user.
 
 ## Merge
 
