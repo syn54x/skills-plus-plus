@@ -10,8 +10,8 @@ Each action has a `kind`, the `tickets` and `pr` it concerns, a `reason`, and on
 | `branch` | Create the integration branch. |
 | `dispatch` | Approval of the first Wave, then start the workers. |
 | `gate` | Gate the pull request. |
-| `fix` | One fix round by the same worker. |
-| `hand-back` | The fix round is spent. Hand the issue back. A reason saying `worker lost` goes to the user first, as Hand-back says. |
+| `fix` | One fix round by the same worker, for a slice or a fix pull request. |
+| `hand-back` | The fix round is spent. For a slice, hand the issue back; for a fix pull request, give the person its open findings and stop (no label change on the closed Sub-issue, nothing on the wave comment). A reason saying `worker lost` goes to the user first, as Hand-back says. |
 | `merge` | Merge the pull request. |
 | `wait` | Wait for the next change. |
 | `main-gate` | The Epic's pull request to the base branch. |
@@ -57,7 +57,7 @@ The action names the issue and its pull request. Send the Critical and Important
 
 ## Hand-back
 
-A `hand-back` whose reason says `worker lost` goes to the user first, as Wait below says. For any other, run `spp hand-back <N> ready-for-human --reason "<the open findings>"`. Leave the pull request open, and record it with `spp wave <epic> pr --ticket <N> --pr <URL>`. The issue now idles in `spp next`; carry on with what else is ready. The Epic ends at `stuck` if nothing else can move, and you report the handed-back issue to the user.
+A `hand-back` for a fix pull request needs none of this: report its open findings to the user, leave the pull request open, and write nothing to the issue or the wave comment. A `hand-back` whose reason says `worker lost` goes to the user first, as Wait below says. For any other, run `spp hand-back <N> ready-for-human --reason "<the open findings>"`. Leave the pull request open, and record it with `spp wave <epic> pr --ticket <N> --pr <URL>`. The issue now idles in `spp next`; carry on with what else is ready. The Epic ends at `stuck` if nothing else can move, and you report the handed-back issue to the user.
 
 ## Merge
 
@@ -99,7 +99,7 @@ A `NEEDS_CONTEXT` of that kind arrives as a handed-back issue. The decision belo
   4. **Merge and read the verdict.** Its step 6: `spp findings merge "$ROUND_DIR"/*.json --verdict "$R"` with the readings you hold, then read the output's last line, `Verdict: MERGE`, `FIX FIRST` or `HUMAN DECISION`. That line is the gate's verdict; write the report around it and record the round on the wave comment as that step says.
 - **No panel.** Call the Skill tool with "review" for the pull request. It reads the Epic's pull request in its Epic mode and returns one spec verdict with a coherence check.
 
-On a failing verdict (FIX FIRST, or a spec failure), send each Critical and Important finding to the worker that owns the file, by Files owned; a class of finding that cuts across files goes whole to one worker. A fix is a new pull request into the integration branch, from the resumed worker, whose body opens with `Refs #<Sub-issue>` and names the finding. Call the Skill tool with "review" for each fix pull request, as for a slice. Once it passes and its checks are green, merge it yourself: `gh pr merge <pr> --squash --match-head-commit <the head that was reviewed>`. `spp merge` does not apply, because its gate covers a Sub-issue whose pull request is still open and this fix refs one already closed. `spp merge` and `spp next` do not yet model fix pull requests; that is a known follow-up for the retro.
+On a failing verdict (FIX FIRST, or a spec failure), send each Critical and Important finding to the worker that owns the file, by Files owned; a class of finding that cuts across files goes whole to one worker. A fix is a new pull request into the integration branch, from the resumed worker, whose body opens with `Refs #<Sub-issue>` and names the finding. From there follow `spp next`: it prints `gate`, `fix`, `merge` or `hand-back` for each fix as for a slice (the fix is reviewed through the "review" skill, which records its verdict against the Sub-issue), and `main-gate` again only once no fix is open. `spp merge` merges a fix.
 
 After the round, run again whichever main gate `spp next` names: the panel by `review-panel`'s `ROUNDS.md` step 2 (with `R` one more than the last round, merged with `--verdict "$R"` as before), or the single review spec verdict. At most two fix rounds: a re-review still at FIX FIRST, or a spec verdict still at FAIL, after the second ends as HUMAN DECISION. On MERGE or a spec PASS, or HUMAN DECISION with its open findings, give the user the report and the pull request and stop. You do not merge to the base branch.
 
