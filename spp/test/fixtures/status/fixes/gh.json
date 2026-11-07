@@ -1,0 +1,340 @@
+{
+  "api graphql -f query=Snapshot -F owner={owner} -F repo={repo} -F number=197": {
+    "stdout": {
+      "data": {
+        "viewer": {
+          "login": "maint"
+        },
+        "repository": {
+          "issue": {
+            "number": 197,
+            "url": "https://github.com/acme/app/issues/197",
+            "title": "Epic",
+            "repository": {
+              "nameWithOwner": "acme/app"
+            },
+            "comments": {
+              "nodes": [
+                {
+                  "body": "<!-- sdd-plan -->\n<!-- sdd-data: eyJicmFuY2giOiAiZmVhdC9lcGljIiwgInJlcG9zIjogWyJBY21lL0FQSSJdfQ== -->",
+                  "author": {
+                    "login": "maint"
+                  },
+                  "authorAssociation": "OWNER"
+                }
+              ]
+            },
+            "subIssues": {
+              "nodes": [
+                {
+                  "number": 301,
+                  "url": "https://github.com/acme/app/issues/301",
+                  "title": "Producer",
+                  "state": "CLOSED",
+                  "repository": {
+                    "nameWithOwner": "acme/app"
+                  },
+                  "labels": {
+                    "nodes": [
+                      {
+                        "name": "ready-for-agent"
+                      }
+                    ]
+                  },
+                  "assignees": {
+                    "nodes": []
+                  },
+                  "blockedBy": {
+                    "nodes": []
+                  },
+                  "comments": {
+                    "nodes": []
+                  },
+                  "closedByPullRequestsReferences": {
+                    "nodes": [
+                      {
+                        "number": 501,
+                        "url": "https://github.com/acme/app/pull/501",
+                        "state": "MERGED",
+                        "headRefOid": "501501501501501501501501501501",
+                        "baseRefName": "feat/epic",
+                        "repository": {
+                          "nameWithOwner": "acme/app"
+                        },
+                        "body": "Closes #301",
+                        "author": {
+                          "login": "maint"
+                        },
+                        "authorAssociation": "OWNER",
+                        "comments": {
+                          "nodes": []
+                        }
+                      }
+                    ]
+                  },
+                  "timelineItems": {
+                    "nodes": []
+                  }
+                },
+                {
+                  "number": 302,
+                  "url": "https://github.com/acme/app/issues/302",
+                  "title": "Consumer",
+                  "state": "OPEN",
+                  "repository": {
+                    "nameWithOwner": "acme/app"
+                  },
+                  "labels": {
+                    "nodes": [
+                      {
+                        "name": "ready-for-agent"
+                      }
+                    ]
+                  },
+                  "assignees": {
+                    "nodes": []
+                  },
+                  "blockedBy": {
+                    "nodes": []
+                  },
+                  "comments": {
+                    "nodes": []
+                  },
+                  "closedByPullRequestsReferences": {
+                    "nodes": []
+                  },
+                  "timelineItems": {
+                    "nodes": []
+                  }
+                },
+                {
+                  "number": 303,
+                  "url": "https://github.com/acme/api/issues/303",
+                  "title": "Elsewhere",
+                  "state": "OPEN",
+                  "repository": {
+                    "nameWithOwner": "acme/api"
+                  },
+                  "labels": {
+                    "nodes": [
+                      {
+                        "name": "ready-for-agent"
+                      }
+                    ]
+                  },
+                  "assignees": {
+                    "nodes": []
+                  },
+                  "blockedBy": {
+                    "nodes": []
+                  },
+                  "comments": {
+                    "nodes": []
+                  },
+                  "closedByPullRequestsReferences": {
+                    "nodes": []
+                  },
+                  "timelineItems": {
+                    "nodes": []
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "api graphql -f query=PullRequests -f owner=acme -f repo=app -f branch=feat/epic": {
+    "stdout": {
+      "data": {
+        "viewer": {
+          "login": "maint"
+        },
+        "repository": {
+          "pullRequests": {
+            "nodes": [
+              {
+                "number": 77,
+                "url": "https://github.com/acme/app/pull/77",
+                "state": "OPEN",
+                "headRefOid": "77777777777777777777",
+                "baseRefName": "feat/epic",
+                "repository": {
+                  "nameWithOwner": "acme/app"
+                },
+                "body": "Refs #302\n\nFlaky test",
+                "author": {
+                  "login": "maint"
+                },
+                "authorAssociation": "OWNER",
+                "comments": {
+                  "nodes": []
+                }
+              },
+              {
+                "number": 78,
+                "url": "https://github.com/acme/app/pull/78",
+                "state": "MERGED",
+                "headRefOid": "78787878787878787878",
+                "baseRefName": "feat/epic",
+                "repository": {
+                  "nameWithOwner": "acme/app"
+                },
+                "body": "Refs https://github.com/acme/app/issues/302\n\nTypo",
+                "author": {
+                  "login": "maint"
+                },
+                "authorAssociation": "OWNER",
+                "comments": {
+                  "nodes": []
+                }
+              },
+              {
+                "number": 79,
+                "url": "https://github.com/acme/app/pull/79",
+                "state": "OPEN",
+                "headRefOid": "79797979797979797979",
+                "baseRefName": "feat/epic",
+                "repository": {
+                  "nameWithOwner": "acme/app"
+                },
+                "body": "Lint only, no ticket",
+                "author": {
+                  "login": "maint"
+                },
+                "authorAssociation": "OWNER",
+                "comments": {
+                  "nodes": []
+                }
+              },
+              {
+                "number": 80,
+                "url": "https://github.com/acme/app/pull/80",
+                "state": "CLOSED",
+                "headRefOid": "80808080808080808080",
+                "baseRefName": "feat/epic",
+                "repository": {
+                  "nameWithOwner": "acme/app"
+                },
+                "body": "Refs #302\n\nAbandoned",
+                "author": {
+                  "login": "maint"
+                },
+                "authorAssociation": "OWNER",
+                "comments": {
+                  "nodes": []
+                }
+              },
+              {
+                "number": 81,
+                "url": "https://github.com/acme/app/pull/81",
+                "state": "OPEN",
+                "headRefOid": "81818181818181818181",
+                "baseRefName": "feat/epic",
+                "repository": {
+                  "nameWithOwner": "acme/app"
+                },
+                "body": "Refs #302\n\nFrom a fork",
+                "author": {
+                  "login": "mallory"
+                },
+                "authorAssociation": "NONE",
+                "comments": {
+                  "nodes": []
+                }
+              },
+              {
+                "number": 82,
+                "url": "https://github.com/acme/app/pull/82",
+                "state": "OPEN",
+                "headRefOid": "82828282828282828282",
+                "baseRefName": "main",
+                "repository": {
+                  "nameWithOwner": "acme/app"
+                },
+                "body": "Refs #302\n\nInto main",
+                "author": {
+                  "login": "maint"
+                },
+                "authorAssociation": "OWNER",
+                "comments": {
+                  "nodes": []
+                }
+              },
+              {
+                "number": 83,
+                "url": "https://github.com/acme/app/pull/83",
+                "state": "OPEN",
+                "headRefOid": "83838383838383838383",
+                "baseRefName": "feat/epic",
+                "repository": {
+                  "nameWithOwner": "acme/app"
+                },
+                "body": "Refs #999\n\nAn issue outside the Epic",
+                "author": {
+                  "login": "maint"
+                },
+                "authorAssociation": "OWNER",
+                "comments": {
+                  "nodes": []
+                }
+              },
+              {
+                "number": 501,
+                "url": "https://github.com/acme/app/pull/501",
+                "state": "MERGED",
+                "headRefOid": "501501501501501501501501501501",
+                "baseRefName": "feat/epic",
+                "repository": {
+                  "nameWithOwner": "acme/app"
+                },
+                "body": "Closes #301",
+                "author": {
+                  "login": "maint"
+                },
+                "authorAssociation": "OWNER",
+                "comments": {
+                  "nodes": []
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "api graphql -f query=PullRequests -f owner=acme -f repo=api -f branch=feat/epic": {
+    "stdout": {
+      "data": {
+        "viewer": {
+          "login": "maint"
+        },
+        "repository": {
+          "pullRequests": {
+            "nodes": [
+              {
+                "number": 90,
+                "url": "https://github.com/acme/api/pull/90",
+                "state": "OPEN",
+                "headRefOid": "90909090909090909090",
+                "baseRefName": "feat/epic",
+                "repository": {
+                  "nameWithOwner": "acme/api"
+                },
+                "body": "Refs acme/api#303\n\nIn the other repo",
+                "author": {
+                  "login": "maint"
+                },
+                "authorAssociation": "OWNER",
+                "comments": {
+                  "nodes": []
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

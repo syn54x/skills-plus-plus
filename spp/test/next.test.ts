@@ -9,7 +9,7 @@ type Verdict = { head: string; spec: "pass" | "fail"; quality: "pass" | "fail" }
 // red: earlier heads of the pull request whose checks failed; rebased: failing heads a force push replaced;
 // forged: the revisions of a verdict comment an outside author posted before the real one; repo and base default to
 // acme/app and the integration branch; outsider: the pull request was opened by an author spp does not trust.
-type PrSpec = { n: number; state?: "OPEN" | "MERGED" | "CLOSED"; repo?: string; base?: string; head?: string; verdict?: Verdict; checks?: string; history?: Verdict[]; red?: string[]; rebased?: string[]; forged?: Verdict[]; outsider?: boolean };
+type PrSpec = { n: number; state?: "OPEN" | "MERGED" | "CLOSED"; repo?: string; base?: string; head?: string; verdict?: Verdict; checks?: string; history?: Verdict[]; red?: string[]; rebased?: string[]; forged?: Verdict[]; outsider?: boolean; body?: string };
 type Spec = { n: number; closed?: boolean; labels?: string[]; assignees?: string[]; blockedBy?: number[]; pr?: PrSpec; worker?: string; files?: string[]; extraPrs?: PrSpec[] };
 type Opts = {
   branch?: string | null;
@@ -19,6 +19,7 @@ type Opts = {
   env?: Record<string, string>;
   epicState?: string;
   driver?: string;
+  fixes?: PrSpec[]; // open or merged pull requests into the integration branch that close no Sub-issue
 };
 type Action = { kind: string; tickets?: string[]; pr?: string; driver?: string; panel?: boolean; reason: string };
 
@@ -50,6 +51,7 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
     repository: { nameWithOwner: p.repo ?? "acme/app" },
     author: { login: p.outsider ? "mallory" : "maint" },
     authorAssociation: p.outsider ? "NONE" : "OWNER",
+    body: p.body ?? "",
     comments: { nodes: [...(p.forged ? [by(verdictBody(p.forged.at(-1)!), true)] : []), ...(p.verdict ? [by(verdictBody(p.verdict))] : [])] },
   });
   const node = (t: Spec) => ({
@@ -87,15 +89,13 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
       },
     },
   };
-  for (const t of tickets) {
-    gh[`issue view ${ISSUE}${t.n} --json body`] = { stdout: { body: ticketBody(t) } };
-    if (!t.pr) continue;
-    gh[`pr checks ${PULL}${t.pr.n} --json name,bucket`] = { stdout: [{ name: "test", bucket: t.pr.checks ?? "pass" }] };
-    const history = t.pr.history ?? (t.pr.verdict ? [t.pr.verdict] : []);
+  const stubs = (p: PrSpec) => {
+    gh[`pr checks ${PULL}${p.n} --json name,bucket`] = { stdout: [{ name: "test", bucket: p.checks ?? "pass" }] };
+    const history = p.history ?? (p.verdict ? [p.verdict] : []);
     const [current, ...older] = [...history].reverse();
     const revisions = (vs: Verdict[]) => ({ userContentEdits: { nodes: vs.map((v) => ({ diff: verdictBody(v) })) } });
-    const forged = t.pr.forged ? [{ ...by(verdictBody(t.pr.forged.at(-1)!), true), ...revisions([...t.pr.forged].reverse()) }] : [];
-    gh[`api graphql -f query=VerdictHistory -f owner=acme -f repo=app -F number=${t.pr.n}`] = {
+    const forged = p.forged ? [{ ...by(verdictBody(p.forged.at(-1)!), true), ...revisions([...p.forged].reverse()) }] : [];
+    gh[`api graphql -f query=VerdictHistory -f owner=acme -f repo=app -F number=${p.n}`] = {
       stdout: {
         data: {
           viewer: { login: "maint" },
@@ -104,22 +104,28 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
               comments: { nodes: [...forged, ...(current ? [{ ...by(verdictBody(current)), ...revisions([current, ...older]) }] : [])] },
               commits: {
                 nodes: [
-                  ...(t.pr.red ?? []).map((oid) => ({ commit: { oid, statusCheckRollup: { state: "FAILURE" } } })),
-                  { commit: { oid: t.pr.head ?? HEAD, statusCheckRollup: { state: t.pr.checks === "fail" ? "FAILURE" : "SUCCESS" } } },
+                  ...(p.red ?? []).map((oid) => ({ commit: { oid, statusCheckRollup: { state: "FAILURE" } } })),
+                  { commit: { oid: p.head ?? HEAD, statusCheckRollup: { state: p.checks === "fail" ? "FAILURE" : "SUCCESS" } } },
                 ],
               },
-              timelineItems: { nodes: (t.pr.rebased ?? []).map((oid) => ({ beforeCommit: { oid, statusCheckRollup: { state: "FAILURE" } } })) },
+              timelineItems: { nodes: (p.rebased ?? []).map((oid) => ({ beforeCommit: { oid, statusCheckRollup: { state: "FAILURE" } } })) },
             },
           },
         },
       },
     };
+  };
+  for (const t of tickets) {
+    gh[`issue view ${ISSUE}${t.n} --json body`] = { stdout: { body: ticketBody(t) } };
+    if (t.pr) stubs(t.pr);
   }
+  for (const f of o.fixes ?? []) if (f.body) stubs(f); // an unattributed fix (no body) is never read, and an unstubbed read fails the case
   if (branch) {
     const m = o.mainPr;
     const prs = m ? [{ number: 900, url: PULL + 900, state: m.state, additions: m.lines - 10, deletions: 10 }] : [];
     gh[`pr list -R acme/app --head ${branch} --state all --json number,url,state,additions,deletions`] = { stdout: prs };
   }
+  gh["api graphql -f query=PullRequests *"] = { stdout: { data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: (o.fixes ?? []).map(pr) } } } } };
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
   if (o.agents) writeFileSync(join(dir, "agents.json"), JSON.stringify({ "agents --json --all": { stdout: o.agents } }));
   const routing = ["<!-- sdd-routing -->", "- Mode: org", "- Laws: CLAUDE.md", ...(o.panel ? [`- Panel: ${o.panel}`] : []), "<!-- /sdd-routing -->"];
@@ -480,6 +486,92 @@ describe("one set of pull requests for every reader", () => {
     const tickets: Spec[] = [{ n: 11, pr: { n: 111, state: "MERGED", base: "feat/epic" } }, { n: 12, blockedBy: [11] }];
     const s = await status(tickets, { branch: null });
     assert.equal(s.find((t) => t.number === 12)?.state, "blocked");
+  });
+});
+
+describe("fix pull requests", () => {
+  const FIX = (n: number, extra: Partial<PrSpec> = {}, ticket = 12): PrSpec => ({ n, body: `Refs #${ticket}`, ...extra });
+  const landed = [merged(12)];
+  const WHY = (a: Action) => a.reason;
+
+  test("every ticket landed, one open attributed fix, checks pass, no verdict: gate for it and no main-gate", async () => {
+    const actions = await next(landed, { fixes: [FIX(77)], mainPr: null });
+    assert.deepEqual(actions, [{ kind: "gate", tickets: ["12"], pr: PULL + 77, reason: actions[0].reason }]);
+  });
+
+  test("a trusted passing verdict on its head: merge", async () => {
+    const actions = await next(landed, { fixes: [FIX(77, { verdict: PASS })] });
+    assert.deepEqual(actions.map((a) => [a.kind, a.pr, a.tickets]), [["merge", PULL + 77, ["12"]]]);
+  });
+
+  test("a passing verdict on an older head leaves it ungated: gate", async () => {
+    const actions = await next(landed, { fixes: [FIX(77, { verdict: { ...PASS, head: "c".repeat(40) } })] });
+    assert.deepEqual(kinds(actions), ["gate"]);
+  });
+
+  test("a failing verdict on an older head leaves it ungated: gate", async () => {
+    const actions = await next(landed, { fixes: [FIX(77, { verdict: { ...FAIL, head: "c".repeat(40) } })] });
+    assert.deepEqual(kinds(actions), ["gate"]);
+  });
+
+  test("its head failed its gate once: fix", async () => {
+    const actions = await next(landed, { fixes: [FIX(77, { verdict: FAIL })] });
+    assert.deepEqual(actions.map((a) => [a.kind, a.pr]), [["fix", PULL + 77]]);
+  });
+
+  test("failing checks: fix, naming the failing runs", async () => {
+    const actions = await next(landed, { fixes: [FIX(77, { checks: "fail" })] });
+    assert.deepEqual(kinds(actions), ["fix"]);
+    assert.match(WHY(actions[0]), /checks fail: test/);
+  });
+
+  test("two failed heads: hand-back naming the pull request, ending with the person's decision", async () => {
+    const actions = await next(landed, { fixes: [FIX(77, { verdict: FAIL, red: ["b".repeat(40)] })] });
+    assert.deepEqual(actions.map((a) => [a.kind, a.pr]), [["hand-back", PULL + 77]]);
+    assert.match(WHY(actions[0]), /#77/);
+    assert.match(WHY(actions[0]), /the decision is a person's, and no Sub-issue is relabelled$/);
+  });
+
+  test("checks pending: wait", async () => {
+    const actions = await next(landed, { fixes: [FIX(77, { checks: "pending" })] });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(WHY(actions[0]), /#77 checks pending/);
+  });
+
+  test("its Sub-issue's worker still running: wait, not gate", async () => {
+    const agents = [{ name: "t-12", state: "working" }];
+    assert.deepEqual(kinds(await next(landed, { fixes: [FIX(77)], agents })), ["wait"]);
+  });
+
+  test("an unattributed fix with nothing else in flight: stuck, naming it, Refs and the other way out", async () => {
+    const actions = await next(landed, { fixes: [{ n: 79 }] });
+    assert.deepEqual(kinds(actions), ["stuck"]);
+    assert.match(WHY(actions[0]), /#79/);
+    assert.match(WHY(actions[0]), /Refs #<Sub-issue>/);
+    assert.match(WHY(actions[0]), /close it/);
+    assert.doesNotMatch(WHY(actions[0]), /Closes/);
+  });
+
+  test("an unattributed fix beside a gated one: the gate action, the unattributed one named in its reason", async () => {
+    const actions = await next(landed, { fixes: [FIX(77), { n: 79 }] });
+    assert.deepEqual(kinds(actions), ["gate"]);
+    assert.match(WHY(actions[0]), /#79/);
+  });
+
+  test("an unattributed fix beside work in flight: wait lists it", async () => {
+    const actions = await next([{ n: 13, labels: [...READY, "claimed"] }], { fixes: [{ n: 79 }] });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(WHY(actions[0]), /#79/);
+  });
+
+  test("every ticket landed, one merged fix and no open one: main-gate", async () => {
+    const actions = await next(landed, { fixes: [FIX(77, { state: "MERGED" })], mainPr: null });
+    assert.deepEqual(kinds(actions), ["main-gate"]);
+  });
+
+  test("the pull request to the base branch merged while a fix is open: close, as before", async () => {
+    const actions = await next(landed, { fixes: [FIX(77)], mainPr: { state: "MERGED", lines: 50 } });
+    assert.deepEqual(kinds(actions), ["close"]);
   });
 });
 

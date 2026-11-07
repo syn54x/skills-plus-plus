@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { derive, type EpicState, refIn, type Ticket } from "../src/derive.ts";
-import { parseSnapshot } from "../src/snapshot.ts";
+import { derive, type EpicState, type Fix, refIn, type Ticket } from "../src/derive.ts";
+import { fixRepos, parseSnapshot, pullRequestsArgs, readPullRequests, type Snapshot, withPullRequests } from "../src/snapshot.ts";
 import { assertCase, runCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -44,7 +44,7 @@ describe("happy path", () => {
   test("an open linked pull request makes a ticket pr-open with its number and head sha", async () => {
     const t = ticket(await state("states"), 403);
     assert.equal(t.state, "pr-open");
-    assert.deepEqual(t.pr, { number: 503, url: "https://github.com/acme/app/pull/503", state: "OPEN", repo: "acme/app", base: "feat/epic", headSha: "abc1234def", trusted: true });
+    assert.deepEqual(t.pr, { number: 503, url: "https://github.com/acme/app/pull/503", state: "OPEN", repo: "acme/app", base: "feat/epic", headSha: "abc1234def", trusted: true, refs: null });
   });
 
   test("a closed ticket whose linked pull request merged is merged", async () => {
@@ -94,6 +94,119 @@ describe("edge cases", () => {
     const t = ticket(await state("states"), 409);
     assert.equal(t.state, "ready");
     assert.deepEqual(t.blockedBy, []);
+  });
+});
+
+// ADR 0011: a fix is found by its shape, a trusted pull request into the integration branch that closes no Sub-issue.
+describe("fixes", () => {
+  // The fixes fixture: Epic 197 on feat/epic with #301 closed by PR 501, #302 open and #303 in acme/api, which the plan
+  // also names as `Acme/API`; eight pull requests are listed in acme/app and one in acme/api.
+  const API = "api graphql -f query=PullRequests -f owner=acme -f repo=api -f branch=feat/epic";
+  async function fixesCase(patch: Record<string, unknown> = {}, code = 0) {
+    const dir = mkdtempSync(join(tmpdir(), "spp-fixes-"));
+    cpSync(fixture("fixes"), dir, { recursive: true });
+    writeFileSync(join(dir, "args"), "197\n--json\n");
+    const gh = JSON.parse(readFileSync(join(dir, "gh.json"), "utf8")) as Record<string, unknown>;
+    writeFileSync(join(dir, "gh.json"), JSON.stringify({ ...gh, ...patch }));
+    const r = await runCase("status", dir);
+    assert.equal(r.code, code, r.stderr);
+    return r;
+  }
+  const fixes = async () => (await fixesCase()).json as EpicState;
+  const fix = (s: EpicState, n: number): Fix => {
+    const f = s.fixes.find((f) => f.number === n);
+    assert.ok(f, `fix ${n} missing`);
+    return f;
+  };
+
+  test("a trusted open pull request into the integration branch whose body opens Refs #302 is an open fix on #302", async () => {
+    assert.deepEqual(fix(await fixes(), 77), { number: 77, url: "https://github.com/acme/app/pull/77", repo: "acme/app", state: "OPEN", base: "feat/epic", headSha: "77".repeat(10), ticket: `${ISSUE}302`, gate: "pr-open" });
+  });
+
+  test("a merged one, its Refs line an issue URL, is a merged fix on #302", async () => {
+    const f = fix(await fixes(), 78);
+    assert.equal(f.state, "MERGED");
+    assert.equal(f.ticket, `${ISSUE}302`);
+  });
+
+  test("a fix whose body has no Refs line is unattributed", async () => {
+    assert.equal(fix(await fixes(), 79).ticket, null);
+  });
+
+  test("a closed unmerged one, an untrusted author's, one into main and a Sub-issue's own pull request are not fixes", async () => {
+    assert.deepEqual((await fixes()).fixes.map((f) => f.number), [77, 78, 79, 83, 90]);
+  });
+
+  // F31 on #317: a Refs line naming an issue outside the Epic attributes nothing.
+  test("a fix whose Refs line names an issue that is no Sub-issue is unattributed", async () => {
+    assert.equal(fix(await fixes(), 83).ticket, null);
+  });
+
+  // F10 and story 12 on #317: each repo of the Epic gets its own request, the Sub-issues' repos included, deduped
+  // with the plan's `repos` case-insensitively (acme/api is asked once).
+  test("a fix in a Sub-issue's repo is found through that repo's request and names its Sub-issue by URL", async () => {
+    const f = fix(await fixes(), 90);
+    assert.equal(f.repo, "acme/api");
+    assert.equal(f.ticket, "https://github.com/acme/api/issues/303");
+  });
+
+  // F11 on #317: one unreadable repo loses only its fixes.
+  test("a repo whose pull-request request answers not found is warned about on stderr and the rest of the state stands", async () => {
+    const r = await fixesCase({ [API]: { stderr: "GraphQL: Could not resolve to a Repository with the name 'acme/api'. (repository)\n", code: 1 } });
+    assert.deepEqual((r.json as EpicState).fixes.map((f) => f.number), [77, 78, 79, 83]);
+    assert.match(r.stderr, /acme\/api.*Could not resolve/);
+  });
+
+  // R2-F10 on #317: only a repo that is not there, or not readable, is skipped; a transient failure must not hide a fix
+  // from spp next, so it fails the snapshot as the snapshot request itself does.
+  test("a repo whose pull-request request fails for any other reason fails the command with gh's message", async () => {
+    const r = await fixesCase({ [API]: { stderr: "HTTP 502: Bad Gateway (https://api.github.com/graphql)\n", code: 1 } }, 1);
+    assert.match(r.stderr, /HTTP 502: Bad Gateway/);
+  });
+
+  // The gate on #333: a rate limit is a 403 too, and it is transient, so it must fail the command rather than hide a fix.
+  test("a repo whose pull-request request hits a 403 rate limit fails the command with gh's message", async () => {
+    const r = await fixesCase({ [API]: { stderr: "gh: You have exceeded a secondary rate limit. Please wait a few minutes before you try again. (HTTP 403)\n", code: 1 } }, 1);
+    assert.match(r.stderr, /secondary rate limit/);
+  });
+
+  // F13 on #317: the fix-fetch policy (branch, repos, dedupe) lives behind snapshot.ts; callers only run gh.
+  test("pullRequestsArgs gives one argument list per repo of the Epic and withPullRequests sets the answers", () => {
+    const issue = (repo: string, n: number) => ({ number: n, url: `https://github.com/${repo}/issues/${n}`, repo, title: "T", state: "OPEN" as const, labels: [], assignees: [], blockedBy: [], prs: [], progress: null });
+    const snapshot: Snapshot = { epic: { number: 1, url: `${ISSUE}1`, repo: "acme/app", title: "E" }, issues: [issue("acme/api", 2)], plan: { branch: "feat/x", repos: ["Acme/App", "acme/lib", "nope", 7] }, wave: null, pullRequests: [] };
+    const repoOf = (args: string[]) => args.filter((a) => /^(owner|repo)=/.test(a)).map((a) => a.slice(a.indexOf("=") + 1)).join("/");
+    const args = pullRequestsArgs(snapshot);
+    assert.deepEqual(args.map(repoOf), ["acme/app", "acme/api", "acme/lib"]);
+    assert.deepEqual(fixRepos(snapshot), ["acme/app", "acme/api", "acme/lib"]); // pairs with the lists by index
+    assert.ok(args.every((a) => a.includes("branch=feat/x")));
+    assert.deepEqual(pullRequestsArgs({ ...snapshot, plan: { branch: "" } }), []);
+    assert.deepEqual(pullRequestsArgs({ ...snapshot, plan: null }), []);
+    const pr = { number: 9, url: "https://github.com/acme/api/pull/9", state: "OPEN" as const, repo: "acme/api", base: "feat/x", headSha: "a".repeat(40), trusted: true, refs: null };
+    const filled = withPullRequests(snapshot, [[], [pr], []]);
+    assert.deepEqual(filled.pullRequests, [pr]);
+    assert.deepEqual(snapshot.pullRequests, []); // the input is not mutated
+  });
+
+  test("with no integration branch recorded, fixes is empty and no pull-request request is made", async () => {
+    // The gh stub fails a read it has no answer for, and layers/gh.json answers only the snapshot query.
+    assert.deepEqual((await state("layers")).fixes, []);
+  });
+
+  test("the text view prints a Fixes group after the Layers and the open count on the header line", async () => {
+    await assertCase("status", fixture("fixes")); // expected.txt
+  });
+
+  test("the text view with no fixes prints neither the Fixes heading nor the count", async () => {
+    const r = await assertCase("status", fixture("text"));
+    assert.doesNotMatch(r.stdout, /Fixes|fixes open/);
+  });
+
+  test("readPullRequests takes the first Refs line, in the owner/repo#N form too, as the pull request's issue URL", () => {
+    const node = (number: number, body: string) => ({ number, url: `https://github.com/acme/app/pull/${number}`, state: "OPEN", headRefOid: "a".repeat(40), baseRefName: "feat/epic", repository: { nameWithOwner: "acme/app" }, author: { login: "maint" }, authorAssociation: "OWNER", body });
+    const stdout = JSON.stringify({ data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: [node(1, "See #5.\n\nRefs: acme/app#302 and Refs #303"), node(2, "refs #12")] } } } });
+    const prs = readPullRequests({ exitCode: 0, stdout, stderr: "" });
+    assert.deepEqual(prs.map((p) => p.refs), [`${ISSUE}302`, `${ISSUE}12`]);
+    assert.throws(() => readPullRequests({ exitCode: 1, stdout: "", stderr: "HTTP 502: Bad Gateway\n" }), /HTTP 502/);
   });
 });
 

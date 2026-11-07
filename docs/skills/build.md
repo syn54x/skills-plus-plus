@@ -29,7 +29,7 @@ For work too small to file, skip spp and edit directly. `ask-spp` routes between
 | `branch` | The integration branch is cut from the base and recorded on the plan comment. |
 | `dispatch` | A Wave of ready, non-overlapping Sub-issues starts, one worker each. You approve the first Wave only. |
 | `gate` | A fresh reviewer reads the pull request and returns the spec and quality verdicts. |
-| `fix` | A failed gate goes back to the same worker for one fix round. |
+| `fix` | A failed gate, on a slice or a fix pull request, goes back to the same worker for one fix round. |
 | `hand-back` | The fix round is spent, so the issue returns to you with the open findings; or its worker stopped before opening a pull request (`worker lost`), and you are asked whether to hand it back or start a worker again (after `spp unclaim`, on a fresh branch). |
 | `merge` | A passing pull request merges once its blockers have. A conflict sends the worker back to rebase. |
 | `main-gate` | Every Sub-issue merged. `build` opens the Epic's pull request and gates it. |
@@ -62,6 +62,9 @@ While workers run, `build` prints one line per worker from `spp status` and the 
 
 **A worker said it needs a decision. What happens?**
 The worker hands the issue back and stops. If it is a missing fact, `build` supplies it and resumes the worker. If it is a design the Epic left open, `build` runs [grilling](grilling.md) with you, records a hard-to-reverse answer with [domain-modeling](domain-modeling.md), writes the decision into the Epic as a Spec delta, rewrites the affected Sub-issues, and starts the worker again on the amended issue.
+
+**How does a fix to a failed Epic gate get merged?**
+The worker opens it into the integration branch with `Refs #<Sub-issue>`. `build` then follows `spp next`: the fix is gated, sent back once, merged like a slice, or, after a second failed head, reported to you with its open findings (the closed Sub-issue is not relabelled), and `main-gate` comes up again only once no fix is open. `build` never merges a fix by hand.
 
 **Why does a failed pull request get only one fix round?**
 If a second head still fails, one round of fixing has not settled it, and more rounds mostly burn tokens. The issue goes back to you with its open findings, and the rest of the Epic keeps moving.

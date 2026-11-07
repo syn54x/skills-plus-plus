@@ -34,6 +34,10 @@ type Opts = {
   recheck?: "forged"; // the verdict comment spp merge re-reads is from an outside author
   epicMissing?: boolean; // the snapshot query finds no Epic issue: gh exits 1 and prints issue null
   waveFails?: boolean; // reading the wave comment fails, so recording the merge on it fails
+  fix?: { verdict?: "pass" | "outsider" | "none"; author?: string }; // a fix pull request 50 into feat/x instead of a slice
+  noParent?: true | number; // the issue the body names has no parent (true: #999; a number: that closing line's issue)
+  closedFails?: { issue: number; stderr: string }; // gh fails reading this issue's parent
+  otherEpic?: boolean; // #88 is a Sub-issue of a second Epic, acme/app#198, on branch feat/y
   foreign?: boolean; // #30 also has an open pull request in mallory/fork that says it closes it
 };
 
@@ -79,7 +83,7 @@ function sub(n: number, pr: number, prState: string, blockedBy: number[], spec =
 }
 
 function mergeCase(o: Opts = {}): string {
-  const pr = o.pr ?? 40;
+  const pr = (o.fix ? 50 : o.pr ?? 40) as 40 | 41;
   const url = `${REPO}/pull/${pr}`;
   const dir = mkdtempSync(join(tmpdir(), "spp-merge-"));
   writeFileSync(join(dir, "args"), `${pr}\n--json\n`);
@@ -99,8 +103,8 @@ function mergeCase(o: Opts = {}): string {
       },
     },
   };
-  const body = o.body ?? `Closes #${TICKET[pr]}\n\n## Interfaces\n\nInterfaces changed: none\n`;
-  const gh = {
+  const body = o.body ?? (o.fix ? `Refs #30\n\nA fix.\n` : `Closes #${TICKET[pr]}\n\n## Interfaces\n\nInterfaces changed: none\n`);
+  const gh: Record<string, unknown> = {
     [`pr view ${pr} --json number,url,state,body,baseRefName,mergeable`]: {
       stdout: { number: pr, url, state: "OPEN", body, baseRefName: o.base ?? "feat/x", mergeable: o.mergeable ?? "MERGEABLE" },
     },
@@ -114,8 +118,29 @@ function mergeCase(o: Opts = {}): string {
       stdout: JSON.stringify([99, verdict(pr, pr === 40 ? o.spec : "pass"), ...(o.recheck ? ["mallory", "NONE"] : ["maint", "OWNER"])]) + "\n",
     },
     [VIEWER]: { stdout: "maint\n" },
+    "api graphql -f query=PullRequests *": { stdout: { data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: [] } } } } },
     ...(o.mergeAnswer && { [`pr merge ${url} --squash --match-head-commit ${HEAD[pr]}`]: o.mergeAnswer }),
   };
+  if (o.fix) {
+    HEAD[50] = "6".repeat(40);
+    const v = o.fix.verdict ?? "pass";
+    const comments = v === "none" ? [] : [by(`<!-- spp-verdict -->\n${trailer({ ticket: "30", head: HEAD[50], spec: "pass", quality: "pass" })}\n`, v === "outsider")];
+    const fixPr = { ...prNode(50, "OPEN", "acme/app", body, comments), baseRefName: o.base ?? "feat/x" };
+    if (o.fix.author) Object.assign(fixPr, { author: { login: o.fix.author }, authorAssociation: "NONE" });
+    gh["api graphql -f query=PullRequests *"] = { stdout: { data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: o.base && o.base !== "feat/x" ? [] : [fixPr] } } } } };
+    gh[`api repos/acme/app/issues/50/comments --paginate --jq ${JQ}`] = { stdout: comments.length ? JSON.stringify([99, comments[0].body, comments[0].author.login, comments[0].authorAssociation]) + "\n" : "" };
+    gh[`pr view 50 --json number,url,state,body,baseRefName,mergeable`] = { stdout: { number: 50, url: `${REPO}/pull/50`, state: "OPEN", body, baseRefName: o.base ?? "feat/x", mergeable: o.mergeable ?? "MERGEABLE" } };
+    gh[`issue view ${REPO}/issues/30 --json parent`] = { stdout: { parent: { url: `${REPO}/issues/197` } } };
+    if (o.noParent) gh[`issue view ${REPO}/issues/${o.noParent === true ? 999 : o.noParent} --json parent`] = { stdout: { parent: null } };
+    gh[`issue view ${REPO}/issues/31 --json parent`] = { stdout: { parent: { url: `${REPO}/issues/197` } } };
+    gh[`pr checks ${REPO}/pull/50 --json name,bucket`] = { stdout: o.checks ?? [{ name: "ci", bucket: "pass" }] };
+  }
+  if (o.otherEpic) {
+    const epicB = { ...snapshot.data.repository.issue, number: 198, url: `${REPO}/issues/198`, comments: { nodes: [by(`<!-- sdd-plan -->\n${trailer({ branch: "feat/y" })}\n`)] }, subIssues: { nodes: [sub(88, 77, "OPEN", [])] } };
+    gh["api graphql -f query=Snapshot -f owner=acme -f repo=app -F number=198"] = { stdout: { data: { viewer: { login: "maint" }, repository: { issue: epicB } } } };
+    gh[`issue view ${REPO}/issues/88 --json parent`] = { stdout: { parent: { url: `${REPO}/issues/198` } } };
+  }
+  if (o.closedFails) gh[`issue view ${REPO}/issues/${o.closedFails.issue} --json parent`] = { stderr: o.closedFails.stderr, code: 1 };
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
   return dir;
 }
@@ -155,6 +180,84 @@ describe("happy path", () => {
   test("a Routing block Merge line picks the merge method", async () => {
     const r = await merge({ routing: "- Mode: org\n- Merge: rebase" });
     assert.deepEqual(r.writes[0].argv, ["pr", "merge", `${REPO}/pull/40`, "--rebase", "--match-head-commit", HEAD[40]]);
+  });
+});
+
+describe("fix pull request", () => {
+  const FIX = { fix: {} };
+  const FIX_URL = `${REPO}/pull/50`;
+
+  test("spp merge 50 on a Refs #30 fix with a trusted passing verdict merges once pinned to its head and writes no wave", async () => {
+    const r = await merge(FIX);
+    assert.deepEqual(r.out, { merged: true });
+    assert.deepEqual(r.writes.map((w) => w.argv), [["pr", "merge", FIX_URL, "--squash", "--match-head-commit", "6".repeat(40)]]);
+  });
+
+  test("no verdict comment refuses with no passing verdict from a trusted author", async () => {
+    await refused({ fix: { verdict: "none" } }, /^no passing verdict from a trusted author on #50$/);
+  });
+
+  test("a verdict by an author with no association refuses with the same reason", async () => {
+    await refused({ fix: { verdict: "outsider" } }, /^no passing verdict from a trusted author on #50$/);
+  });
+
+  test("a fix based on main refuses naming the integration branch", async () => {
+    await refused({ fix: {}, base: "main" }, /^base is main, not the integration branch feat\/x$/);
+  });
+
+  test("failing checks refuse naming the run", async () => {
+    await refused({ fix: {}, checks: [{ name: "lint", bucket: "fail" }] }, /^checks failing: lint$/);
+  });
+
+  test("a conflict exits 3 with rebase needed", async () => {
+    const r = await merge({ fix: {}, mergeable: "CONFLICTING" }, 3);
+    assert.deepEqual(r.out, { merged: false, reason: "rebase needed" });
+  });
+
+  test("an untrusted author's pull request is not a fix and refuses", async () => {
+    await refused({ fix: { author: "mallory" } }, /^#50 is not a fix of #197$/);
+  });
+
+  test("a Refs line naming an issue with no parent refuses with has no epic", async () => {
+    await refused({ fix: {}, body: "Refs #999\n", noParent: true }, /^#999 has no epic$/);
+  });
+
+  test("a Refs line plus a closing line for an issue outside any Epic still merges as a fix", async () => {
+    const r = await merge({ fix: {}, body: "Refs #30\n\nFixes #303\n", noParent: 303 });
+    assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
+  });
+
+  test("a body that only closes an issue outside any Epic refuses with its own reason", async () => {
+    await refused({ fix: {}, body: "Fixes #303\n", noParent: 303 }, /^closes no Sub-issue of an Epic and refs no Sub-issue$/);
+  });
+
+  test("a closed issue gh cannot resolve falls through to the fix path", async () => {
+    const closedFails = { issue: 303, stderr: "GraphQL: Could not resolve to an Issue with the number of 303." };
+    const r = await merge({ fix: {}, body: "Refs #30\n\nFixes #303\n", closedFails });
+    assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
+  });
+
+  test("a transient gh failure on the closed issue fails with gh's message, for a Refs body and a slice body", async () => {
+    const stderr = "HTTP 502: Bad Gateway";
+    for (const o of [{ fix: {}, body: "Refs #30\n\nFixes #303\n", closedFails: { issue: 303, stderr } }, { closedFails: { issue: 30, stderr } }] as Opts[]) {
+      const r = await runCase("merge", mergeCase(o));
+      assert.equal(r.code, 1);
+      assert.match(r.stderr, /HTTP 502: Bad Gateway/);
+      assert.deepEqual(r.writes, []);
+    }
+  });
+
+  test("a fix that Refs #30 and says Fixes #88, a Sub-issue of another Epic on another branch, merges as a fix", async () => {
+    const r = await merge({ fix: {}, body: "Refs #30\n\nFixes #88\n", otherEpic: true });
+    assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
+  });
+
+  test("a same-Epic pull request that closes #30 but is not its own keeps the slice refusal", async () => {
+    await refused({ fix: {}, body: "Closes #30\n" }, /^gate not passed: #30 is gate-pass$/);
+  });
+
+  test("a body with neither a closing line nor Refs refuses with closes no issue and refs no Sub-issue", async () => {
+    await refused({ fix: {}, body: "Just a change\n" }, /^closes no issue and refs no Sub-issue$/);
   });
 });
 
@@ -257,7 +360,7 @@ describe("integration", () => {
       ...{ claimed: false, assignees: [], labels: ["ready-for-agent"], pr: null, worker: null, note: null },
     };
     const counts = { blocked: 0, ready: 1, claimed: 0, "pr-open": 0, "gate-pass": 0, "gate-fail": 0, merged: 0, "handed-back": 0, "not-agent": 0 };
-    const state: EpicState = { epic: { number: 197, url: EPIC, repo: "acme/app", title: "Epic", branch: "feat/x", driver: null }, tickets: [ticket], layers: [[TICKET_URL]], cycle: [], counts };
+    const state: EpicState = { epic: { number: 197, url: EPIC, repo: "acme/app", title: "Epic", branch: "feat/x", driver: null }, tickets: [ticket], layers: [[TICKET_URL]], cycle: [], counts, fixes: [] };
     const wave = { wave: ["acme/api#7"], held: [] };
     const [dispatch] = planNext({ state, panel: { tickets: 5, lines: 1000, sizeL: true }, driver: "bg", sessions: [], wave, checks: {}, failedHeads: {}, mainPr: null });
     assert.deepEqual(dispatch.tickets, [TICKET_URL]);
@@ -292,6 +395,7 @@ describe("integration", () => {
       [`pr checks ${PR_URL} --json name,bucket`]: { stdout: [{ name: "ci", bucket: "pass" }] },
       [`api repos/acme/api/issues/50/comments --paginate --jq ${JQ}`]: { stdout: row(99, VERDICT) },
       [`api repos/acme/app/issues/197/comments --paginate --jq ${JQ}`]: { stdout: row(88, waveBody) },
+      "api graphql -f query=PullRequests *": { stdout: { data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: [] } } } } },
     };
     writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
     const r = await runCase("merge", dir);

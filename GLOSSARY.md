@@ -120,7 +120,7 @@ _Avoid_: status comment, sticky comment
 A one-line message a worker posts with `spp note` at a milestone (claimed, first red test, green, Verify passed or failed, pull request open, blocked and why). Notes live in a local log; milestone notes are mirrored into the progress comment.
 
 **Epic board**:
-The view-only pane, opened with `/epic-board`, that shows every **Sub-issue** of an **Epic** grouped by **Wave**, with its state, its latest **Note** and its worker. The pipeline runs the same without it; `spp status` prints the same picture anywhere.
+The view-only pane, opened with `/epic-board`, that shows every **Sub-issue** of an **Epic** grouped by **Wave**, with its state, its latest **Note** and its worker, and, after the Waves, the Epic's Fix pull requests with the open count. The pipeline runs the same without it; `spp status` prints the same picture anywhere.
 
 ### Reviewing
 

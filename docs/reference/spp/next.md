@@ -109,7 +109,7 @@ One next action of the build.
 | Property | Type | Description |
 | ------ | ------ | ------ |
 | <a id="property-kind"></a> `kind` | [`ActionKind`](#actionkind) | What to do. |
-| <a id="property-tickets"></a> `tickets?` | `string`[] | The tickets it is about, for `dispatch`, `gate`, `fix`, `hand-back` and `merge`. |
+| <a id="property-tickets"></a> `tickets?` | `string`[] | The tickets it is about, for `dispatch`, `gate`, `fix`, `hand-back` and `merge`; a Fix pull request's is its Sub-issue, when attributed. |
 | <a id="property-pr"></a> `pr?` | `string` | The pull request URL it is about. |
 | <a id="property-driver"></a> `driver?` | [`Driver`](#driver) | How to start the workers, on `dispatch`. |
 | <a id="property-panel"></a> `panel?` | `boolean` | On `main-gate`: whether the Epic is large enough for the review panel. |

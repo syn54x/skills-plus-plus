@@ -370,5 +370,19 @@
         }
       }
     }
+  },
+  "api graphql -f query=PullRequests *": {
+    "stdout": {
+      "data": {
+        "viewer": {
+          "login": "maint"
+        },
+        "repository": {
+          "pullRequests": {
+            "nodes": []
+          }
+        }
+      }
+    }
   }
 }

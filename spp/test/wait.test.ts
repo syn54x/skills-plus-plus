@@ -7,6 +7,7 @@ import { runCase } from "./harness.ts";
 
 const ISSUE = "https://github.com/acme/app/issues/";
 const SNAPSHOT = "api graphql -f query=Snapshot -F owner={owner} -F repo={repo} -F number=197";
+const PULL_REQUESTS = "api graphql -f query=PullRequests -f owner=acme -f repo=app -f branch=feat/epic";
 const progress = `<!-- sdd-progress -->\n<!-- sdd-data: ${Buffer.from(JSON.stringify({ worker: "t-12" })).toString("base64")} -->`;
 const plan = `<!-- sdd-plan -->\n<!-- sdd-data: ${Buffer.from(JSON.stringify({ branch: "feat/epic" })).toString("base64")} -->`;
 
@@ -47,12 +48,22 @@ const snapshot = (pr: boolean | "MERGED", assignee?: string) => ({
   },
 });
 
+// The integration branch's pull-request list: one fix pull request in `state` at `head`, with the gate's passing
+// verdict on that head when `verdict` is set, or none.
+const fixes = (state?: string, head = "b".repeat(40), verdict = false) => {
+  const trailer = `<!-- spp-verdict -->\n<!-- sdd-data: ${Buffer.from(JSON.stringify({ ticket: "12", head, spec: "pass", quality: "pass" })).toString("base64")} -->`;
+  const comments = { nodes: verdict ? [{ body: trailer, author: { login: "maint" }, authorAssociation: "OWNER" }] : [] };
+  return {
+    stdout: { data: { repository: { pullRequests: { nodes: state ? [{ number: 77, url: "https://github.com/acme/app/pull/77", state, headRefOid: head, baseRefName: "feat/epic", repository: { nameWithOwner: "acme/app" }, author: { login: "maint" }, authorAssociation: "OWNER", body: "Refs #12", comments }] : [] } } } },
+  };
+};
+
 const session = (state: string) => ({ stdout: [{ name: "t-12", kind: "background", state }, { name: "other", kind: "background", state: "done" }] });
 
-// `snapshots` and `sessions` are served one per poll, the last repeating.
-function scratch(snapshots: unknown[], sessions: unknown[]): string {
+// `snapshots`, `pullRequests` and `sessions` are served one per poll, the last repeating.
+function scratch(snapshots: unknown[], sessions: unknown[], pullRequests: unknown[] = [fixes()]): string {
   const dir = mkdtempSync(join(tmpdir(), "spp-wait-"));
-  writeFileSync(join(dir, "gh.json"), JSON.stringify({ [SNAPSHOT]: snapshots }));
+  writeFileSync(join(dir, "gh.json"), JSON.stringify({ [SNAPSHOT]: snapshots, [PULL_REQUESTS]: pullRequests }));
   writeFileSync(join(dir, "agents.json"), JSON.stringify({ "agents --json --all": sessions }));
   writeFileSync(join(dir, "args"), "197\n--interval\n0\n");
   return dir;
@@ -70,6 +81,32 @@ describe("happy path", () => {
     const r = await runCase("wait", scratch([snapshot(false), snapshot(false), snapshot(true)], [session("working")]));
     assert.equal(r.code, 0, r.stderr);
     assert.equal(r.stdout, "#12 claimed -> pr-open\n");
+  });
+
+  test("a fix pull request open on the first poll and merged on the second exits 0 printing OPEN -> MERGED", async () => {
+    const dir = scratch([snapshot(false)], [session("working")], [fixes("OPEN"), fixes("MERGED")]);
+    writeFileSync(join(dir, "args"), "197\n--interval\n0\n--timeout\n5\n");
+    const r = await runCase("wait", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "#77 OPEN -> MERGED\n");
+  });
+
+  // Story 13 on #317: a fix round pushes a new head, and the gate's verdict then lands on it; both wake the wait.
+  test("a fix pull request whose head moved between polls exits 0 printing OPEN -> OPEN (new head)", async () => {
+    const dir = scratch([snapshot(false)], [session("working")], [fixes("OPEN"), fixes("OPEN", "c".repeat(40))]);
+    writeFileSync(join(dir, "args"), "197\n--interval\n0\n--timeout\n5\n");
+    const r = await runCase("wait", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "#77 OPEN -> OPEN (new head)\n");
+  });
+
+  // R2-F8 on #317: the gate's verdict landing on the fix's current head wakes the wait too.
+  test("a fix pull request that gets a passing verdict on its head between polls exits 0 printing OPEN -> OPEN (gate-pass)", async () => {
+    const dir = scratch([snapshot(false)], [session("working")], [fixes("OPEN"), fixes("OPEN", "b".repeat(40), true)]);
+    writeFileSync(join(dir, "args"), "197\n--interval\n0\n--timeout\n5\n");
+    const r = await runCase("wait", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "#77 OPEN -> OPEN (gate-pass)\n");
   });
 });
 
