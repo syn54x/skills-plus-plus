@@ -106,6 +106,33 @@ function snapshot(specs: Spec[], waves: { n: number; tickets: string[] }[] = [],
   })
 }
 
+// The pull requests into the integration branch as the pull-request request returns them: a fix closes no Sub-issue.
+function pullRequests(fixes: { n: number; state?: 'OPEN' | 'MERGED'; refs?: number }[]) {
+  return JSON.stringify({
+    data: {
+      viewer: { login: 'maint' },
+      repository: {
+        pullRequests: {
+          nodes: fixes.map(f => ({
+            number: f.n,
+            url: `${URL}/pull/${f.n}`,
+            body: f.refs ? `Fix a thing\n\nRefs #${f.refs}` : 'Fix a thing',
+            state: f.state ?? 'OPEN',
+            headRefOid: `fix${f.n}def0123`,
+            baseRefName: BRANCH,
+            repository: { nameWithOwner: REPO },
+            author: { login: 'maint' },
+            authorAssociation: 'OWNER',
+            comments: { nodes: [] },
+          })),
+        },
+      },
+    },
+  })
+}
+
+const FIXES = pullRequests([{ n: 901, refs: 201 }, { n: 902, state: 'MERGED' }])
+
 type Host = {
   gh?: { exitCode: number; stdout: string; stderr?: string }
   ghByEpic?: Record<number, string> // the snapshot gh answers for each Epic number, in place of `gh`
@@ -116,6 +143,7 @@ type Host = {
   agents?: { id: string; description: string }[]
   branch?: string // the checkout's current branch
   parent?: string // the parent URL `gh issue view` answers for a worker branch's issue
+  prs?: { exitCode: number; stdout: string; stderr?: string } // the pull-request request's answer; none by default
   epics?: object[] // the open issues with Sub-issues the epics query answers
 }
 
@@ -144,6 +172,10 @@ function host(on: On, h: Host) {
     if (cmd === 'gh' && args[0] === 'issue') return ok((h.parent ?? '') + '\n')
     if (cmd === 'gh' && args.some(a => a.includes('query Epics'))) {
       return ok(JSON.stringify({ data: { viewer: { login: 'maint' }, repository: { issues: { nodes: h.epics ?? [] } } } }))
+    }
+    if (cmd === 'gh' && args.some(a => a.includes('query PullRequests'))) {
+      const prs = h.prs ?? { exitCode: 0, stdout: pullRequests([]) }
+      return { value: { stderr: '', isStdoutTruncated: false, isStderrTruncated: false, ...prs } }
     }
     if (cmd === 'gh') {
       if (h.ghDelayMs) await clock.sleep(h.ghDelayMs)
@@ -327,7 +359,7 @@ test('notes are read from the local notes log, with no spp call', async ($, on) 
   expect(await texts(ui)).toContain('tests green, 1m ago')
   await ui.unmount()
   expect(seen.argv.filter(a => a[0]?.endsWith('/bin/spp'))).toEqual([])
-  expect(seen.argv.filter(a => a[0] === 'gh')).toHaveLength(1)
+  expect(seen.argv.filter(a => a[0] === 'gh')).toHaveLength(2)
 })
 
 // F8 on #267: a refresh asked for while one is in flight is skipped, so the snapshot query never runs twice at once.
@@ -340,7 +372,7 @@ test('a second refresh while one is in flight makes no second gh call', async ($
   await seen.clock.advance(1000)
   await Promise.all([first, second])
 
-  expect(seen.argv.filter(a => a[0] === 'gh')).toHaveLength(1)
+  expect(seen.argv.filter(a => a[0] === 'gh')).toHaveLength(2)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect((await texts(ui)).filter(t => /^#201 /.test(t))).toHaveLength(1)
   await ui.unmount()
@@ -508,4 +540,60 @@ test('on feat/x the Epic recording it opens even with every Sub-issue completed,
   await $.command.run(NO_ARG)
   expect(seen.opened).toHaveLength(1)
   expect((await titleOf($)).some(t => t.startsWith('#197 '))).toBe(true)
+})
+
+test('an open attributed fix and a merged one draw a Fixes group with two rows and the open count in the header', async ($, on) => {
+  host(on, { gh: { exitCode: 0, stdout: snapshot([{ n: 201 }, { n: 202 }]) }, prs: { exitCode: 0, stdout: FIXES } })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  const all = await texts(ui)
+  const at = all.indexOf('Fixes')
+  expect(at).toBeGreaterThan(all.findIndex(t => t.startsWith('#202 ')))
+  expect(all.slice(at)).toEqual(expect.arrayContaining(['fix open', 'fix merged', '#901 Refs #201', '#902 unattributed']))
+  expect(all.filter(t => /^fix (open|merged)$/.test(t))).toHaveLength(2)
+  // Each chip sits on its own row: the open fix is #901, the merged one #902.
+  expect(all[all.indexOf('fix open') + 1]).toBe('#901 Refs #201')
+  expect(all[all.indexOf('fix merged') + 1]).toBe('#902 unattributed')
+  expect(all.find(t => t.startsWith('#197 '))).toBe('#197 Rebuild spp: 0/2 merged · 1 fixes open')
+  await ui.unmount()
+})
+
+test('the status line ends with the open fix count', async ($, on) => {
+  const seen = host(on, { gh: { exitCode: 0, stdout: snapshot([{ n: 201 }, { n: 202 }]) }, prs: { exitCode: 0, stdout: FIXES } })
+  await $.command.run(OPEN)
+
+  expect(seen.status.at(-1)).toBe('#197 0/2 merged · 1 fixes open')
+})
+
+test('pressing a fix row PR button copies the pull request URL', async ($, on) => {
+  const seen = host(on, { gh: { exitCode: 0, stdout: snapshot([{ n: 201 }]) }, prs: { exitCode: 0, stdout: FIXES } })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.press({ key: 'fix-pr-901' })
+  await ui.unmount()
+  expect(seen.copied).toEqual([`${URL}/pull/901`])
+})
+
+test('with no fixes the pane draws no Fixes group and no count', async ($, on) => {
+  const seen = host(on, { gh: { exitCode: 0, stdout: snapshot([{ n: 201 }]) } })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  const all = (await texts(ui)).join('\n')
+  expect(all).not.toContain('Fixes')
+  expect(all).not.toContain('fixes open')
+  expect(seen.status.at(-1)).toBe('#197 0/1 merged')
+  await ui.unmount()
+})
+
+test('a failing pull-request request keeps the tickets and names the failure', async ($, on) => {
+  host(on, { gh: { exitCode: 0, stdout: snapshot([{ n: 201 }]) }, prs: { exitCode: 1, stdout: '', stderr: 'HTTP 502: bad gateway' } })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect((await ui.find({ key: 'error' }))?.text).toBe('pull requests: HTTP 502: bad gateway')
+  expect((await texts(ui)).filter(t => /^#201 /.test(t))).toHaveLength(1)
+  await ui.unmount()
 })
