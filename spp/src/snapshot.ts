@@ -51,8 +51,8 @@ export type Snapshot = {
   plan: Record<string, unknown> | null; // the Epic's plan comment's data trailer; null without a readable one
   wave: Record<string, unknown> | null; // the Epic's wave comment's data trailer, the same way
   /**
-   * Every pull request into the Epic's integration branches, trusted or not, from `readPullRequests`: one request per
-   * repo after the snapshot. The parser leaves it empty; `fetchSnapshot` fills it. derive picks the fixes out.
+   * Every pull request into the Epic's integration branch, trusted or not, across the Epic's repos: the answers to
+   * {@link pullRequestsArgs}, set by {@link withPullRequests}. The parser leaves it empty. derive picks the fixes out.
    */
   pullRequests: Pr[];
 };
@@ -260,14 +260,32 @@ const PULL_REQUESTS_QUERY = `query PullRequests($owner: String!, $repo: String!,
 fragment pr on PullRequest { number url body state headRefOid baseRefName repository { nameWithOwner } author { login } authorAssociation comments(first: 30) { nodes { ...comment } } }
 fragment comment on IssueComment { body author { login } authorAssociation }`;
 
-/** gh's arguments for the pull requests into `branch` of `repo` (`owner/repo`), with the gh user for the trust boundary. */
-export function pullRequestsArgs(repo: string, branch: string): string[] {
-  const [owner, name] = repo.split("/");
-  return ["api", "graphql", "-f", `query=${PULL_REQUESTS_QUERY}`, "-f", `owner=${owner}`, "-f", `repo=${name}`, "-f", `branch=${branch}`];
+/**
+ * gh's argument lists for the pull requests into the Epic's integration branch, one per repo of the Epic: its own,
+ * each Sub-issue's and each the plan comment's `repos` names, lowercased and deduped, in that order. Empty when the
+ * plan records no branch, and a name that is not `owner/repo` gets no request. The gh user comes back in each
+ * answer for the trust boundary (ADR 0009). The caller runs each and hands the parsed answers to
+ * {@link withPullRequests}.
+ */
+export function pullRequestsArgs(s: Snapshot): string[][] {
+  const branch = s.plan?.branch;
+  if (typeof branch !== "string" || !branch) return [];
+  const planned = Array.isArray(s.plan?.repos) ? s.plan.repos.filter((r): r is string => typeof r === "string") : [];
+  const repos = new Set([s.epic.repo, ...s.issues.map((i) => i.repo), ...planned].map((r) => r.toLowerCase()));
+  return [...repos]
+    .map((r) => /^([\w.-]+)\/([\w.-]+)$/.exec(r))
+    .filter((m): m is RegExpExecArray => !!m)
+    .map(([, owner, name]) => ["api", "graphql", "-f", `query=${PULL_REQUESTS_QUERY}`, "-f", `owner=${owner}`, "-f", `repo=${name}`, "-f", `branch=${branch}`]);
+}
+
+/** The snapshot with its pull requests set to the parsed answers to {@link pullRequestsArgs}, flattened; `s` is left as it was. */
+export function withPullRequests(s: Snapshot, answers: Pr[][]): Snapshot {
+  return { ...s, pullRequests: answers.flat() };
 }
 
 /**
- * gh's answer to {@link pullRequestsArgs}: every pull request listed, trusted or not. Throws gh's stderr on failure.
+ * gh's answer to one list of {@link pullRequestsArgs}: every pull request listed, trusted or not. Throws gh's stderr
+ * on failure.
  */
 export function readPullRequests(r: { exitCode: number | null; stdout: string; stderr: string }): Pr[] {
   if (r.exitCode !== 0) throw new Error(r.stderr.trim() || `gh exited ${r.exitCode}`);
