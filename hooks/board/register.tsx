@@ -7,7 +7,7 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import { derive, type EpicState, type TicketState } from '../../spp/src/derive.ts'
 import { latestNotes, notesFile } from '../../spp/src/notes-log.ts'
-import { epicsArgs, pullRequestsArgs, readEpics, readPullRequests, readSnapshot, type Snapshot, snapshotArgs } from '../../spp/src/snapshot.ts'
+import { epicsArgs, pullRequestsArgs, readEpics, readPullRequests, readSnapshot, type Snapshot, snapshotArgs, withPullRequests } from '../../spp/src/snapshot.ts'
 import type { Board, BoardFix, BoardTicket, BoardWorker } from '../../types/index.d.ts'
 
 const PANE = 'epic-board'
@@ -77,15 +77,13 @@ async function workersOf($: EngineInterface): Promise<BoardWorker[]> {
   ]
 }
 
-// The pull requests into the integration branch, one request per repo the plan names (as fetchSnapshot does), put on
-// the snapshot for derive to pick the fixes out. Nothing is asked of an Epic whose plan records no branch.
-async function readFixes($: EngineInterface, snapshot: Snapshot) {
-  const branch = snapshot.plan?.branch
-  if (typeof branch !== 'string' || !branch) return
-  const planned = Array.isArray(snapshot.plan?.repos) ? snapshot.plan.repos.filter((r): r is string => typeof r === 'string') : []
-  for (const repo of new Set([snapshot.epic.repo, ...planned])) {
-    snapshot.pullRequests.push(...readPullRequests(await $.process.run(['gh', ...pullRequestsArgs(repo, branch)], { timeoutMs: 60_000 })))
-  }
+// The snapshot with the pull requests into the integration branch, one request per repo spp names. Nothing is set
+// unless every request answers, so a failure leaves the snapshot as it was.
+async function withFixes($: EngineInterface, snapshot: Snapshot): Promise<Snapshot> {
+  const answers = await Promise.all(
+    pullRequestsArgs(snapshot).map(async args => readPullRequests(await $.process.run(['gh', ...args], { timeoutMs: 60_000 }))),
+  )
+  return withPullRequests(snapshot, answers)
 }
 
 // One refresh: the snapshot through gh, then the pull requests, notes and workers. A failing gh call leaves no ticket
@@ -93,20 +91,16 @@ async function readFixes($: EngineInterface, snapshot: Snapshot) {
 async function load($: EngineInterface, epic: string): Promise<Board> {
   const args = snapshotArgs(epic)
   if (!args) return { ...EMPTY, epic, error: `not an issue number or URL: ${epic}` }
+  const errors: string[] = []
   let snapshot: Snapshot
   let state: EpicState
   try {
     snapshot = readSnapshot(await $.process.run(['gh', ...args], { timeoutMs: 60_000 }))
+    const base = snapshot
+    snapshot = await withFixes($, base).catch((e: Error) => (errors.push(`pull requests: ${firstLine(e.message)}`), base))
     state = derive(snapshot)
   } catch (e) {
     return { ...EMPTY, epic, error: `gh: ${firstLine((e as Error).message)}` }
-  }
-  const errors: string[] = []
-  try {
-    await readFixes($, snapshot)
-    state = derive(snapshot)
-  } catch (e) {
-    errors.push(`pull requests: ${firstLine((e as Error).message)}`)
   }
   const notes = await notesOf($, state).catch((e: Error) => (errors.push(`notes: ${firstLine(e.message)}`), new Map()))
   const workers = await workersOf($).catch((e: Error) => (errors.push(e.message), []))
@@ -140,8 +134,11 @@ const ago = (at: string, now: number) => {
 
 const openFixes = (b: Board) => b.fixes.filter(f => f.state === 'OPEN').length
 
-// The progress words: merged of total, then the open fixes when there are any.
-const progressOf = (b: Board) => `${b.merged}/${b.tickets.length} merged${openFixes(b) ? ` · ${openFixes(b)} fixes open` : ''}`
+// The progress words: merged of total, then the open fixes whenever the Epic has any fix, as `spp status` does.
+const progressOf = (b: Board) => {
+  const open = openFixes(b)
+  return `${b.merged}/${b.tickets.length} merged${b.fixes.length ? ` · ${open} ${open === 1 ? 'fix' : 'fixes'} open` : ''}`
+}
 
 // The status line: the Epic's progress, merged of total, and the newest note.
 function statusOf(b: Board): string | undefined {

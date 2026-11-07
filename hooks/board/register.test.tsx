@@ -555,7 +555,7 @@ test('an open attributed fix and a merged one draw a Fixes group with two rows a
   // Each chip sits on its own row: the open fix is #901, the merged one #902.
   expect(all[all.indexOf('fix open') + 1]).toBe('#901 Refs #201')
   expect(all[all.indexOf('fix merged') + 1]).toBe('#902 unattributed')
-  expect(all.find(t => t.startsWith('#197 '))).toBe('#197 Rebuild spp: 0/2 merged · 1 fixes open')
+  expect(all.find(t => t.startsWith('#197 '))).toBe('#197 Rebuild spp: 0/2 merged · 1 fix open')
   await ui.unmount()
 })
 
@@ -563,7 +563,7 @@ test('the status line ends with the open fix count', async ($, on) => {
   const seen = host(on, { gh: { exitCode: 0, stdout: snapshot([{ n: 201 }, { n: 202 }]) }, prs: { exitCode: 0, stdout: FIXES } })
   await $.command.run(OPEN)
 
-  expect(seen.status.at(-1)).toBe('#197 0/2 merged · 1 fixes open')
+  expect(seen.status.at(-1)).toBe('#197 0/2 merged · 1 fix open')
 })
 
 test('pressing a fix row PR button copies the pull request URL', async ($, on) => {
@@ -596,4 +596,11 @@ test('a failing pull-request request keeps the tickets and names the failure', a
   expect((await ui.find({ key: 'error' }))?.text).toBe('pull requests: HTTP 502: bad gateway')
   expect((await texts(ui)).filter(t => /^#201 /.test(t))).toHaveLength(1)
   await ui.unmount()
+})
+
+test('with only merged fixes the count still shows, as 0 fixes open', async ($, on) => {
+  const seen = host(on, { gh: { exitCode: 0, stdout: snapshot([{ n: 201 }]) }, prs: { exitCode: 0, stdout: pullRequests([{ n: 902, state: 'MERGED' }]) } })
+  await $.command.run(OPEN)
+
+  expect(seen.status.at(-1)).toBe('#197 0/1 merged · 0 fixes open')
 })
