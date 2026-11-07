@@ -29,17 +29,18 @@ gh pr view "$PR" --json headRefOid,baseRefName,body,files
 gh pr diff "$PR"
 ```
 
-`HEAD` is `headRefOid` as read now; every check below runs on it and every verdict names it. `BASE` is `baseRefName`. Take the linked issue `N` from a `Closes #N` (or `Fixes`, `Resolves`) line in the body, never from GitHub's closing references, which stay empty on a pull request into a non-default branch. Then sort the run:
+`HEAD` is `headRefOid` as read now; every check below runs on it and every verdict names it. `BASE` is `baseRefName`. Take the linked issue `N` from a `Closes #N` (or `Fixes`, `Resolves`) line in the body, never from GitHub's closing references, which stay empty on a pull request into a non-default branch. With no closing line, take `N` from a `Refs #N` line (or `Refs owner/repo#N`, or an issue URL). Then sort the run:
 
 | Linked issue | `spp kind N --json` | Run |
 | --- | --- | --- |
 | `#N` | `raw` with a `rule` | `pin-present` or `pin-match`: a hardened issue whose Verify block lost its pin. Stop as step 3.1 does on a refusal: post no verdict and report to whoever started the review that the issue needs harden again. |
+| `Refs #N`, no closing line | `sub-issue`, and `BASE` is that Sub-issue's Epic's integration branch | A fix: both verdicts. Run the Sub-issue's Verify block with `spp verify N`, judge spec against the findings the body names and the Sub-issue's acceptance criteria, and record with `spp verdict --ticket N`. |
 | none, or `#N` | `raw`, no `rule` | Quality only. The comment's first line says `No linked Sub-issue or One-off: quality verdict only.` (naming `#N` as raw when there is one) and no verdict marker is written, so a gate never passes it. |
 | `#N` | `epic` | The Epic's own pull request: read [`EPIC.md`](EPIC.md) and follow it in place of steps 4 to 6. |
 | `#N` | `sub-issue` | A slice of an Epic: both verdicts. |
 | `#N` | `one-off` | A slice with no Epic: both verdicts. |
 
-For a slice (`sub-issue` or `one-off`), read the linked issue (`gh issue view N --json body,parent`). A Sub-issue has a parent Epic: read its Implementation Decisions and Out of Scope too, and its plan comment's `**Narrowed:**` and `**Deviated:**` lines. A One-off has no Epic, so its own body is the whole spec. Check `HEAD` out detached in a throwaway worktree; that checkout and an unpushed trial merge are the only things you change.
+For a slice or a fix (`sub-issue` or `one-off`), read the linked issue (`gh issue view N --json body,parent`). A Sub-issue has a parent Epic: read its Implementation Decisions and Out of Scope too, and its plan comment's `**Narrowed:**` and `**Deviated:**` lines. A One-off has no Epic, so its own body is the whole spec. Check `HEAD` out detached in a throwaway worktree; that checkout and an unpushed trial merge are the only things you change.
 
 When this skill already reviewed an older head of the pull request and a fix has landed since, read [`REREVIEW.md`](REREVIEW.md) now: it replaces steps 4 to 6.
 
