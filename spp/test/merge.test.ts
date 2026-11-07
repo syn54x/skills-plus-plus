@@ -37,6 +37,7 @@ type Opts = {
   fix?: { verdict?: "pass" | "outsider" | "none"; author?: string }; // a fix pull request 50 into feat/x instead of a slice
   noParent?: true | number; // the issue the body names has no parent (true: #999; a number: that closing line's issue)
   closedFails?: { issue: number; stderr: string }; // gh fails reading this issue's parent
+  otherEpic?: boolean; // #88 is a Sub-issue of a second Epic, acme/app#198, on branch feat/y
   foreign?: boolean; // #30 also has an open pull request in mallory/fork that says it closes it
 };
 
@@ -133,6 +134,11 @@ function mergeCase(o: Opts = {}): string {
     if (o.noParent) gh[`issue view ${REPO}/issues/${o.noParent === true ? 999 : o.noParent} --json parent`] = { stdout: { parent: null } };
     gh[`issue view ${REPO}/issues/31 --json parent`] = { stdout: { parent: { url: `${REPO}/issues/197` } } };
     gh[`pr checks ${REPO}/pull/50 --json name,bucket`] = { stdout: o.checks ?? [{ name: "ci", bucket: "pass" }] };
+  }
+  if (o.otherEpic) {
+    const epicB = { ...snapshot.data.repository.issue, number: 198, url: `${REPO}/issues/198`, comments: { nodes: [by(`<!-- sdd-plan -->\n${trailer({ branch: "feat/y" })}\n`)] }, subIssues: { nodes: [sub(88, 77, "OPEN", [])] } };
+    gh["api graphql -f query=Snapshot -f owner=acme -f repo=app -F number=198"] = { stdout: { data: { viewer: { login: "maint" }, repository: { issue: epicB } } } };
+    gh[`issue view ${REPO}/issues/88 --json parent`] = { stdout: { parent: { url: `${REPO}/issues/198` } } };
   }
   if (o.closedFails) gh[`issue view ${REPO}/issues/${o.closedFails.issue} --json parent`] = { stderr: o.closedFails.stderr, code: 1 };
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
@@ -241,9 +247,13 @@ describe("fix pull request", () => {
     }
   });
 
-  test("a fix that Refs #30 and says Fixes #31, a Sub-issue whose own pull request is another, merges as a fix", async () => {
-    const r = await merge({ fix: {}, body: "Refs #30\n\nFixes #31\n" });
+  test("a fix that Refs #30 and says Fixes #88, a Sub-issue of another Epic on another branch, merges as a fix", async () => {
+    const r = await merge({ fix: {}, body: "Refs #30\n\nFixes #88\n", otherEpic: true });
     assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
+  });
+
+  test("a same-Epic pull request that closes #30 but is not its own keeps the slice refusal", async () => {
+    await refused({ fix: {}, body: "Closes #30\n" }, /^gate not passed: #30 is gate-pass$/);
   });
 
   test("a body with neither a closing line nor Refs refuses with closes no issue and refs no Sub-issue", async () => {

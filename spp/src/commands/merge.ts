@@ -116,11 +116,12 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   const epic = ticketUrl ? await epicOf(ticketUrl).catch((e) => { if (e instanceof GhError && /Could not resolve|not found|404/i.test(e.message)) return null; throw e; }) : null;
   const byUrl = new Map(epic?.state.tickets.map((t) => [t.url, t]));
   const ticket = ticketUrl ? byUrl.get(ticketUrl) : undefined;
-  // A pull request that is not the closed Sub-issue's own is a fix candidate, as derive counts it.
-  if (!ticketUrl || !epic || !ticket || ticket.pr?.url !== view.url) return decideFix(view, `${owner}/${name}`);
+  // A pull request into another Epic's branch than the closed Sub-issue's, and not that Sub-issue's own, is a fix
+  // candidate as derive counts it; a same-Epic pull request that is not its own keeps the slice refusal below.
+  if (!ticketUrl || !epic || !ticket || (ticket.pr?.url !== view.url && epic.state.epic.branch !== view.baseRefName)) return decideFix(view, `${owner}/${name}`);
   const { state } = epic;
 
-  if (ticket.state !== "gate-pass" || !ticket.pr) return refuse(`gate not passed: ${ref(ticketUrl)} is ${ticket.state}`);
+  if (ticket.state !== "gate-pass" || ticket.pr?.url !== view.url) return refuse(`gate not passed: ${ref(ticketUrl)} is ${ticket.state}`);
   // Only a verdict a trusted author wrote, passing on the head about to merge, lets the merge through.
   if (gateOf({ ...ticket.pr, verdict: await verdictOn(view.url) }) !== "gate-pass") return refuse(`no passing verdict from a trusted author on ${ref(view.url)}`);
   // blockedBy already leaves out a blocker that landed, so any one left still blocks.
