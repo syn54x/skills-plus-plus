@@ -552,6 +552,9 @@ test('an open attributed fix and a merged one draw a Fixes group with two rows a
   expect(at).toBeGreaterThan(all.findIndex(t => t.startsWith('#202 ')))
   expect(all.slice(at)).toEqual(expect.arrayContaining(['fix open', 'fix merged', '#901 Refs #201', '#902 unattributed']))
   expect(all.filter(t => /^fix (open|merged)$/.test(t))).toHaveLength(2)
+  // Each chip sits on its own row: the open fix is #901, the merged one #902.
+  expect(all[all.indexOf('fix open') + 1]).toBe('#901 Refs #201')
+  expect(all[all.indexOf('fix merged') + 1]).toBe('#902 unattributed')
   expect(all.find(t => t.startsWith('#197 '))).toBe('#197 Rebuild spp: 0/2 merged · 1 fixes open')
   await ui.unmount()
 })
