@@ -79,6 +79,8 @@ export type Fix = {
   ticket: string | null;
   /** Its `<!-- spp-verdict -->` comment, present only when it decodes. */
   verdict?: Verdict;
+  /** Its gate on the current head: `gate-pass` or `gate-fail` only when a verdict names that head, else `pr-open`. */
+  gate: "pr-open" | "gate-fail" | "gate-pass";
 };
 
 /** An Epic and its Sub-issues as one snapshot derives them: the `--json` shape of `spp status`. */
@@ -121,7 +123,8 @@ const pickPr = (prs: Pr[]) => [...prs].sort((a, b) => PR_RANK[a.state] - PR_RANK
  *
  * @internal
  */
-export function gateOf(pr: Pr): TicketState {
+// Generic so a caller may pass a larger object literal (merge.ts does) without an excess-property error.
+export function gateOf<T extends Pick<Pr, "headSha" | "verdict">>(pr: T): TicketState {
   const v = pr.verdict;
   if (!v || v.head.length < 7 || !pr.headSha.startsWith(v.head)) return "pr-open";
   return v.spec === "fail" || v.quality === "fail" ? "gate-fail" : "gate-pass";
@@ -173,7 +176,7 @@ function fixesOf(s: Snapshot, branch: string | null): Fix[] {
   const tickets = new Map(s.issues.map((i) => [i.url.toLowerCase(), i.url]));
   return s.pullRequests
     .filter((p) => p.trusted && p.base === branch && p.state !== "CLOSED" && !own.has(p.url))
-    .map(({ number, url, repo, state, base, headSha, verdict, refs }) => ({ number, url, repo, state: state as Fix["state"], base, headSha, ticket: (refs && tickets.get(refs.toLowerCase())) || null, ...(verdict && { verdict }) }))
+    .map(({ number, url, repo, state, base, headSha, verdict, refs }) => ({ number, url, repo, state: state as Fix["state"], base, headSha, ticket: (refs && tickets.get(refs.toLowerCase())) || null, ...(verdict && { verdict }), gate: gateOf({ headSha, verdict }) as Fix["gate"] }))
     .sort((a, b) => a.number - b.number);
 }
 
