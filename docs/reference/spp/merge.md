@@ -16,7 +16,7 @@ writes nothing to the wave comment. A conflict is never resolved here: the worke
 function run(args): Promise<number>;
 ```
 
-Merges one slice pull request when everything allows it.
+Merges one slice or Fix pull request when everything allows it.
 
 #### Parameters
 

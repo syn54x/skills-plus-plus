@@ -185,7 +185,8 @@ function pr(p: RawPr, viewer: string | null): Pr {
 }
 
 // The issue URL of the body's first `Refs` reference: #N (the pull request's own repo), owner/repo#N or an issue URL.
-function refs(body: string, prRepo: string): string | null {
+/** @internal */
+export function refs(body: string, prRepo: string): string | null {
   const m = /\brefs:?\s+(?:https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/issues\/(\d+)|([\w.-]+\/[\w.-]+)#(\d+)|#(\d+))(?![\w/])/i.exec(body);
   return m ? `https://github.com/${m[1] ?? m[3] ?? prRepo}/issues/${m[2] ?? m[4] ?? m[5]}` : null;
 }

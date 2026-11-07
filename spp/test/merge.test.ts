@@ -34,7 +34,8 @@ type Opts = {
   recheck?: "forged"; // the verdict comment spp merge re-reads is from an outside author
   epicMissing?: boolean; // the snapshot query finds no Epic issue: gh exits 1 and prints issue null
   waveFails?: boolean; // reading the wave comment fails, so recording the merge on it fails
-  fix?: { verdict?: "pass" | "outsider" | "none"; author?: string; refs?: string }; // a fix pull request 50 into feat/x instead of a slice
+  fix?: { verdict?: "pass" | "outsider" | "none"; author?: string }; // a fix pull request 50 into feat/x instead of a slice
+  noParent?: true | number; // the issue the body names has no parent (true: #999; a number: that closing line's issue)
   foreign?: boolean; // #30 also has an open pull request in mallory/fork that says it closes it
 };
 
@@ -128,6 +129,7 @@ function mergeCase(o: Opts = {}): string {
     gh[`api repos/acme/app/issues/50/comments --paginate --jq ${JQ}`] = { stdout: comments.length ? JSON.stringify([99, comments[0].body, comments[0].author.login, comments[0].authorAssociation]) + "\n" : "" };
     gh[`pr view 50 --json number,url,state,body,baseRefName,mergeable`] = { stdout: { number: 50, url: `${REPO}/pull/50`, state: "OPEN", body, baseRefName: o.base ?? "feat/x", mergeable: o.mergeable ?? "MERGEABLE" } };
     gh[`issue view ${REPO}/issues/30 --json parent`] = { stdout: { parent: { url: `${REPO}/issues/197` } } };
+    if (o.noParent) gh[`issue view ${REPO}/issues/${o.noParent === true ? 999 : o.noParent} --json parent`] = { stdout: { parent: null } };
     gh[`pr checks ${REPO}/pull/50 --json name,bucket`] = { stdout: o.checks ?? [{ name: "ci", bucket: "pass" }] };
   }
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
@@ -201,6 +203,19 @@ describe("fix pull request", () => {
   test("a conflict exits 3 with rebase needed", async () => {
     const r = await merge({ fix: {}, mergeable: "CONFLICTING" }, 3);
     assert.deepEqual(r.out, { merged: false, reason: "rebase needed" });
+  });
+
+  test("an untrusted author's pull request is not a fix and refuses", async () => {
+    await refused({ fix: { author: "mallory" } }, /^#50 is not a fix of #197$/);
+  });
+
+  test("a Refs line naming an issue with no parent refuses with has no epic", async () => {
+    await refused({ fix: {}, body: "Refs #999\n", noParent: true }, /^#999 has no epic$/);
+  });
+
+  test("a Refs line plus a closing line for an issue outside any Epic still merges as a fix", async () => {
+    const r = await merge({ fix: {}, body: "Refs #30\n\nFixes #303\n", noParent: 303 });
+    assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
   });
 
   test("a body with neither a closing line nor Refs refuses with closes no issue and refs no Sub-issue", async () => {
