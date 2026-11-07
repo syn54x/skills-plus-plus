@@ -218,6 +218,15 @@ describe("fix pull request", () => {
     assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
   });
 
+  test("a body that only closes an issue outside any Epic refuses with its own reason", async () => {
+    await refused({ fix: {}, body: "Fixes #303\n", noParent: 303 }, /^closes no Sub-issue of an Epic and refs no Sub-issue$/);
+  });
+
+  test("an unreadable closed issue falls through to the fix path", async () => {
+    const r = await merge({ fix: {}, body: "Refs #30\n\nFixes #303\n" });
+    assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
+  });
+
   test("a body with neither a closing line nor Refs refuses with closes no issue and refs no Sub-issue", async () => {
     await refused({ fix: {}, body: "Just a change\n" }, /^closes no issue and refs no Sub-issue$/);
   });

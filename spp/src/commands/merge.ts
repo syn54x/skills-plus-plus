@@ -91,7 +91,7 @@ async function decideFix(view: PrView, prRepo: string): Promise<{ result: MergeR
   const refuse = (reason: string, code = 1) => ({ result: { merged: false, reason }, code });
   const ref = refIn(prRepo);
   const ticketUrl = refs(view.body, prRepo);
-  if (!ticketUrl) return refuse("closes no issue and refs no Sub-issue");
+  if (!ticketUrl) return refuse(closedIssue(view.body, prRepo) ? "closes no Sub-issue of an Epic and refs no Sub-issue" : "closes no issue and refs no Sub-issue");
   const epic = await epicOf(ticketUrl);
   if (!epic) return refuse(`${ref(ticketUrl)} has no epic`);
   const branch = epic.state.epic.branch;
@@ -110,7 +110,8 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   const ref = refIn(`${owner}/${name}`);
   if (view.state !== "OPEN") return refuse(`${ref(view.url)} is ${view.state}`);
   const ticketUrl = closedIssue(view.body, `${owner}/${name}`);
-  const epic = ticketUrl ? await epicOf(ticketUrl) : null;
+  // An unreadable closed issue is no Sub-issue: the pull request still gets the fix path's verdict on it.
+  const epic = ticketUrl ? await epicOf(ticketUrl).catch((e) => { if (e instanceof GhError) return null; throw e; }) : null;
   const byUrl = new Map(epic?.state.tickets.map((t) => [t.url, t]));
   const ticket = ticketUrl ? byUrl.get(ticketUrl) : undefined;
   // A pull request that closes no Sub-issue of an Epic is a fix candidate, as derive counts it.
