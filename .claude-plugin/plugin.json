@@ -1,6 +1,6 @@
 {
   "name": "spp",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Spec-driven delivery on GitHub Issues: grill a plan, write the spec and its tickets, build them in parallel worktrees behind a review gate, and close the epic with a retro.",
   "author": {
     "name": "Taylor",
