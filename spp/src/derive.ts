@@ -1,5 +1,6 @@
 // derive: the EpicState computed from a Snapshot. Pure: no network, filesystem or environment.
 import type { Pr, Snapshot, SnapshotIssue } from "./snapshot.ts";
+import type { Verdict } from "./verdict.ts";
 
 /** A Driver a worker can run in, as `spp plan --driver`, `spp dispatch --driver` and `spp next` name it. */
 export type Driver = "desktop" | "bg" | "subagent";
@@ -77,7 +78,7 @@ export type Fix = {
   /** The Sub-issue it belongs to, as an issue URL, or null. */
   ticket: string | null;
   /** Its `<!-- spp-verdict -->` comment, present only when it decodes. */
-  verdict?: Pr["verdict"];
+  verdict?: Verdict;
 };
 
 /** An Epic and its Sub-issues as one snapshot derives them: the `--json` shape of `spp status`. */

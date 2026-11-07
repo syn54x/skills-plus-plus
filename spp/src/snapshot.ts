@@ -27,9 +27,9 @@ export type Pr = {
   verdict?: Verdict;
   /**
    * The issue URL the body's first `Refs #N`, `Refs owner/repo#N` or `Refs <issue URL>` names, or null without one.
-   * A fix pull request names the Sub-issue it belongs to this way (ADR 0011). Only set on the snapshot's `pullRequests`.
+   * A fix pull request names the Sub-issue it belongs to this way (ADR 0011).
    */
-  refs?: string | null;
+  refs: string | null;
 };
 
 export type SnapshotIssue = {
@@ -51,8 +51,8 @@ export type Snapshot = {
   plan: Record<string, unknown> | null; // the Epic's plan comment's data trailer; null without a readable one
   wave: Record<string, unknown> | null; // the Epic's wave comment's data trailer, the same way
   /**
-   * Every pull request into the Epic's integration branches, trusted or not, from {@link readPullRequests}: one request
-   * per repo after the snapshot. The parser leaves it empty; `fetchSnapshot` fills it. derive picks the fixes out.
+   * Every pull request into the Epic's integration branches, trusted or not, from `readPullRequests`: one request per
+   * repo after the snapshot. The parser leaves it empty; `fetchSnapshot` fills it. derive picks the fixes out.
    */
   pullRequests: Pr[];
 };
@@ -79,14 +79,14 @@ export const SNAPSHOT_QUERY = `query Snapshot($owner: String!, $repo: String!, $
           comments(first: 50) { nodes { ...comment } }
           closedByPullRequestsReferences(first: 20, includeClosedPrs: true) { nodes { ...pr } }
           timelineItems(last: 50, itemTypes: [CROSS_REFERENCED_EVENT]) {
-            nodes { ... on CrossReferencedEvent { source { ... on PullRequest { ...pr body } } } }
+            nodes { ... on CrossReferencedEvent { source { ... on PullRequest { ...pr } } } }
           }
         }
       }
     }
   }
 }
-fragment pr on PullRequest { number url state headRefOid baseRefName repository { nameWithOwner } author { login } authorAssociation comments(first: 30) { nodes { ...comment } } }
+fragment pr on PullRequest { number url body state headRefOid baseRefName repository { nameWithOwner } author { login } authorAssociation comments(first: 30) { nodes { ...comment } } }
 fragment comment on IssueComment { body author { login } authorAssociation }`;
 
 type Nodes<T> = { nodes: T[] };
@@ -181,7 +181,13 @@ function closes(body: string, prRepo: string, issue: RawIssue): boolean {
 function pr(p: RawPr, viewer: string | null): Pr {
   const verdict = readVerdict(markerData(p.comments, VERDICT_MARKER, viewer));
   const trusted = trustedAuthor(p.author?.login, p.authorAssociation, viewer);
-  return { number: p.number, url: p.url, state: p.state, repo: p.repository.nameWithOwner, base: p.baseRefName, headSha: p.headRefOid, trusted, ...(verdict && { verdict }) };
+  return { number: p.number, url: p.url, state: p.state, repo: p.repository.nameWithOwner, base: p.baseRefName, headSha: p.headRefOid, trusted, refs: refs(p.body ?? "", p.repository.nameWithOwner), ...(verdict && { verdict }) };
+}
+
+// The issue URL of the body's first `Refs` reference: #N (the pull request's own repo), owner/repo#N or an issue URL.
+function refs(body: string, prRepo: string): string | null {
+  const m = /\brefs:?\s+(?:https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/issues\/(\d+)|([\w.-]+\/[\w.-]+)#(\d+)|#(\d+))(?![\w/])/i.exec(body);
+  return m ? `https://github.com/${m[1] ?? m[3] ?? prRepo}/issues/${m[2] ?? m[4] ?? m[5]}` : null;
 }
 
 function issue(raw: RawIssue, viewer: string | null): SnapshotIssue {
@@ -248,17 +254,11 @@ export function parseSnapshot(json: unknown): Snapshot {
 const PULL_REQUESTS_QUERY = `query PullRequests($owner: String!, $repo: String!, $branch: String!) {
   viewer { login }
   repository(owner: $owner, name: $repo) {
-    pullRequests(baseRefName: $branch, states: [OPEN, MERGED], first: 100, orderBy: { field: CREATED_AT, direction: DESC }) { nodes { ...pr body } }
+    pullRequests(baseRefName: $branch, states: [OPEN, MERGED], first: 100, orderBy: { field: CREATED_AT, direction: DESC }) { nodes { ...pr } }
   }
 }
-fragment pr on PullRequest { number url state headRefOid baseRefName repository { nameWithOwner } author { login } authorAssociation comments(first: 30) { nodes { ...comment } } }
+fragment pr on PullRequest { number url body state headRefOid baseRefName repository { nameWithOwner } author { login } authorAssociation comments(first: 30) { nodes { ...comment } } }
 fragment comment on IssueComment { body author { login } authorAssociation }`;
-
-// The issue URL of the body's first `Refs` reference: #N (the pull request's own repo), owner/repo#N or an issue URL.
-function refs(body: string, prRepo: string): string | null {
-  const m = /\brefs:?\s+(?:https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/issues\/(\d+)|([\w.-]+\/[\w.-]+)#(\d+)|#(\d+))(?![\w/])/i.exec(body);
-  return m ? `https://github.com/${m[1] ?? m[3] ?? prRepo}/issues/${m[2] ?? m[4] ?? m[5]}` : null;
-}
 
 /** gh's arguments for the pull requests into `branch` of `repo` (`owner/repo`), with the gh user for the trust boundary. */
 export function pullRequestsArgs(repo: string, branch: string): string[] {
@@ -267,14 +267,13 @@ export function pullRequestsArgs(repo: string, branch: string): string[] {
 }
 
 /**
- * gh's answer to {@link pullRequestsArgs}: every pull request listed, trusted or not, each with the issue its first
- * `Refs` line names as `refs`. Throws gh's stderr on failure.
+ * gh's answer to {@link pullRequestsArgs}: every pull request listed, trusted or not. Throws gh's stderr on failure.
  */
 export function readPullRequests(r: { exitCode: number | null; stdout: string; stderr: string }): Pr[] {
   if (r.exitCode !== 0) throw new Error(r.stderr.trim() || `gh exited ${r.exitCode}`);
   const data = (JSON.parse(r.stdout) as { data?: { viewer?: { login: string }; repository?: { pullRequests: Nodes<RawPr> } | null } }).data;
   const viewer = data?.viewer?.login ?? null;
-  return (data?.repository?.pullRequests.nodes ?? []).map((p) => ({ ...pr(p, viewer), refs: refs(p.body ?? "", p.repository.nameWithOwner) }));
+  return (data?.repository?.pullRequests.nodes ?? []).map((p) => pr(p, viewer));
 }
 
 // Open issues with Sub-issues, each with the comments that can hold its plan (written early, so the first 100 do), most recently updated first so a busy repo's first page holds the live ones.
