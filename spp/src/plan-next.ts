@@ -1,6 +1,6 @@
 // The next actions of a build, from the EpicState and what the command read around it (CI, verdict history, the pull
 // request to the base branch, the session list, the wave). Pure: no network, filesystem or environment.
-import { type Driver, type EpicState, refIn, type Ticket } from "./derive.ts";
+import { type Driver, type EpicState, gateOf, refIn, type Ticket } from "./derive.ts";
 import type { Routing } from "./routing.ts";
 import type { PrState } from "./snapshot.ts";
 
@@ -10,7 +10,7 @@ export type ActionKind = "preflight" | "branch" | "dispatch" | "gate" | "fix" | 
 export type Action = {
   /** What to do. */
   kind: ActionKind;
-  /** The tickets it is about, for `dispatch`, `gate`, `fix`, `hand-back` and `merge`. */
+  /** The tickets it is about, for `dispatch`, `gate`, `fix`, `hand-back` and `merge`; a Fix pull request's is its Sub-issue, when attributed. */
   tickets?: string[];
   /** The pull request URL it is about. */
   pr?: string;
@@ -73,8 +73,12 @@ export function planNext(input: NextInput): Action[] {
   // A ticket as spp dispatch and the other commands take it: its number in the Epic's repo, else its URL.
   const id = (t: Ticket) => (t.repo === state.epic.repo ? String(t.number) : t.url);
 
+  const openFixes = state.fixes.filter((f) => f.state === "OPEN");
   if (state.tickets.every(done)) {
     if (mainPr?.state === "MERGED") return [{ kind: "close", pr: mainPr.url, reason: `${ref(mainPr.url)} merged into the base branch` }];
+  }
+  // An open fix holds main-gate: it is routed below like a slice.
+  if (state.tickets.every(done) && !openFixes.length) {
     // The panel is decided only once the pull request exists, since its changed lines are one of the thresholds.
     if (mainPr?.state !== "OPEN") {
       return [{ kind: "main-gate", reason: "every ticket merged; open the pull request to the base branch, then run spp next again for the panel decision" }];
@@ -99,6 +103,39 @@ export function planNext(input: NextInput): Action[] {
   if (wave.length) actions.push({ kind: "dispatch", tickets: wave.map(id), driver: input.driver, reason: `${wave.length} ready ticket(s) can run together` });
   for (const h of input.wave.held) idle.push(`${ref(ready.get(h.ticket)!.url)} held: ${h.reason}`);
 
+  // The routing a slice and a fix share for an open pull request that has no verdict or a failed one: gate, fix, hand back or wait.
+  const route = (st: string, pr: string, one: Action, c: { result: string; failing: string[] }, handBack: string): Action | string => {
+    if (st === "gate-fail" || c.result === "fail") {
+      // Failing CI is a Critical finding: it shares the one fix round with a failed gate, so the second failed head hands back.
+      const what = st === "gate-fail" ? "failed its gate" : `checks fail: ${c.failing.join(", ")}`;
+      if ((failedHeads[pr] ?? 1) < 2) return { ...one, kind: "fix", reason: `${ref(pr)} ${what}; one fix round by the same worker` };
+      return { ...one, kind: "hand-back", reason: `${ref(pr)} ${what}, after its one fix round${handBack}` };
+    }
+    // shortcut: none (no CI configured) gates like pass, as spp merge does; a repo whose CI registers late could gate early.
+    if (c.result === "pass" || c.result === "none") return { ...one, kind: "gate", reason: `${ref(pr)} checks ${c.result}, no verdict on its head` };
+    return `${ref(pr)} checks ${c.result}`;
+  };
+
+  for (const f of openFixes) {
+    const t = f.ticket ? byUrl.get(f.ticket) : undefined;
+    if (!t) {
+      idle.push(`${ref(f.url)} is an unattributed fix: add Refs #<Sub-issue> or Closes #<Sub-issue> to its body, or close it`);
+      continue;
+    }
+    const pr = f.url;
+    const one = { kind: "gate" as const, tickets: [id(t)], pr, reason: "" };
+    const g = gateOf({ ...f, trusted: true, refs: f.ticket });
+    const c = checks[pr] ?? { result: "pending", failing: [] };
+    const s = liveWorker(t, sessions);
+    if (g === "gate-pass") actions.push({ ...one, kind: "merge", reason: `${ref(pr)} passed its gate` });
+    else if (s) waitingOn.push(`${ref(pr)} fix, its worker is still running (${s.name} ${s.state ?? s.status})`);
+    else {
+      const r = route(g, pr, one, c, "; the decision is a person's, and no Sub-issue is relabelled");
+      if (typeof r === "string") waitingOn.push(`fix ${r}`);
+      else actions.push(r);
+    }
+  }
+
   for (const t of order) {
     if (done(t)) continue;
     const pr = t.pr?.url ?? "";
@@ -117,15 +154,10 @@ export function planNext(input: NextInput): Action[] {
       waitingOn.push(`${ref(t.url)} claimed${running || (t.worker ? ` by ${t.worker}` : "")}`);
     } else if (s && (t.state === "pr-open" || t.state === "gate-fail")) {
       waitingOn.push(`${ref(t.url)} ${t.state}, its worker is still running${running}`);
-    } else if (t.state === "gate-fail" || (t.state === "pr-open" && c.result === "fail")) {
-      // Failing CI is a Critical finding: it shares the one fix round with a failed gate, so the second failed head hands back.
-      const what = t.state === "gate-fail" ? "failed its gate" : `checks fail: ${c.failing.join(", ")}`;
-      if ((failedHeads[pr] ?? 1) < 2) actions.push({ kind: "fix", ...one, reason: `${ref(pr)} ${what}; one fix round by the same worker` });
-      else actions.push({ kind: "hand-back", ...one, reason: `${ref(pr)} ${what}, after its one fix round` });
-    } else if (t.state === "pr-open") {
-      // shortcut: none (no CI configured) gates like pass, as spp merge does; a repo whose CI registers late could gate early.
-      if (c.result === "pass" || c.result === "none") actions.push({ kind: "gate", ...one, reason: `${ref(pr)} checks ${c.result}, no verdict on its head` });
-      else waitingOn.push(`${ref(t.url)} ${ref(pr)} checks ${c.result}`);
+    } else if (t.state === "gate-fail" || t.state === "pr-open") {
+      const r = route(t.state, pr, { kind: "gate", ...one, reason: "" }, c, "");
+      if (typeof r === "string") waitingOn.push(`${ref(t.url)} ${r}`);
+      else actions.push(r);
     } else if (t.state === "gate-pass") {
       const waiting = t.blockedBy.filter((b) => !(byUrl.get(b) && done(byUrl.get(b)!)));
       if (!waiting.length) actions.push({ kind: "merge", ...one, reason: `${ref(pr)} passed its gate and its blockers merged` });
@@ -135,7 +167,9 @@ export function planNext(input: NextInput): Action[] {
     else if (t.state === "blocked" && t.layer !== null) idle.push(`${ref(t.url)} is blocked by ${t.blockedBy.map(ref).join(", ")}`);
   }
 
-  if (actions.length) return actions;
+  // The actions carry no wait, so an unattributed fix beside them is named on the first one.
+  const loose = idle.filter((i) => i.includes("unattributed fix"));
+  if (actions.length) return loose.length ? [{ ...actions[0], reason: `${actions[0].reason}; also ${loose.join("; ")}` }, ...actions.slice(1)] : actions;
   if (waitingOn.length) return [{ kind: "wait", reason: `in flight: ${waitingOn.join("; ")}${idle.length ? `; also ${idle.join("; ")}` : ""}` }];
   const cycle = state.cycle.length ? [`cycle: ${state.cycle.map(ref).join(", ")}`] : [];
   return [{ kind: "stuck", reason: `nothing ready and nothing in flight: ${[...cycle, ...idle].join("; ")}` }];
