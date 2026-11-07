@@ -1,7 +1,8 @@
-// The one way the commands fetch an Epic's Snapshot through gh. The query, its variables and the missing-issue rule
-// live in snapshot.ts, which the epic board shares; this adds only the gh calls, which the board makes its own way.
+// The one way the commands fetch an Epic's Snapshot through gh. The queries, their variables, which repos get asked
+// for pull requests and the missing-issue rule live in snapshot.ts, which the epic board shares; this adds only the
+// gh calls, which the board makes its own way.
 import { GhError, runGh } from "./gh.ts";
-import { pullRequestsArgs, readPullRequests, readSnapshot, type Snapshot, snapshotArgs } from "./snapshot.ts";
+import { type Pr, pullRequestsArgs, readPullRequests, readSnapshot, type Snapshot, snapshotArgs, withPullRequests } from "./snapshot.ts";
 
 async function gh<T>(args: string[], read: (r: { exitCode: number | null; stdout: string; stderr: string }) => T): Promise<T> {
   try {
@@ -12,17 +13,23 @@ async function gh<T>(args: string[], read: (r: { exitCode: number | null; stdout
   }
 }
 
+// One repo's pull requests, or none with a warning on stderr: a repo the gh user cannot read, or a mistyped plan
+// entry, loses its fixes and nothing else.
+async function pullRequests(args: string[]): Promise<Pr[]> {
+  try {
+    return await gh(args, readPullRequests);
+  } catch (e) {
+    const repo = args.filter((a) => /^(owner|repo)=/.test(a)).map((a) => a.slice(a.indexOf("=") + 1)).join("/");
+    process.stderr.write(`warning: pull requests of ${repo} not read: ${(e as Error).message.split("\n")[0]}\n`);
+    return [];
+  }
+}
+
 // The Epic's Snapshot, or null when `epic` is not an issue number or URL. A missing Epic throws "epic not found".
-// With an integration branch recorded, the pull requests into it follow, one request per repo the plan names
-// (ADR 0011); without one there are none to ask for.
+// The pull requests into the integration branch follow, one request per repo of the Epic (ADR 0011).
 export async function fetchSnapshot(epic: string): Promise<Snapshot | null> {
   const args = snapshotArgs(epic);
   if (!args) return null;
   const snapshot = await gh(args, readSnapshot);
-  const branch = snapshot.plan?.branch;
-  if (typeof branch !== "string" || !branch) return snapshot;
-  const planned = Array.isArray(snapshot.plan?.repos) ? snapshot.plan.repos.filter((r): r is string => typeof r === "string") : [];
-  const repos = [...new Set([snapshot.epic.repo, ...planned])];
-  for (const repo of repos) snapshot.pullRequests.push(...(await gh(pullRequestsArgs(repo, branch), readPullRequests)));
-  return snapshot;
+  return withPullRequests(snapshot, await Promise.all(pullRequestsArgs(snapshot).map(pullRequests)));
 }
