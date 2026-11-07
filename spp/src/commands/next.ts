@@ -100,14 +100,15 @@ async function actions(arg: string): Promise<Action[]> {
   if (!branch) return [{ kind: "branch", reason: `epic ${epic.label} has no integration branch; run spp branch ${epic.arg}` }];
 
   const sessions = readSessions();
+  const openFixes = state.fixes.filter((f) => f.state === "OPEN" && f.ticket);
   const prs = (st: string) => state.tickets.flatMap((t) => (t.pr && t.state === st ? [t.pr.url] : []));
   const [wave, checks, list] = await Promise.all([
     wavePlan(state, DEFAULT_WAVE_MAX, sessions),
-    Promise.all(prs("pr-open").map(async (pr) => [pr, await readChecks(pr)] as const)),
+    Promise.all([...prs("pr-open"), ...openFixes.map((f) => f.url)].map(async (pr) => [pr, await readChecks(pr)] as const)),
     runGh(["pr", "list", "-R", state.epic.repo, "--head", branch, "--state", "all", "--json", "number,url,state,additions,deletions"]),
   ]);
   const red = checks.flatMap(([pr, c]) => (c.result === "fail" ? [pr] : []));
-  const heads = await Promise.all([...prs("gate-fail"), ...red].map(async (pr) => [pr, await failedHeads(pr)] as const));
+  const heads = await Promise.all([...new Set([...prs("gate-fail"), ...openFixes.filter((f) => f.verdict?.spec === "fail" || f.verdict?.quality === "fail").map((f) => f.url), ...red])].map(async (pr) => [pr, await failedHeads(pr)] as const));
   type MainPr = { url: string; state: "OPEN" | "MERGED" | "CLOSED"; additions: number; deletions: number };
   const main = (JSON.parse(list) as MainPr[]).sort((a, b) => Number(b.state === "MERGED") - Number(a.state === "MERGED") || Number(b.state === "OPEN") - Number(a.state === "OPEN"))[0];
   return planNext({
