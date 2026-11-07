@@ -30,7 +30,7 @@ Each finding is one line with a severity (Critical, Important or Minor), the fil
 ## Common questions
 
 **What about a fix pull request?**
-A fix has no closing line. It opens `Refs #N` for a Sub-issue and targets that Sub-issue's Epic's integration branch. The review treats it as a slice: it runs the Sub-issue's Verify block, gives both verdicts, judges spec against the findings the body names and the Sub-issue's acceptance criteria, and records the verdict against that Sub-issue so `build` can merge it.
+A fix has no closing line to a Sub-issue of its Epic. It opens `Refs #N` for a Sub-issue and targets that Sub-issue's Epic's integration branch. The review treats it as a slice: it runs the Sub-issue's Verify block, gives both verdicts, judges spec against the findings the body names and the Sub-issue's acceptance criteria, and records the verdict against that Sub-issue so `build` can merge it.
 
 **The review says "quality verdict only". Why?**
 The pull request body has no `Closes #N` line, or the issue it closes is a raw issue that never got the Ticket contract, so there is no Sub-issue or One-off to judge the spec against. The review still checks correctness, depth and Laws. It records no gate verdict, so `build` will not merge such a pull request until the line is added and the review runs again.
