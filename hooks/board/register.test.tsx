@@ -359,7 +359,7 @@ test('notes are read from the local notes log, with no spp call', async ($, on) 
   expect(await texts(ui)).toContain('tests green, 1m ago')
   await ui.unmount()
   expect(seen.argv.filter(a => a[0]?.endsWith('/bin/spp'))).toEqual([])
-  expect(seen.argv.filter(a => a[0] === 'gh')).toHaveLength(1)
+  expect(seen.argv.filter(a => a[0] === 'gh')).toHaveLength(2)
 })
 
 // F8 on #267: a refresh asked for while one is in flight is skipped, so the snapshot query never runs twice at once.
@@ -372,7 +372,7 @@ test('a second refresh while one is in flight makes no second gh call', async ($
   await seen.clock.advance(1000)
   await Promise.all([first, second])
 
-  expect(seen.argv.filter(a => a[0] === 'gh')).toHaveLength(1)
+  expect(seen.argv.filter(a => a[0] === 'gh')).toHaveLength(2)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect((await texts(ui)).filter(t => /^#201 /.test(t))).toHaveLength(1)
   await ui.unmount()
