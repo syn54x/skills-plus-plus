@@ -34,6 +34,7 @@ type Opts = {
   recheck?: "forged"; // the verdict comment spp merge re-reads is from an outside author
   epicMissing?: boolean; // the snapshot query finds no Epic issue: gh exits 1 and prints issue null
   waveFails?: boolean; // reading the wave comment fails, so recording the merge on it fails
+  fix?: { verdict?: "pass" | "outsider" | "none"; author?: string; refs?: string }; // a fix pull request 50 into feat/x instead of a slice
   foreign?: boolean; // #30 also has an open pull request in mallory/fork that says it closes it
 };
 
@@ -79,7 +80,7 @@ function sub(n: number, pr: number, prState: string, blockedBy: number[], spec =
 }
 
 function mergeCase(o: Opts = {}): string {
-  const pr = o.pr ?? 40;
+  const pr = (o.fix ? 50 : o.pr ?? 40) as 40 | 41;
   const url = `${REPO}/pull/${pr}`;
   const dir = mkdtempSync(join(tmpdir(), "spp-merge-"));
   writeFileSync(join(dir, "args"), `${pr}\n--json\n`);
@@ -99,8 +100,8 @@ function mergeCase(o: Opts = {}): string {
       },
     },
   };
-  const body = o.body ?? `Closes #${TICKET[pr]}\n\n## Interfaces\n\nInterfaces changed: none\n`;
-  const gh = {
+  const body = o.body ?? (o.fix ? `Refs #30\n\nA fix.\n` : `Closes #${TICKET[pr]}\n\n## Interfaces\n\nInterfaces changed: none\n`);
+  const gh: Record<string, unknown> = {
     [`pr view ${pr} --json number,url,state,body,baseRefName,mergeable`]: {
       stdout: { number: pr, url, state: "OPEN", body, baseRefName: o.base ?? "feat/x", mergeable: o.mergeable ?? "MERGEABLE" },
     },
@@ -117,6 +118,18 @@ function mergeCase(o: Opts = {}): string {
     "api graphql -f query=PullRequests *": { stdout: { data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: [] } } } } },
     ...(o.mergeAnswer && { [`pr merge ${url} --squash --match-head-commit ${HEAD[pr]}`]: o.mergeAnswer }),
   };
+  if (o.fix) {
+    HEAD[50] = "6".repeat(40);
+    const v = o.fix.verdict ?? "pass";
+    const comments = v === "none" ? [] : [by(`<!-- spp-verdict -->\n${trailer({ ticket: "30", head: HEAD[50], spec: "pass", quality: "pass" })}\n`, v === "outsider")];
+    const fixPr = { ...prNode(50, "OPEN", "acme/app", body, comments), baseRefName: o.base ?? "feat/x" };
+    if (o.fix.author) Object.assign(fixPr, { author: { login: o.fix.author }, authorAssociation: "NONE" });
+    gh["api graphql -f query=PullRequests *"] = { stdout: { data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: o.base && o.base !== "feat/x" ? [] : [fixPr] } } } } };
+    gh[`api repos/acme/app/issues/50/comments --paginate --jq ${JQ}`] = { stdout: comments.length ? JSON.stringify([99, comments[0].body, comments[0].author.login, comments[0].authorAssociation]) + "\n" : "" };
+    gh[`pr view 50 --json number,url,state,body,baseRefName,mergeable`] = { stdout: { number: 50, url: `${REPO}/pull/50`, state: "OPEN", body, baseRefName: o.base ?? "feat/x", mergeable: o.mergeable ?? "MERGEABLE" } };
+    gh[`issue view ${REPO}/issues/30 --json parent`] = { stdout: { parent: { url: `${REPO}/issues/197` } } };
+    gh[`pr checks ${REPO}/pull/50 --json name,bucket`] = { stdout: o.checks ?? [{ name: "ci", bucket: "pass" }] };
+  }
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
   return dir;
 }
@@ -156,6 +169,42 @@ describe("happy path", () => {
   test("a Routing block Merge line picks the merge method", async () => {
     const r = await merge({ routing: "- Mode: org\n- Merge: rebase" });
     assert.deepEqual(r.writes[0].argv, ["pr", "merge", `${REPO}/pull/40`, "--rebase", "--match-head-commit", HEAD[40]]);
+  });
+});
+
+describe("fix pull request", () => {
+  const FIX = { fix: {} };
+  const FIX_URL = `${REPO}/pull/50`;
+
+  test("spp merge 50 on a Refs #30 fix with a trusted passing verdict merges once pinned to its head and writes no wave", async () => {
+    const r = await merge(FIX);
+    assert.deepEqual(r.out, { merged: true });
+    assert.deepEqual(r.writes.map((w) => w.argv), [["pr", "merge", FIX_URL, "--squash", "--match-head-commit", "6".repeat(40)]]);
+  });
+
+  test("no verdict comment refuses with no passing verdict from a trusted author", async () => {
+    await refused({ fix: { verdict: "none" } }, /^no passing verdict from a trusted author on #50$/);
+  });
+
+  test("a verdict by an author with no association refuses with the same reason", async () => {
+    await refused({ fix: { verdict: "outsider" } }, /^no passing verdict from a trusted author on #50$/);
+  });
+
+  test("a fix based on main refuses naming the integration branch", async () => {
+    await refused({ fix: {}, base: "main" }, /^base is main, not the integration branch feat\/x$/);
+  });
+
+  test("failing checks refuse naming the run", async () => {
+    await refused({ fix: {}, checks: [{ name: "lint", bucket: "fail" }] }, /^checks failing: lint$/);
+  });
+
+  test("a conflict exits 3 with rebase needed", async () => {
+    const r = await merge({ fix: {}, mergeable: "CONFLICTING" }, 3);
+    assert.deepEqual(r.out, { merged: false, reason: "rebase needed" });
+  });
+
+  test("a body with neither a closing line nor Refs refuses with closes no issue and refs no Sub-issue", async () => {
+    await refused({ fix: {}, body: "Just a change\n" }, /^closes no issue and refs no Sub-issue$/);
   });
 });
 
