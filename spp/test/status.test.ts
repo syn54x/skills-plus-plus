@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { derive, type EpicState, refIn, type Ticket } from "../src/derive.ts";
-import { parseSnapshot } from "../src/snapshot.ts";
+import { derive, type EpicState, type Fix, refIn, type Ticket } from "../src/derive.ts";
+import { parseSnapshot, readPullRequests } from "../src/snapshot.ts";
 import { assertCase, runCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -44,7 +44,7 @@ describe("happy path", () => {
   test("an open linked pull request makes a ticket pr-open with its number and head sha", async () => {
     const t = ticket(await state("states"), 403);
     assert.equal(t.state, "pr-open");
-    assert.deepEqual(t.pr, { number: 503, url: "https://github.com/acme/app/pull/503", state: "OPEN", repo: "acme/app", base: "feat/epic", headSha: "abc1234def", trusted: true });
+    assert.deepEqual(t.pr, { number: 503, url: "https://github.com/acme/app/pull/503", state: "OPEN", repo: "acme/app", base: "feat/epic", headSha: "abc1234def", trusted: true, refs: null });
   });
 
   test("a closed ticket whose linked pull request merged is merged", async () => {
@@ -94,6 +94,64 @@ describe("edge cases", () => {
     const t = ticket(await state("states"), 409);
     assert.equal(t.state, "ready");
     assert.deepEqual(t.blockedBy, []);
+  });
+});
+
+// ADR 0011: a fix is found by its shape, a trusted pull request into the integration branch that closes no Sub-issue.
+describe("fixes", () => {
+  // The fixes fixture: Epic 197 on feat/epic, #301 closed by PR 501 and #302 open, with seven pull requests listed.
+  async function fixes(): Promise<EpicState> {
+    const dir = mkdtempSync(join(tmpdir(), "spp-fixes-"));
+    cpSync(fixture("fixes"), dir, { recursive: true });
+    writeFileSync(join(dir, "args"), "197\n--json\n");
+    const r = await runCase("status", dir);
+    assert.equal(r.code, 0, r.stderr);
+    return r.json as EpicState;
+  }
+  const fix = (s: EpicState, n: number): Fix => {
+    const f = s.fixes.find((f) => f.number === n);
+    assert.ok(f, `fix ${n} missing`);
+    return f;
+  };
+
+  test("a trusted open pull request into the integration branch whose body opens Refs #302 is an open fix on #302", async () => {
+    assert.deepEqual(fix(await fixes(), 77), { number: 77, url: "https://github.com/acme/app/pull/77", repo: "acme/app", state: "OPEN", base: "feat/epic", headSha: "77".repeat(10), ticket: `${ISSUE}302` });
+  });
+
+  test("a merged one, its Refs line an issue URL, is a merged fix on #302", async () => {
+    const f = fix(await fixes(), 78);
+    assert.equal(f.state, "MERGED");
+    assert.equal(f.ticket, `${ISSUE}302`);
+  });
+
+  test("a fix whose body has no Refs line is unattributed", async () => {
+    assert.equal(fix(await fixes(), 79).ticket, null);
+  });
+
+  test("a closed unmerged one, an untrusted author's, one into main and a Sub-issue's own pull request are not fixes", async () => {
+    assert.deepEqual((await fixes()).fixes.map((f) => f.number), [77, 78, 79]);
+  });
+
+  test("with no integration branch recorded, fixes is empty and no pull-request request is made", async () => {
+    // The gh stub fails a read it has no answer for, and layers/gh.json answers only the snapshot query.
+    assert.deepEqual((await state("layers")).fixes, []);
+  });
+
+  test("the text view prints a Fixes group after the Layers and the open count on the header line", async () => {
+    await assertCase("status", fixture("fixes")); // expected.txt
+  });
+
+  test("the text view with no fixes prints neither the Fixes heading nor the count", async () => {
+    const r = await assertCase("status", fixture("text"));
+    assert.doesNotMatch(r.stdout, /Fixes|fixes open/);
+  });
+
+  test("readPullRequests takes the first Refs line, in the owner/repo#N form too, as the pull request's issue URL", () => {
+    const node = (number: number, body: string) => ({ number, url: `https://github.com/acme/app/pull/${number}`, state: "OPEN", headRefOid: "a".repeat(40), baseRefName: "feat/epic", repository: { nameWithOwner: "acme/app" }, author: { login: "maint" }, authorAssociation: "OWNER", body });
+    const stdout = JSON.stringify({ data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: [node(1, "See #5.\n\nRefs: acme/app#302 and Refs #303"), node(2, "refs #12")] } } } });
+    const prs = readPullRequests({ exitCode: 0, stdout, stderr: "" });
+    assert.deepEqual(prs.map((p) => p.refs), [`${ISSUE}302`, `${ISSUE}12`]);
+    assert.throws(() => readPullRequests({ exitCode: 1, stdout: "", stderr: "HTTP 502: Bad Gateway\n" }), /HTTP 502/);
   });
 });
 

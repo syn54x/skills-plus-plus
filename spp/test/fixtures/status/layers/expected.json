@@ -38,6 +38,7 @@
   ],
   "layers": [["https://github.com/acme/app/issues/301"], ["https://github.com/acme/app/issues/302"]],
   "cycle": [],
+  "fixes": [],
   "counts": {
     "blocked": 1,
     "ready": 1,

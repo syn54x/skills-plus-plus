@@ -1,7 +1,8 @@
 /**
  * `spp wait <epic> [--interval SECONDS] [--timeout SECONDS]` polls the Epic's state and the `claude` session list
  * every interval (default 120 seconds) and exits when something changes, with one line per change: a ticket's state
- * (`#12 claimed -> pr-open`) or one of its workers that stopped working (`t-12 done`). The first poll also reports a
+ * (`#12 claimed -> pr-open`), a Fix pull request that appeared, merged or went (`#77 OPEN -> MERGED`, `absent` on
+ * either side) or one of its workers that stopped working (`t-12 done`). The first poll also reports a
  * claimed, unassigned ticket with no pull request whose worker session is listed but no longer live, since it stopped
  * before the wait began. When nothing changes for `--timeout` seconds (default 1800) it exits with one `heartbeat:`
  * line, so a worker that died unseen never leaves the orchestrator asleep. Run it in the background so its exit wakes
@@ -18,8 +19,8 @@ import { fetchState } from "./status.ts";
 
 /** The usage text `spp wait --help` prints. */
 export const USAGE = `usage: spp wait <epic number | issue URL> [--interval SECONDS] [--timeout SECONDS]
-Exits 0 with one line per change: a ticket's state ("#12 claimed -> pr-open") or a worker that stopped working
-("t-12 done"), a claimed ticket's worker that stopped before opening its PR included; or, when nothing changed
+Exits 0 with one line per change: a ticket's state ("#12 claimed -> pr-open"), a fix pull request's ("#77 OPEN -> MERGED")
+or a worker that stopped working ("t-12 done"), a claimed ticket's worker that stopped before opening its PR included; or, when nothing changed
 for --timeout seconds, one "heartbeat:" line. The interval defaults to 120 seconds and the timeout to 1800.
 `;
 
@@ -32,6 +33,10 @@ function changes(before: Poll, now: Poll): string[] {
   const ref = refIn(now.state.epic.repo);
   const was = new Map(before.state.tickets.map((t) => [t.url, t.state]));
   const tickets = now.state.tickets.filter((t) => was.get(t.url) !== t.state).map((t) => `${ref(t.url)} ${was.get(t.url) ?? "absent"} -> ${t.state}`);
+  // A fix appears, merges or goes (closed, retargeted, or its author no longer trusted).
+  const fixWas = new Map(before.state.fixes.map((f) => [f.url, f.state]));
+  const fixNow = new Map(now.state.fixes.map((f) => [f.url, f.state]));
+  const fixes = [...new Set([...fixWas.keys(), ...fixNow.keys()])].filter((u) => fixWas.get(u) !== fixNow.get(u)).map((u) => `${ref(u)} ${fixWas.get(u) ?? "absent"} -> ${fixNow.get(u) ?? "absent"}`);
   // A ticket's workers: the progress comment's worker and the name spp dispatch gives, t-<N>.
   const names = new Set(now.state.tickets.flatMap((t) => [t.worker, `t-${t.number}`]).filter((n): n is string => !!n));
   const workers = now.sessions
@@ -41,7 +46,7 @@ function changes(before: Poll, now: Poll): string[] {
       return st && !BUSY.includes(st) && st !== sessionState(before.sessions.find((b) => b.name === s.name));
     })
     .map((s) => `${s.name} ${sessionState(s)}`);
-  return [...tickets, ...workers];
+  return [...tickets, ...fixes, ...workers];
 }
 
 // Lost workers (see lostWorker): they stopped before the first poll could see them go, and spp next hands their tickets

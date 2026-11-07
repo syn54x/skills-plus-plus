@@ -28,7 +28,8 @@ function scratchCase(args: string[], comments: Comment[] = [], issue = "12", ext
   writeFileSync(join(dir, "args"), args.join("\n") + "\n");
   const read = `api repos/{owner}/{repo}/issues/${issue}/comments --paginate --jq ${JQ}`;
   const stdout = comments.map((c) => JSON.stringify([c.id, c.body, c.login ?? "maint", c.association ?? "OWNER"]) + "\n").join("");
-  writeFileSync(join(dir, "gh.json"), JSON.stringify({ [read]: { stdout }, ...extra }));
+  const noFixes = { "api graphql -f query=PullRequests *": { stdout: { data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: [] } } } } } };
+  writeFileSync(join(dir, "gh.json"), JSON.stringify({ [read]: { stdout }, ...noFixes, ...extra }));
   return dir;
 }
 
@@ -265,7 +266,8 @@ describe("integration", () => {
       subIssues: { nodes: [sub(12, ["first", progress(PROGRESS).body]), sub(13, [])] },
     };
     const key = "api graphql -f query=Snapshot -F owner={owner} -F repo={repo} -F number=197";
-    writeFileSync(join(dir, "gh.json"), JSON.stringify({ [key]: { stdout: { data: { repository: { issue: epic } } } } }));
+    const noFixes = { "api graphql -f query=PullRequests *": { stdout: { data: { repository: { pullRequests: { nodes: [] } } } } } };
+    writeFileSync(join(dir, "gh.json"), JSON.stringify({ [key]: { stdout: { data: { repository: { issue: epic } } } }, ...noFixes }));
     const s = (await assertCase("status", dir)).json as EpicState;
     assert.equal(s.tickets.find((t) => t.number === 12)?.worker, "worker-12");
     assert.equal(s.tickets.find((t) => t.number === 13)?.worker, null);

@@ -1,0 +1,5 @@
+---
+"@syn54x/spp": minor
+---
+
+`spp status` now lists an Epic's Fix pull requests: trusted pull requests into its integration branch that close no Sub-issue, open or merged (ADR 0011). The text view prints them under a `Fixes` heading after the Layers, one line each with its state, its number and the Sub-issue its `Refs` line names or `unattributed`, and the header line ends with the open count, as in `(3 fixes open)`; with no fixes it prints neither. `--json` carries the same list as `fixes` on the Epic state, each with `ticket` set to the Sub-issue's URL or null. `spp wait` exits with a change line when a fix appears, merges or goes (`#77 OPEN -> MERGED`). The snapshot makes one more GraphQL request per repo for the list, only when the plan comment records an integration branch; `snapshot.ts` exports `pullRequestsArgs` and `readPullRequests` for the epic board.

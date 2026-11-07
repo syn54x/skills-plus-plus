@@ -1,6 +1,9 @@
 `spp status <epic> [--json]` prints every Sub-issue of an Epic with its state, grouped by Layer, from one GraphQL
 query. Each line is the ticket's state, its number and title, and its pull request when it has one; a blocking
-cycle gets a group of its own. With `--json` it prints the whole [EpicState](#epicstate) instead.
+cycle gets a group of its own. The Epic's Fix pull requests (trusted pull requests into its integration branch that
+close no Sub-issue, open or merged) follow under `Fixes`, one line each with its state, its number and the Sub-issue
+its `Refs` line names or `unattributed`, and the header line ends with the open count, as in `(3 fixes open)`;
+with no fixes it prints neither. With `--json` it prints the whole [EpicState](#epicstate) instead, the fixes as `fixes`.
 
 ## Functions
 
@@ -101,6 +104,31 @@ One Sub-issue of the Epic.
 
 ***
 
+### Fix
+
+```ts
+type Fix = object;
+```
+
+A Fix pull request: a trusted author's pull request into the Epic's integration branch that closes no Sub-issue,
+open or merged (ADR 0011). `ticket` is the URL of the Sub-issue its body's first `Refs` line names, or null when
+it names none of them (unattributed).
+
+#### Properties
+
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="property-number-1"></a> `number` | `number` | The pull request number. |
+| <a id="property-url-1"></a> `url` | `string` | The pull request URL. |
+| <a id="property-repo-1"></a> `repo` | `string` | Its repository, `owner/repo`. |
+| <a id="property-state-1"></a> `state` | `"OPEN"` \| `"MERGED"` | Its state: a closed unmerged pull request is no fix. |
+| <a id="property-base"></a> `base` | `string` | The integration branch it merges into. |
+| <a id="property-headsha"></a> `headSha` | `string` | The head commit's full sha. |
+| <a id="property-ticket"></a> `ticket` | `string` \| `null` | The Sub-issue it belongs to, as an issue URL, or null. |
+| <a id="property-verdict"></a> `verdict?` | [`Verdict`](#verdict) | Its `<!-- spp-verdict -->` comment, present only when it decodes. |
+
+***
+
 ### EpicState
 
 ```ts
@@ -124,6 +152,7 @@ An Epic and its Sub-issues as one snapshot derives them: the `--json` shape of `
 | <a id="property-layers"></a> `layers` | `string`[][] | Issue URLs by Layer, Layer 0 first. |
 | <a id="property-cycle"></a> `cycle` | `string`[] | Issue URLs caught in a blocking cycle. |
 | <a id="property-counts"></a> `counts` | `Record`\<[`TicketState`](#ticketstate), `number`\> | How many tickets are in each state. |
+| <a id="property-fixes"></a> `fixes` | [`Fix`](#fix)[] | The Fix pull requests, by number. |
 
 ***
 
@@ -149,14 +178,15 @@ A pull request linked to a Sub-issue.
 
 | Property | Type | Description |
 | ------ | ------ | ------ |
-| <a id="property-number-1"></a> `number` | `number` | The pull request number. |
-| <a id="property-url-1"></a> `url` | `string` | The pull request URL. |
-| <a id="property-state-1"></a> `state` | [`PrState`](#prstate) | Its state on GitHub. |
-| <a id="property-repo-1"></a> `repo` | `string` | Its repository, `owner/repo`, which may lie outside the Epic: any repository can say it closes an issue. |
-| <a id="property-base"></a> `base` | `string` | The branch it merges into. |
-| <a id="property-headsha"></a> `headSha` | `string` | The head commit's full sha. |
+| <a id="property-number-2"></a> `number` | `number` | The pull request number. |
+| <a id="property-url-2"></a> `url` | `string` | The pull request URL. |
+| <a id="property-state-2"></a> `state` | [`PrState`](#prstate) | Its state on GitHub. |
+| <a id="property-repo-2"></a> `repo` | `string` | Its repository, `owner/repo`, which may lie outside the Epic: any repository can say it closes an issue. |
+| <a id="property-base-1"></a> `base` | `string` | The branch it merges into. |
+| <a id="property-headsha-1"></a> `headSha` | `string` | The head commit's full sha. |
 | <a id="property-trusted"></a> `trusted` | `boolean` | Whether spp trusts its author: the gh user, or one GitHub marks OWNER, MEMBER or COLLABORATOR (ADR 0009), so a stranger's fork pull request into the Epic's repository is never the ticket's. |
-| <a id="property-verdict"></a> `verdict?` | [`Verdict`](#verdict) | The pull request's `<!-- spp-verdict -->` comment as `spp verdict` writes it, present only when it decodes. |
+| <a id="property-verdict-1"></a> `verdict?` | [`Verdict`](#verdict) | The pull request's `<!-- spp-verdict -->` comment as `spp verdict` writes it, present only when it decodes. |
+| <a id="property-refs"></a> `refs` | `string` \| `null` | The issue URL the body's first `Refs #N`, `Refs owner/repo#N` or `Refs <issue URL>` names, or null without one. A fix pull request names the Sub-issue it belongs to this way (ADR 0011). |
 
 ***
 
@@ -172,7 +202,7 @@ The slice gate's verdict on one head of a pull request, as its `<!-- spp-verdict
 
 | Property | Type | Description |
 | ------ | ------ | ------ |
-| <a id="property-ticket"></a> `ticket` | `string` | The Sub-issue or One-off the pull request closes, as `spp verdict --ticket` gave it. |
+| <a id="property-ticket-1"></a> `ticket` | `string` | The Sub-issue or One-off the pull request closes, as `spp verdict --ticket` gave it. |
 | <a id="property-head"></a> `head` | `string` | The head the verdict was given on: a full sha, or a prefix of at least 7 characters. |
 | <a id="property-spec"></a> `spec` | `"pass"` \| `"fail"` | The spec verdict. |
 | <a id="property-quality"></a> `quality` | `"pass"` \| `"fail"` | The quality verdict. |
