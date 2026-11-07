@@ -48,9 +48,9 @@ const snapshot = (pr: boolean | "MERGED", assignee?: string) => ({
   },
 });
 
-// The integration branch's pull-request list: one fix pull request in `state`, or none.
-const fixes = (state?: string) => ({
-  stdout: { data: { repository: { pullRequests: { nodes: state ? [{ number: 77, url: "https://github.com/acme/app/pull/77", state, headRefOid: "b".repeat(40), baseRefName: "feat/epic", repository: { nameWithOwner: "acme/app" }, author: { login: "maint" }, authorAssociation: "OWNER", body: "Refs #12" }] : [] } } } },
+// The integration branch's pull-request list: one fix pull request in `state` at `head`, or none.
+const fixes = (state?: string, head = "b".repeat(40)) => ({
+  stdout: { data: { repository: { pullRequests: { nodes: state ? [{ number: 77, url: "https://github.com/acme/app/pull/77", state, headRefOid: head, baseRefName: "feat/epic", repository: { nameWithOwner: "acme/app" }, author: { login: "maint" }, authorAssociation: "OWNER", body: "Refs #12" }] : [] } } } },
 });
 
 const session = (state: string) => ({ stdout: [{ name: "t-12", kind: "background", state }, { name: "other", kind: "background", state: "done" }] });
@@ -84,6 +84,15 @@ describe("happy path", () => {
     const r = await runCase("wait", dir);
     assert.equal(r.code, 0, r.stderr);
     assert.equal(r.stdout, "#77 OPEN -> MERGED\n");
+  });
+
+  // Story 13 on #317: a fix round pushes a new head, and the gate's verdict then lands on it; both wake the wait.
+  test("a fix pull request whose head moved between polls exits 0 printing OPEN -> OPEN (new head)", async () => {
+    const dir = scratch([snapshot(false)], [session("working")], [fixes("OPEN"), fixes("OPEN", "c".repeat(40))]);
+    writeFileSync(join(dir, "args"), "197\n--interval\n0\n--timeout\n5\n");
+    const r = await runCase("wait", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, "#77 OPEN -> OPEN (new head)\n");
   });
 });
 

@@ -1,8 +1,11 @@
-acme/app#197 Epic (2 fixes open)
+acme/app#197 Epic (4 fixes open)
 Layer 0
   merged      #301 Producer (PR #501)
   ready       #302 Consumer
+  ready       acme/api#303 Elsewhere
 Fixes
   open        #77 Refs #302
   merged      #78 Refs #302
   open        #79 unattributed
+  open        #83 unattributed
+  open        acme/api#90 Refs acme/api#303

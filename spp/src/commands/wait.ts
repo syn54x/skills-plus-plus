@@ -2,7 +2,8 @@
  * `spp wait <epic> [--interval SECONDS] [--timeout SECONDS]` polls the Epic's state and the `claude` session list
  * every interval (default 120 seconds) and exits when something changes, with one line per change: a ticket's state
  * (`#12 claimed -> pr-open`), a Fix pull request that appeared, merged or went (`#77 OPEN -> MERGED`, `absent` on
- * either side) or one of its workers that stopped working (`t-12 done`). The first poll also reports a
+ * either side), got a new head or a gate verdict (`#77 OPEN -> OPEN (new head)`, `(gate-pass)`) or one of its workers
+ * that stopped working (`t-12 done`). The first poll also reports a
  * claimed, unassigned ticket with no pull request whose worker session is listed but no longer live, since it stopped
  * before the wait began. When nothing changes for `--timeout` seconds (default 1800) it exits with one `heartbeat:`
  * line, so a worker that died unseen never leaves the orchestrator asleep. Run it in the background so its exit wakes
@@ -11,7 +12,7 @@
  * @module
  */
 import { setTimeout as sleep } from "node:timers/promises";
-import { type EpicState, refIn } from "../derive.ts";
+import { type EpicState, type Fix, gateOf, refIn } from "../derive.ts";
 import { flagPairs, guarded, parseIssue, UsageError } from "../markers.ts";
 import { lostWorker, type Session } from "../plan-next.ts";
 import { readSessions } from "./next.ts";
@@ -33,10 +34,17 @@ function changes(before: Poll, now: Poll): string[] {
   const ref = refIn(now.state.epic.repo);
   const was = new Map(before.state.tickets.map((t) => [t.url, t.state]));
   const tickets = now.state.tickets.filter((t) => was.get(t.url) !== t.state).map((t) => `${ref(t.url)} ${was.get(t.url) ?? "absent"} -> ${t.state}`);
-  // A fix appears, merges or goes (closed, retargeted, or its author no longer trusted).
-  const fixWas = new Map(before.state.fixes.map((f) => [f.url, f.state]));
-  const fixNow = new Map(now.state.fixes.map((f) => [f.url, f.state]));
-  const fixes = [...new Set([...fixWas.keys(), ...fixNow.keys()])].filter((u) => fixWas.get(u) !== fixNow.get(u)).map((u) => `${ref(u)} ${fixWas.get(u) ?? "absent"} -> ${fixNow.get(u) ?? "absent"}`);
+  // A fix appears, merges or goes (closed, retargeted, or its author no longer trusted), gets a new head after its fix
+  // round, or gets the gate's verdict on that head.
+  const fixWas = new Map(before.state.fixes.map((f) => [f.url, f]));
+  const fixNow = new Map(now.state.fixes.map((f) => [f.url, f]));
+  const gate = (f: Fix) => gateOf({ ...f, trusted: true, refs: f.ticket });
+  const fixes = [...new Set([...fixWas.keys(), ...fixNow.keys()])].flatMap((u) => {
+    const [a, b] = [fixWas.get(u), fixNow.get(u)];
+    if (a?.state === b?.state && a?.headSha === b?.headSha && (!a || !b || gate(a) === gate(b))) return [];
+    const why = a && b && a.state === b.state ? ` (${a.headSha !== b.headSha ? "new head" : gate(b)})` : "";
+    return [`${ref(u)} ${a?.state ?? "absent"} -> ${b?.state ?? "absent"}${why}`];
+  });
   // A ticket's workers: the progress comment's worker and the name spp dispatch gives, t-<N>.
   const names = new Set(now.state.tickets.flatMap((t) => [t.worker, `t-${t.number}`]).filter((n): n is string => !!n));
   const workers = now.sessions

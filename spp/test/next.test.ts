@@ -504,6 +504,11 @@ describe("fix pull requests", () => {
     assert.deepEqual(actions.map((a) => [a.kind, a.pr, a.tickets]), [["merge", PULL + 77, ["12"]]]);
   });
 
+  test("a passing verdict on an older head leaves it ungated: gate", async () => {
+    const actions = await next(landed, { fixes: [FIX(77, { verdict: { ...PASS, head: "c".repeat(40) } })] });
+    assert.deepEqual(kinds(actions), ["gate"]);
+  });
+
   test("its head failed its gate once: fix", async () => {
     const actions = await next(landed, { fixes: [FIX(77, { verdict: FAIL })] });
     assert.deepEqual(actions.map((a) => [a.kind, a.pr]), [["fix", PULL + 77]]);
@@ -539,6 +544,7 @@ describe("fix pull requests", () => {
     assert.match(WHY(actions[0]), /#79/);
     assert.match(WHY(actions[0]), /Refs #<Sub-issue>/);
     assert.match(WHY(actions[0]), /close it/);
+    assert.doesNotMatch(WHY(actions[0]), /Closes/);
   });
 
   test("an unattributed fix beside a gated one: the gate action, the unattributed one named in its reason", async () => {
