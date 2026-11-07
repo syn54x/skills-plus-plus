@@ -130,6 +130,10 @@ One fresh read-only reviewer on a slice pull request into the integration branch
 **Main gate**:
 The review of an **Epic**'s pull request to main. The panel runs on its own when the **Epic** has four or more tickets, any size L ticket, or 1,000 or more changed lines; smaller ones get the single spec verdict.
 
+**Fix pull request**:
+A pull request into an **Epic**'s integration branch that closes no **Sub-issue**, most often a worker's answer to **Main gate** findings, naming the **Sub-issue** it belongs to with `Refs`. It is gated and merged as a slice is, and the **Main gate** waits while one is open.
+_Avoid_: follow-up pull request, patch
+
 **Persona**:
 One read-only panel reviewer with a fixed focus. The panel's findings are deduplicated by `spp findings merge`.
 
