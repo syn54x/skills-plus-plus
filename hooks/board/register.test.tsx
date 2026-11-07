@@ -81,7 +81,7 @@ function issue(s: Spec) {
 }
 
 // The Epic's snapshot. `waves` is the wave comment by the owner; `forged` is one by an outside author posted before it.
-function snapshot(specs: Spec[], waves: { n: number; tickets: string[] }[] = [], forged?: { n: number; tickets: string[] }[], epic = 197) {
+function snapshot(specs: Spec[], waves: { n: number; tickets: string[] }[] = [], forged?: { n: number; tickets: string[] }[], epic = 197, repos: string[] = []) {
   const outsider = (body: string) => ({ body, author: { login: 'mallory' }, authorAssociation: 'NONE' })
   return JSON.stringify({
     data: {
@@ -94,7 +94,7 @@ function snapshot(specs: Spec[], waves: { n: number; tickets: string[] }[] = [],
           repository: { nameWithOwner: REPO },
           comments: {
             nodes: [
-              owned(trailer('<!-- sdd-plan -->', { branch: BRANCH })),
+              owned(trailer('<!-- sdd-plan -->', { branch: BRANCH, repos })),
               ...(forged ? [outsider(trailer('<!-- sdd-wave -->', { waves: forged, panel: [] }))] : []),
               ...(waves.length ? [owned(trailer('<!-- sdd-wave -->', { waves, panel: [] }))] : []),
             ],
@@ -143,6 +143,7 @@ type Host = {
   agents?: { id: string; description: string }[]
   branch?: string // the checkout's current branch
   parent?: string // the parent URL `gh issue view` answers for a worker branch's issue
+  prsByRepo?: Record<string, { exitCode: number; stdout: string; stderr?: string }> // the answer per repo, over `prs`
   prs?: { exitCode: number; stdout: string; stderr?: string } // the pull-request request's answer; none by default
   epics?: object[] // the open issues with Sub-issues the epics query answers
 }
@@ -174,7 +175,8 @@ function host(on: On, h: Host) {
       return ok(JSON.stringify({ data: { viewer: { login: 'maint' }, repository: { issues: { nodes: h.epics ?? [] } } } }))
     }
     if (cmd === 'gh' && args.some(a => a.includes('query PullRequests'))) {
-      const prs = h.prs ?? { exitCode: 0, stdout: pullRequests([]) }
+      const repo = args.map(a => /^repo=(.+)$/.exec(a)?.[1]).find(Boolean) ?? ''
+      const prs = h.prsByRepo?.[repo] ?? h.prs ?? { exitCode: 0, stdout: pullRequests([]) }
       return { value: { stderr: '', isStdoutTruncated: false, isStderrTruncated: false, ...prs } }
     }
     if (cmd === 'gh') {
@@ -593,7 +595,7 @@ test('a failing pull-request request keeps the tickets and names the failure', a
   await $.command.run(OPEN)
 
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  expect((await ui.find({ key: 'error' }))?.text).toBe('pull requests: HTTP 502: bad gateway')
+  expect((await ui.find({ key: 'error' }))?.text).toBe(`pull requests of ${REPO}: HTTP 502: bad gateway`)
   expect((await texts(ui)).filter(t => /^#201 /.test(t))).toHaveLength(1)
   await ui.unmount()
 })
@@ -603,4 +605,17 @@ test('with only merged fixes the count still shows, as 0 fixes open', async ($, 
   await $.command.run(OPEN)
 
   expect(seen.status.at(-1)).toBe('#197 0/1 merged · 0 fixes open')
+})
+
+test('one unreadable repo loses only its fixes and the error names it', async ($, on) => {
+  host(on, {
+    gh: { exitCode: 0, stdout: snapshot([{ n: 201 }], [], undefined, 197, ['syn54x/other']) },
+    prsByRepo: { 'skills-plus-plus': { exitCode: 0, stdout: FIXES }, other: { exitCode: 1, stdout: '', stderr: 'HTTP 404: Not Found' } },
+  })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect((await ui.find({ key: 'error' }))?.text).toBe('pull requests of syn54x/other: HTTP 404: Not Found')
+  expect(await texts(ui)).toEqual(expect.arrayContaining(['Fixes', 'fix open', 'fix merged']))
+  await ui.unmount()
 })

@@ -77,12 +77,17 @@ async function workersOf($: EngineInterface): Promise<BoardWorker[]> {
   ]
 }
 
-// The snapshot with the pull requests into the integration branch, one request per repo spp names. Nothing is set
-// unless every request answers, so a failure leaves the snapshot as it was.
-async function withFixes($: EngineInterface, snapshot: Snapshot): Promise<Snapshot> {
-  const answers = await Promise.all(
-    pullRequestsArgs(snapshot).map(async args => readPullRequests(await $.process.run(['gh', ...args], { timeoutMs: 60_000 }))),
-  )
+// The snapshot with the pull requests into the integration branch, one request per repo spp names, as `spp status`
+// reads them: a repo that fails loses its pull requests and nothing else, and its error names it.
+async function withBranchPullRequests($: EngineInterface, snapshot: Snapshot, errors: string[]): Promise<Snapshot> {
+  const all = pullRequestsArgs(snapshot)
+  const settled = await Promise.allSettled(all.map(async args => readPullRequests(await $.process.run(['gh', ...args], { timeoutMs: 60_000 }))))
+  const answers = settled.flatMap((r, i) => {
+    if (r.status === 'fulfilled') return [r.value]
+    const repo = all[i].filter(a => /^(owner|repo)=/.test(a)).map(a => a.slice(a.indexOf('=') + 1)).join('/')
+    errors.push(`pull requests of ${repo}: ${firstLine(r.reason.message)}`)
+    return []
+  })
   return withPullRequests(snapshot, answers)
 }
 
@@ -96,8 +101,7 @@ async function load($: EngineInterface, epic: string): Promise<Board> {
   let state: EpicState
   try {
     snapshot = readSnapshot(await $.process.run(['gh', ...args], { timeoutMs: 60_000 }))
-    const base = snapshot
-    snapshot = await withFixes($, base).catch((e: Error) => (errors.push(`pull requests: ${firstLine(e.message)}`), base))
+    snapshot = await withBranchPullRequests($, snapshot, errors)
     state = derive(snapshot)
   } catch (e) {
     return { ...EMPTY, epic, error: `gh: ${firstLine((e as Error).message)}` }
