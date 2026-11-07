@@ -125,7 +125,7 @@ it names none of them (unattributed).
 | <a id="property-base"></a> `base` | `string` | The integration branch it merges into. |
 | <a id="property-headsha"></a> `headSha` | `string` | The head commit's full sha. |
 | <a id="property-ticket"></a> `ticket` | `string` \| `null` | The Sub-issue it belongs to, as an issue URL, or null. |
-| <a id="property-verdict"></a> `verdict?` | [`Pr`](#pr)\[`"verdict"`\] | Its `<!-- spp-verdict -->` comment, present only when it decodes. |
+| <a id="property-verdict"></a> `verdict?` | [`Verdict`](#verdict) | Its `<!-- spp-verdict -->` comment, present only when it decodes. |
 
 ***
 
@@ -186,7 +186,7 @@ A pull request linked to a Sub-issue.
 | <a id="property-headsha-1"></a> `headSha` | `string` | The head commit's full sha. |
 | <a id="property-trusted"></a> `trusted` | `boolean` | Whether spp trusts its author: the gh user, or one GitHub marks OWNER, MEMBER or COLLABORATOR (ADR 0009), so a stranger's fork pull request into the Epic's repository is never the ticket's. |
 | <a id="property-verdict-1"></a> `verdict?` | [`Verdict`](#verdict) | The pull request's `<!-- spp-verdict -->` comment as `spp verdict` writes it, present only when it decodes. |
-| <a id="property-refs"></a> `refs?` | `string` \| `null` | The issue URL the body's first `Refs #N`, `Refs owner/repo#N` or `Refs <issue URL>` names, or null without one. A fix pull request names the Sub-issue it belongs to this way (ADR 0011). Only set on the snapshot's `pullRequests`. |
+| <a id="property-refs"></a> `refs` | `string` \| `null` | The issue URL the body's first `Refs #N`, `Refs owner/repo#N` or `Refs <issue URL>` names, or null without one. A fix pull request names the Sub-issue it belongs to this way (ADR 0011). |
 
 ***
 
