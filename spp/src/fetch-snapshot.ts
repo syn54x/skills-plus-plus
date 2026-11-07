@@ -13,9 +13,10 @@ async function gh<T>(args: string[], read: (r: { exitCode: number | null; stdout
   }
 }
 
-// gh's answer when the repo is not there or not readable by the gh user: a mistyped plan entry or lost access. Only
-// these are skipped; a rate limit or a 5xx would hide a fix from spp next, so it fails the command as the snapshot does.
-const UNREADABLE = /could not resolve|not found|\b40[34]\b/i;
+// gh's answer when the repo is not there or not readable by the gh user: a mistyped plan entry, or a private repo,
+// which GraphQL answers "Could not resolve" rather than 403. Only these are skipped; a rate limit (a 403 too), a 5xx or
+// a lost network would hide a fix from spp next, so each fails the command as the snapshot request does.
+const UNREADABLE = /could not resolve|not found|\b404\b/i;
 const warned = new Set<string>(); // once per process: spp wait polls for hours
 
 // One repo's pull requests, or none with a warning on stderr when the repo cannot be read; any other failure throws.
@@ -37,6 +38,6 @@ export async function fetchSnapshot(epic: string): Promise<Snapshot | null> {
   const args = snapshotArgs(epic);
   if (!args) return null;
   const snapshot = await gh(args, readSnapshot);
-  const repos = fixRepos(snapshot);
+  const repos = fixRepos(snapshot); // pairs with the argument lists by index
   return withPullRequests(snapshot, await Promise.all(pullRequestsArgs(snapshot).map((a, i) => pullRequests(repos[i], a))));
 }
