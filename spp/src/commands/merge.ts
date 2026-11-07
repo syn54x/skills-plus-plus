@@ -99,7 +99,7 @@ async function decideFix(view: PrView, prRepo: string): Promise<{ result: MergeR
   const fix = epic.state.fixes.find((f) => f.url === view.url);
   if (!fix) return refuse(`${ref(view.url)} is not a fix of ${ref(epic.url)}`);
   if (!fix.ticket) return refuse(`${ref(ticketUrl)} is not a sub-issue of ${ref(epic.url)}`);
-  if (gateOf({ ...fix, trusted: true, refs: null, verdict: await verdictOn(view.url) }) !== "gate-pass") return refuse(`no passing verdict from a trusted author on ${ref(view.url)}`);
+  if (gateOf({ headSha: fix.headSha, verdict: await verdictOn(view.url) }) !== "gate-pass") return refuse(`no passing verdict from a trusted author on ${ref(view.url)}`);
   return (await land(view, fix.headSha)) ?? { result: { merged: true }, code: 0, base: view.baseRefName };
 }
 
