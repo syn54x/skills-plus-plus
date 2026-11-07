@@ -119,7 +119,7 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
     gh[`issue view ${ISSUE}${t.n} --json body`] = { stdout: { body: ticketBody(t) } };
     if (t.pr) stubs(t.pr);
   }
-  for (const f of o.fixes ?? []) stubs(f);
+  for (const f of o.fixes ?? []) if (f.body) stubs(f); // an unattributed fix (no body) is never read, and an unstubbed read fails the case
   if (branch) {
     const m = o.mainPr;
     const prs = m ? [{ number: 900, url: PULL + 900, state: m.state, additions: m.lines - 10, deletions: 10 }] : [];
@@ -506,6 +506,11 @@ describe("fix pull requests", () => {
 
   test("a passing verdict on an older head leaves it ungated: gate", async () => {
     const actions = await next(landed, { fixes: [FIX(77, { verdict: { ...PASS, head: "c".repeat(40) } })] });
+    assert.deepEqual(kinds(actions), ["gate"]);
+  });
+
+  test("a failing verdict on an older head leaves it ungated: gate", async () => {
+    const actions = await next(landed, { fixes: [FIX(77, { verdict: { ...FAIL, head: "c".repeat(40) } })] });
     assert.deepEqual(kinds(actions), ["gate"]);
   });
 
