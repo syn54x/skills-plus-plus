@@ -27,7 +27,7 @@ export type Pr = {
   verdict?: Verdict;
   /**
    * The issue URL the body's first `Refs #N`, `Refs owner/repo#N` or `Refs <issue URL>` names, or null without one.
-   * A fix pull request names the Sub-issue it belongs to this way (ADR 0011). Only set on {@link Snapshot.pullRequests}.
+   * A fix pull request names the Sub-issue it belongs to this way (ADR 0011). Only set on the snapshot's `pullRequests`.
    */
   refs?: string | null;
 };
