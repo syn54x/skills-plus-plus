@@ -36,6 +36,7 @@ type Opts = {
   waveFails?: boolean; // reading the wave comment fails, so recording the merge on it fails
   fix?: { verdict?: "pass" | "outsider" | "none"; author?: string }; // a fix pull request 50 into feat/x instead of a slice
   noParent?: true | number; // the issue the body names has no parent (true: #999; a number: that closing line's issue)
+  closedFails?: { issue: number; stderr: string }; // gh fails reading this issue's parent
   foreign?: boolean; // #30 also has an open pull request in mallory/fork that says it closes it
 };
 
@@ -130,8 +131,10 @@ function mergeCase(o: Opts = {}): string {
     gh[`pr view 50 --json number,url,state,body,baseRefName,mergeable`] = { stdout: { number: 50, url: `${REPO}/pull/50`, state: "OPEN", body, baseRefName: o.base ?? "feat/x", mergeable: o.mergeable ?? "MERGEABLE" } };
     gh[`issue view ${REPO}/issues/30 --json parent`] = { stdout: { parent: { url: `${REPO}/issues/197` } } };
     if (o.noParent) gh[`issue view ${REPO}/issues/${o.noParent === true ? 999 : o.noParent} --json parent`] = { stdout: { parent: null } };
+    gh[`issue view ${REPO}/issues/31 --json parent`] = { stdout: { parent: { url: `${REPO}/issues/197` } } };
     gh[`pr checks ${REPO}/pull/50 --json name,bucket`] = { stdout: o.checks ?? [{ name: "ci", bucket: "pass" }] };
   }
+  if (o.closedFails) gh[`issue view ${REPO}/issues/${o.closedFails.issue} --json parent`] = { stderr: o.closedFails.stderr, code: 1 };
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
   return dir;
 }
@@ -222,8 +225,24 @@ describe("fix pull request", () => {
     await refused({ fix: {}, body: "Fixes #303\n", noParent: 303 }, /^closes no Sub-issue of an Epic and refs no Sub-issue$/);
   });
 
-  test("an unreadable closed issue falls through to the fix path", async () => {
-    const r = await merge({ fix: {}, body: "Refs #30\n\nFixes #303\n" });
+  test("a closed issue gh cannot resolve falls through to the fix path", async () => {
+    const closedFails = { issue: 303, stderr: "GraphQL: Could not resolve to an Issue with the number of 303." };
+    const r = await merge({ fix: {}, body: "Refs #30\n\nFixes #303\n", closedFails });
+    assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
+  });
+
+  test("a transient gh failure on the closed issue fails with gh's message, for a Refs body and a slice body", async () => {
+    const stderr = "HTTP 502: Bad Gateway";
+    for (const o of [{ fix: {}, body: "Refs #30\n\nFixes #303\n", closedFails: { issue: 303, stderr } }, { closedFails: { issue: 30, stderr } }] as Opts[]) {
+      const r = await runCase("merge", mergeCase(o));
+      assert.equal(r.code, 1);
+      assert.match(r.stderr, /HTTP 502: Bad Gateway/);
+      assert.deepEqual(r.writes, []);
+    }
+  });
+
+  test("a fix that Refs #30 and says Fixes #31, a Sub-issue whose own pull request is another, merges as a fix", async () => {
+    const r = await merge({ fix: {}, body: "Refs #30\n\nFixes #31\n" });
     assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
   });
 
