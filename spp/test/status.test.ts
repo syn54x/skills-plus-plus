@@ -151,10 +151,22 @@ describe("fixes", () => {
   });
 
   // F11 on #317: one unreadable repo loses only its fixes.
-  test("a repo whose pull-request request fails is warned about on stderr and the rest of the state stands", async () => {
-    const r = await fixesCase({ [API]: { stderr: "HTTP 404: Not Found (https://api.github.com/graphql)\n", code: 1 } });
+  test("a repo whose pull-request request answers not found is warned about on stderr and the rest of the state stands", async () => {
+    const r = await fixesCase({ [API]: { stderr: "GraphQL: Could not resolve to a Repository with the name 'acme/api'. (repository)\n", code: 1 } });
     assert.deepEqual((r.json as EpicState).fixes.map((f) => f.number), [77, 78, 79, 83]);
-    assert.match(r.stderr, /acme\/api.*HTTP 404/);
+    assert.match(r.stderr, /acme\/api.*Could not resolve/);
+  });
+
+  // R2-F10 on #317: only a repo that is not there, or not readable, is skipped; a transient failure must not hide a fix
+  // from spp next, so it fails the snapshot as the snapshot request itself does.
+  test("a repo whose pull-request request fails for any other reason fails the command with gh's message", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "spp-fixes-"));
+    cpSync(fixture("fixes"), dir, { recursive: true });
+    const gh = JSON.parse(readFileSync(join(dir, "gh.json"), "utf8")) as Record<string, unknown>;
+    writeFileSync(join(dir, "gh.json"), JSON.stringify({ ...gh, [API]: { stderr: "HTTP 502: Bad Gateway (https://api.github.com/graphql)\n", code: 1 } }));
+    const r = await runCase("status", dir);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /HTTP 502: Bad Gateway/);
   });
 
   // F13 on #317: the fix-fetch policy (branch, repos, dedupe) lives behind snapshot.ts; callers only run gh.
