@@ -64,7 +64,7 @@ While workers run, `build` prints one line per worker from `spp status` and the 
 The worker hands the issue back and stops. If it is a missing fact, `build` supplies it and resumes the worker. If it is a design the Epic left open, `build` runs [grilling](grilling.md) with you, records a hard-to-reverse answer with [domain-modeling](domain-modeling.md), writes the decision into the Epic as a Spec delta, rewrites the affected Sub-issues, and starts the worker again on the amended issue.
 
 **How does a fix to a failed Epic gate get merged?**
-The worker opens it into the integration branch with `Refs #<Sub-issue>`. `build` then follows `spp next`: the fix is gated, sent back once, merged or handed back like a slice, and `main-gate` comes up again only once no fix is open. `build` never merges a fix by hand.
+The worker opens it into the integration branch with `Refs #<Sub-issue>`. `build` then follows `spp next`: the fix is gated, sent back once, merged like a slice, or, after a second failed head, reported to you with its open findings (the closed Sub-issue is not relabelled), and `main-gate` comes up again only once no fix is open. `build` never merges a fix by hand.
 
 **Why does a failed pull request get only one fix round?**
 If a second head still fails, one round of fixing has not settled it, and more rounds mostly burn tokens. The issue goes back to you with its open findings, and the rest of the Epic keeps moving.
