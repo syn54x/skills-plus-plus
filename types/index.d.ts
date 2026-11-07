@@ -18,13 +18,22 @@ export type BoardTicket = {
   wave: number | null // the Wave it was dispatched in, from the Epic's wave comment
 }
 
+// One Fix pull request's row: a trusted pull request into the integration branch that closes no Sub-issue.
+export type BoardFix = {
+  number: number
+  url: string // the pull request's URL
+  state: 'OPEN' | 'MERGED'
+  ticket: number | null // the Sub-issue its `Refs` line names; null when unattributed
+}
+
 export type Board = {
   epic: string | null // the Epic as given to /epic-board: an issue number or URL; null until one is chosen
   title: string | null // `#<number> <title>`, null until the first good refresh
   merged: number
   tickets: BoardTicket[] // none until the first good refresh, or after the gh call failed
+  fixes: BoardFix[] // none until the first good refresh, or when the Epic has no Fix pull requests
   workers: BoardWorker[]
-  error: string | null // one line: the last failing gh, spp or claude call
+  error: string | null // one line: the last failing gh, spp or claude call, or the pull-request read
 }
 
 declare module 'claude-code' {

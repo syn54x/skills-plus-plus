@@ -7,14 +7,14 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import { derive, type EpicState, type TicketState } from '../../spp/src/derive.ts'
 import { latestNotes, notesFile } from '../../spp/src/notes-log.ts'
-import { epicsArgs, readEpics, readSnapshot, type Snapshot, snapshotArgs } from '../../spp/src/snapshot.ts'
-import type { Board, BoardTicket, BoardWorker } from '../../types/index.d.ts'
+import { epicsArgs, pullRequestsArgs, readEpics, readPullRequests, readSnapshot, type Snapshot, snapshotArgs } from '../../spp/src/snapshot.ts'
+import type { Board, BoardFix, BoardTicket, BoardWorker } from '../../types/index.d.ts'
 
 const PANE = 'epic-board'
 const TITLE = 'Epic board'
-const EMPTY: Board = { epic: null, title: null, merged: 0, tickets: [], workers: [], error: null }
+const EMPTY: Board = { epic: null, title: null, merged: 0, tickets: [], fixes: [], workers: [], error: null }
 // Change the tag when Board changes shape: it declines what an earlier version stored, which outlives a reload.
-const board = atom({ plugin: 'spp', key: 'board' } as const, EMPTY, { shape: 'board-1' })
+const board = atom({ plugin: 'spp', key: 'board' } as const, EMPTY, { shape: 'board-2' })
 
 // Each TicketState's chip: a distinct label and a color.
 const CHIPS: Record<TicketState, { label: string; color: string }> = {
@@ -77,8 +77,19 @@ async function workersOf($: EngineInterface): Promise<BoardWorker[]> {
   ]
 }
 
-// One refresh: the snapshot through gh, then notes and workers. A failing gh call leaves no ticket rows; a failing
-// notes read or claude call keeps them and shows its error.
+// The pull requests into the integration branch, one request per repo the plan names (as fetchSnapshot does), put on
+// the snapshot for derive to pick the fixes out. Nothing is asked of an Epic whose plan records no branch.
+async function readFixes($: EngineInterface, snapshot: Snapshot) {
+  const branch = snapshot.plan?.branch
+  if (typeof branch !== 'string' || !branch) return
+  const planned = Array.isArray(snapshot.plan?.repos) ? snapshot.plan.repos.filter((r): r is string => typeof r === 'string') : []
+  for (const repo of new Set([snapshot.epic.repo, ...planned])) {
+    snapshot.pullRequests.push(...readPullRequests(await $.process.run(['gh', ...pullRequestsArgs(repo, branch)], { timeoutMs: 60_000 })))
+  }
+}
+
+// One refresh: the snapshot through gh, then the pull requests, notes and workers. A failing gh call leaves no ticket
+// rows; a failing pull-request read, notes read or claude call keeps them and shows its error.
 async function load($: EngineInterface, epic: string): Promise<Board> {
   const args = snapshotArgs(epic)
   if (!args) return { ...EMPTY, epic, error: `not an issue number or URL: ${epic}` }
@@ -91,6 +102,12 @@ async function load($: EngineInterface, epic: string): Promise<Board> {
     return { ...EMPTY, epic, error: `gh: ${firstLine((e as Error).message)}` }
   }
   const errors: string[] = []
+  try {
+    await readFixes($, snapshot)
+    state = derive(snapshot)
+  } catch (e) {
+    errors.push(`pull requests: ${firstLine((e as Error).message)}`)
+  }
   const notes = await notesOf($, state).catch((e: Error) => (errors.push(`notes: ${firstLine(e.message)}`), new Map()))
   const workers = await workersOf($).catch((e: Error) => (errors.push(e.message), []))
   const waves = wavesOf(snapshot.wave, state)
@@ -104,7 +121,13 @@ async function load($: EngineInterface, epic: string): Promise<Board> {
     note: notes.get(t.url) ?? null,
     wave: waves.get(t.url) ?? null,
   }))
-  return { epic, title: `#${state.epic.number} ${state.epic.title}`, merged: state.counts.merged, tickets, workers, error: errors[0] ?? null }
+  const fixes: BoardFix[] = state.fixes.map(f => ({
+    number: f.number,
+    url: f.url,
+    state: f.state,
+    ticket: state.tickets.find(t => t.url === f.ticket)?.number ?? null,
+  }))
+  return { epic, title: `#${state.epic.number} ${state.epic.title}`, merged: state.counts.merged, tickets, fixes, workers, error: errors[0] ?? null }
 }
 
 const ago = (at: string, now: number) => {
@@ -115,11 +138,16 @@ const ago = (at: string, now: number) => {
   return `${Math.floor(s / 86400)}d ago`
 }
 
+const openFixes = (b: Board) => b.fixes.filter(f => f.state === 'OPEN').length
+
+// The progress words: merged of total, then the open fixes when there are any.
+const progressOf = (b: Board) => `${b.merged}/${b.tickets.length} merged${openFixes(b) ? ` · ${openFixes(b)} fixes open` : ''}`
+
 // The status line: the Epic's progress, merged of total, and the newest note.
 function statusOf(b: Board): string | undefined {
   if (!b.title) return b.epic ? `epic board: ${b.error ?? 'loading'}` : undefined
   const newest = b.tickets.filter(t => t.note).sort((x, y) => Date.parse(y.note!.at) - Date.parse(x.note!.at))[0]
-  const progress = `${b.title.split(' ')[0]} ${b.merged}/${b.tickets.length} merged`
+  const progress = `${b.title.split(' ')[0]} ${progressOf(b)}`
   return newest ? `${progress} | #${newest.number} ${newest.note!.text}` : progress
 }
 
@@ -269,7 +297,7 @@ export const register: Register = on => {
 
     return (
       <Box flexDirection="column">
-        <Text bold>{`${b.title}: ${b.merged}/${b.tickets.length} merged`}</Text>
+        <Text bold>{`${b.title}: ${progressOf(b)}`}</Text>
         {error}
         {waves.map(wave => (
           <Box flexDirection="column">
@@ -277,6 +305,22 @@ export const register: Register = on => {
             {b.tickets.filter(t => t.wave === wave).map(row)}
           </Box>
         ))}
+        {b.fixes.length > 0 && (
+          <Box flexDirection="column">
+            <Text bold>Fixes</Text>
+            {b.fixes.map(f => (
+              <Box flexDirection="row" gap={1}>
+                <Box key={`fix-chip-${f.number}`}>
+                  <Text color={f.state === 'OPEN' ? 'yellow' : 'magenta'} bold>
+                    {f.state === 'OPEN' ? 'fix open' : 'fix merged'}
+                  </Text>
+                </Box>
+                <Text>{`#${f.number} ${f.ticket ? `Refs #${f.ticket}` : 'unattributed'}`}</Text>
+                <Button key={`fix-pr-${f.number}`} label="PR" onPress={press => $.ui.copy({ text: f.url, surface: press.surface })} />
+              </Box>
+            ))}
+          </Box>
+        )}
       </Box>
     )
   })

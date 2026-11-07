@@ -41,7 +41,9 @@ Under the title sits the latest Note and its age (`first red test, 5m ago`), the
 | transcript | shows the worker's transcript in the main view, when the worker is a subagent of this session |
 | attach | puts `claude attach <worker>` in the prompt, when the worker is a background session |
 
-The board refreshes every 2 minutes, after every turn and whenever a message reaches the session. Each refresh makes one `gh` call for the Epic's state and reads the notes from the local log that `spp note` writes. When a `gh` or `claude` call fails, one red line under the title says which call and why. A failing `gh` call leaves no ticket rows, since the board has nothing to draw them from; a failing `claude` call keeps the rows and drops only the worker buttons.
+After the Waves, a `Fixes` group lists the Epic's fix pull requests: trusted pull requests into its integration branch that close no Sub-issue, open or merged. Each row has a chip (`fix open` or `fix merged`), the pull request number, the Sub-issue its `Refs` line names (or `unattributed`) and a `PR` button that copies its link. While any fix is open, the header and the status line end with the count, as in `12/12 merged · 3 fixes open`. With no fixes, the group and the count are absent.
+
+The board refreshes every 2 minutes, after every turn and whenever a message reaches the session. Each refresh makes one `gh` call for the Epic's state, one more for its fix pull requests and reads the notes from the local log that `spp note` writes. When a `gh` or `claude` call or the fix pull request read fails, one red line under the title says which call and why. A failing `gh` call leaves no ticket rows, since the board has nothing to draw them from; a failing fix pull request read keeps the rows and drops only the Fixes group; a failing `claude` call keeps the rows and drops only the worker buttons.
 
 ## Common questions
 
