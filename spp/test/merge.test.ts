@@ -36,6 +36,8 @@ type Opts = {
   waveFails?: boolean; // reading the wave comment fails, so recording the merge on it fails
   fix?: { verdict?: "pass" | "outsider" | "none"; author?: string }; // a fix pull request 50 into feat/x instead of a slice
   noParent?: true | number; // the issue the body names has no parent (true: #999; a number: that closing line's issue)
+  closedFails?: { issue: number; stderr: string }; // gh fails reading this issue's parent
+  otherEpic?: boolean; // #88 is a Sub-issue of a second Epic, acme/app#198, on branch feat/y
   foreign?: boolean; // #30 also has an open pull request in mallory/fork that says it closes it
 };
 
@@ -130,8 +132,15 @@ function mergeCase(o: Opts = {}): string {
     gh[`pr view 50 --json number,url,state,body,baseRefName,mergeable`] = { stdout: { number: 50, url: `${REPO}/pull/50`, state: "OPEN", body, baseRefName: o.base ?? "feat/x", mergeable: o.mergeable ?? "MERGEABLE" } };
     gh[`issue view ${REPO}/issues/30 --json parent`] = { stdout: { parent: { url: `${REPO}/issues/197` } } };
     if (o.noParent) gh[`issue view ${REPO}/issues/${o.noParent === true ? 999 : o.noParent} --json parent`] = { stdout: { parent: null } };
+    gh[`issue view ${REPO}/issues/31 --json parent`] = { stdout: { parent: { url: `${REPO}/issues/197` } } };
     gh[`pr checks ${REPO}/pull/50 --json name,bucket`] = { stdout: o.checks ?? [{ name: "ci", bucket: "pass" }] };
   }
+  if (o.otherEpic) {
+    const epicB = { ...snapshot.data.repository.issue, number: 198, url: `${REPO}/issues/198`, comments: { nodes: [by(`<!-- sdd-plan -->\n${trailer({ branch: "feat/y" })}\n`)] }, subIssues: { nodes: [sub(88, 77, "OPEN", [])] } };
+    gh["api graphql -f query=Snapshot -f owner=acme -f repo=app -F number=198"] = { stdout: { data: { viewer: { login: "maint" }, repository: { issue: epicB } } } };
+    gh[`issue view ${REPO}/issues/88 --json parent`] = { stdout: { parent: { url: `${REPO}/issues/198` } } };
+  }
+  if (o.closedFails) gh[`issue view ${REPO}/issues/${o.closedFails.issue} --json parent`] = { stderr: o.closedFails.stderr, code: 1 };
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
   return dir;
 }
@@ -222,9 +231,29 @@ describe("fix pull request", () => {
     await refused({ fix: {}, body: "Fixes #303\n", noParent: 303 }, /^closes no Sub-issue of an Epic and refs no Sub-issue$/);
   });
 
-  test("an unreadable closed issue falls through to the fix path", async () => {
-    const r = await merge({ fix: {}, body: "Refs #30\n\nFixes #303\n" });
+  test("a closed issue gh cannot resolve falls through to the fix path", async () => {
+    const closedFails = { issue: 303, stderr: "GraphQL: Could not resolve to an Issue with the number of 303." };
+    const r = await merge({ fix: {}, body: "Refs #30\n\nFixes #303\n", closedFails });
     assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
+  });
+
+  test("a transient gh failure on the closed issue fails with gh's message, for a Refs body and a slice body", async () => {
+    const stderr = "HTTP 502: Bad Gateway";
+    for (const o of [{ fix: {}, body: "Refs #30\n\nFixes #303\n", closedFails: { issue: 303, stderr } }, { closedFails: { issue: 30, stderr } }] as Opts[]) {
+      const r = await runCase("merge", mergeCase(o));
+      assert.equal(r.code, 1);
+      assert.match(r.stderr, /HTTP 502: Bad Gateway/);
+      assert.deepEqual(r.writes, []);
+    }
+  });
+
+  test("a fix that Refs #30 and says Fixes #88, a Sub-issue of another Epic on another branch, merges as a fix", async () => {
+    const r = await merge({ fix: {}, body: "Refs #30\n\nFixes #88\n", otherEpic: true });
+    assert.deepEqual(r.writes.map((w) => w.argv[1]), ["merge"]);
+  });
+
+  test("a same-Epic pull request that closes #30 but is not its own keeps the slice refusal", async () => {
+    await refused({ fix: {}, body: "Closes #30\n" }, /^gate not passed: #30 is gate-pass$/);
   });
 
   test("a body with neither a closing line nor Refs refuses with closes no issue and refs no Sub-issue", async () => {

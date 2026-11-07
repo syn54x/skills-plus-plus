@@ -4,9 +4,11 @@
  * pass. The gate's verdict counts only from a trusted author (the gh user, or an OWNER, MEMBER or COLLABORATOR), and
  * `spp merge` re-reads the verdict comment to check that before it merges (ADR 0009). It merges with the Routing
  * block's merge method (squash by default) pinned to the head the gate passed, then records the pull request on the
- * wave comment. A Fix pull request (it closes no issue; its body `Refs` a Sub-issue) merges the same way when a
+ * wave comment. A Fix pull request (it closes no Sub-issue of its Epic; its body `Refs` a Sub-issue) merges the same way when a
  * trusted author's verdict passes on its head, its base is the Epic's integration branch and its checks pass, and
- * writes nothing to the wave comment. A conflict is never resolved here: the worker rebases. It prints
+ * writes nothing to the wave comment. A closed issue that is missing, Epic-less, or not this pull request's own
+ * Sub-issue sends the pull request down the fix path, which demands the same verdict, base and checks, so that
+ * cannot merge more than the slice path does. A conflict is never resolved here: the worker rebases. It prints
  * `merged <pr> into <branch>` or `not merged: <reason>`; with `--json` it prints {@link MergeResult}.
  *
  * @module
@@ -110,12 +112,13 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   const ref = refIn(`${owner}/${name}`);
   if (view.state !== "OPEN") return refuse(`${ref(view.url)} is ${view.state}`);
   const ticketUrl = closedIssue(view.body, `${owner}/${name}`);
-  // An unreadable closed issue is no Sub-issue: the pull request still gets the fix path's verdict on it.
-  const epic = ticketUrl ? await epicOf(ticketUrl).catch((e) => { if (e instanceof GhError) return null; throw e; }) : null;
+  // A closed issue that does not exist is no Sub-issue: the pull request goes down the fix path. Any other gh failure is real.
+  const epic = ticketUrl ? await epicOf(ticketUrl).catch((e) => { if (e instanceof GhError && /Could not resolve|not found|404/i.test(e.message)) return null; throw e; }) : null;
   const byUrl = new Map(epic?.state.tickets.map((t) => [t.url, t]));
   const ticket = ticketUrl ? byUrl.get(ticketUrl) : undefined;
-  // A pull request that closes no Sub-issue of an Epic is a fix candidate, as derive counts it.
-  if (!ticketUrl || !epic || !ticket) return decideFix(view, `${owner}/${name}`);
+  // A pull request into another Epic's branch than the closed Sub-issue's, and not that Sub-issue's own, is a fix
+  // candidate as derive counts it; a same-Epic pull request that is not its own keeps the slice refusal below.
+  if (!ticketUrl || !epic || !ticket || (ticket.pr?.url !== view.url && epic.state.epic.branch !== view.baseRefName)) return decideFix(view, `${owner}/${name}`);
   const { state } = epic;
 
   if (ticket.state !== "gate-pass" || ticket.pr?.url !== view.url) return refuse(`gate not passed: ${ref(ticketUrl)} is ${ticket.state}`);
