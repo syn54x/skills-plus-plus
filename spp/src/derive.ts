@@ -56,6 +56,30 @@ export type Ticket = {
   note: { text: string; at: string } | null;
 };
 
+/**
+ * A Fix pull request: a trusted author's pull request into the Epic's integration branch that closes no Sub-issue,
+ * open or merged (ADR 0011). `ticket` is the URL of the Sub-issue its body's first `Refs` line names, or null when
+ * it names none of them (unattributed).
+ */
+export type Fix = {
+  /** The pull request number. */
+  number: number;
+  /** The pull request URL. */
+  url: string;
+  /** Its repository, `owner/repo`. */
+  repo: string;
+  /** Its state: a closed unmerged pull request is no fix. */
+  state: "OPEN" | "MERGED";
+  /** The integration branch it merges into. */
+  base: string;
+  /** The head commit's full sha. */
+  headSha: string;
+  /** The Sub-issue it belongs to, as an issue URL, or null. */
+  ticket: string | null;
+  /** Its `<!-- spp-verdict -->` comment, present only when it decodes. */
+  verdict?: Pr["verdict"];
+};
+
 /** An Epic and its Sub-issues as one snapshot derives them: the `--json` shape of `spp status`. */
 export type EpicState = {
   /** The Epic; `branch` is the integration branch and `driver` the Driver the user chose, as its plan comment records them, or null. */
@@ -68,6 +92,8 @@ export type EpicState = {
   cycle: string[];
   /** How many tickets are in each state. */
   counts: Record<TicketState, number>;
+  /** The Fix pull requests, by number. */
+  fixes: Fix[];
 };
 
 /** How a URL of an issue or pull request is written relative to `repo`: `#N` inside it, `owner/repo#N` outside it. */
@@ -137,6 +163,19 @@ function landed(closed: boolean, own: Pr[], branch: string | null): boolean {
   return closed || (!own.some((p) => p.state === "OPEN") && own.some((p) => p.state === "MERGED" && p.base === branch));
 }
 
+/**
+ * The fixes among the integration branch's pull requests: trusted, into the branch, open or merged, and none of a
+ * Sub-issue's own, which the snapshot links to its issue. Filtered here once, before any reader (ADR 0009).
+ */
+function fixesOf(s: Snapshot, branch: string | null): Fix[] {
+  const own = new Set(s.issues.flatMap((i) => i.prs.map((p) => p.url)));
+  const tickets = new Map(s.issues.map((i) => [i.url.toLowerCase(), i.url]));
+  return s.pullRequests
+    .filter((p) => p.trusted && p.base === branch && p.state !== "CLOSED" && !own.has(p.url))
+    .map(({ number, url, repo, state, base, headSha, verdict, refs }) => ({ number, url, repo, state: state as Fix["state"], base, headSha, ticket: (refs && tickets.get(refs.toLowerCase())) || null, ...(verdict && { verdict }) }))
+    .sort((a, b) => a.number - b.number);
+}
+
 export function derive(s: Snapshot): EpicState {
   const branch = text(s.plan?.branch);
   const repos = new Set([s.epic.repo, ...s.issues.map((i) => i.repo)].map((r) => r.toLowerCase()));
@@ -184,5 +223,5 @@ export function derive(s: Snapshot): EpicState {
   }
 
   const counts = Object.fromEntries(STATES.map((st) => [st, tickets.filter((t) => t.state === st).length])) as Record<TicketState, number>;
-  return { epic: { ...s.epic, branch, driver: asDriver(s.plan?.driver) }, tickets, layers, cycle: rest.map((t) => t.url), counts };
+  return { epic: { ...s.epic, branch, driver: asDriver(s.plan?.driver) }, tickets, layers, cycle: rest.map((t) => t.url), counts, fixes: fixesOf(s, branch) };
 }
