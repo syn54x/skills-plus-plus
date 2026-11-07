@@ -120,7 +120,7 @@ describe("fixes", () => {
   };
 
   test("a trusted open pull request into the integration branch whose body opens Refs #302 is an open fix on #302", async () => {
-    assert.deepEqual(fix(await fixes(), 77), { number: 77, url: "https://github.com/acme/app/pull/77", repo: "acme/app", state: "OPEN", base: "feat/epic", headSha: "77".repeat(10), ticket: `${ISSUE}302` });
+    assert.deepEqual(fix(await fixes(), 77), { number: 77, url: "https://github.com/acme/app/pull/77", repo: "acme/app", state: "OPEN", base: "feat/epic", headSha: "77".repeat(10), ticket: `${ISSUE}302`, gate: "pr-open" });
   });
 
   test("a merged one, its Refs line an issue URL, is a merged fix on #302", async () => {

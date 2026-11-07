@@ -1,6 +1,6 @@
 // The next actions of a build, from the EpicState and what the command read around it (CI, verdict history, the pull
 // request to the base branch, the session list, the wave). Pure: no network, filesystem or environment.
-import { type Driver, type EpicState, gateOf, refIn, type Ticket } from "./derive.ts";
+import { type Driver, type EpicState, refIn, type Ticket } from "./derive.ts";
 import type { Routing } from "./routing.ts";
 import type { PrState } from "./snapshot.ts";
 
@@ -96,6 +96,7 @@ export function planNext(input: NextInput): Action[] {
   const order = [...state.layers.flat(), ...state.cycle].map((u) => byUrl.get(u)!);
   const actions: Action[] = [];
   const waitingOn: string[] = [];
+  const unattributed: string[] = [];
   const idle: string[] = [];
 
   const ready = new Map(state.tickets.map((t) => [t.repo === state.epic.repo ? String(t.number) : `${t.repo}#${t.number}`, t]));
@@ -119,12 +120,12 @@ export function planNext(input: NextInput): Action[] {
   for (const f of openFixes) {
     const t = f.ticket ? byUrl.get(f.ticket) : undefined;
     if (!t) {
-      idle.push(`${ref(f.url)} is an unattributed fix: add Refs #<Sub-issue> or Closes #<Sub-issue> to its body, or close it`);
+      unattributed.push(`${ref(f.url)} is an unattributed fix: add Refs #<Sub-issue> to its body, or close it`);
       continue;
     }
     const pr = f.url;
     const one = { kind: "gate" as const, tickets: [id(t)], pr, reason: "" };
-    const g = gateOf({ ...f, trusted: true, refs: f.ticket });
+    const g = f.gate;
     const c = checks[pr] ?? { result: "pending", failing: [] };
     const s = liveWorker(t, sessions);
     if (g === "gate-pass") actions.push({ ...one, kind: "merge", reason: `${ref(pr)} passed its gate` });
@@ -168,9 +169,8 @@ export function planNext(input: NextInput): Action[] {
   }
 
   // The actions carry no wait, so an unattributed fix beside them is named on the first one.
-  const loose = idle.filter((i) => i.includes("unattributed fix"));
-  if (actions.length) return loose.length ? [{ ...actions[0], reason: `${actions[0].reason}; also ${loose.join("; ")}` }, ...actions.slice(1)] : actions;
-  if (waitingOn.length) return [{ kind: "wait", reason: `in flight: ${waitingOn.join("; ")}${idle.length ? `; also ${idle.join("; ")}` : ""}` }];
+  if (actions.length) return unattributed.length ? [{ ...actions[0], reason: `${actions[0].reason}; also ${unattributed.join("; ")}` }, ...actions.slice(1)] : actions;
+  if (waitingOn.length) return [{ kind: "wait", reason: `in flight: ${waitingOn.join("; ")}${idle.length + unattributed.length ? `; also ${[...unattributed, ...idle].join("; ")}` : ""}` }];
   const cycle = state.cycle.length ? [`cycle: ${state.cycle.map(ref).join(", ")}`] : [];
-  return [{ kind: "stuck", reason: `nothing ready and nothing in flight: ${[...cycle, ...idle].join("; ")}` }];
+  return [{ kind: "stuck", reason: `nothing ready and nothing in flight: ${[...cycle, ...unattributed, ...idle].join("; ")}` }];
 }

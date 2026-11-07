@@ -126,6 +126,7 @@ it names none of them (unattributed).
 | <a id="property-headsha"></a> `headSha` | `string` | The head commit's full sha. |
 | <a id="property-ticket"></a> `ticket` | `string` \| `null` | The Sub-issue it belongs to, as an issue URL, or null. |
 | <a id="property-verdict"></a> `verdict?` | [`Verdict`](#verdict) | Its `<!-- spp-verdict -->` comment, present only when it decodes. |
+| <a id="property-gate"></a> `gate` | `"pr-open"` \| `"gate-fail"` \| `"gate-pass"` | Its gate on the current head: `gate-pass` or `gate-fail` only when a verdict names that head, else `pr-open`. |
 
 ***
 
