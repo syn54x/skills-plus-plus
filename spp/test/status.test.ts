@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { derive, type EpicState, type Fix, refIn, type Ticket } from "../src/derive.ts";
-import { parseSnapshot, pullRequestsArgs, readPullRequests, type Snapshot, withPullRequests } from "../src/snapshot.ts";
+import { fixRepos, parseSnapshot, pullRequestsArgs, readPullRequests, type Snapshot, withPullRequests } from "../src/snapshot.ts";
 import { assertCase, runCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -176,6 +176,7 @@ describe("fixes", () => {
     const repoOf = (args: string[]) => args.filter((a) => /^(owner|repo)=/.test(a)).map((a) => a.slice(a.indexOf("=") + 1)).join("/");
     const args = pullRequestsArgs(snapshot);
     assert.deepEqual(args.map(repoOf), ["acme/app", "acme/api", "acme/lib"]);
+    assert.deepEqual(fixRepos(snapshot), ["acme/app", "acme/api", "acme/lib"]); // pairs with the lists by index
     assert.ok(args.every((a) => a.includes("branch=feat/x")));
     assert.deepEqual(pullRequestsArgs({ ...snapshot, plan: { branch: "" } }), []);
     assert.deepEqual(pullRequestsArgs({ ...snapshot, plan: null }), []);
