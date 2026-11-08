@@ -7,6 +7,7 @@
  *
  * @module
  */
+import { verdictCorrection } from "../corrections.ts";
 import { runGh } from "../gh.ts";
 import { type By, flagPairs, guarded, parseBy, print, UsageError, writeMarker } from "../markers.ts";
 import { renderVerdict, type Verdict, VERDICT_MARKER } from "../verdict.ts";
@@ -58,6 +59,8 @@ export function run(args: string[]): Promise<number> {
       process.stderr.write(`spp verdict: head moved: the pull request is at ${current}, not ${head}; review the new head\n`);
       return 3;
     }
-    print(await writeVerdict(pr, { ticket: ticket.replace(/^#/, ""), head, spec, quality }, by));
+    const v = { ticket: ticket.replace(/^#/, ""), head, spec, quality };
+    print(await writeVerdict(pr, v, by));
+    await verdictCorrection(pr, v);
   });
 }

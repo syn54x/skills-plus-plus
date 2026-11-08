@@ -9,6 +9,7 @@
  *
  * @module
  */
+import { handBackCorrection, trailerBefore } from "../corrections.ts";
 import { runGh } from "../gh.ts";
 import { flagPairs, guarded, parseBy, parseIssue, print, TrailerError, UsageError } from "../markers.ts";
 import { saveProgress } from "./progress.ts";
@@ -48,6 +49,7 @@ export function run(args: string[]): Promise<number> {
     if (!reason) throw new UsageError("hand-back needs --reason");
     if (blockedBy && route !== "blocked") throw new UsageError("--blocked-by goes only with the blocked route");
 
+    const before = await trailerBefore("hand-back", issue.arg, route, reason);
     const steps: [string, () => Promise<unknown>][] = [
       ["1 (progress comment)", async () => print(await saveProgress(issue.arg, { status: "handed-back", route, reason }, by))],
       // The blocked-by edge keeps the ticket out of the Ready queue, so ready-for-agent stays for when it clears;
@@ -64,5 +66,6 @@ export function run(args: string[]): Promise<number> {
         return 1;
       }
     }
+    await handBackCorrection(issue.arg, route, reason, before);
   });
 }

@@ -1,8 +1,9 @@
 // Marker comments (ADR 0007): the one writer. A caller names the comment by its marker and says how its data
 // changes; this module finds the comment through the API, decodes its trailer, merges, renders the whole body
 // and rewrites it in place, or creates it. The trailer is the last line: `<!-- sdd-data: <base64 of JSON> -->`.
-import { readFileSync } from "node:fs";
 import { runGh } from "./gh.ts";
+import { currentRepo } from "./notes.ts";
+import { collecting, pluginVersion, recordRun } from "./signals.ts";
 import { readTrailer, TRUSTED_ASSOCIATIONS, trustedAuthor } from "./snapshot.ts";
 
 export { readTrailer };
@@ -31,10 +32,6 @@ const MAKERS: Record<string, string> = {
   "<!-- spp-verdict -->": "review",
   [PROGRESS_MARKER]: "implement-issue",
 };
-
-// The sources run from spp/src and the npm package from dist/, one level nearer package.json (as in signals.ts).
-const PACKAGE = new URL(import.meta.url.endsWith(".ts") ? "../../package.json" : "../package.json", import.meta.url);
-const pluginVersion = () => (JSON.parse(readFileSync(PACKAGE, "utf8")) as { version: string }).version;
 
 // A `--by "<skill> <step>"` value as the writers take it.
 export type By = { skill?: string; step?: string };
@@ -146,7 +143,23 @@ export async function updateMarker(
   const maker: Data = { skill: by.skill ?? MAKERS[marker], version: pluginVersion(), ...(by.step && { step: by.step }) };
   const data = { ...merge(old, maker), by: maker };
   const trailer = `<!-- sdd-data: ${Buffer.from(JSON.stringify(data)).toString("base64")} -->`;
-  return put(issue, found?.id ?? null, [marker, render(data), trailer].filter(Boolean).join("\n") + "\n");
+  const url = await put(issue, found?.id ?? null, [marker, render(data), trailer].filter(Boolean).join("\n") + "\n");
+  countRun(issue, marker, readMaker(old), data); // old is {} on a create, so its maker is null
+  return url;
+}
+
+// A run is one artifact a skill step made or took over: a write that created the comment, or changed the skill or
+// step of its maker. Recording it never fails the write, and an Off repo resolves no repo for it.
+function countRun(issue: Issue, marker: string, before: Maker | null, data: Data): void {
+  const after = readMaker(data);
+  if (!after || (before?.skill === after.skill && before.step === after.step)) return;
+  try {
+    if (!collecting()) return;
+    const repo = issue.repo === "{owner}/{repo}" ? currentRepo() : issue.repo;
+    recordRun({ repo, skill: after.skill, step: after.step ?? "", artifact: `${repo}#${issue.number} ${marker}` });
+  } catch {
+    // a Routing block that does not parse or a checkout with no origin: the comment is written, the run is not
+  }
 }
 
 // The shallow form: `data`'s fields replace the stored ones, every other field keeps its value.

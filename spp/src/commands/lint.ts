@@ -17,6 +17,7 @@
  * @module
  */
 import { readFileSync } from "node:fs";
+import { pinCorrection } from "../corrections.ts";
 import { runGh } from "../gh.ts";
 import { type By, parseBy, UsageError } from "../markers.ts";
 import { checkPin } from "../pin.ts";
@@ -89,5 +90,7 @@ export async function run(args: string[]): Promise<number> {
   process.stdout.write(
     args.includes("--json") ? JSON.stringify(result, null, 2) + "\n" : ok ? "ok\n" : failures.map((f) => `${f.rule}: ${f.detail}`).join("\n") + "\n",
   );
+  // Only the ready gate's pin-match is a correction: with --pin it is the hardener's own write racing an edit.
+  if (file === undefined && failures.some((f) => f.rule === "pin-match")) await pinCorrection(rest[1]);
   return ok ? 0 : 1;
 }
