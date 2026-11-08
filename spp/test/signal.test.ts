@@ -158,4 +158,42 @@ describe("error paths", () => {
     }
     assert.equal(existsSync(c.log), false);
   });
+
+  // A checkout with the Routing block but no origin remote.
+  function noOrigin() {
+    const c = checkout();
+    spawnSync("git", ["remote", "remove", "origin"], { cwd: c.dir });
+    return c;
+  }
+
+  test("CI=true spp signal in a checkout with no origin exits 0 and prints not recorded: CI", () => {
+    const c = noOrigin();
+    const r = spp(c, ["signal", "wish", "--by", "triage", "--evidence", "x"], { CI: "true" });
+    assert.deepEqual([r.code, r.stdout], [0, "not recorded: CI\n"]);
+  });
+
+  test("attended, mode Anonymous, no origin: exit 1, spp signal: and the origin message on stderr, no Signal file", () => {
+    const c = noOrigin();
+    const r = spp(c, ["signal", "wish", "--by", "triage", "--evidence", "x"]);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /^spp signal: cannot tell this checkout's GitHub repository from its origin remote/);
+    assert.equal(existsSync(c.log), false);
+  });
+
+  test("recordSignal with no repo and XDG_STATE_HOME under a regular file returns { failed } and throws nothing", () => {
+    const c = checkout();
+    writeFileSync(join(c.dir, "blocker"), "x");
+    const env = { CLAUDE_CODE_SESSION_ATTENDED: "1", XDG_STATE_HOME: join(c.dir, "blocker", "state"), HOME: c.dir };
+    const r = recordSignal({ category: "wish", skill: "triage", evidence: "x" }, env, c.dir);
+    assert.ok("failed" in r, JSON.stringify(r));
+    assert.match(r.failed, /ENOTDIR|EEXIST/);
+  });
+
+  test("recordSignal with no repo resolves it from the checkout in dir", () => {
+    const c = checkout();
+    const r = recordSignal({ category: "wish", skill: "triage", evidence: "x" }, { CLAUDE_CODE_SESSION_ATTENDED: "1", XDG_STATE_HOME: c.state, HOME: c.dir }, c.dir);
+    assert.ok("signal" in r, JSON.stringify(r));
+    assert.equal(r.signal.repo, "acme/app");
+    assert.deepEqual(lines(c.log), [r.signal]);
+  });
 });

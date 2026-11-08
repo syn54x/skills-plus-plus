@@ -11,9 +11,10 @@ export type { Note };
 
 const logFile = (repo: string) => notesFile({ XDG_STATE_HOME: process.env.XDG_STATE_HOME, HOME: homedir() }, repo);
 
-// The current checkout's repository, from its origin remote (a plain note makes no GitHub call, so gh is not asked).
-export function currentRepo(): string {
-  const url = spawnSync("git", ["remote", "get-url", "origin"], { encoding: "utf8" }).stdout.trim();
+// The current checkout's repository (or the one in `cwd`), from its origin remote (a plain note makes no GitHub call,
+// so gh is not asked).
+export function currentRepo(cwd?: string): string {
+  const url = spawnSync("git", ["remote", "get-url", "origin"], { cwd, encoding: "utf8" }).stdout.trim();
   const m = /github\.com[:/]([^/]+\/[^/]+?)(?:\.git)?\/?$/.exec(url);
   if (!m) throw new Error("cannot tell this checkout's GitHub repository from its origin remote; pass the ticket as an issue URL");
   return m[1];

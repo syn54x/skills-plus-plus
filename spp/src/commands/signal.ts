@@ -8,7 +8,6 @@
  * @module
  */
 import { flagPairs, guarded, UsageError } from "../markers.ts";
-import { currentRepo } from "../notes.ts";
 import { recordSignal, SIGNAL_CATEGORIES, type SignalCategory } from "../signals.ts";
 
 export { SIGNAL_CATEGORIES, type SignalCategory } from "../signals.ts";
@@ -25,8 +24,9 @@ export const USAGE = `usage: spp signal <category> --by "<skill> [step]" --evide
  * @param args - The category, then `--by` with the skill and an optional step, `--evidence` with what showed the
  *   correction, and optionally `--maker-version`.
  * @returns 0 when the Signal is recorded, printing `recorded <category> <skill> <step> <fingerprint>`, and 0 when it
- *   is not, printing `not recorded: <reason>`; 2 on a usage error, with the usage on stderr; 1 when the checkout has no
- *   GitHub origin.
+ *   is not, printing `not recorded: <reason>`; 2 on a usage error, with the usage on stderr; 1 when it should be
+ *   recorded but cannot be (the checkout has no GitHub origin, or the log cannot be written), with
+ *   `spp signal: <reason>` on stderr.
  * @example
  * ```bash
  * spp signal step-unclear --by "harden 3" --evidence "Verify named a missing script"
@@ -41,7 +41,11 @@ export function run(args: string[]): Promise<number> {
     const evidence = flags.get("--evidence") ?? "";
     if (!skill || !evidence.trim()) throw new UsageError("--by and --evidence are required");
     const version = flags.get("--maker-version");
-    const r = recordSignal({ repo: currentRepo(), category: category as SignalCategory, skill, step: step.join(" "), evidence, ...(version && { version }) });
+    const r = recordSignal({ category: category as SignalCategory, skill, step: step.join(" "), evidence, ...(version && { version }) });
+    if ("failed" in r) {
+      process.stderr.write(`spp signal: ${r.failed}\n`);
+      return 1;
+    }
     if ("skipped" in r) process.stdout.write(`not recorded: ${r.skipped}\n`);
     else process.stdout.write(`recorded ${r.signal.category} ${r.signal.skill} ${r.signal.step} ${r.signal.fingerprint}\n`);
   });

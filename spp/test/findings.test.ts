@@ -289,6 +289,17 @@ describe("--fix-diff", () => {
     assert.equal(r.stdout, merge(c, ["persona-correctness.json"]).stdout);
   });
 
+  test("a log that cannot be written: same exit code and stdout as mode Off, one not recorded line on stderr", () => {
+    const files = { "persona-correctness.json": [finding("src/a.ts", 11)] };
+    const c = setup(files);
+    writeFileSync(join(c.dir, "blocker"), "x");
+    const args = ["persona-correctness.json", "--fix-diff", "fix-2.patch"];
+    const r = merge({ dir: c.dir, state: join(c.dir, "blocker", "state") }, args);
+    const off = merge(setup(files, "Off"), args);
+    assert.deepEqual([r.code, r.stdout], [off.code, off.stdout]);
+    assert.match(r.stderr, /^fix-regression F1 not recorded: .*(ENOTDIR|EEXIST).*\n$/);
+  });
+
   test("an unreadable --fix-diff file exits 1 naming it, with nothing on stdout", () => {
     const c = setup({ "persona-correctness.json": [finding("src/a.ts", 11)] });
     const r = merge(c, ["persona-correctness.json", "--fix-diff", "missing.patch"]);

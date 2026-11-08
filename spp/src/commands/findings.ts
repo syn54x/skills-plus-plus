@@ -14,7 +14,6 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { changedLines, mergeFindings, panelVerdict, parsePersonaFindings, type MergeResult, type Merged, type PanelVerdict, type Readings } from "../findings.ts";
 import { guarded, UsageError } from "../markers.ts";
-import { currentRepo } from "../notes.ts";
 import { recordSignal } from "../signals.ts";
 
 export type { Finding, Merged, PanelVerdict, PersonaFindings, Severity } from "../findings.ts";
@@ -100,24 +99,10 @@ function recordRegressions(result: MergeResult, patch: string, name: string): vo
   const changed = changedLines(patch);
   const regressed = result.findings.filter((f) => !result.recheck.includes(f.id) && changed.get(f.file)?.has(f.line));
   if (!regressed.length) return;
-  const reason = (e: unknown) => (e instanceof Error ? e.message : String(e));
-  let repo = "";
-  let repoError: unknown;
-  try {
-    repo = currentRepo();
-  } catch (e) {
-    repoError = e;
-  }
   for (const f of regressed) {
-    let outcome: string;
-    try {
-      if (repoError !== undefined) throw repoError;
-      const evidence = `${f.id} ${f.file}:${f.line} is on a line ${name} changed: ${f.title}`;
-      const r = recordSignal({ repo, category: "fix-regression", skill: "implement-issue", step: "fix round", evidence });
-      outcome = "skipped" in r ? `not recorded: ${r.skipped}` : "recorded";
-    } catch (e) {
-      outcome = `not recorded: ${reason(e)}`;
-    }
+    const evidence = `${f.id} ${f.file}:${f.line} is on a line ${name} changed: ${f.title}`;
+    const r = recordSignal({ category: "fix-regression", skill: "implement-issue", step: "fix round", evidence });
+    const outcome = "skipped" in r ? `not recorded: ${r.skipped}` : "failed" in r ? `not recorded: ${r.failed}` : "recorded";
     process.stderr.write(`fix-regression ${f.id} ${outcome}\n`);
   }
 }
