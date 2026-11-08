@@ -146,8 +146,13 @@ Not ready to build yet. Found so far: the crash needs a quote in the text; plain
 
 Apply the role, and comment only when there is partial progress to keep.
 
+### Escaped defects
+
+For a reproduced bug that leaves as `ready-for-agent`, `ready-for-human` or the Epic path, once the role is applied read [`ESCAPED-DEFECT.md`](ESCAPED-DEFECT.md) and follow it.
+
 ## Done when
 
 - The issue holds one role, and a comment opening with the disclaimer says why.
 - For `ready-for-agent`: `spp lint ticket <N>` printed `ok`, the Verify block carries a pin from harden's file or from yours, exactly one size label is set, and for a bug the reproduction was seen failing and then found in the body's `## Verify`, first, before the role went on.
 - For a rejection: the record sits in the repo's working tree and the issue is closed as not planned.
+- For a reproduced bug on those three outcomes: the escaped-defect trace was run, and the person was told what `spp signal` printed or that nothing gated the lines.
