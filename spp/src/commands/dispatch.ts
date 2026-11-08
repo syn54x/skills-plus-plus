@@ -2,6 +2,9 @@
  * `spp dispatch <issue> --driver bg|desktop|subagent` starts one worker on a Sub-issue that nobody holds, and refuses
  * one held by the `claimed` label or an assignee. It has no `--json`.
  *
+ * Before it writes the brief or starts a worker, it records in spp's state directory whether this session is attended,
+ * and the worker's `spp signal` trusts that decision over its own environment; a refused dispatch records nothing.
+ *
  * What it does depends on the driver:
  *
  * - `bg` writes the brief, starts a background session named `t-<N>` on it
