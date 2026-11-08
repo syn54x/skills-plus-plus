@@ -13,6 +13,11 @@ run it, the issue's Verify block must carry a pin from a trusted progress commen
 `pin-present`, and must still match that pin, or it fails with `pin-match`. So a ticket never hardened, or edited
 after hardening, never reaches `ready-for-agent`, and a worker stops before running its block by hand.
 
+A `pin-match` without `--pin` also records a `contract-edited` Signal, charged to the maker of the Verify pin
+(harden when it names none), when the issue body's last editor is trusted (ADR 0009); with `--pin` it records none.
+It records nothing under `CI`, outside an Attended session, or when the Self-improvement mode is Off, and a failure
+while recording is one `signal not recorded:` line on stderr that leaves the exit code as it was.
+
 ## Functions
 
 ### run()

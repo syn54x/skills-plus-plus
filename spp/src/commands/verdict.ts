@@ -5,6 +5,10 @@
  * has moved it writes nothing and the reviewer reviews the new head. The trailer's `by` records the write's maker:
  * review, or the skill and step `--by "<skill> <step>"` names. It has no `--json`.
  *
+ * A verdict with `--spec fail` or `--quality fail` also records a `fix-round` Signal, charged to the maker of the
+ * ticket's progress comment (implement-issue when it names none). It records nothing under `CI`, outside an Attended session, or when the Self-improvement mode is Off, and a failure
+ * while recording is one `signal not recorded:` line on stderr that leaves the exit code as it was.
+ *
  * @module
  */
 import { verdictCorrection } from "../corrections.ts";
