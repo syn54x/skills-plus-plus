@@ -1,0 +1,3 @@
+interface:
+  display_name: "Feedback"
+  short_description: "Record a wish or complaint about spp as a Signal"
