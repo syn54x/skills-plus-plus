@@ -41,7 +41,7 @@ describe("the Routing block template", () => {
       sizes: "`size:S/M/L` labels",
       laws: ["CLAUDE.md", "GLOSSARY.md", "docs/adr/"],
       panel: { tickets: 4, sizeL: true, lines: 1000 },
-      upstreamFeedback: "off",
+      selfImprovement: "Off",
     });
   });
 

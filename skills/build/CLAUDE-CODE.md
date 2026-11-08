@@ -24,6 +24,7 @@ A worker's name is `t-<N>` under every driver, the same name `spp brief` tells t
 | Start the fresh reviewer | Call the Skill tool with "review"; its own `CLAUDE-CODE.md` starts `spp:reviewer` |
 | Read the review panel's steps | `review-panel`'s files sit beside this skill's folder: `<this skill's base directory>/../review-panel/` holds its `SKILL.md`, `PERSONAS.md`, `ROUNDS.md`, `VERDICT.md` and its own `CLAUDE-CODE.md` |
 | Fan out the panel's Personas | The first row of `review-panel`'s `CLAUDE-CODE.md`: the Workflow tool with `spp:review-panel` and the args `{ "pr": <number>, "personas": [...] }`, only when the session offers it and the user has opted into workflows. Otherwise its second row, one `spp:reviewer` Agent call per Persona. |
+| Tell an Attended session | `CLAUDE_CODE_SESSION_ATTENDED=1` marks one; a non-empty `CI` never is one, and anything else is not. A subagent shows `1` and `CLAUDE_CODE_ENTRYPOINT=claude-desktop` like its parent, while `claude -p` shows `0` and `sdk-cli`. Neither variable is documented by Anthropic, so spp reads them only in `spp/src/attended.ts`. |
 | Run a command in a throwaway worktree | `git worktree add --detach <scratch dir> <integration branch tip>`, then `git worktree remove --force` when done |
 
 ## Quirks

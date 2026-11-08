@@ -48,13 +48,13 @@ usage: spp preflight <epic number | issue URL> [--json]
 
 ## Type Aliases
 
-### UpstreamFeedback
+### SelfImprovementMode
 
 ```ts
-type UpstreamFeedback = "off" | "counts" | "detailed" | "attributed";
+type SelfImprovementMode = "Off" | "Anonymous" | "Full Detail";
 ```
 
-The upstream feedback profile, which sets what a skill-feedback issue may say; under `off` nothing may be filed.
+The Self-improvement mode: the most a skill-feedback issue may say about the repo's work; under Off nothing is recorded or filed.
 
 ***
 
@@ -77,5 +77,5 @@ A repo's Routing block, parsed: the `--json` shape of `spp preflight`.
 | `panel.tickets` | `number` | - |
 | `panel.sizeL` | `boolean` | - |
 | `panel.lines` | `number` | - |
-| <a id="property-upstreamfeedback"></a> `upstreamFeedback` | [`UpstreamFeedback`](#upstreamfeedback) | How much a skill-feedback issue may say; a missing or unknown value is off. |
+| <a id="property-selfimprovement"></a> `selfImprovement` | [`SelfImprovementMode`](#selfimprovementmode) | The `Self-improvement mode:` line, else an old `Upstream feedback:` line migrated; a missing or unknown value is Off. |
 | <a id="property-merge"></a> `merge?` | `"squash"` \| `"merge"` \| `"rebase"` | How `spp merge` merges a slice; absent means squash. |
