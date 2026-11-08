@@ -1,23 +1,25 @@
 /**
  * `spp plan <epic> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d] [--narrowed TEXT]... |
- * [--narrowed none] [--add-deviation TEXT] [--table-file FILE] [--driver desktop|bg|subagent]` writes the Epic's `<!-- sdd-plan -->` comment,
+ * [--narrowed none] [--add-deviation TEXT] [--table-file FILE] [--driver desktop|bg|subagent] [--by "<skill> <step>"]` writes the Epic's `<!-- sdd-plan -->` comment,
  * rewriting it in place, and prints its URL. A field you do not pass keeps its stored value. `--narrowed` replaces the
  * stored list with every `--narrowed` of the call, `--narrowed none` clears it, and a call without it keeps it;
  * `--add-deviation` appends to the Deviated list. `--driver` records the Driver the user chose for the run, which
- * `spp next` then reports on `dispatch`. The table file is copied in verbatim. It has no `--json`.
+ * `spp next` then reports on `dispatch`. The table file is copied in verbatim. The trailer's `by` records the
+ * write's maker: to-tickets, or the skill and step `--by` names. It has no `--json`.
  *
  * @module
  */
 import { existsSync, readFileSync } from "node:fs";
 import { asDriver } from "../derive.ts";
-import { type Data, flagPairs, guarded, print, updateMarker, UsageError } from "../markers.ts";
+import { type By, type Data, flagPairs, guarded, parseBy, print, updateMarker, UsageError } from "../markers.ts";
 
 /** The usage text `spp plan --help` prints. */
 export const USAGE = `usage: spp plan <epic> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d]
                        [--narrowed TEXT]... | [--narrowed none] [--add-deviation TEXT] [--table-file FILE]
-                       [--driver desktop|bg|subagent]
+                       [--driver desktop|bg|subagent] [--by "<skill> <step>"]
 --narrowed replaces the stored list with every --narrowed of the call, --narrowed none clears it, and a
 call without --narrowed keeps it; --add-deviation appends. --driver records the run's Driver.
+--by records the write as that skill's (default to-tickets), the rest of the value as its step.
 `;
 
 const DEFAULT = { goal: "", constraints: "", branch: "", repos: [] as string[], narrowed: [] as string[], deviated: [] as string[], table: "" };
@@ -58,8 +60,10 @@ export function run(args: string[]): Promise<number> {
     if (epic === undefined) throw new UsageError("");
     const patch: Partial<Plan> = {};
     const added: string[] = [];
-    for (const [flag, v] of flagPairs(rest, ["--goal", "--constraints", "--branch", "--repos", "--narrowed", "--add-deviation", "--table-file", "--driver"], "plan: ")) {
-      if (flag === "--repos") patch.repos = v.split(",");
+    let by: By | undefined;
+    for (const [flag, v] of flagPairs(rest, ["--goal", "--constraints", "--branch", "--repos", "--narrowed", "--add-deviation", "--table-file", "--driver", "--by"], "plan: ")) {
+      if (flag === "--by") by = parseBy(v);
+      else if (flag === "--repos") patch.repos = v.split(",");
       else if (flag === "--narrowed") patch.narrowed = v === "none" ? [] : [...(patch.narrowed ?? []), v];
       else if (flag === "--add-deviation") added.push(v);
       else if (flag === "--table-file") {
@@ -73,7 +77,7 @@ export function run(args: string[]): Promise<number> {
         const data = { ...DEFAULT, ...old, ...patch };
         data.deviated = [...(data.deviated as string[]), ...added];
         return data;
-      }),
+      }, by),
     );
   });
 }

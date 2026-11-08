@@ -1,6 +1,7 @@
 // Marker comments (ADR 0007): the one writer. A caller names the comment by its marker and says how its data
 // changes; this module finds the comment through the API, decodes its trailer, merges, renders the whole body
 // and rewrites it in place, or creates it. The trailer is the last line: `<!-- sdd-data: <base64 of JSON> -->`.
+import { readFileSync } from "node:fs";
 import { runGh } from "./gh.ts";
 import { readTrailer, TRUSTED_ASSOCIATIONS, trustedAuthor } from "./snapshot.ts";
 
@@ -14,6 +15,46 @@ export const PROGRESS_MARKER = "<!-- sdd-progress -->";
 
 // A usage error: the command exits 2 with its usage text.
 export class UsageError extends Error {}
+
+/**
+ * A Marker comment's maker as `readMaker` returns it: the skill, the step `--by` named (null when none did) and the
+ * plugin version. On the wire it is `{"skill", "version", "step"?}`, under `by` for the comment's last write and under
+ * `verifyPinBy` for the progress comment's Verify pin.
+ */
+export type Maker = { skill: string; step: string | null; version: string };
+
+// The skill a write is charged to when no `--by` names one, by the marker it writes. The Verify pin lives in the
+// progress comment but is harden's, so pin writes name their skill themselves.
+const MAKERS: Record<string, string> = {
+  "<!-- sdd-plan -->": "to-tickets",
+  "<!-- sdd-wave -->": "build",
+  "<!-- spp-verdict -->": "review",
+  [PROGRESS_MARKER]: "implement-issue",
+};
+
+// The sources run from spp/src and the npm package from dist/, one level nearer package.json (as in signals.ts).
+const PACKAGE = new URL(import.meta.url.endsWith(".ts") ? "../../package.json" : "../package.json", import.meta.url);
+const pluginVersion = () => (JSON.parse(readFileSync(PACKAGE, "utf8")) as { version: string }).version;
+
+// A `--by "<skill> <step>"` value as the writers take it.
+export type By = { skill?: string; step?: string };
+
+// Parses `--by`: its first word is the skill, the rest of the value the step.
+export function parseBy(value: string): By {
+  const [skill, ...step] = value.trim().split(/\s+/);
+  if (!/^[a-z][a-z-]*$/.test(skill)) throw new UsageError(`--by must start with a lowercase skill name: ${JSON.stringify(value)}`);
+  return step.length ? { skill, step: step.join(" ") } : { skill };
+}
+
+/**
+ * The maker a decoded trailer records: its `by`, or with `"verifyPin"` its `verifyPinBy`. Null when that field is
+ * missing or lacks a string skill and version, as on every trailer written before makers were recorded.
+ */
+export function readMaker(data: Record<string, unknown> | null, field?: "verifyPin"): Maker | null {
+  const m = data?.[field ? `${field}By` : "by"] as Record<string, unknown> | null | undefined;
+  if (typeof m?.skill !== "string" || typeof m.version !== "string") return null;
+  return { skill: m.skill, step: typeof m.step === "string" ? m.step : null, version: m.version };
+}
 
 // A trailer that does not decode. Rendering fresh would erase the state, so the write stops (exit 1).
 export class TrailerError extends Error {}
@@ -88,18 +129,27 @@ export async function upsertComment(arg: string, marker: string, body: string): 
 }
 
 // Reads the marker comment's trailer ({} when there is no comment or no trailer), passes it to `merge`, and
-// rewrites the comment as the marker, the rendered lines and the new trailer. `merge` may throw a UsageError.
-export async function updateMarker(arg: string, marker: string, render: (data: Data) => string, merge: (old: Data) => Data): Promise<string> {
+// rewrites the comment as the marker, the rendered lines and the new trailer. The trailer's `by` is this write's
+// maker (`by`'s skill or else the marker's, `by`'s step, the plugin version), which `merge` also receives so that a
+// pin write can copy it. `merge` may throw a UsageError.
+export async function updateMarker(
+  arg: string,
+  marker: string,
+  render: (data: Data) => string,
+  merge: (old: Data, maker: Data) => Data,
+  by: By = {},
+): Promise<string> {
   const issue = parseIssue(arg);
   const found = await find(issue, marker);
   const old = found ? readTrailer(found.body) : {};
   if (old === null) throw new TrailerError(`${marker} on ${issue.label} has an sdd-data trailer that does not decode; refusing to overwrite it`);
-  const data = merge(old);
+  const maker: Data = { skill: by.skill ?? MAKERS[marker], version: pluginVersion(), ...(by.step && { step: by.step }) };
+  const data = { ...merge(old, maker), by: maker };
   const trailer = `<!-- sdd-data: ${Buffer.from(JSON.stringify(data)).toString("base64")} -->`;
   return put(issue, found?.id ?? null, [marker, render(data), trailer].filter(Boolean).join("\n") + "\n");
 }
 
 // The shallow form: `data`'s fields replace the stored ones, every other field keeps its value.
-export function writeMarker(issue: string, marker: string, render: (data: Data) => string, data: Data): Promise<string> {
-  return updateMarker(issue, marker, render, (old) => ({ ...old, ...data }));
+export function writeMarker(issue: string, marker: string, render: (data: Data) => string, data: Data, by?: By): Promise<string> {
+  return updateMarker(issue, marker, render, (old) => ({ ...old, ...data }), by);
 }

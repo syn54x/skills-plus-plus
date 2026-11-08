@@ -11,6 +11,7 @@ import { assertCase, runCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixture = (name: string) => join(here, "fixtures", "lint", name);
+const VERSION = (JSON.parse(readFileSync(join(here, "..", "..", "package.json"), "utf8")) as { version: string }).version;
 
 describe("happy path", () => {
   test("spp lint ticket 12 on a hardened body exits 0 with ok true", async () => {
@@ -104,7 +105,8 @@ describe("--pin <body-file>", () => {
     assert.equal(writes.length, 1);
     assert.deepEqual(writes[0].argv.slice(0, 4), ["api", "-X", "POST", "repos/{owner}/{repo}/issues/12/comments"]);
     const pin = createHash("sha256").update("npm ci\nnode --test test/greet.test.ts").digest("hex");
-    assert.deepEqual(readTrailer(body(writes[0])), { verifyPin: pin });
+    const harden = { skill: "harden", version: VERSION };
+    assert.deepEqual(readTrailer(body(writes[0])), { verifyPin: pin, verifyPinBy: harden, by: harden });
     assert.match(body(writes[0]), /^<!-- sdd-progress -->\n\*\*Verify pin:\*\* `[0-9a-f]{12}`\n/);
   });
 
@@ -115,7 +117,22 @@ describe("--pin <body-file>", () => {
     assert.equal(r.code, 0, r.stderr);
     const writes = r.writes as Write[];
     assert.deepEqual(writes[0].argv.slice(0, 4), ["api", "-X", "PATCH", "repos/{owner}/{repo}/issues/comments/5"]);
-    assert.deepEqual(Object.keys(readTrailer(body(writes[0]))!), [...Object.keys(old), "verifyPin"]);
+    assert.deepEqual(Object.keys(readTrailer(body(writes[0]))!), [...Object.keys(old), "verifyPin", "verifyPinBy", "by"]);
+  });
+
+  test("--by \"triage re-pin\" records the pin as triage's, step re-pin", async () => {
+    const r = await runCase("lint", pinCase("hardened", "", undefined, "ticket\n12\n--pin\nbody.md\n--by\ntriage re-pin\n"));
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(readTrailer(body((r.writes as Write[])[0]))?.verifyPinBy, { skill: "triage", version: VERSION, step: "re-pin" });
+  });
+
+  test("--by without --pin, or with a first word that is no skill name, exits 2 with usage and writes nothing", async () => {
+    for (const args of ["ticket\n12\n--by\ntriage re-pin\n", "ticket\n12\n--pin\nbody.md\n--by\nTriage re-pin\n", "ticket\n12\n--pin\nbody.md\n--by\n"]) {
+      const r = await runCase("lint", pinCase("hardened", "", undefined, args));
+      assert.equal(r.code, 2, args);
+      assert.match(r.stderr, /usage: spp lint ticket .*--by/);
+      assert.deepEqual(r.writes, []);
+    }
   });
 
   test("a body file whose Verify block differs from the issue's pins nothing and exits 1 with pin-match", async () => {

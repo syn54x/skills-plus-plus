@@ -16,7 +16,8 @@ Its forms:
   round with the same `--round`.
 
 Waves and panel rounds are lists inside the comment's data trailer, so a retried call replaces its own entry and
-never duplicates one. The writing forms print the comment's URL.
+never duplicates one. The writing forms print the comment's URL, and take `--by "<skill> <step>"`: the trailer's
+`by` records the write's maker, build or the skill and step `--by` names.
 
 ## Functions
 
@@ -73,6 +74,7 @@ wave add replaces every wave with the same --n; wave panel replaces the entry wi
 (a round shown but never posted has no --report and renders unposted);
 wave pr records the PR on the last wave whose tickets hold --ticket, in any of its forms (number, owner/repo#N, URL).
 A wave ticket is a number, owner/repo#N or an issue URL, stored and rendered as given.
+add, pr and panel take --by "<skill> <step>", which records the write as that skill's (default build), the rest as its step.
 ```
 
 ## Type Aliases

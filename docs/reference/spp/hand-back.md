@@ -3,7 +3,8 @@ to a person or a queue in one call. It writes in this order: the progress commen
 route and reason), then the route label, then removes the Claim mark, so a failure part-way leaves the ticket held,
 never released without a route, and running the same call again finishes it. `--blocked-by` goes only with
 `blocked`, where it adds the blocked-by edge and keeps `ready-for-agent`; every other Hand-back removes
-`ready-for-agent`. It prints the progress comment's URL and has no `--json`.
+`ready-for-agent`. `--by "<skill> <step>"` names the progress write's maker in its trailer's `by` (implement-issue
+when absent). It prints the progress comment's URL and has no `--json`.
 
 ## Functions
 
@@ -47,6 +48,8 @@ The usage text `spp hand-back --help` prints.
 
 ```text
 usage: spp hand-back <issue> needs-info|ready-for-human|blocked --reason TEXT [--blocked-by <issue>]
+                            [--by "<skill> <step>"]
 --blocked-by goes only with the blocked route, where it adds the blocked-by edge and keeps ready-for-agent;
 every other hand-back, blocked without --blocked-by included, removes ready-for-agent.
+--by records the progress write as that skill's (default implement-issue), the rest of the value as its step.
 ```
