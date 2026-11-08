@@ -273,6 +273,20 @@ describe("--fix-diff", () => {
     assert.equal(r.stdout, merge(c, ["persona-correctness.json"]).stdout);
   });
 
+  test("a path git quotes (non-ASCII) is unquoted, so its findings record a Signal", () => {
+    const c = setup({ "persona-correctness.json": [finding("src/café.ts", 1)] });
+    writeFileSync(join(c.dir, "fix-2.patch"), '--- a/src/caf\\303\\251.ts\n+++ "b/src/caf\\303\\251.ts"\n@@ -1 +1 @@\n-a\n+b\n');
+    const r = merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
+    assert.equal(r.stderr, "fix-regression F1 recorded\n");
+  });
+
+  test("CI with no GitHub origin still reports CI as the reason", () => {
+    const c = setup({ "persona-correctness.json": [finding("src/a.ts", 11)] });
+    spawnSync("git", ["remote", "remove", "origin"], { cwd: c.dir });
+    const r = merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"], { CLAUDE_CODE_SESSION_ATTENDED: "1", CI: "true" });
+    assert.equal(r.stderr, "fix-regression F1 not recorded: CI\n");
+  });
+
   test("an unreadable --fix-diff file exits 1 naming it, with nothing on stdout", () => {
     const c = setup({ "persona-correctness.json": [finding("src/a.ts", 11)] });
     const r = merge(c, ["persona-correctness.json", "--fix-diff", "missing.patch"]);

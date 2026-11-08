@@ -151,6 +151,21 @@ export function mergeFindings(inputs: PersonaFindings[], rechecks: ReadonlySet<P
   return { findings, counts: { severity, persona }, dropped: all.length - kept.length, recheck };
 }
 
+// A path git quoted (non-ASCII or special characters, core.quotePath): drop the quotes and decode \ooo bytes and \" \\ \t \n.
+function unquote(path: string): string {
+  if (!/^".*"$/.test(path)) return path;
+  const bytes: number[] = [];
+  const named: Record<string, number> = { t: 9, n: 10, '"': 34, "\\": 92 };
+  const inner = Buffer.from(path.slice(1, -1));
+  for (let i = 0; i < inner.length; i++) {
+    const rest = inner.toString("latin1", i + 1, i + 4);
+    if (inner[i] !== 92) bytes.push(inner[i]);
+    else if (/^[0-7]{3}$/.test(rest)) (bytes.push(parseInt(rest, 8)), (i += 3));
+    else bytes.push(named[String.fromCharCode(inner[++i])] ?? inner[i]);
+  }
+  return Buffer.from(bytes).toString("utf8");
+}
+
 /**
  * The new-side line numbers a unified diff added or changed, by file: the `+` lines of each section under its
  * `+++ b/<path>`. Context and `-` lines are not changed lines, and a section whose `+++` is `/dev/null` has none.
@@ -171,7 +186,7 @@ export function changedLines(patch: string): Map<string, Set<number>> {
     const h = /^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(l);
     if (h) { left = [Number(h[1] ?? 1), Number(h[3] ?? 1)]; next = Number(h[2]); continue; }
     if (l.startsWith("+++ ")) {
-      const path = l.slice(4).split("\t")[0];
+      const path = unquote(l.slice(4).split("\t")[0]);
       const file = path.replace(/^b\//, "");
       if (path === "/dev/null") lines = undefined;
       else out.set(file, (lines = out.get(file) ?? new Set()));

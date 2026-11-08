@@ -14,7 +14,9 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { changedLines, mergeFindings, panelVerdict, parsePersonaFindings, type MergeResult, type Merged, type PanelVerdict, type Readings } from "../findings.ts";
 import { guarded, UsageError } from "../markers.ts";
+import { isAttended } from "../attended.ts";
 import { currentRepo } from "../notes.ts";
+import { readSelfImprovementMode } from "../routing.ts";
 import { recordSignal } from "../signals.ts";
 
 export type { Finding, Merged, PanelVerdict, PersonaFindings, Severity } from "../findings.ts";
@@ -98,17 +100,23 @@ function render(r: MergeResult): string {
 // stderr line each. Nothing here changes the exit code.
 function recordRegressions(result: MergeResult, patch: string, name: string): void {
   const changed = changedLines(patch);
-  for (const f of result.findings) {
-    if (result.recheck.includes(f.id) || !changed.get(f.file)?.has(f.line)) continue;
-    let outcome: string;
-    try {
-      const evidence = `${f.id} ${f.file}:${f.line} is on a line ${name} changed: ${f.title}`;
-      const r = recordSignal({ repo: currentRepo(), category: "fix-regression", skill: "implement-issue", step: "fix round", evidence });
-      outcome = "skipped" in r ? `not recorded: ${r.skipped}` : "recorded";
-    } catch (e) {
-      outcome = `not recorded: ${e instanceof Error ? e.message : e}`;
-    }
-    process.stderr.write(`fix-regression ${f.id} ${outcome}\n`);
+  const regressed = result.findings.filter((f) => !result.recheck.includes(f.id) && changed.get(f.file)?.has(f.line));
+  if (!regressed.length) return;
+  // The repo is read once. When it cannot be read, the gates still speak first, in recordSignal's order.
+  let repo: string | undefined;
+  let why = "";
+  try {
+    repo = currentRepo();
+  } catch (e) {
+    why = e instanceof Error ? e.message : String(e);
+    if (process.env.CI) why = "CI";
+    else if (!isAttended(process.env)) why = "not an attended session";
+    else if (readSelfImprovementMode(process.cwd()) === "Off") why = "Self-improvement mode is Off";
+  }
+  for (const f of regressed) {
+    const evidence = `${f.id} ${f.file}:${f.line} is on a line ${name} changed: ${f.title}`;
+    const r = repo === undefined ? { skipped: why } : recordSignal({ repo, category: "fix-regression", skill: "implement-issue", step: "fix round", evidence });
+    process.stderr.write(`fix-regression ${f.id} ${"skipped" in r ? `not recorded: ${r.skipped}` : "recorded"}\n`);
   }
 }
 
