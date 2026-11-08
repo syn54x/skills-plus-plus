@@ -20,7 +20,7 @@ Done when the report is `DONE` or `DONE_WITH_CONCERNS` with a pull request, or t
 
 Call the Skill tool with "review" for the pull request. A pass on both verdicts goes to step 4.
 
-On a fail, send the Critical and Important findings to the same worker for one fix round and gate the new head. A second failure: `spp hand-back <N> ready-for-human --reason "<the open findings>"`, leave the pull request open, and tell the user what is open.
+On a fail, send the Critical and Important findings to the same worker for one fix round, which it plans before it edits, and gate the new head. A second failure: `spp hand-back <N> ready-for-human --reason "<the open findings>"`, leave the pull request open, and tell the user what is open.
 
 ## 4. Hand over
 

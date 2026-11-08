@@ -10,7 +10,7 @@ Group the Critical and Important findings by **class**: findings that break the 
 - A class that spans Sub-issues goes whole to the worker whose Sub-issue owns the most of its files (a tie goes to the lower-numbered one), and those files leave every other worker's scope for the round. Its brief names every finding id and file in the class.
 - A file no Sub-issue owns goes to the person with the report.
 
-Each worker gets only its findings, with ids, files and the fix when the report gives one. Minor findings wait for the person. `build` starts the workers; the panel does not edit code. Wait until the round's fixes are merged into the Epic's pull request and `HEAD` has moved.
+Each worker gets only its findings, with ids, files and the fix when the report gives one, and plans them together before it edits. Minor findings wait for the person. `build` starts the workers; the panel does not edit code. Wait until the round's fixes are merged into the Epic's pull request and `HEAD` has moved.
 
 Done when every Critical and Important finding has one owner and the fixes sit on the new head.
 
