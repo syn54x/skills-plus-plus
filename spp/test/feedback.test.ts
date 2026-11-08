@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkFeedback, type FeedbackContext } from "../src/feedback.ts";
+import { readFileSync } from "node:fs";
+import { checkFeedback, formatHit, type FeedbackContext } from "../src/feedback.ts";
 import { parseRouting } from "../src/routing.ts";
 import { assertCase } from "./harness.ts";
 
@@ -100,8 +101,8 @@ describe("rule 1: URLs without an http scheme", () => {
 });
 
 describe("rule 2: names", () => {
-  test("under attributed, the own owner/repo and bare repo name pass; the bare owner name blocks on its own line", async () => {
-    await assertCase("feedback", fixture("attributed"), 2);
+  test("under Full Detail, the own owner/repo and bare repo name pass; the bare owner name prints as a warning and exits 0", async () => {
+    await assertCase("feedback", fixture("attributed"), 0);
     assert.deepEqual(hit("**Repo:** acme/app\nthe app failed", { profile: "Full Detail" }), []);
     assert.deepEqual(hit("the acme step", { profile: "Full Detail" }), ["2@1"]);
   });
@@ -305,11 +306,100 @@ describe("edge cases", () => {
   });
 
   test("a hit carries the rule name and the trimmed line", () => {
-    assert.deepEqual(checkFeedback("a\n  see https://x.example  ", base), [{ rule: 1, name: "URLs", line: 2, text: "see https://x.example" }]);
+    assert.deepEqual(checkFeedback("a\n  see https://x.example  ", base), [{ rule: 1, name: "URLs", line: 2, text: "see https://x.example", level: "block" }]);
   });
 
   test("CRLF line endings count the same lines", () => {
     assert.deepEqual(hit("a\r\nhttps://x.example\r\n"), ["1@2"]);
+  });
+});
+
+// Every sample is built at runtime so no token-shaped string sits in the repo for secret scanning to flag.
+const r = (chars: string, n: number) => chars.repeat(Math.ceil(n / chars.length)).slice(0, n);
+const SECRETS: [string, string][] = [
+  ["github-pat", "ghp_" + r("a1B", 36)],
+  ["github-fine-grained-pat", "github_pat_" + r("a1_", 82)],
+  ["github-oauth", "gho_" + r("a1B", 36)],
+  ["github-app-token", "ghs_" + r("a1B", 36)],
+  ["github-refresh-token", "ghr_" + r("a1B", 36)],
+  ["gitlab-pat", "glpat-" + r("a1-", 20)],
+  ["aws-access-token", "AKIA" + "IOSFODNN7" + "EXAMPLE"],
+  ["gcp-api-key", "AIza" + r("a1-", 35)],
+  ["private-key", "-----BEGIN " + "RSA PRIVATE KEY-----"],
+  ["slack-bot-token", "xoxb-" + r("1", 12) + "-" + r("2", 12) + "-" + r("aB", 24)],
+  ["slack-user-token", "xoxp-" + [r("1", 11), r("2", 11), r("3", 11)].join("-") + "-" + r("aB1", 32)],
+  ["anthropic-api-key", "sk-ant-" + "api03-" + r("a1_", 93) + "AA"],
+  ["anthropic-admin-api-key", "sk-ant-" + "admin01-" + r("a1_", 93) + "AA"],
+  ["openai-api-key", "sk-" + "proj-" + r("a1", 74) + "T3Blbk" + "FJ" + r("b2", 74)],
+  ["npm-access-token", "npm_" + r("a1", 36)],
+  ["stripe-access-token", "sk_" + "live_" + r("a1", 24)],
+  ["jwt", "ey" + r("J1a", 20) + ".ey" + r("J2b", 20) + "." + r("sig", 12)],
+];
+
+describe("rule 0: secrets", () => {
+  const secretBody = readFileSync(join(fixture("secret-full-detail"), "body.md"), "utf8");
+
+  test("under Full Detail, an AWS key on line 4 blocks with the key redacted, and a name still warns, in line order", async () => {
+    await assertCase("feedback", fixture("secret-full-detail"), 2); // expected.txt holds the block line, then the warning
+  });
+
+  test("the same body under Anonymous blocks on that line too", () => {
+    const line4 = checkFeedback(secretBody, base).find((h) => h.line === 4);
+    assert.ok(line4);
+    assert.equal(formatHit(line4), "rule 0 Secrets (aws-access-token), line 4: **Observed:** the worker pasted [REDACTED] into the body");
+    assert.equal(line4.level, "block");
+  });
+
+  test("each of the 17 gitleaks ids blocks a line built to its pattern, under both modes", () => {
+    assert.equal(SECRETS.length, 17);
+    for (const profile of ["Anonymous", "Full Detail"] as const)
+      for (const [id, secret] of SECRETS) {
+        const zero = checkFeedback(`the value ${secret} here`, { ...base, profile }).filter((h) => h.rule === 0);
+        assert.deepEqual(zero.map((h) => [h.name, h.level]), [[`Secrets (${id})`, "block"]], id);
+      }
+  });
+
+  test("a private-key header line alone blocks", () => {
+    const zero = checkFeedback("a\n-----BEGIN " + "RSA PRIVATE KEY-----\nb", base).filter((h) => h.rule === 0);
+    assert.deepEqual(zero.map((h) => [h.name, h.line]), [["Secrets (private-key)", 2]]);
+  });
+
+  test("no hit's text contains the secret it matched", () => {
+    for (const [id, secret] of SECRETS) {
+      const hits = checkFeedback(`x ${secret} https://x.example`, base);
+      assert.ok(hits.length > 0 && hits.every((h) => !h.text.includes(secret) && h.text.includes("[REDACTED]")), id);
+    }
+  });
+
+  test("a GitHub token and a URL on one line under Anonymous give a rule 0 and a rule 1 hit, neither holding the token", () => {
+    const token = "ghp_" + r("a1B", 36);
+    const hits = checkFeedback(`see ${token} at https://x.example`, base);
+    assert.deepEqual(hits.map((h) => h.rule), [0, 1]);
+    assert.ok(hits.every((h) => !h.text.includes(token)));
+  });
+
+  test("near misses get no rule 0 hit: a short ghp_, AKIA in prose, a short npm_, a file name, a short name", () => {
+    const lines = ["ghp_" + r("a1B", 35), "the AKIA prefix marks AWS keys", "npm_" + r("a1", 20), "see package.json", "the hp team"];
+    assert.deepEqual(checkFeedback(lines.join("\n"), { ...base, ownRepo: "hp/printer" }).filter((h) => h.rule === 0), []);
+  });
+});
+
+describe("levels", () => {
+  const body = "see https://x.example\nedited `spp/src/routing.ts`.";
+  const paths = ["spp/src/routing.ts"];
+
+  test("a URL and a tracked path under Full Detail are two warnings", () => {
+    assert.deepEqual(checkFeedback(body, { ...base, profile: "Full Detail", paths }).map((h) => [h.rule, h.level]), [[1, "warn"], [3, "warn"]]);
+  });
+
+  test("the same body under Anonymous is the same two hits as blocks", () => {
+    assert.deepEqual(checkFeedback(body, { ...base, paths }).map((h) => [h.rule, h.level]), [[1, "block"], [3, "block"]]);
+  });
+
+  test("formatHit prints a warning as the block line with warning: in front", () => {
+    const h = { rule: 2, name: "Names", line: 6, text: "x" };
+    assert.equal(formatHit({ ...h, level: "block" }), "rule 2 Names, line 6: x");
+    assert.equal(formatHit({ ...h, level: "warn" }), "warning: rule 2 Names, line 6: x");
   });
 });
 

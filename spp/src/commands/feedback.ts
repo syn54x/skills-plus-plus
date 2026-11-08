@@ -16,7 +16,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { checkFeedback } from "../feedback.ts";
+import { checkFeedback, formatHit } from "../feedback.ts";
 import { runGh } from "../gh.ts";
 import { currentRepo } from "../notes.ts";
 import { readSelfImprovementMode } from "../routing.ts";
@@ -33,9 +33,11 @@ const OWNER_REPO = /^[\w.-]+\/[\w.-]+$/;
  *
  * @param args - `check`, the draft's body file, then `--title-file <file>` for the titles and repo names it must not
  *   leak; or `pending`, then `--json` for the {@link FeedbackCandidate} list.
- * @returns For `check`: 0 with no output when the draft is clean; 2 when it is blocked, one line per hit on stdout; 1
- *   when the mode is Off or unset. For `pending`: 0, an absent log included. 1 on a usage error (with the usage on
- *   stderr).
+ * @returns For `check`, one `rule <rule> <name>, line <n>: <text>` line per hit on stdout, in line order, with any
+ *   secret in the text replaced by `[REDACTED]`. A hit that only warns (rules 1 to 6 under Full Detail) starts with
+ *   `warning: `. Exit 0 when the draft is clean or has warnings only; 2 when any hit blocks (a secret in any mode, or
+ *   rules 1 to 6 under Anonymous); 1 when the mode is Off or unset. For `pending`: 0, an absent log included. 1 on a
+ *   usage error (with the usage on stderr).
  * @example
  * ```bash
  * spp feedback check draft.md --title-file titles.txt
@@ -73,6 +75,6 @@ export async function run(args: string[]): Promise<number> {
     titles: lines.filter((l) => !OWNER_REPO.test(l)),
     paths,
   });
-  for (const h of hits) process.stdout.write(`rule ${h.rule} ${h.name}, line ${h.line}: ${h.text}\n`);
-  return hits.length ? 2 : 0;
+  for (const h of hits) process.stdout.write(formatHit(h) + "\n");
+  return hits.some((h) => h.level === "block") ? 2 : 0;
 }
