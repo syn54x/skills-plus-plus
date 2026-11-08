@@ -52,6 +52,7 @@ export type MergeResult = {
   findings: Merged[];
   counts: { severity: Record<string, number>; persona: Record<string, number> };
   dropped: number; // findings under MIN_CONFIDENCE, which never reach the list
+  recheck: string[]; // ids of merged findings that absorbed a finding from a `rechecks` input
 };
 
 export const MIN_CONFIDENCE = 80;
@@ -110,10 +111,11 @@ export function panelVerdict(result: MergeResult, r: Readings): PanelVerdict {
   return open ? "HUMAN DECISION" : "MERGE";
 }
 
-type Candidate = Finding & { persona: string };
+type Candidate = Finding & { persona: string; recheck: boolean };
 
-export function mergeFindings(inputs: PersonaFindings[]): MergeResult {
-  const all: Candidate[] = inputs.flatMap((p) => p.findings.map((f) => ({ ...f, persona: p.persona })));
+// `rechecks` are the inputs that re-report an earlier finding; the merged findings they reach are listed in `recheck`.
+export function mergeFindings(inputs: PersonaFindings[], rechecks: ReadonlySet<PersonaFindings> = new Set()): MergeResult {
+  const all: Candidate[] = inputs.flatMap((p) => p.findings.map((f) => ({ ...f, persona: p.persona, recheck: rechecks.has(p) })));
   const kept = all.filter((f) => f.confidence >= MIN_CONFIDENCE);
 
   // Cluster by file and normalised title, then by line: a finding joins the open cluster when it sits less than
@@ -138,12 +140,42 @@ export function mergeFindings(inputs: PersonaFindings[]): MergeResult {
     const [top] = [...c].sort((a, b) => rank(a.severity) - rank(b.severity) || b.confidence - a.confidence || cmp(a.persona, b.persona) || cmp(a.line, b.line));
     const law = [...c].sort((a, b) => cmp(a.persona, b.persona)).find((f) => f.law)?.law;
     const personas = [...new Set(c.map((f) => f.persona))].sort(cmp);
-    return { file: top.file, line: top.line, title: top.title, severity: top.severity, personas, ...(law && { law }), body: top.body };
+    return { file: top.file, line: top.line, title: top.title, severity: top.severity, personas, ...(law && { law }), body: top.body, recheck: c.some((f) => f.recheck) };
   });
   merged.sort((a, b) => rank(a.severity) - rank(b.severity) || cmp(a.file, b.file) || cmp(a.line, b.line) || cmp(normal(a.title), normal(b.title)) || cmp(a.personas.join(), b.personas.join()));
 
-  const findings: Merged[] = merged.map((m, i) => ({ id: `F${i + 1}`, ...m }));
+  const findings: Merged[] = merged.map(({ recheck: _, ...m }, i) => ({ id: `F${i + 1}`, ...m }));
+  const recheck = findings.filter((_, i) => merged[i].recheck).map((f) => f.id);
   const severity = Object.fromEntries(SEVERITIES.map((s) => [s, findings.filter((f) => f.severity === s).length]));
   const persona = Object.fromEntries([...new Set(inputs.map((p) => p.persona))].sort(cmp).map((p) => [p, findings.filter((f) => f.personas.includes(p)).length]));
-  return { findings, counts: { severity, persona }, dropped: all.length - kept.length };
+  return { findings, counts: { severity, persona }, dropped: all.length - kept.length, recheck };
+}
+
+/**
+ * The new-side line numbers a unified diff added or changed, by file: the `+` lines of each section under its
+ * `+++ b/<path>`. Context and `-` lines are not changed lines, and a section whose `+++` is `/dev/null` has none.
+ */
+export function changedLines(patch: string): Map<string, Set<number>> {
+  const out = new Map<string, Set<number>>();
+  let lines: Set<number> | undefined;
+  let next = 0;
+  let left = [0, 0]; // old and new lines still owed by the current hunk, so "+++ x" inside a hunk is a + line
+  for (const l of patch.split("\n")) {
+    if (left[0] > 0 || left[1] > 0) {
+      if (l[0] === "+") { lines?.add(next++); left[1]--; }
+      else if (l[0] === "-") left[0]--;
+      else if (l[0] === "\\") continue; // "\ No newline at end of file"
+      else if (l[0] === " " || l === "") { next++; left[0]--; left[1]--; }
+      continue;
+    }
+    const h = /^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(l);
+    if (h) { left = [Number(h[1] ?? 1), Number(h[3] ?? 1)]; next = Number(h[2]); continue; }
+    if (l.startsWith("+++ ")) {
+      const path = l.slice(4).split("\t")[0];
+      const file = path.replace(/^b\//, "");
+      if (path === "/dev/null") lines = undefined;
+      else out.set(file, (lines = out.get(file) ?? new Set()));
+    }
+  }
+  return out;
 }

@@ -1,15 +1,21 @@
 /**
- * `spp findings merge <file...> [--json] [--verdict <round> ...]` merges the review panel's Persona findings. Each
+ * `spp findings merge <file...> [--json] [--verdict <round> ...] [--fix-diff <file>]` merges the review panel's Persona findings. Each
  * file is one {@link PersonaFindings}. Findings under 80 confidence are dropped, and findings on the same file,
  * less than 5 lines apart and with the same normalised title become one that keeps the highest severity and every Persona.
  * `--verdict` adds the panel's verdict over the merged list, as a last `Verdict:` line or, with `--json`, a `verdict`
  * key; from round 3 a FIX FIRST is written HUMAN DECISION. With `--json` it prints {@link PanelFindings}.
+ * `--fix-diff` names the patch of the fixes the round reviewed: each merged finding on a line that patch added or
+ * changed, and not merged with a `recheck-` file's finding, records a `fix-regression` Signal (the Signal gates apply),
+ * and a line on stderr says whether it was recorded. stdout, the `--json` shape and the exit code do not change.
  *
  * @module
  */
 import { readFileSync } from "node:fs";
-import { mergeFindings, panelVerdict, parsePersonaFindings, type MergeResult, type Merged, type PanelVerdict, type Readings } from "../findings.ts";
+import { basename } from "node:path";
+import { changedLines, mergeFindings, panelVerdict, parsePersonaFindings, type MergeResult, type Merged, type PanelVerdict, type Readings } from "../findings.ts";
 import { guarded, UsageError } from "../markers.ts";
+import { currentRepo } from "../notes.ts";
+import { recordSignal } from "../signals.ts";
 
 export type { Finding, Merged, PanelVerdict, PersonaFindings, Severity } from "../findings.ts";
 
@@ -24,7 +30,7 @@ export type PanelFindings = {
 };
 
 /** The usage text `spp findings --help` prints. */
-export const USAGE = `usage: spp findings merge <file...> [--json]
+export const USAGE = `usage: spp findings merge <file...> [--json] [--fix-diff <file>]
          [--verdict <round> --spec pass|fail --coherence pass|fail --verify pass|fail
           --checks pass|fail|pending|none [--missing name,name]]
 Each file is { "persona": NAME, "findings": [{ file, line, title, severity, confidence, law?, body }] }.
@@ -34,9 +40,12 @@ title merge into one that keeps the highest severity and every persona. --json p
 --verdict adds the panel's verdict (MERGE, FIX FIRST or HUMAN DECISION) as a last "Verdict:" line, or a "verdict"
 key with --json. <round> is 1 for the first panel; from round 3 a FIX FIRST is written HUMAN DECISION. The other
 flags are the readings the verdict also depends on; --missing names Personas that never reported.
+--fix-diff <file> is the patch of the fixes made since the previous round. A merged finding on a line it added or
+changed, and not merged with a finding from a recheck-* file, records a fix-regression Signal; stderr gets one
+"fix-regression <id> recorded" or "fix-regression <id> not recorded: <reason>" line per such finding.
 `;
 
-const VALUE_FLAGS = ["--verdict", "--spec", "--coherence", "--verify", "--checks", "--missing"];
+const VALUE_FLAGS = ["--verdict", "--spec", "--coherence", "--verify", "--checks", "--missing", "--fix-diff"];
 
 function readings(flags: Map<string, string>): Readings {
   const get = (name: string) => {
@@ -85,18 +94,38 @@ function render(r: MergeResult): string {
   );
 }
 
+// One fix-regression Signal per merged finding on a changed line that no recheck finding was merged into, and one
+// stderr line each. Nothing here changes the exit code.
+function recordRegressions(result: MergeResult, patch: string, name: string): void {
+  const changed = changedLines(patch);
+  for (const f of result.findings) {
+    if (result.recheck.includes(f.id) || !changed.get(f.file)?.has(f.line)) continue;
+    let outcome: string;
+    try {
+      const evidence = `${f.id} ${f.file}:${f.line} is on a line ${name} changed: ${f.title}`;
+      const r = recordSignal({ repo: currentRepo(), category: "fix-regression", skill: "implement-issue", step: "fix round", evidence });
+      outcome = "skipped" in r ? `not recorded: ${r.skipped}` : "recorded";
+    } catch (e) {
+      outcome = `not recorded: ${e instanceof Error ? e.message : e}`;
+    }
+    process.stderr.write(`fix-regression ${f.id} ${outcome}\n`);
+  }
+}
+
 /**
  * Merges Persona findings files and, with `--verdict`, gives the panel's verdict.
  *
  * @param args - `merge`, one or more findings files, `--json` for the {@link PanelFindings} shape, and for a verdict
  *   `--verdict <round>` with `--spec pass|fail`, `--coherence pass|fail`, `--verify pass|fail`,
- *   `--checks pass|fail|pending|none` and optionally `--missing name,name` (Personas that never reported).
+ *   `--checks pass|fail|pending|none` and optionally `--missing name,name` (Personas that never reported). Apart from those, `--fix-diff <file>` records
+ *   fix regressions as described above.
  * @returns 0 when it printed the merged list; 2 on a usage error, with the usage on stderr; 1 when a file cannot be
- *   read or does not hold Persona findings, with the reason on stderr.
+ *   read (the `--fix-diff` patch included) or does not hold Persona findings, with the reason on stderr.
  * @example
  * ```bash
  * spp findings merge correctness.json security.json --json
  * spp findings merge *.json --verdict 1 --spec pass --coherence pass --verify pass --checks pass
+ * spp findings merge "$ROUND_DIR"/*.json --fix-diff "$PANEL_DIR/fix-2.patch"
  * ```
  */
 export function run(args: string[]): Promise<number> {
@@ -118,12 +147,23 @@ export function run(args: string[]): Promise<number> {
     if (!files.length) throw new UsageError("merge needs at least one file");
     // Readings are checked before any file is read, so a bad flag is a usage error and not a missing-file error.
     const r = values.has("--verdict") ? readings(values) : null;
-    const stray = VALUE_FLAGS.find((f) => f !== "--verdict" && values.has(f) && !r);
+    const stray = VALUE_FLAGS.find((f) => f !== "--verdict" && f !== "--fix-diff" && values.has(f) && !r);
     if (stray) throw new UsageError(`${stray} goes with --verdict`);
-    const result = mergeFindings(files.map(load));
+    const inputs = files.map(load);
+    const fixDiff = values.get("--fix-diff");
+    let patch: string | undefined;
+    if (fixDiff !== undefined) {
+      try {
+        patch = readFileSync(fixDiff, "utf8");
+      } catch (e) {
+        throw new Error(`${fixDiff}: ${e instanceof Error ? e.message : e}`);
+      }
+    }
+    const result = mergeFindings(inputs, new Set(inputs.filter((_, i) => basename(files[i]).startsWith("recheck-"))));
     const verdict = r && panelVerdict(result, r);
     const out: PanelFindings = { findings: result.findings, counts: result.counts, ...(verdict && { verdict }) };
     if (json) process.stdout.write(JSON.stringify(out, null, 2) + "\n");
     else process.stdout.write(render(result) + (verdict ? `Verdict: ${verdict}\n` : ""));
+    if (patch !== undefined && fixDiff !== undefined) recordRegressions(result, patch, basename(fixDiff));
   });
 }
