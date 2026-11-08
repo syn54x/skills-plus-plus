@@ -17,8 +17,9 @@
  */
 import { spawnSync } from "node:child_process";
 import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { isAttended, passDecision } from "../attended.ts";
 import { asDriver } from "../derive.ts";
 import { runGh } from "../gh.ts";
 import { flagPairs, guarded, parseIssue, UsageError } from "../markers.ts";
@@ -66,6 +67,9 @@ export function run(args: string[]): Promise<number> {
       process.stderr.write(`spp dispatch: ${issue.label} is held (${holders.join(", ")}); not starting a second worker\n`);
       return 1;
     }
+    // The worker trusts this decision over its own environment, which a claude --bg session may not carry (ADR 0012).
+    const repo = /^https:\/\/github\.com\/([^/]+\/[^/]+)\//.exec(view.url)?.[1] ?? issue.repo;
+    passDecision({ XDG_STATE_HOME: process.env.XDG_STATE_HOME, HOME: process.env.HOME || homedir() }, repo, Number(issue.number), isAttended(process.env));
     if (driver !== "bg") return brief([issue.arg]);
 
     const file = join(mkdtempSync(join(tmpdir(), "spp-dispatch-")), `brief-${issue.number}.md`);
