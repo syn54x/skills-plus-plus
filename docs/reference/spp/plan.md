@@ -1,9 +1,10 @@
 `spp plan <epic> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d] [--narrowed TEXT]... |
-[--narrowed none] [--add-deviation TEXT] [--table-file FILE] [--driver desktop|bg|subagent]` writes the Epic's `<!-- sdd-plan -->` comment,
+[--narrowed none] [--add-deviation TEXT] [--table-file FILE] [--driver desktop|bg|subagent] [--by "<skill> <step>"]` writes the Epic's `<!-- sdd-plan -->` comment,
 rewriting it in place, and prints its URL. A field you do not pass keeps its stored value. `--narrowed` replaces the
 stored list with every `--narrowed` of the call, `--narrowed none` clears it, and a call without it keeps it;
 `--add-deviation` appends to the Deviated list. `--driver` records the Driver the user chose for the run, which
-`spp next` then reports on `dispatch`. The table file is copied in verbatim. It has no `--json`.
+`spp next` then reports on `dispatch`. The table file is copied in verbatim. The trailer's `by` records the
+write's maker: to-tickets, or the skill and step `--by` names. It has no `--json`.
 
 ## Functions
 
@@ -48,7 +49,8 @@ The usage text `spp plan --help` prints.
 ```text
 usage: spp plan <epic> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d]
                        [--narrowed TEXT]... | [--narrowed none] [--add-deviation TEXT] [--table-file FILE]
-                       [--driver desktop|bg|subagent]
+                       [--driver desktop|bg|subagent] [--by "<skill> <step>"]
 --narrowed replaces the stored list with every --narrowed of the call, --narrowed none clears it, and a
 call without --narrowed keeps it; --add-deviation appends. --driver records the run's Driver.
+--by records the write as that skill's (default to-tickets), the rest of the value as its step.
 ```

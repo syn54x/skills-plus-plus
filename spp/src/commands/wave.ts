@@ -17,14 +17,15 @@
  *   round with the same `--round`.
  *
  * Waves and panel rounds are lists inside the comment's data trailer, so a retried call replaces its own entry and
- * never duplicates one. The writing forms print the comment's URL.
+ * never duplicates one. The writing forms print the comment's URL, and take `--by "<skill> <step>"`: the trailer's
+ * `by` records the write's maker, build or the skill and step `--by` names.
  *
  * @module
  */
 import { derive, type EpicState, type Ticket } from "../derive.ts";
 import { fetchSnapshot } from "../fetch-snapshot.ts";
 import { runGh } from "../gh.ts";
-import { type Data, flagPairs, guarded, parseIssue, print, updateMarker, UsageError } from "../markers.ts";
+import { type Data, flagPairs, guarded, parseBy, parseIssue, print, updateMarker, UsageError } from "../markers.ts";
 import { DEFAULT_WAVE_MAX, inFlight, liveWorker, type Session } from "../plan-next.ts";
 import { parseTicket } from "../ticket.ts";
 
@@ -41,6 +42,7 @@ wave add replaces every wave with the same --n; wave panel replaces the entry wi
 (a round shown but never posted has no --report and renders unposted);
 wave pr records the PR on the last wave whose tickets hold --ticket, in any of its forms (number, owner/repo#N, URL).
 A wave ticket is a number, owner/repo#N or an issue URL, stored and rendered as given.
+add, pr and panel take --by "<skill> <step>", which records the write as that skill's (default build), the rest as its step.
 `;
 
 type Wave = { n: number; tickets: (string | number)[]; workers: string[]; started: string; edges: (string | number)[][]; prs: Record<string, string> };
@@ -267,13 +269,15 @@ export function run(args: string[]): Promise<number> {
     if (epic === undefined) throw new UsageError("");
     if (!known) throw new UsageError("wave takes add, pr or panel");
     const e = parseIssue(epic);
-    const merge = merger(op, Object.fromEntries(flagPairs(rest, FLAGS[op])), e.repoFlag.length ? e.repo : null);
+    const f = Object.fromEntries(flagPairs(rest, [...FLAGS[op], "--by"]));
+    const by = f["--by"] === undefined ? undefined : parseBy(f["--by"]);
+    const merge = merger(op, f, e.repoFlag.length ? e.repo : null);
     print(
       await updateMarker(epic, "<!-- sdd-wave -->", render, (old) => {
         const data = { waves: [], panel: [], ...old } as WaveData;
         merge(data);
         return data;
-      }),
+      }, by),
     );
   });
 }

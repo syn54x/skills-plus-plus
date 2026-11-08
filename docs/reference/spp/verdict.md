@@ -1,7 +1,8 @@
 `spp verdict <pr> --ticket N --head SHA --spec pass|fail --quality pass|fail` records the slice gate's two verdicts
 as the pull request's `<!-- spp-verdict -->` Marker comment, rewritten in place, and prints its URL. It writes only
 while the pull request is still at `SHA`, because a verdict counts only on the head it was given on; when the head
-has moved it writes nothing and the reviewer reviews the new head. It has no `--json`.
+has moved it writes nothing and the reviewer reviews the new head. The trailer's `by` records the write's maker:
+review, or the skill and step `--by "<skill> <step>"` names. It has no `--json`.
 
 ## Functions
 
@@ -44,5 +45,7 @@ The usage text `spp verdict --help` prints.
 
 ```text
 usage: spp verdict <pr number | pr URL> --ticket N --head SHA --spec pass|fail --quality pass|fail
+                   [--by "<skill> <step>"]
 Writes the verdict comment while the pull request is still at SHA (7 to 40 hex characters); exits 3 when it moved.
+--by records the write as that skill's (default review), the rest of the value as its step.
 ```

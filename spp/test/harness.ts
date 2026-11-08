@@ -57,8 +57,27 @@ export async function assertCase(command: string, caseDir: string, code = 0): Pr
   if (json !== undefined) assert.deepEqual(r.json, JSON.parse(json));
   const text = read(caseDir, "expected.txt");
   if (text !== undefined) assert.equal(r.stdout, text);
-  assert.deepEqual(r.writes, jsonl(read(caseDir, "expected-writes.jsonl")));
+  assert.deepEqual(versionless(r.writes), jsonl(read(caseDir, "expected-writes.jsonl")));
   return r;
+}
+
+// The writes with the plugin version in each trailer's makers (`by`, `verifyPinBy`) replaced by `<version>`, so a
+// release that bumps package.json leaves expected-writes.jsonl as it is.
+export function versionless(writes: unknown[]): unknown[] {
+  const trailer = (b64: string) => {
+    let data: Record<string, { version?: unknown } | null | undefined>;
+    try {
+      data = JSON.parse(Buffer.from(b64, "base64").toString("utf8"));
+    } catch {
+      return b64; // a trailer spp did not write (an upsert's verbatim body) is compared as it is
+    }
+    const makers = ["by", "verifyPinBy"].filter((k) => typeof data?.[k]?.version === "string");
+    if (!makers.length) return b64;
+    for (const k of makers) data[k]!.version = "<version>";
+    return Buffer.from(JSON.stringify(data)).toString("base64");
+  };
+  const arg = (a: unknown) => (typeof a === "string" ? a.replace(/(<!-- sdd-data: )([A-Za-z0-9+/=]+)( -->)/g, (_, open, b64, close) => open + trailer(b64) + close) : a);
+  return (writes as { argv?: unknown[] }[]).map((w) => (w.argv ? { ...w, argv: w.argv.map(arg) } : w));
 }
 
 // Inlines file arguments so keys and the write log never carry a temp path.

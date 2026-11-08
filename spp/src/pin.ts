@@ -12,8 +12,11 @@ export const PIN_KEY = "verifyPin";
 
 const hash = (block: string) => createHash("sha256").update(block).digest("hex");
 
-/** The progress trailer fields that pin `block`. */
-export const pinFields = (block: string): Data => ({ [PIN_KEY]: hash(block) });
+/** The skill a pin is charged to when `--by` names no other. */
+export const PIN_MAKER = "harden";
+
+/** The progress trailer fields that pin `block`, made by `maker` (the write's `by`), which later writes keep. */
+export const pinFields = (block: string, maker: Data): Data => ({ [PIN_KEY]: hash(block), [`${PIN_KEY}By`]: maker });
 
 /** The progress comment's pin line for its trailer data: one line when it holds a pin, none otherwise. */
 export function pinLine(data: Data): string[] {
