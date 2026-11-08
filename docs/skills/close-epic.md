@@ -42,7 +42,7 @@ Only issues you approve one by one, and only when your Routing block sets an `Up
 | `detailed` | the same, plus a few sentences on how the step failed |
 | `attributed` | everything in `detailed`, along with the name of your repo and links to this Epic, its Sub-issues and their pull requests |
 
-No profile lets out file paths, code, titles or error text. Before it files or drafts anything, the skill runs `spp feedback check` on each body, which applies those rules in code and prints one line per hit (rule, rule name, line number) instead of relying on the agent's reading. It refuses everything when the profile is `off`, and it never rewrites a body. Every issue also asks for an eval case that reproduces the defect, to land with the fix.
+Under Anonymous no issue lets out file paths, code, titles or error text. Under Full Detail they can leave, but each one is shown to you as a warning first. Before it files or drafts anything, the skill runs `spp feedback check` on each body, which applies those rules in code and prints one line per hit (rule, rule name, line number) instead of relying on the agent's reading. A token, key or private key in the body blocks it in every Self-improvement mode, and the check prints it as `[REDACTED]`. Under Anonymous the other rules block too; under Full Detail they print as `warning: ` lines and let the body through. It refuses everything when the mode is Off, and it never rewrites a body. Every issue also asks for an eval case that reproduces the defect, to land with the fix.
 
 **What happens in an unattended run?**
 It files nothing. Each would-be issue goes into one drafts comment on the Epic, for you to read and file yourself later.

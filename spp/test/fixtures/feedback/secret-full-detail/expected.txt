@@ -1,0 +1,2 @@
+rule 0 Secrets (aws-access-token), line 4: **Observed:** the worker pasted [REDACTED] into the body
+warning: rule 2 Names, line 6: **Proposed change:** acme should add a check

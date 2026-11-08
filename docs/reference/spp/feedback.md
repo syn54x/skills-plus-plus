@@ -31,9 +31,11 @@ Checks a skill-feedback draft against the repo's Self-improvement mode, or lists
 
 `Promise`\<`number`\>
 
-For `check`: 0 with no output when the draft is clean; 2 when it is blocked, one line per hit on stdout; 1
-  when the mode is Off or unset. For `pending`: 0, an absent log included. 1 on a usage error (with the usage on
-  stderr).
+For `check`, one `rule <rule> <name>, line <n>: <text>` line per hit on stdout, in line order, with any
+  secret in the text replaced by `[REDACTED]`. A hit that only warns (rules 1 to 6 under Full Detail) starts with
+  `warning: `. Exit 0 when the draft is clean or has warnings only; 2 when any hit blocks (a secret in any mode, or
+  rules 1 to 6 under Anonymous); 1 when the mode is Off or unset. For `pending`: 0, an absent log included. 1 on a
+  usage error (with the usage on stderr).
 
 #### Example
 

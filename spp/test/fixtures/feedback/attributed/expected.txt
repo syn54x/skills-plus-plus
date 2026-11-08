@@ -1,1 +1,1 @@
-rule 2 Names, line 6: **Observed:** acme broke the step
+warning: rule 2 Names, line 6: **Observed:** acme broke the step
