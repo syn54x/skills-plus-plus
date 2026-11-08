@@ -65,7 +65,7 @@ Build the body from this template and nothing else. Each field is a number, a va
 
 ## The outbound check
 
-Before filing or drafting, run `spp feedback check` on the finished body. It reads the `Upstream feedback:` profile from the Routing block and applies the six rules below, so a program stops a leak and not only your reading of the rules.
+Before filing or drafting, run `spp feedback check` on the finished body. It reads the Self-improvement mode from the Routing block (an old `Upstream feedback:` line still counts) and applies the secrets rule and the six rules below, so a program stops a leak and not only your reading of the rules.
 
 ```bash
 spp feedback check "$BODY_FILE" --title-file "$TITLE_FILE"
@@ -75,14 +75,15 @@ spp feedback check "$BODY_FILE" --title-file "$TITLE_FILE"
 
 | Exit | Meaning |
 | --- | --- |
-| 0 | Clean, with no output: the body may be shown for approval or drafted. |
+| 0 | Clean with no output, or warnings only (each line starts `warning: `): the body may be shown for approval or drafted, with the warnings shown to the person. |
 | 2 | Blocked: one line per hit, naming the rule number, the rule name and the body's line number. |
-| 1 | The profile is `off` (or unset or unrecognised) and nothing may be filed, or the command was used wrongly. |
+| 1 | The mode is Off (or unset or unrecognised) and nothing may be filed, or the command was used wrongly. |
 
-One hit stops that issue. Fix the body by rebuilding it from the template, never by deleting the offending words, and run the check again; it never rewrites the body itself. The rules:
+A secret blocks in every mode. Under Anonymous rules 1 to 6 block too; under Full Detail they print as warnings and do not stop the issue, so the person sees what the body says about the project. One blocking hit stops that issue. Fix the body by rebuilding it from the template, never by deleting the offending words, and run the check again; it never rewrites the body itself, and it prints every secret it finds as `[REDACTED]`. The rules:
 
-1. **URLs.** None, except under `attributed`, where an issue or pull request URL inside the person's own repo passes. A URL counts with or without its scheme: `www.` hosts and `domain.tld/path` are URLs too.
-2. **Names.** No owner, org or repo name, and no `owner/repo` string, from this Epic or its Sub-issues. Under `attributed`, the person's own `owner/repo` and the bare repo name pass; the bare owner name still does not. Short names count, matched as whole words in any case.
+0. **Secrets.** No token, key or private key, matched by patterns taken from gitleaks' default rules (GitHub, GitLab, AWS, Google Cloud, Slack, Anthropic, OpenAI, npm and Stripe tokens, JWTs and private-key headers). The hit names the gitleaks rule, as in `Secrets (aws-access-token)`.
+1. **URLs.** None, except under Full Detail, where an issue or pull request URL inside the person's own repo passes. A URL counts with or without its scheme: `www.` hosts and `domain.tld/path` are URLs too.
+2. **Names.** No owner, org or repo name, and no `owner/repo` string, from this Epic or its Sub-issues. Under Full Detail, the person's own `owner/repo` and the bare repo name pass; the bare owner name still does not. Short names count, matched as whole words in any case.
 3. **Paths.** No token naming a file or directory that `git ls-files` lists, wherever it sits in the token (`path#L10`, `path@main`, `file=path`, `a/path`, an absolute path ending in it), nor a tracked file's basename that has an extension (`invoice.ts`), nor a nested directory's last segment written with a slash (`billing/`, `/billing`). Any home path (`/home/<user>/`, `/Users/<user>/`, `~/`) is out as well.
 4. **Code.** No fenced block and no line that reads as code (`;`, `{`, `=>`, `import `, `def `, `func `).
 5. **Titles.** No run of four or more words copied from a Sub-issue or pull request title.
