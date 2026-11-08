@@ -40,4 +40,5 @@ The [command reference](reference/spp/index.md) has a page per command: what it 
 | Start work | [`branch`](reference/spp/branch.md), [`brief`](reference/spp/brief.md), [`dispatch`](reference/spp/dispatch.md), [`wait`](reference/spp/wait.md) |
 | Write Marker comments and the claim | [`claim`](reference/spp/claim.md), [`unclaim`](reference/spp/unclaim.md), [`progress`](reference/spp/progress.md), [`hand-back`](reference/spp/hand-back.md), [`plan`](reference/spp/plan.md), [`wave`](reference/spp/wave.md), [`upsert`](reference/spp/upsert.md), [`verdict`](reference/spp/verdict.md), [`note`](reference/spp/note.md) |
 | Gate | [`lint ticket`](reference/spp/lint.md), [`verify`](reference/spp/verify.md), [`merge`](reference/spp/merge.md), [`findings merge`](reference/spp/findings.md), [`guard worktree`](reference/spp/guard.md), [`feedback check`](reference/spp/feedback.md) |
+| Read a pull request's gate | [`gate`](reference/spp/gate.md) |
 | Record and list Signals | [`signal`](reference/spp/signal.md), [`feedback pending`](reference/spp/feedback.md) |
