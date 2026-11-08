@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { mergeFindings, panelVerdict, parsePersonaFindings, type Readings } from "../src/findings.ts";
+import { signalsFile } from "../src/signals.ts";
 import { assertCase, runCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -159,5 +161,146 @@ describe("verdict flags", () => {
       const r = await runCase("findings", caseDir(["merge", ...bad, "a.json"]));
       assert.equal(r.code, 2, bad.join(" "));
     }
+  });
+});
+
+describe("--fix-diff", () => {
+  const PATCH = [
+    "diff --git a/src/a.ts b/src/a.ts",
+    "--- a/src/a.ts",
+    "+++ b/src/a.ts",
+    "@@ -10,4 +10,4 @@",
+    " context ten",
+    "-old eleven",
+    "+new eleven",
+    " context twelve",
+    "+added thirteen",
+    "-old fourteen",
+    "diff --git a/src/gone.ts b/src/gone.ts",
+    "--- a/src/gone.ts",
+    "+++ /dev/null",
+    "@@ -1,2 +0,0 @@",
+    "-x",
+    "-y",
+    "",
+  ].join("\n");
+  const finding = (file: string, line: number) => ({ file, line, title: `problem at ${line}`, severity: "important", confidence: 90, body: "b" });
+
+  // A checkout, its findings files and the patch, in one temp directory.
+  function setup(files: Record<string, unknown[]>, mode: string | null = "Anonymous") {
+    const dir = mkdtempSync(join(tmpdir(), "spp-fixdiff-"));
+    const state = join(dir, ".state");
+    spawnSync("git", ["init", "-q"], { cwd: dir });
+    spawnSync("git", ["remote", "add", "origin", "https://github.com/acme/app.git"], { cwd: dir });
+    const line = mode === null ? "" : `- Self-improvement mode: ${mode}\n`;
+    writeFileSync(join(dir, "CLAUDE.md"), `# app\n\n<!-- sdd-routing -->\n- Mode: org\n${line}<!-- /sdd-routing -->\n`);
+    writeFileSync(join(dir, "fix-2.patch"), PATCH);
+    for (const [name, findings] of Object.entries(files)) writeFileSync(join(dir, name), JSON.stringify({ persona: name.replace(/^(persona|recheck)-|\.json$/g, ""), findings }));
+    return { dir, state, log: signalsFile({ XDG_STATE_HOME: state, HOME: dir }, "acme/app") };
+  }
+  function merge(c: { dir: string; state: string }, args: string[], env: Record<string, string> = { CLAUDE_CODE_SESSION_ATTENDED: "1" }) {
+    const base: NodeJS.ProcessEnv = { ...process.env, XDG_STATE_HOME: c.state, HOME: c.dir };
+    delete base.CI;
+    delete base.CLAUDE_CODE_SESSION_ATTENDED;
+    const r = spawnSync(process.execPath, [join(here, "..", "..", "bin", "spp"), "findings", "merge", ...args], { cwd: c.dir, encoding: "utf8", env: { ...base, ...env } });
+    return { code: r.status, stdout: r.stdout, stderr: r.stderr };
+  }
+  const signals = (log: string) => (existsSync(log) ? readFileSync(log, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l) as Record<string, string>) : []);
+
+  test("a finding on a + line records one fix-regression Signal and prints it on stderr", () => {
+    const c = setup({ "persona-correctness.json": [finding("src/a.ts", 11)] });
+    const r = merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stderr, "fix-regression F1 recorded\n");
+    const [s, ...rest] = signals(c.log);
+    assert.deepEqual(rest, []);
+    assert.deepEqual([s.category, s.skill, s.step], ["fix-regression", "implement-issue", "fix round"]);
+    assert.equal(s.evidence, "F1 src/a.ts:11 is on a line fix-2.patch changed: problem at 11");
+  });
+
+  test("two regressed findings give two Signals with one fingerprint", () => {
+    const c = setup({ "persona-correctness.json": [finding("src/a.ts", 11), finding("src/a.ts", 13)] });
+    const r = merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
+    assert.equal(r.stderr, "fix-regression F1 recorded\nfix-regression F2 recorded\n");
+    const s = signals(c.log);
+    assert.equal(s.length, 2);
+    assert.equal(s[0].fingerprint, s[1].fingerprint);
+  });
+
+  test("context lines, a - line's old number, untouched files and deleted files record nothing", () => {
+    const c = setup({ "persona-correctness.json": [finding("src/a.ts", 10), finding("src/a.ts", 12), finding("src/a.ts", 14), finding("src/other.ts", 11), finding("src/gone.ts", 1)] });
+    const r = merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stderr, "");
+    assert.deepEqual(signals(c.log), []);
+  });
+
+  test("a recheck- finding merged into a changed-line finding is not a regression", () => {
+    const f = finding("src/a.ts", 11);
+    const c = setup({ "recheck-correctness.json": [f], "persona-correctness.json": [f] });
+    const r = merge(c, ["recheck-correctness.json", "persona-correctness.json", "--fix-diff", "fix-2.patch"]);
+    assert.equal(r.stderr, "");
+    assert.deepEqual(signals(c.log), []);
+    assert.equal(merge(c, ["recheck-correctness.json", "--fix-diff", "fix-2.patch"]).stderr, "");
+  });
+
+  test("CI and mode Off are reported as not recorded, and CI writes no log", () => {
+    const c = setup({ "persona-correctness.json": [finding("src/a.ts", 11)] });
+    const ci = merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"], { CLAUDE_CODE_SESSION_ATTENDED: "1", CI: "true" });
+    assert.equal(ci.stderr, "fix-regression F1 not recorded: CI\n");
+    assert.equal(existsSync(c.log), false);
+    const off = setup({ "persona-correctness.json": [finding("src/a.ts", 11)] }, "Off");
+    assert.equal(merge(off, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]).stderr, "fix-regression F1 not recorded: Self-improvement mode is Off\n");
+  });
+
+  test("stdout is byte-identical with and without --fix-diff, including --json --verdict", () => {
+    const c = setup({ "persona-correctness.json": [finding("src/a.ts", 11)] });
+    const base = ["persona-correctness.json", "--json", "--verdict", "2", "--spec", "pass", "--coherence", "pass", "--verify", "pass", "--checks", "pass"];
+    const a = merge(c, base);
+    const b = merge(c, [...base, "--fix-diff", "fix-2.patch"]);
+    assert.equal(b.code, 0);
+    assert.equal(b.stdout, a.stdout);
+    const t = merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
+    assert.equal(t.stdout, merge(c, ["persona-correctness.json"]).stdout);
+  });
+
+  test("no GitHub origin: not recorded with the reason, stdout unchanged, exit 0", () => {
+    const c = setup({ "persona-correctness.json": [finding("src/a.ts", 11)] });
+    spawnSync("git", ["remote", "remove", "origin"], { cwd: c.dir });
+    const r = merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
+    assert.equal(r.code, 0);
+    assert.match(r.stderr, /^fix-regression F1 not recorded: cannot tell this checkout's GitHub repository/);
+    assert.equal(r.stdout, merge(c, ["persona-correctness.json"]).stdout);
+  });
+
+  test("a path git quotes (non-ASCII) is unquoted, so its findings record a Signal", () => {
+    const c = setup({ "persona-correctness.json": [finding("src/café.ts", 1)] });
+    writeFileSync(join(c.dir, "fix-2.patch"), '--- a/src/caf\\303\\251.ts\n+++ "b/src/caf\\303\\251.ts"\n@@ -1 +1 @@\n-a\n+b\n');
+    const r = merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
+    assert.equal(r.stderr, "fix-regression F1 recorded\n");
+  });
+
+  test("a Signal write that fails is reported as not recorded and the exit code stays 0", () => {
+    const c = setup({ "persona-correctness.json": [finding("src/a.ts", 11)] });
+    writeFileSync(join(c.dir, "blocker"), "x");
+    const r = merge({ dir: c.dir, state: join(c.dir, "blocker") }, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stderr, /^fix-regression F1 not recorded: .+\n$/);
+    assert.equal(r.stdout, merge(c, ["persona-correctness.json"]).stdout);
+  });
+
+  test("an unreadable --fix-diff file exits 1 naming it, with nothing on stdout", () => {
+    const c = setup({ "persona-correctness.json": [finding("src/a.ts", 11)] });
+    const r = merge(c, ["persona-correctness.json", "--fix-diff", "missing.patch"]);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /missing\.patch/);
+    assert.equal(r.stdout, "");
+  });
+
+  test("--fix-diff with no value is a usage error", () => {
+    const c = setup({ "persona-correctness.json": [] });
+    const r = merge(c, ["persona-correctness.json", "--fix-diff"]);
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /usage: spp findings merge/);
   });
 });
