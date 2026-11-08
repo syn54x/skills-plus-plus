@@ -11,10 +11,12 @@ Record what the person wished spp did, in their words, as a `wish` Signal. Recor
 4. **Record.** Run:
 
    ```bash
-   spp signal wish --by "<skill> [step]" --evidence "<the person's words>"
+   spp signal wish --by "<skill> [step]" --evidence '<the person'\''s words>'
    ```
 
-   Tell the person in one sentence what it printed (`recorded wish ...` or `not recorded: <reason>`), then go back to the work. On exit 2, a usage error, correct the call once and run it again.
+   Pass the evidence in single quotes and write each `'` in the words as `'\''`, so backticks, `$` and `"` in them reach `spp` as typed and run nothing.
+
+   Tell the person in one sentence what it printed (`recorded wish ...` or `not recorded: <reason>`), then go back to the work. On exit 1 (no GitHub origin), tell the person the reason it printed and go on. On exit 2, a usage error, correct the call once and run it again.
 
 ## Done when
 
