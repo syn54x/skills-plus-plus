@@ -371,6 +371,14 @@ describe("rule 0: secrets", () => {
     }
   });
 
+  test("a secret holding another pattern's match is redacted whole, not only the inner match", () => {
+    const aws = "AKIA" + "IOSFODNN7" + "EXAMPLE";
+    const jwt = "ey" + r("J1a", 20) + ".ey" + r("J2b", 20) + "-" + aws + "-" + r("c3", 20) + "." + r("sig", 12);
+    const hits = checkFeedback(`x ${jwt} y`, base).filter((h) => h.rule === 0);
+    assert.deepEqual(hits.map((h) => h.name), ["Secrets (aws-access-token)", "Secrets (jwt)"]);
+    assert.equal(hits[0].text, "x [REDACTED] y");
+  });
+
   test("a GitHub token and a URL on one line under Anonymous give a rule 0 and a rule 1 hit, neither holding the token", () => {
     const token = "ghp_" + r("a1B", 36);
     const hits = checkFeedback(`see ${token} at https://x.example`, base);

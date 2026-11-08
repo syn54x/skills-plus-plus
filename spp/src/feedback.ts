@@ -145,7 +145,15 @@ export function checkFeedback(body: string, ctx: FeedbackContext): Hit[] {
   const hits: Hit[] = [];
   body.replace(/\r/g, "").split("\n").forEach((raw, i) => {
     // Each secret on the line is redacted in every hit's text, so the check never prints what it found.
-    const text = SECRETS.reduce((t, [, re]) => t.replace(re, "[REDACTED]"), raw).trim();
+    // Matches are found on the raw line and their union redacted, so a secret holding another pattern's match goes whole.
+    const ranges = SECRETS.flatMap(([, re]) => [...raw.matchAll(re)].map((m) => [m.index, m.index + m[0].length])).sort((a, b) => a[0] - b[0]);
+    const merged: number[][] = [];
+    for (const [start, end] of ranges) {
+      const last = merged.at(-1);
+      if (last && start <= last[1]) last[1] = Math.max(last[1], end);
+      else merged.push([start, end]);
+    }
+    const text = merged.reduceRight((t, [start, end]) => t.slice(0, start) + "[REDACTED]" + t.slice(end), raw).trim();
     for (const [id, re] of SECRETS) if (raw.search(re) >= 0) hits.push({ rule: 0, name: `Secrets (${id})`, line: i + 1, text, level: "block" });
     const add = (rule: number) => hits.push({ rule, name: RULE_NAMES[rule - 1], line: i + 1, text, level });
     const seen = scan(raw);
