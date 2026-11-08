@@ -41,7 +41,7 @@ The step is done when every Law has a line in that list.
 
 ## 2. Claim
 
-On a fresh issue, claim it, then write the progress comment with status `in-progress` and your name as Worker, so anyone who finds the claim can see whose it is. Post the note `claimed`. On a fix round the claim is already yours; skip to step 4 on the branch you left.
+On a fresh issue, claim it, then write the progress comment with status `in-progress` and your name as Worker, so anyone who finds the claim can see whose it is. Post the note `claimed`. On a fix round the claim is already yours: read [FIX-ROUND.md](FIX-ROUND.md) now and follow it, on the branch you left.
 
 ## 3. Branch
 
