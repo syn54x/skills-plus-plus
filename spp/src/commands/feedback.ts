@@ -22,7 +22,7 @@ import { currentRepo } from "../notes.ts";
 import { readSelfImprovementMode } from "../routing.ts";
 import { pendingCandidates } from "../signals.ts";
 
-export type { FeedbackCandidate, SignalCategory } from "../signals.ts";
+export type { FeedbackCandidate } from "../signals.ts";
 
 /** The usage text `spp feedback --help` prints. */
 export const USAGE = "usage: spp feedback check <body-file> [--title-file <file>]\n       spp feedback pending [--json]\n";

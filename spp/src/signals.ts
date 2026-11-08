@@ -9,7 +9,7 @@ import { isAttended } from "./attended.ts";
 import { notesFile } from "./notes-log.ts";
 import { readSelfImprovementMode } from "./routing.ts";
 
-// The 15 categories of skills/close-epic/FEEDBACK.md, then the four the Signal sources add.
+/** The categories a Signal may carry: the 15 of `skills/close-epic/FEEDBACK.md`, then the four the Signal sources add. */
 export const SIGNAL_CATEGORIES = [
   "verify-unrunnable", "contract-gap", "missed-edge", "undeclared-deviation", "brief-gap", "fix-round", "law-told",
   "law-not-told", "human-needed", "panel-noise", "panel-gap", "hook-wrong", "driver-failed", "step-unclear", "other",

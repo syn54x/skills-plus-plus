@@ -11,6 +11,8 @@ import { flagPairs, guarded, UsageError } from "../markers.ts";
 import { currentRepo } from "../notes.ts";
 import { recordSignal, SIGNAL_CATEGORIES, type SignalCategory } from "../signals.ts";
 
+export { SIGNAL_CATEGORIES, type SignalCategory } from "../signals.ts";
+
 /** The usage text `spp signal --help` prints. */
 export const USAGE = `usage: spp signal <category> --by "<skill> [step]" --evidence "<text>" [--maker-version <v>]
 <category> is one of: ${SIGNAL_CATEGORIES.join(", ")}.
