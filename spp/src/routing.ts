@@ -3,8 +3,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** The upstream feedback profile, which sets what a skill-feedback issue may say; under `off` nothing may be filed. */
-export type UpstreamFeedback = "off" | "counts" | "detailed" | "attributed";
+/** The Self-improvement mode: the most a skill-feedback issue may say about the repo's work; under Off nothing is recorded or filed. */
+export type SelfImprovementMode = "Off" | "Anonymous" | "Full Detail";
 
 /** A repo's Routing block, parsed: the `--json` shape of `spp preflight`. */
 export type Routing = {
@@ -16,14 +16,16 @@ export type Routing = {
   laws: string[];
   /** When the main gate runs the review panel: at `tickets` Sub-issues or more, on any size L ticket when `sizeL`, or at `lines` changed lines or more. */
   panel: { tickets: number; sizeL: boolean; lines: number };
-  /** How much a skill-feedback issue may say; a missing or unknown value is off. */
-  upstreamFeedback: UpstreamFeedback;
+  /** The `Self-improvement mode:` line, else an old `Upstream feedback:` line migrated; a missing or unknown value is Off. */
+  selfImprovement: SelfImprovementMode;
   /** How `spp merge` merges a slice; absent means squash. */
   merge?: "squash" | "merge" | "rebase";
 };
 
 const MERGE_METHODS = ["squash", "merge", "rebase"];
-const FEEDBACK_PROFILES = ["counts", "detailed", "attributed"];
+const MODES = new Map<string, SelfImprovementMode>([["off", "Off"], ["anonymous", "Anonymous"], ["full detail", "Full Detail"]]);
+// The old `Upstream feedback:` profiles, each mapped to the mode that keeps its outbound rules.
+const UPSTREAM = new Map<string, SelfImprovementMode>([["off", "Off"], ["counts", "Anonymous"], ["detailed", "Anonymous"], ["attributed", "Full Detail"]]);
 
 const ROUTING_FILES = ["CLAUDE.md", "AGENTS.md"];
 const PANEL_DEFAULT = { tickets: 4, sizeL: true, lines: 1000 };
@@ -51,13 +53,14 @@ export function parseRouting(text: string): Routing {
   if (mode !== "org" && mode !== "labels-only") throw new Error(`Routing block: Mode must be org or labels-only, got ${mode === undefined ? "nothing" : `"${mode}"`}`);
   const merge = field("Merge");
   if (merge !== undefined && !MERGE_METHODS.includes(merge)) throw new Error(`Routing block: Merge must be squash, merge or rebase, got "${merge}"`);
-  const feedback = field("Upstream feedback") ?? "";
+  const improve = field("Self-improvement mode");
+  const selfImprovement = improve !== undefined ? MODES.get(improve.toLowerCase()) : UPSTREAM.get(field("Upstream feedback") ?? "");
   return {
     mode,
     sizes: field("Sizes") ?? "",
     laws: (field("Laws") ?? "").split(",").map((l) => l.trim()).filter(Boolean),
     panel: parsePanel(field("Panel") ?? ""),
-    upstreamFeedback: FEEDBACK_PROFILES.includes(feedback) ? (feedback as UpstreamFeedback) : "off",
+    selfImprovement: selfImprovement ?? "Off",
     ...(merge && { merge: merge as Routing["merge"] }),
   };
 }
@@ -72,3 +75,6 @@ export function readRouting(dir: string): { file: string; routing: Routing } | n
   }
   return null;
 }
+
+// The repo's Self-improvement mode; Off when `dir` has no Routing block.
+export const readSelfImprovementMode = (dir: string): SelfImprovementMode => readRouting(dir)?.routing.selfImprovement ?? "Off";

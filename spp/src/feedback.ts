@@ -2,11 +2,11 @@
 // about the repo in, hits out), so the rules are tested without gh or git; spp/src/commands/feedback.ts gathers the facts.
 //
 // The check errs toward blocking: a hit on an innocent line costs a rebuilt body, a miss costs a leak.
-import type { UpstreamFeedback } from "./routing.ts";
+import type { SelfImprovementMode } from "./routing.ts";
 
 export type FeedbackContext = {
-  profile: UpstreamFeedback;
-  ownRepo: string; // owner/repo of the person's checkout; under attributed its URLs, owner/repo and bare repo name pass
+  profile: SelfImprovementMode;
+  ownRepo: string; // owner/repo of the person's checkout; under Full Detail its URLs, owner/repo and bare repo name pass
   names: string[]; // owner/repo strings from the Epic and its Sub-issues; the own repo counts without being listed
   titles: string[]; // Sub-issue and pull request titles
   paths: string[]; // what `git ls-files` lists
@@ -58,7 +58,7 @@ function containsPath(line: string, needle: string, slashAfter: boolean): boolea
 }
 
 export function checkFeedback(body: string, ctx: FeedbackContext): Hit[] {
-  const attributed = ctx.profile === "attributed";
+  const attributed = ctx.profile === "Full Detail"; // the old attributed profile's exceptions
   const own = ctx.ownRepo;
   const ownName = own.split("/").pop() ?? "";
 

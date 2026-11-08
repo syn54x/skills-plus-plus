@@ -10,7 +10,7 @@ import { runGh } from "../gh.ts";
 import { find, guarded, type Issue, parseIssue, UsageError } from "../markers.ts";
 import { readRouting, type Routing } from "../routing.ts";
 
-export type { Routing, UpstreamFeedback } from "../routing.ts";
+export type { Routing, SelfImprovementMode } from "../routing.ts";
 
 /** The usage text `spp preflight --help` prints. */
 export const USAGE = "usage: spp preflight <epic number | issue URL> [--json]\n";
