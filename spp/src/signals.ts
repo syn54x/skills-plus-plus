@@ -57,7 +57,7 @@ export function recordSignal(
   dir: string = process.cwd(),
 ): { signal: Signal } | { skipped: "CI" | "not an attended session" | "Self-improvement mode is Off" } {
   if (env.CI) return { skipped: "CI" };
-  if (!isAttended(env)) return { skipped: "not an attended session" };
+  if (!isAttended(env, { repo: input.repo, dir })) return { skipped: "not an attended session" };
   if (readSelfImprovementMode(dir) === "Off") return { skipped: "Self-improvement mode is Off" };
   const step = input.step ?? "";
   const signal: Signal = {
