@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, test } from "node:test";
@@ -12,6 +12,22 @@ const ISSUE = "https://github.com/acme/app/issues/";
 const PLAN = `<!-- sdd-plan -->\n<!-- sdd-data: ${Buffer.from(JSON.stringify({ branch: "feat/epic" })).toString("base64")} -->`;
 
 type Write = { cmd: string; argv: string[] };
+
+// Runs `spp dispatch` in a case with a state directory of its own and only the attended variables `env` gives, so
+// the runner's CI and harness never leak in. Returns the result and the decision file's contents (null when absent).
+async function dispatch(dir: string, env: Record<string, string> = { CLAUDE_CODE_SESSION_ATTENDED: "1" }) {
+  const saved = { ...process.env };
+  delete process.env.CI;
+  delete process.env.CLAUDE_CODE_SESSION_ATTENDED;
+  Object.assign(process.env, { XDG_STATE_HOME: join(dir, ".state") }, env);
+  try {
+    const r = await runCase("dispatch", dir);
+    const file = join(dir, ".state", "spp", "acme__app.attended.json");
+    return { ...r, decision: existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as unknown) : null };
+  } finally {
+    process.env = saved;
+  }
+}
 
 // A case for `spp dispatch 12 <args>`: ticket 12 of Epic 197 in acme/app, held when `labels` says so.
 function scratch(args: string[], labels: string[] = ["ready-for-agent"], assignees: string[] = []): string {
@@ -34,7 +50,7 @@ function scratch(args: string[], labels: string[] = ["ready-for-agent"], assigne
 
 describe("happy path", () => {
   test("spp dispatch 12 --driver bg: one claude --bg --worktree sdd-12 --name t-12 call and one progress write with worker t-12", async () => {
-    const r = await runCase("dispatch", scratch(["--driver", "bg"]));
+    const r = await dispatch(scratch(["--driver", "bg"]));
     assert.equal(r.code, 0, r.stderr);
     const writes = r.writes as Write[];
     assert.deepEqual(writes.map((w) => w.cmd), ["claude", "gh"]);
@@ -55,29 +71,74 @@ describe("happy path", () => {
   test("spp dispatch 12 --driver subagent inside a git repository writes the brief and prints its path, with no claude call", async () => {
     const dir = scratch(["--driver", "subagent"]);
     assert.equal(spawnSync("git", ["init", "-q"], { cwd: dir }).status, 0);
-    const r = await runCase("dispatch", dir);
+    const r = await dispatch(dir);
     assert.equal(r.code, 0, r.stderr);
     assert.deepEqual(r.writes, []);
     assert.ok(existsSync(r.stdout.trim()), r.stdout);
   });
 });
 
+describe("happy path: the attended decision", () => {
+  test("CLAUDE_CODE_SESSION_ATTENDED=1, CI unset: spp dispatch 12 --driver bg starts one claude --bg and passes {\"12\": true}", async () => {
+    const r = await dispatch(scratch(["--driver", "bg"]));
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual((r.writes as Write[]).filter((w) => w.cmd === "claude").length, 1);
+    assert.deepEqual(r.decision, { "12": true });
+  });
+
+  test('the same with --driver desktop, and with --driver subagent inside a git repository: the decision file holds {"12": true}', async () => {
+    const desktop = await dispatch(scratch(["--driver", "desktop"]));
+    assert.equal(desktop.code, 0, desktop.stderr);
+    assert.deepEqual(desktop.decision, { "12": true });
+    const dir = scratch(["--driver", "subagent"]);
+    assert.equal(spawnSync("git", ["init", "-q"], { cwd: dir }).status, 0);
+    const subagent = await dispatch(dir);
+    assert.equal(subagent.code, 0, subagent.stderr);
+    assert.deepEqual(subagent.decision, { "12": true });
+  });
+});
+
+describe("edge cases: the attended decision", () => {
+  test('CI=true: spp dispatch 12 --driver bg passes {"12": false}', async () => {
+    const r = await dispatch(scratch(["--driver", "bg"]), { CI: "true", CLAUDE_CODE_SESSION_ATTENDED: "1" });
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(r.decision, { "12": false });
+  });
+
+  test('a decision file holding {"7": true}: dispatch 12 keeps "7" and adds "12"', async () => {
+    const dir = scratch(["--driver", "bg"]);
+    mkdirSync(join(dir, ".state", "spp"), { recursive: true });
+    writeFileSync(join(dir, ".state", "spp", "acme__app.attended.json"), '{"7": true}');
+    const r = await dispatch(dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(r.decision, { "7": true, "12": true });
+  });
+});
+
+describe("error paths: the attended decision", () => {
+  test("ticket 12 held by claimed: exit 1 and no decision file", async () => {
+    const r = await dispatch(scratch(["--driver", "bg"], ["ready-for-agent", "claimed"]));
+    assert.equal(r.code, 1);
+    assert.equal(r.decision, null);
+  });
+});
+
 describe("edge cases", () => {
   // #305: only the subagent Driver needs the session folder to be a checkout.
   test("spp dispatch 12 --driver desktop outside a git repository still writes the brief and prints its path", async () => {
-    const r = await runCase("dispatch", scratch(["--driver", "desktop"]));
+    const r = await dispatch(scratch(["--driver", "desktop"]));
     assert.equal(r.code, 0, r.stderr);
     assert.ok(existsSync(r.stdout.trim()), r.stdout);
   });
 
   test("spp dispatch 12 --driver bg outside a git repository still starts one claude --bg session", async () => {
-    const r = await runCase("dispatch", scratch(["--driver", "bg"]));
+    const r = await dispatch(scratch(["--driver", "bg"]));
     assert.equal(r.code, 0, r.stderr);
     assert.deepEqual((r.writes as Write[]).filter((w) => w.cmd === "claude").map((w) => w.argv[0]), ["--bg"]);
   });
 
   test("ticket 12 claimed: refuses, no claude call", async () => {
-    const r = await runCase("dispatch", scratch(["--driver", "bg"], ["ready-for-agent", "claimed"]));
+    const r = await dispatch(scratch(["--driver", "bg"], ["ready-for-agent", "claimed"]));
     assert.equal(r.code, 1);
     assert.match(r.stderr, /#12 is held/);
     assert.deepEqual(r.writes, []);
@@ -85,7 +146,7 @@ describe("edge cases", () => {
 
   // F23 on #267.
   test("ticket 12 held only by an assignee: refuses naming the assignee, no claude call", async () => {
-    const r = await runCase("dispatch", scratch(["--driver", "bg"], ["ready-for-agent"], ["alice"]));
+    const r = await dispatch(scratch(["--driver", "bg"], ["ready-for-agent"], ["alice"]));
     assert.equal(r.code, 1);
     assert.match(r.stderr, /#12 is held \(alice\)/);
     assert.deepEqual(r.writes, []);
@@ -97,7 +158,7 @@ describe("error paths: claude", () => {
   test("a failing claude --bg spawn exits 1 with claude's reason and writes no progress comment", async () => {
     const dir = scratch(["--driver", "bg"]);
     writeFileSync(join(dir, "agents.json"), JSON.stringify({ "--bg --worktree sdd-12 --name t-12 *": { stderr: "claude: not logged in\n", code: 1 } }));
-    const r = await runCase("dispatch", dir);
+    const r = await dispatch(dir);
     assert.equal(r.code, 1);
     assert.match(r.stderr, /^spp dispatch: claude --bg failed: claude: not logged in$/m);
     assert.deepEqual((r.writes as Write[]).map((w) => w.cmd), ["claude"]);
@@ -109,7 +170,7 @@ describe("error paths", () => {
   test("spp dispatch 12 --driver subagent outside a git repository refuses before it reads GitHub", async () => {
     const dir = scratch(["--driver", "subagent"]);
     writeFileSync(join(dir, "gh.json"), "{}"); // any gh call now fails with "stub gh: no answer"
-    const r = await runCase("dispatch", dir);
+    const r = await dispatch(dir);
     assert.equal(r.code, 1);
     assert.match(r.stderr, /cuts its worktree/);
     assert.doesNotMatch(r.stderr, /stub gh/);
@@ -117,7 +178,7 @@ describe("error paths", () => {
   });
 
   test("an unknown driver exits 2 with usage", async () => {
-    const r = await runCase("dispatch", scratch(["--driver", "cloud"]));
+    const r = await dispatch(scratch(["--driver", "cloud"]));
     assert.equal(r.code, 2);
     assert.match(r.stderr, /usage: spp dispatch/);
     assert.deepEqual(r.writes, []);
