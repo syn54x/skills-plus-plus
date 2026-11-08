@@ -58,6 +58,7 @@ nav = [
     { "Meta" = [
       { "setup-spp" = "skills/setup-spp.md" },
       { "ask-spp" = "skills/ask-spp.md" },
+      { "feedback" = "skills/feedback.md" },
     ] },
   ] },
   { "Epic board" = "epic-board.md" },
