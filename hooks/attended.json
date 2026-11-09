@@ -1,4 +1,4 @@
 {
-  "description": "Claude Code's Attended session signal, read by spp/src/attended.ts: a session is attended when the variable below holds its value. The variable below is not documented by Anthropic. See skills/build/CLAUDE-CODE.md.",
+  "description": "Claude Code's Attended session signal, read by spp/src/attended.ts: a session is attended when the variable below holds its value. The variable below is not documented by Anthropic. See skills/building/CLAUDE-CODE.md.",
   "attended": { "CLAUDE_CODE_SESSION_ATTENDED": "1" }
 }
