@@ -50,19 +50,36 @@ When the Round produced neither an Escalation nor a Challenge, begin the next Ro
 2. **Challenges**: the prior decision and the answer it pins, then `Supersede or uphold?` with the stronger alternative and the price of keeping the decision.
 3. **Veto list**: one line per auto-answer since the previous stop, under its Round: the question, the answer, the pointer, and for a departure from practice, the common approach beside the cited reason for leaving it.
 
-Open each Escalation and Challenge with the plainest drawing of the choice, and let prose cover only what the picture leaves out: how a caller would write each API option, a table when options share axes, an ASCII sketch for flows and structures, old and new snippets when behaviour changes. A Challenge sets the design that keeps the decision next to the one that drops it. Everything renders in a terminal, so use Markdown and ASCII, never a diagram language. A name or a yes-or-no question needs no picture.
+Draw each Escalation and Challenge as **Draw the choice** says. Then wait. The Principal answers the Escalations, rules on each Challenge, and can strike any veto line.
+
+### Draw the choice
+
+Each Escalation and Challenge reads in this order: the question in one plain sentence, a drawing of the choice, then the Best fit and what it rests on. A Challenge draws the design that keeps the decision and the one that drops it. A name or a yes-or-no question needs no drawing.
+
+- **One difference per drawing, shown with real values**: an actual row, amount, keystroke or call, picked so the options visibly part ways. Show how a caller writes each API option, old and new snippets when behaviour changes, and a table when the options differ on several axes.
+- **Only names the Principal already knows.** Question numbers, invariant ids, story and ticket numbers and your own working terms stay in the prose. Name anything else in the sentence above the drawing.
+- **The deciding difference comes first** in each option, never last in a column. A second rule that rides on an option gets its own sentence under the drawing.
+- **One meaning per arrow** within a drawing.
+
+When you can show a visual inline in the conversation, draw the choice there: a card per option with the Best fit marked, a grid when cases meet options, a timeline when the options differ in when something happens, and on each option a button that sends it as the Principal's answer. The plain sentence and the Best fit stay in prose around it, and the transcript gets the text form. On Claude Code, [`CLAUDE-CODE.md`](CLAUDE-CODE.md) names the tool; read it before the first stop.
+
+Otherwise draw in text, which renders in a terminal: Markdown and ASCII, never a diagram language. Stack the options under labels `A:` and `B:`, mark the Best fit on its label, and keep every line within 72 characters. Never set options side by side in columns, which wrap on a narrow screen.
 
 ```text
-3. Challenge: ADR 0004 sends every write through the job queue, so Q3 becomes "queue the profile save".
+3. Challenge: should saving a profile go through the job queue?
+   ADR 0004 sends every write through the queue, profile saves included.
 
-   upheld                       superseded
-   form -> queue -> worker      form -> db
-                -> db           (queue kept for bulk imports)
+   A: uphold, queue the save
+      save profile  ->  queue  ->  worker  ->  db
+      a failed save retries in the worker
 
-   Supersede or uphold? Better: write the single row directly. Keeping ADR 0004 here costs a second retry path.
+   B: supersede, write directly   <- Best fit
+      save profile  ->  db
+      the queue stays for bulk imports
+
+   Supersede or uphold? Best fit: B. Keeping ADR 0004 here costs a
+   second retry path for one row.
 ```
-
-Then wait. The Principal answers the Escalations, rules on each Challenge, and can strike any veto line.
 
 ### Close the Round
 
@@ -75,6 +92,6 @@ Recompute the Frontier and run the next Round. When the Principal says to wrap u
 
 ## 3. Finish
 
-Once the Frontier is empty, give the restatement `grilling` ends with, sketching the settled design wherever it has moving parts or a sequence, and list every auto-answer of the session. The Principal alone confirms; any objection puts questions back on the Frontier and returns you to step 2.
+Once the Frontier is empty, give the restatement `grilling` ends with, drawing only the settled design's moving part (a sequence, or the split a decision makes) by the rules in **Draw the choice**, with the rest as a list in words, and list every auto-answer of the session. The Principal alone confirms; any objection puts questions back on the Frontier and returns you to step 2.
 
 After confirmation, report the confirmed restatement, every file written (glossary entries and ADRs, superseding ones included), where the transcript is, and a line recommending `/to-spec` in this conversation as the next step. That skill is the Principal's to run: ask them to, and leave it unstarted.
