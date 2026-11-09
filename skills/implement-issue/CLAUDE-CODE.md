@@ -9,7 +9,7 @@ The `spp` plugin puts `spp` on the Bash tool's PATH. Each capability the skill n
 | Read the issue | `gh issue view <N> --json number,title,url,body,state,labels,assignees,parent,blockedBy` and `gh issue view <N> --comments` |
 | Read the base branch | the brief names it; otherwise `spp brief <N>` writes a brief that does and prints its path |
 | Claim | `spp claim <N>` |
-| Write the progress comment | `spp progress <N> --status <s> --worker <you> --branch <b> --pr <n> --verify "passed <sha7>"`; pass only the fields that changed, the rest keep their values; on a fix round the first write adds `--by "implement-issue fix round"` |
+| Write the progress comment | `spp progress <N> --status <s> --worker <you> --branch <b> --pr <n> --verify "passed <sha7>"`; pass only the fields that changed, the rest keep their values |
 | Post a note | `spp note <N> "<text>" --milestone`; `--milestone` also copies the line into the progress comment |
 | Run Verify | `spp verify <N>`; it prints `pass:` or `fail:` per command and writes `verified <time>` or `failed <time>` as a git note on `HEAD` under `refs/notes/sdd-verify` |
 | Publish the Verify record | see *Pushing the notes ref* |
