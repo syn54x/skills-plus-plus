@@ -10,7 +10,8 @@
  * Each Hand-back also records a Signal: `needs-info` a `brief-gap` and `blocked` a `missed-edge`, both charged to the
  * maker of the Verify pin (harden when it names none), and `ready-for-human` a `human-needed`, charged to the maker of
  * the progress comment before this write (implement-issue when it names none). A reason starting `worker lost`
- * records none. It records nothing under `CI`, outside an Attended session, or when the Self-improvement mode is Off, and a failure
+ * records none. It records nothing under `CI`, outside an Attended session, or when the Self-improvement mode of this checkout, or of
+ * another repo whose issue it is about, is Off. A Signal goes to this checkout's log, and a failure
  * while recording is one `signal not recorded:` line on stderr that leaves the exit code as it was.
  *
  * Last, it deletes the attended decision `spp dispatch` passed down for this ticket, so no later run in the worker's
@@ -19,10 +20,9 @@
  * @module
  */
 import { forgetDecision } from "../attended.ts";
-import { handBackCorrection, trailerBefore } from "../corrections.ts";
+import { handBackCorrection } from "../corrections.ts";
 import { runGh } from "../gh.ts";
-import { flagPairs, guarded, parseBy, parseIssue, print, TrailerError, UsageError } from "../markers.ts";
-import { currentRepo } from "../notes.ts";
+import { type Data, flagPairs, guarded, issueRepo, parseBy, parseIssue, print, TrailerError, UsageError } from "../markers.ts";
 import { saveProgress } from "./progress.ts";
 
 /** The usage text `spp hand-back --help` prints. */
@@ -60,9 +60,14 @@ export function run(args: string[]): Promise<number> {
     if (!reason) throw new UsageError("hand-back needs --reason");
     if (blockedBy && route !== "blocked") throw new UsageError("--blocked-by goes only with the blocked route");
 
-    const before = await trailerBefore("hand-back", issue.arg, route, reason);
+    // The progress trailer as it stood before step 1 rewrote it: the Signal is charged to the write it replaced.
+    let before: Data = {};
     const steps: [string, () => Promise<unknown>][] = [
-      ["1 (progress comment)", async () => print(await saveProgress(issue.arg, { status: "handed-back", route, reason }, by))],
+      ["1 (progress comment)", async () => {
+        const saved = await saveProgress(issue.arg, { status: "handed-back", route, reason }, by);
+        before = saved.before;
+        print(saved.url);
+      }],
       // The blocked-by edge keeps the ticket out of the Ready queue, so ready-for-agent stays for when it clears;
       // without an edge the ticket must leave the queue by label.
       ["2 (route labels)", () => runGh(["issue", "edit", issue.arg, ...(blockedBy ? ["--add-label", "blocked", "--add-blocked-by", blockedBy] : ["--add-label", route, "--remove-label", "ready-for-agent"])])],
@@ -80,7 +85,7 @@ export function run(args: string[]): Promise<number> {
     await handBackCorrection(issue.arg, route, reason, before);
     // The worker is gone, so its passed attended decision goes too (ADR 0012); after the Signal, which still reads it.
     try {
-      forgetDecision(process.env, issue.repo === "{owner}/{repo}" ? currentRepo() : issue.repo, Number(issue.number));
+      forgetDecision(process.env, issueRepo(issue), Number(issue.number));
     } catch {} // no GitHub origin: there is no decision to find either, and the hand-back itself is done
   });
 }

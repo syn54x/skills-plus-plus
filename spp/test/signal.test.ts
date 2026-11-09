@@ -50,10 +50,10 @@ describe("happy path", () => {
     assert.ok(!Number.isNaN(Date.parse(s.at)));
   });
 
-  test("recordSignal charges the version it is given, not the current plugin version", () => {
+  test("recordSignal charges the version it is given, not the current plugin version", async () => {
     const c = checkout();
     const env = { CLAUDE_CODE_SESSION_ATTENDED: "1", XDG_STATE_HOME: c.state, HOME: c.dir };
-    const r = recordSignal({ repo: "acme/app", category: "contract-edited", skill: "harden", evidence: "x", version: "2.3.0" }, env, c.dir);
+    const r = await recordSignal({ category: "contract-edited", skill: "harden", evidence: "x", version: "2.3.0" }, env, c.dir);
     assert.ok("signal" in r);
     assert.equal(r.signal.version, "2.3.0");
     assert.equal(r.signal.step, "");
@@ -126,7 +126,7 @@ describe("edge cases", () => {
     const c = checkout();
     assert.equal(spp(c, args).code, 0);
     appendFileSync(c.log, '{"at":"torn\n\n');
-    assert.equal(spp(c, args).code, 0);
+    assert.equal(spp(c, [...args.slice(0, -1), "y"]).code, 0);
     const r = spp(c, ["feedback", "pending"]);
     assert.equal(r.code, 0, r.stderr);
     assert.equal(r.stdout, `${fingerprint("harden", "3", "step-unclear")} 2 harden 3 step-unclear\n`);
@@ -180,20 +180,66 @@ describe("error paths", () => {
     assert.equal(existsSync(c.log), false);
   });
 
-  test("recordSignal with no repo and XDG_STATE_HOME under a regular file returns { failed } and throws nothing", () => {
+  test("recordSignal with no repo and XDG_STATE_HOME under a regular file returns { failed } and throws nothing", async () => {
     const c = checkout();
     writeFileSync(join(c.dir, "blocker"), "x");
     const env = { CLAUDE_CODE_SESSION_ATTENDED: "1", XDG_STATE_HOME: join(c.dir, "blocker", "state"), HOME: c.dir };
-    const r = recordSignal({ category: "wish", skill: "triage", evidence: "x" }, env, c.dir);
+    const r = await recordSignal({ category: "wish", skill: "triage", evidence: "x" }, env, c.dir);
     assert.ok("failed" in r, JSON.stringify(r));
     assert.match(r.failed, /ENOTDIR|EEXIST/);
   });
 
-  test("recordSignal with no repo resolves it from the checkout in dir", () => {
+  test("recordSignal with no repo resolves it from the checkout in dir", async () => {
     const c = checkout();
-    const r = recordSignal({ category: "wish", skill: "triage", evidence: "x" }, { CLAUDE_CODE_SESSION_ATTENDED: "1", XDG_STATE_HOME: c.state, HOME: c.dir }, c.dir);
+    const r = await recordSignal({ category: "wish", skill: "triage", evidence: "x" }, { CLAUDE_CODE_SESSION_ATTENDED: "1", XDG_STATE_HOME: c.state, HOME: c.dir }, c.dir);
     assert.ok("signal" in r, JSON.stringify(r));
     assert.equal(r.signal.repo, "acme/app");
     assert.deepEqual(lines(c.log), [r.signal]);
+  });
+});
+
+describe("fix round (Refs #342)", () => {
+  // F9: --by went through its own split, so "Harden 3" charged skill "Harden" and split one step's Signals in two.
+  test('--by "Harden 3" exits 2 like every other --by, and records nothing', () => {
+    const c = checkout();
+    const r = spp(c, ["signal", "step-unclear", "--by", "Harden 3", "--evidence", "x"]);
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /--by must start with a lowercase skill name/);
+    assert.equal(existsSync(c.log), false);
+  });
+
+  // F12: the duplicate check lived in one caller; the log module now holds it for every writer.
+  test("the same Signal twice is recorded once; the second says it is already in the Signal log", () => {
+    const c = checkout();
+    const args = ["signal", "step-unclear", "--by", "harden 3", "--evidence", "x"];
+    assert.equal(spp(c, args).code, 0);
+    const again = spp(c, args);
+    assert.deepEqual([again.code, again.stdout], [0, "not recorded: already in the Signal log\n"]);
+    assert.equal(lines(c.log).length, 1);
+  });
+
+  // F19: the gate ran in the caller and again in the writer, and each pass asked git for the origin.
+  test("spp signal asks git for the origin once", () => {
+    const c = checkout();
+    const bin = mkdtempSync(join(tmpdir(), "spp-git-"));
+    const calls = join(bin, "calls");
+    const real = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+    writeFileSync(join(bin, "git"), `#!/bin/sh\necho "$*" >> "${calls}"\nexec "${real}" "$@"\n`, { mode: 0o755 });
+    const r = spp(c, ["signal", "wish", "--by", "triage", "--evidence", "x"], { CLAUDE_CODE_SESSION_ATTENDED: "1", PATH: `${bin}:${process.env.PATH}` });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(readFileSync(calls, "utf8").split("\n").filter((l) => l === "remote get-url origin").length, 1);
+  });
+
+  test("recordSignal calls a lazy input only once the gate says yes", async () => {
+    const off = checkout("Off");
+    const env = { CLAUDE_CODE_SESSION_ATTENDED: "1", XDG_STATE_HOME: off.state, HOME: off.dir };
+    let built = 0;
+    const build = () => (built++, { category: "wish" as const, skill: "triage", evidence: "x" });
+    assert.deepEqual(await recordSignal(build, env, off.dir), { skipped: "Self-improvement mode is Off" });
+    assert.equal(built, 0);
+    const on = checkout();
+    const r = await recordSignal(build, { ...env, XDG_STATE_HOME: on.state, HOME: on.dir }, on.dir);
+    assert.ok("signal" in r, JSON.stringify(r));
+    assert.equal(built, 1);
   });
 });

@@ -3,7 +3,7 @@
 // and rewrites it in place, or creates it. The trailer is the last line: `<!-- sdd-data: <base64 of JSON> -->`.
 import { runGh } from "./gh.ts";
 import { currentRepo } from "./notes.ts";
-import { collecting, pluginVersion, recordRun } from "./signals.ts";
+import { pluginVersion, recordRun } from "./signals.ts";
 import { encodeTrailer, readTrailer, TRUSTED_ASSOCIATIONS, trustedAuthor } from "./snapshot.ts";
 
 export { readTrailer };
@@ -66,6 +66,12 @@ export function parseIssue(arg: string | undefined): Issue {
   if (!m) throw new UsageError(`<issue> must be an issue number or a GitHub issue URL: ${arg}`);
   return { arg, repo: m[1], number: m[2], label: `${m[1]}#${m[2]}`, repoFlag: ["-R", m[1]] };
 }
+
+/**
+ * The issue's real `owner/repo`: its URL's, or for a bare number the current checkout's, `own` when the caller has
+ * already resolved it, else its origin (throws without one).
+ */
+export const issueRepo = (issue: Issue, own?: string): string => (issue.repo === "{owner}/{repo}" ? (own ?? currentRepo()) : issue.repo);
 
 // Runs a command body; a UsageError prints `spp <name>: <reason>` and the usage text, and exits 2.
 export async function guarded(name: () => string, usage: string, body: () => Promise<number | void>): Promise<number> {
@@ -159,14 +165,15 @@ export async function upsertComment(arg: string, marker: string, body: string): 
 // Reads the marker comment's trailer ({} when there is no comment or no trailer), passes it to `merge`, and
 // rewrites the comment as the marker, the rendered lines and the new trailer. The trailer's `by` is this write's
 // maker (`by`'s skill or else the marker's, `by`'s step, the plugin version), which `merge` also receives so that a
-// pin write can copy it. `merge` may throw a UsageError.
+// pin write can copy it. `merge` may throw a UsageError. Returns the comment's URL and `before`, the trailer as it
+// stood before this write, which a correction charged to the replaced write's maker reads.
 export async function updateMarker(
   arg: string,
   marker: string,
   render: (data: Data) => string,
   merge: (old: Data, maker: Data) => Data,
   by: By = {},
-): Promise<string> {
+): Promise<{ url: string; before: Data }> {
   const issue = parseIssue(arg);
   const found = await find(issue, marker);
   const old = found ? readTrailer(found.body) : {};
@@ -174,25 +181,23 @@ export async function updateMarker(
   const maker = makerOf(by.skill ?? MAKERS[marker], by.step);
   const data = { ...merge(old, maker), by: maker };
   const url = await put(issue, found?.id ?? null, [marker, render(data), encodeTrailer(data)].filter(Boolean).join("\n") + "\n");
-  countRun(issue, marker, readMaker(old), data); // old is {} on a create, so its maker is null
-  return url;
+  await countRun(issue, marker, readMaker(old), data); // old is {} on a create, so its maker is null
+  return { url, before: old };
 }
 
 // A run is one artifact a skill step made or took over: a write that created the comment, or changed the skill or
-// step of its maker. Recording it never fails the write, and an Off repo resolves no repo for it.
-function countRun(issue: Issue, marker: string, before: Maker | null, data: Data): void {
+// step of its maker. recordRun never throws, so recording it never fails the write, and it resolves the issue's repo
+// only once its gate says yes.
+async function countRun(issue: Issue, marker: string, before: Maker | null, data: Data): Promise<void> {
   const after = readMaker(data);
   if (!after || (before?.skill === after.skill && before.step === after.step)) return;
-  try {
-    if (!collecting()) return;
-    const repo = issue.repo === "{owner}/{repo}" ? currentRepo() : issue.repo;
-    recordRun({ repo, skill: after.skill, step: after.step ?? "", artifact: `${repo}#${issue.number} ${marker}` });
-  } catch {
-    // a Routing block that does not parse or a checkout with no origin: the comment is written, the run is not
-  }
+  await recordRun((own) => {
+    const about = issueRepo(issue, own);
+    return { about, skill: after.skill, step: after.step ?? "", artifact: `${about}#${issue.number} ${marker}` };
+  });
 }
 
-// The shallow form: `data`'s fields replace the stored ones, every other field keeps its value.
-export function writeMarker(issue: string, marker: string, render: (data: Data) => string, data: Data, by?: By): Promise<string> {
-  return updateMarker(issue, marker, render, (old) => ({ ...old, ...data }), by);
+// The shallow form: `data`'s fields replace the stored ones, every other field keeps its value. Returns the URL.
+export async function writeMarker(issue: string, marker: string, render: (data: Data) => string, data: Data, by?: By): Promise<string> {
+  return (await updateMarker(issue, marker, render, (old) => ({ ...old, ...data }), by)).url;
 }

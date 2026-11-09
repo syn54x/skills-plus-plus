@@ -3,11 +3,12 @@
  * correction only judgment can see, in the repo's Signal log beside the notes log. The Signal is charged to the skill
  * step named by `--by` and to the plugin version in `--maker-version`, or to the current plugin version without it.
  * It records nothing under `CI`, outside an Attended session, or when the Routing block's Self-improvement mode is Off,
- * and says why. The repo is the current checkout's origin. It has no `--json`.
+ * and says why, as it does for a Signal the log already holds (the same fingerprint and evidence). The repo is the
+ * current checkout's origin. `--by` is parsed as on every other command. It has no `--json`.
  *
  * @module
  */
-import { flagPairs, guarded, UsageError } from "../markers.ts";
+import { flagPairs, guarded, parseBy, UsageError } from "../markers.ts";
 import { recordSignal, SIGNAL_CATEGORIES, type SignalCategory } from "../signals.ts";
 
 export { SIGNAL_CATEGORIES, type SignalCategory } from "../signals.ts";
@@ -37,11 +38,11 @@ export function run(args: string[]): Promise<number> {
     const [category, ...rest] = args;
     if (!(SIGNAL_CATEGORIES as readonly string[]).includes(category)) throw new UsageError(category ? `unknown category ${category}` : "");
     const flags = new Map(flagPairs(rest, ["--by", "--evidence", "--maker-version"]));
-    const [skill = "", ...step] = (flags.get("--by") ?? "").trim().split(/\s+/);
     const evidence = flags.get("--evidence") ?? "";
-    if (!skill || !evidence.trim()) throw new UsageError("--by and --evidence are required");
+    if (!flags.get("--by")?.trim() || !evidence.trim()) throw new UsageError("--by and --evidence are required");
+    const { skill = "", step } = parseBy(flags.get("--by")!);
     const version = flags.get("--maker-version");
-    const r = recordSignal({ category: category as SignalCategory, skill, step: step.join(" "), evidence, ...(version && { version }) });
+    const r = await recordSignal({ category: category as SignalCategory, skill, step, evidence, ...(version && { version }) });
     if ("failed" in r) {
       process.stderr.write(`spp signal: ${r.failed}\n`);
       return 1;

@@ -1,7 +1,9 @@
 // The Signal log: one JSONL file per repository beside the notes log, each line one Signal (a correction charged to the
-// skill step and plugin version that made the corrected artifact). `recordSignal` is the only writer and checks the
-// gates itself (`collecting`), so no caller can forget them; `pendingCandidates` reads the log grouped by fingerprint.
-// The runs log beside it counts each skill step's runs, the denominator every report needs.
+// skill step and plugin version that made the corrected artifact). `recordSignal` is the only writer: it checks the
+// gates once, then builds its input, so a caller passes a builder and never checks the gates itself. It writes to the
+// log of the checkout it runs in, never another repo's, and drops a Signal the log already holds.
+// `pendingCandidates` reads the log grouped by fingerprint. The runs log beside it counts each skill step's runs, the
+// denominator every report needs.
 import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -9,7 +11,7 @@ import { dirname } from "node:path";
 import { isAttended } from "./attended.ts";
 import { notesFile } from "./notes-log.ts";
 import { currentRepo } from "./notes.ts";
-import { readSelfImprovementMode } from "./routing.ts";
+import { lowerMode, readSelfImprovementMode, type SelfImprovementMode, selfImprovementModeOf } from "./routing.ts";
 
 /** The categories a Signal may carry: the 15 of `skills/close-epic/FEEDBACK.md`, then the four the Signal sources add. */
 export const SIGNAL_CATEGORIES = [
@@ -21,7 +23,8 @@ export const SIGNAL_CATEGORIES = [
 /** What a Signal says was corrected: one of the categories `spp signal --help` lists. */
 export type SignalCategory = (typeof SIGNAL_CATEGORIES)[number];
 
-export type Signal = { at: string; repo: string; category: SignalCategory; skill: string; step: string; version: string; evidence: string; fingerprint: string };
+/** A line of the Signal log; `mode` only on a Signal about another repo's issue: the lower of that repo's mode and the checkout's. */
+export type Signal = { at: string; repo: string; category: SignalCategory; skill: string; step: string; version: string; evidence: string; fingerprint: string; mode?: SelfImprovementMode };
 
 /** The Signals of one skill step and category, grouped: an entry of the `spp feedback pending --json` list. */
 export type FeedbackCandidate = {
@@ -39,12 +42,14 @@ export type FeedbackCandidate = {
   versions: Record<string, number>;
   /** Each Signal's evidence, oldest first. */
   evidence: string[];
+  /** The lowest mode the group's Signals carry, present only when one about another repo's issue carries one. */
+  mode?: SelfImprovementMode;
 };
 
 /** One artifact a skill step made or took over: a line of the runs log. */
 export type Run = { at: string; repo: string; skill: string; step: string; version: string; artifact: string };
 
-type Skipped = { skipped: "CI" | "not an attended session" | "Self-improvement mode is Off" };
+type Skipped = { skipped: "CI" | "not an attended session" | "Self-improvement mode is Off" | "already in the Signal log" | "nothing to record" };
 
 // owner__repo.signals.jsonl in the notes log's directory.
 export const signalsFile = (env: { XDG_STATE_HOME?: string; HOME: string }, repo: string): string => notesFile(env, repo).replace(/\.jsonl$/, ".signals.jsonl");
@@ -63,32 +68,44 @@ export const pluginVersion = (): string => (JSON.parse(readFileSync(PACKAGE, "ut
 
 const stateEnv = (env: NodeJS.ProcessEnv) => ({ XDG_STATE_HOME: env.XDG_STATE_HOME, HOME: env.HOME || homedir() });
 
-// The Attended check, with a worker's passed-down decision when the checkout in `dir` names its repo. A checkout
-// with no GitHub origin falls back to the harness signal, so a missing origin never decides the gate.
-function attended(env: NodeJS.ProcessEnv, dir: string): boolean {
-  let repo: string;
+// The gate, evaluated once: why nothing would be recorded, in the order CI, Self-improvement mode, Attended session,
+// or else the checkout's repo (null with no GitHub origin, where the Attended check falls back to the harness
+// signal) and mode. The mode is read first, so an Off repo spawns no process.
+function gate(env: NodeJS.ProcessEnv, dir: string): Skipped | { repo: string | null; mode: SelfImprovementMode } {
+  if (env.CI) return { skipped: "CI" };
+  const mode = readSelfImprovementMode(dir);
+  if (mode === "Off") return { skipped: "Self-improvement mode is Off" };
+  let repo: string | null = null;
   try {
     repo = currentRepo(dir);
-  } catch {
-    return isAttended(env);
-  }
-  return isAttended(env, { repo, dir });
+  } catch {}
+  return (repo ? isAttended(env, { repo, dir }) : isAttended(env)) ? { repo, mode } : { skipped: "not an attended session" };
 }
 
 /**
- * The one gate: true when `recordSignal` and `recordRun` would record. Never under `CI`, only in an Attended session,
- * and not when the Routing block in `dir` sets the Self-improvement mode to Off. The mode is read before the Attended
- * check, which gives the same answer and spawns no process in an Off repo.
+ * True when `recordSignal` and `recordRun` would record: never under `CI`, not when the Routing block in `dir` sets
+ * the Self-improvement mode to Off, and only in an Attended session. The writers check it themselves.
  */
 export function collecting(env: NodeJS.ProcessEnv = process.env, dir: string = process.cwd()): boolean {
-  return !env.CI && readSelfImprovementMode(dir) !== "Off" && attended(env, dir);
+  return !("skipped" in gate(env, dir));
 }
 
-// Why nothing would be recorded, in the gate order CI, Attended session, Self-improvement mode; null when it would.
-function skipped(env: NodeJS.ProcessEnv, dir: string): Skipped | null {
-  if (collecting(env, dir)) return null;
-  if (env.CI) return { skipped: "CI" };
-  return { skipped: attended(env, dir) ? "Self-improvement mode is Off" : "not an attended session" };
+// What a writer takes: its input, or a builder called only once the gate says yes with the checkout's repo (so it
+// never asks git again), which may make gh calls and may return null when there is nothing to record. `about` is the
+// repo of the issue or pull request the record is about.
+type Lazy<T> = T | ((own: string) => T | null | Promise<T | null>);
+
+// Runs the gate, then builds the input; the checkout's repo is the log's. A record about another repo takes the
+// lower of the two modes: skipped when that is Off, else returned as `mode`, which a Signal keeps for filing.
+async function open<T extends { about?: string }>(input: Lazy<T>, env: NodeJS.ProcessEnv, dir: string): Promise<Skipped | { repo: string; value: T; mode?: SelfImprovementMode }> {
+  const g = gate(env, dir);
+  if ("skipped" in g) return g;
+  const repo = g.repo ?? currentRepo(dir); // throws the origin message
+  const value = typeof input === "function" ? await input(repo) : input;
+  if (!value) return { skipped: "nothing to record" };
+  if (!value.about || value.about.toLowerCase() === repo.toLowerCase()) return { repo, value };
+  const mode = lowerMode(g.mode, await selfImprovementModeOf(value.about, dir, repo));
+  return mode === "Off" ? { skipped: "Self-improvement mode is Off" } : { repo, value, mode };
 }
 
 const failed = (e: unknown) => ({ failed: e instanceof Error ? e.message : String(e) });
@@ -99,48 +116,45 @@ function append(file: string, line: unknown): void {
 }
 
 /**
- * Appends one Signal to the repo's Signal log, or says why not. Without `repo`, the origin of the checkout in `dir`
- * is used, resolved only once `collecting` says yes. It never throws: an error resolving the repo, reading
- * `package.json` or writing the log comes back as `failed`.
+ * Appends one Signal to the Signal log of the checkout in `dir`, or says why not. `input` may be a builder, called
+ * only once the gate says yes. A Signal about another repo's issue (`about`) is recorded only when that repo's mode
+ * is not Off, and one whose fingerprint and evidence the log already holds, whatever was decided on it, is not
+ * recorded again. It never throws: an error building the input, resolving the repo, reading `package.json` or
+ * writing the log comes back as `failed`.
  */
-export function recordSignal(
-  input: { repo?: string; category: SignalCategory; skill: string; step?: string; evidence: string; version?: string },
+export async function recordSignal(
+  input: Lazy<{ about?: string; category: SignalCategory; skill: string; step?: string; evidence: string; version?: string }>,
   env: NodeJS.ProcessEnv = process.env,
   dir: string = process.cwd(),
-): { signal: Signal } | Skipped | { failed: string } {
+): Promise<{ signal: Signal } | Skipped | { failed: string }> {
   try {
-    const skip = skipped(env, dir);
-    if (skip) return skip;
-    const repo = input.repo ?? currentRepo(dir);
-    const step = input.step ?? "";
-    const signal: Signal = {
-      at: new Date().toISOString(),
-      repo,
-      category: input.category,
-      skill: input.skill,
-      step,
-      version: input.version ?? pluginVersion(),
-      evidence: input.evidence,
-      fingerprint: fingerprint(input.skill, step, input.category),
-    };
-    append(signalsFile(stateEnv(env), repo), signal);
+    const o = await open(input, env, dir);
+    if ("skipped" in o) return o;
+    const { repo, value: v, mode } = o;
+    const step = v.step ?? "";
+    const fp = fingerprint(v.skill, step, v.category);
+    const file = signalsFile(stateEnv(env), repo);
+    if (logLines<Signal>(file).some((s) => s.fingerprint === fp && s.evidence === v.evidence)) return { skipped: "already in the Signal log" };
+    const signal: Signal = { at: new Date().toISOString(), repo, category: v.category, skill: v.skill, step, version: v.version ?? pluginVersion(), evidence: v.evidence, fingerprint: fp, ...(mode && { mode }) };
+    append(file, signal);
     return { signal };
   } catch (e) {
     return failed(e);
   }
 }
 
-/** Appends one run of a skill step to the repo's runs log behind the same gate as `recordSignal`; it never throws. */
-export function recordRun(
-  input: { repo: string; skill: string; step?: string; artifact: string },
+/** Appends one run of a skill step to the checkout's runs log behind the same gate as `recordSignal`; it never throws. */
+export async function recordRun(
+  input: Lazy<{ about?: string; skill: string; step?: string; artifact: string }>,
   env: NodeJS.ProcessEnv = process.env,
   dir: string = process.cwd(),
-): { run: Run } | Skipped | { failed: string } {
+): Promise<{ run: Run } | Skipped | { failed: string }> {
   try {
-    const skip = skipped(env, dir);
-    if (skip) return skip;
-    const run: Run = { at: new Date().toISOString(), repo: input.repo, skill: input.skill, step: input.step ?? "", version: pluginVersion(), artifact: input.artifact };
-    append(runsFile(stateEnv(env), input.repo), run);
+    const o = await open(input, env, dir);
+    if ("skipped" in o) return o;
+    const { repo, value: v } = o;
+    const run: Run = { at: new Date().toISOString(), repo, skill: v.skill, step: v.step ?? "", version: pluginVersion(), artifact: v.artifact };
+    append(runsFile(stateEnv(env), repo), run);
     return { run };
   } catch (e) {
     return failed(e);
@@ -189,7 +203,10 @@ export function recordDecision(repo: string, d: Omit<Decision, "at">): Decision 
 /** The repo's decisions, oldest first; a torn or blank line is skipped. */
 export const readDecisions = (repo: string): Partial<Decision>[] => logLines<Decision>(decisionsFile(stateEnv(process.env), repo));
 
-// The log's Signals grouped by fingerprint, with each group's latest `at`.
+// The modes a log line may carry; any other value is ignored.
+const MODES: (SelfImprovementMode | undefined)[] = ["Off", "Anonymous", "Full Detail"];
+
+// The log's Signals grouped by fingerprint, with each group's latest `at` and the lowest mode they carry.
 function groups(repo: string): Map<string, { c: FeedbackCandidate; latest: number }> {
   const out = new Map<string, { c: FeedbackCandidate; latest: number }>();
   for (const s of logLines<Signal>(signalsFile(stateEnv(process.env), repo)) as Signal[]) {
@@ -198,6 +215,7 @@ function groups(repo: string): Map<string, { c: FeedbackCandidate; latest: numbe
     g.c.count++;
     g.c.versions[s.version] = (g.c.versions[s.version] ?? 0) + 1;
     g.c.evidence.push(s.evidence);
+    if (MODES.includes(s.mode!)) g.c.mode = lowerMode(g.c.mode ?? "Full Detail", s.mode!);
     g.latest = Math.max(g.latest, Date.parse(s.at));
     out.set(s.fingerprint, g);
   }

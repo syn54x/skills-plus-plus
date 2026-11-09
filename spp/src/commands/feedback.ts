@@ -33,7 +33,7 @@ import { CHANGES, FEEDBACK_REPO, issueBody, issueTitle, previewHash, repoKey, TA
 import { GhError, runGh } from "../gh.ts";
 import { find, flagPairs, ownMarkerBody, parseIssue, readTrailer, UsageError, viewerLogin, writeOwnMarker } from "../markers.ts";
 import { currentRepo } from "../notes.ts";
-import { readSelfImprovementMode, type SelfImprovementMode, selfImprovementModeOf } from "../routing.ts";
+import { lowerMode, readSelfImprovementMode, type SelfImprovementMode, selfImprovementModeOf } from "../routing.ts";
 import { TRUSTED_ASSOCIATIONS, trustedAuthor } from "../snapshot.ts";
 import { candidate, collecting, type FeedbackCandidate, pendingCandidates, readDecisions, recordDecision, runCounts } from "../signals.ts";
 import { readSubmissionMode, type SubmissionMode, tallySecret, writeSubmissionMode } from "../submission.ts";
@@ -51,8 +51,6 @@ export const USAGE = `usage: spp feedback check <body-file> [--title-file <file>
 `;
 const OWNER_REPO = /^[\w.-]+\/[\w.-]+$/;
 const OFF = "Self-improvement mode is Off (or unset): nothing may be filed";
-// The modes from least to most a report may say; a run takes the lowest of every repo it touches.
-const MODE_ORDER: SelfImprovementMode[] = ["Off", "Anonymous", "Full Detail"];
 const SUBMISSION_MODES: SubmissionMode[] = ["Auto", "Review"];
 
 /** The steps `spp feedback checkpoint` prints after the pending candidates, for the agent at the checkpoint. */
@@ -289,13 +287,11 @@ async function file(args: string[]): Promise<number> {
   if (!c) return fail("file", `no Signals with fingerprint ${fp}`);
 
   try {
-    let profile = readSelfImprovementMode(process.cwd());
+    // A run takes the lowest mode of every repo it touches: the checkout, the candidate's Signals and the Epic's repos.
+    let profile = lowerMode(readSelfImprovementMode(process.cwd()), c.mode ?? "Full Detail");
     // The Epic reference is parsed here, past the gates, so a malformed one cannot change a CI or Off exit.
     const names = profile !== "Off" && opts["--epic"] !== undefined ? await epicRepos(opts["--epic"]) : [];
-    for (const r of names) {
-      const mode = await selfImprovementModeOf(r);
-      if (MODE_ORDER.indexOf(mode) < MODE_ORDER.indexOf(profile)) profile = mode;
-    }
+    for (const r of names) profile = lowerMode(profile, await selfImprovementModeOf(r));
     if (profile === "Off") return fail("file", OFF);
 
     let auto = readSubmissionMode(repo) === "Auto";

@@ -14,7 +14,7 @@
  *
  * @module
  */
-import { guarded, parseIssue, print, UsageError } from "../markers.ts";
+import { guarded, issueRepo, parseIssue, print, UsageError } from "../markers.ts";
 import { appendNote, currentRepo } from "../notes.ts";
 import { saveProgress } from "./progress.ts";
 import { fetchState } from "./status.ts";
@@ -95,7 +95,7 @@ export function run(args: string[]): Promise<number> {
     const [arg, text, ...extra] = args.filter((a) => a !== "--milestone");
     if (text === undefined || text.trim() === "" || extra.length) throw new UsageError("");
     const issue = parseIssue(arg);
-    appendNote(issue.repo === "{owner}/{repo}" ? currentRepo() : issue.repo, Number(issue.number), text, milestone);
-    if (milestone) print(await saveProgress(arg, { notes: text }));
+    appendNote(issueRepo(issue), Number(issue.number), text, milestone);
+    if (milestone) print((await saveProgress(arg, { notes: text })).url);
   });
 }

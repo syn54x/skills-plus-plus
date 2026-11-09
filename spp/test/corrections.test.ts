@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { beforeEach, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { fingerprint, runCounts, runsFile, type Signal, signalsFile } from "../src/signals.ts";
+import { issueRepo, parseIssue } from "../src/markers.ts";
+import { fingerprint, recordDecision, recordSignal, runCounts, runsFile, type Signal, signalsFile } from "../src/signals.ts";
 import { runCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -42,9 +43,12 @@ beforeEach(() => {
   delete process.env.CI;
 });
 
-// A case directory: the arguments, gh's answers, and a Routing block with the Self-improvement mode.
+// A case directory: a checkout of acme/app (Signals go to the checkout's log), the arguments, gh's answers, and a
+// Routing block with the Self-improvement mode.
 function scratch(args: string[], gh: Record<string, unknown>, mode = "Anonymous", files: Record<string, string> = {}): string {
   const dir = mkdtempSync(join(tmpdir(), "spp-corrections-"));
+  spawnSync("git", ["init", "-q"], { cwd: dir });
+  spawnSync("git", ["remote", "add", "origin", "https://github.com/acme/app.git"], { cwd: dir });
   writeFileSync(join(dir, "args"), args.join("\n") + "\n");
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
   writeFileSync(join(dir, "CLAUDE.md"), `# app\n\n<!-- sdd-routing -->\n- Mode: org\n- Self-improvement mode: ${mode}\n<!-- /sdd-routing -->\n`);
@@ -317,13 +321,103 @@ describe("references as typed", () => {
 });
 
 describe("error paths", () => {
-  test("a progress lookup that fails after the three Hand-back steps: exit 0, the steps done, signal not recorded on stderr", async () => {
-    const dir = scratch([ISSUE, "needs-info", "--reason", "r"], { [comments(12)]: [{ stdout: progress({ verifyPinBy: maker("harden") }) }, { stderr: "HTTP 502", code: 1 }] });
-    const r = await runCase("hand-back", dir);
+  test("a Signal log that cannot be written after the three Hand-back steps: exit 0, the steps done, signal not recorded on stderr", async () => {
+    const blocker = join(mkdtempSync(join(tmpdir(), "spp-corrections-blocker-")), "file");
+    writeFileSync(blocker, "x");
+    process.env.XDG_STATE_HOME = join(blocker, "state");
+    const r = await runCase("hand-back", handBackCase("needs-info", "r", { verifyPinBy: maker("harden") }));
     assert.equal(r.code, 0, r.stderr);
     assert.equal(r.writes.length, 3);
-    assert.match(r.stderr, /^spp hand-back: signal not recorded: HTTP 502\n$/);
-    assert.deepEqual(signals(), []);
+    assert.match(r.stderr, /^spp hand-back: signal not recorded: .*(ENOTDIR|EEXIST)/);
+  });
+});
+
+describe("fix round (Refs #342)", () => {
+  const OTHER_PR = "https://github.com/acme/other/pull/5";
+  const OTHER_ISSUE = "https://github.com/acme/other/issues/12";
+  const otherComments = `api repos/acme/other/issues/12/comments --paginate --jq ${JQ}`;
+  const routing = (mode: string) => `# other\n\n<!-- sdd-routing -->\n- Mode: org\n- Self-improvement mode: ${mode}\n<!-- /sdd-routing -->\n`;
+  const contents = (file: string) => `api repos/acme/other/contents/${file} -H Accept: application/vnd.github.raw`;
+  const otherLog = () => signalsFile({ XDG_STATE_HOME: state, HOME: "" }, "acme/other");
+  const otherRuns = () => runsFile({ XDG_STATE_HOME: state, HOME: "" }, "acme/other");
+
+  // F10, F11 and the Spec finding: a correction on another repo's issue went to that repo's log, gated by the checkout's mode.
+  test("a failed verdict on another repo's ticket: nothing when that repo is Off, else one Signal in the checkout's log", async () => {
+    const verdictOn = (otherMode: string) =>
+      scratch([OTHER_PR, "--ticket", OTHER_ISSUE, "--head", HEAD, "--spec", "fail", "--quality", "pass"], {
+        [`pr view ${OTHER_PR} --json headRefOid --jq .headRefOid`]: { stdout: `${HEAD}${"0".repeat(33)}\n` },
+        [`api repos/acme/other/issues/5/comments --paginate --jq ${JQ}`]: { stdout: "" },
+        [otherComments]: { stdout: progress({ by: maker("implement-issue", "fix") }) },
+        [contents("CLAUDE.md")]: { stdout: routing(otherMode) },
+      });
+    const off = await runCase("verdict", verdictOn("Off"));
+    assert.deepEqual([off.code, off.stderr], [0, ""]);
+    assert.deepEqual([existsSync(log()), existsSync(otherLog())], [false, false]);
+    const on = await runCase("verdict", verdictOn("Full Detail"));
+    assert.deepEqual([on.code, on.stderr], [0, ""]);
+    assert.equal(existsSync(otherLog()), false);
+    assert.deepEqual(signals().map((s) => [s.repo, s.category, s.evidence]), [["acme/app", "fix-round", `${OTHER_PR} head ${HEAD}: spec fail, quality pass`]]);
+  });
+
+  test("a run on another repo's issue: none when that repo is Off, else one in the checkout's runs log", async () => {
+    const progressOn = (otherMode: string) =>
+      scratch([OTHER_ISSUE, "--status", "pr-open"], { [otherComments]: { stdout: progress({ by: maker("harden") }) }, [contents("CLAUDE.md")]: { stdout: routing(otherMode) } });
+    assert.equal((await runCase("progress", progressOn("Off"))).code, 0);
+    assert.deepEqual([existsSync(runs()), existsSync(otherRuns())], [false, false]);
+    assert.equal((await runCase("progress", progressOn("Anonymous"))).code, 0);
+    assert.equal(existsSync(otherRuns()), false);
+    const [run, ...rest] = readFileSync(runs(), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l) as Record<string, string>);
+    assert.deepEqual(rest, []);
+    assert.deepEqual([run.repo, run.artifact], ["acme/app", "acme/other#12 <!-- sdd-progress -->"]);
+  });
+
+  // F12 to F15: the caller checked only pending candidates, so a filed one got the same evidence again.
+  test("the same failing verdict after its candidate was filed leaves one Signal", async () => {
+    const dir = verdictCase();
+    assert.equal((await runCase("verdict", dir)).code, 0);
+    recordDecision("acme/app", { fingerprint: signals()[0].fingerprint, decision: "filed", issue: 1 });
+    assert.equal((await runCase("verdict", dir)).code, 0);
+    assert.equal(signals().length, 1);
+  });
+
+  // Round 2: the Signal kept no mode, so filing could not take the lower of the two.
+  test("a Signal about an Anonymous repo's issue in a Full Detail checkout carries Anonymous; a same-repo one carries no mode", async () => {
+    const other = scratch([OTHER_ISSUE, "needs-info", "--reason", "r"], {
+      [otherComments]: { stdout: progress({ verifyPinBy: maker("harden") }) },
+      [contents("CLAUDE.md")]: { stdout: routing("Anonymous") },
+    }, "Full Detail");
+    assert.deepEqual([(await runCase("hand-back", other)).stderr], [""]);
+    assert.equal((await runCase("hand-back", handBackCase("blocked", "r", { verifyPinBy: maker("harden") }, "Full Detail"))).code, 0);
+    assert.deepEqual(signals().map((s) => [s.category, s.mode]), [["brief-gap", "Anonymous"], ["missed-edge", undefined]]);
+    assert.equal("mode" in signals()[1], false);
+  });
+
+  // Round 2: a record about another repo, named by a bare number, asked git for the origin three times.
+  test("a record about another repo asks git for the checkout's origin once", async () => {
+    const dir = scratch([], { [contents("CLAUDE.md")]: { stdout: routing("Anonymous") } });
+    const bin = mkdtempSync(join(tmpdir(), "spp-git-"));
+    const calls = join(bin, "calls");
+    const real = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+    writeFileSync(join(bin, "git"), `#!/bin/sh\necho "$*" >> "${calls}"\nexec "${real}" "$@"\n`, { mode: 0o755 });
+    const saved = { PATH: process.env.PATH, SPP_CASE: process.env.SPP_CASE };
+    Object.assign(process.env, { PATH: `${bin}${delimiter}${join(root, "spp", "test", "stubs")}${delimiter}${saved.PATH}`, SPP_CASE: dir });
+    try {
+      const r = await recordSignal((own) => ({ about: "acme/other", category: "wish", skill: "triage", evidence: `${issueRepo(parseIssue("12"), own)}#12` }), process.env, dir);
+      assert.ok("signal" in r, JSON.stringify(r));
+    } finally {
+      process.env.PATH = saved.PATH;
+      if (saved.SPP_CASE === undefined) delete process.env.SPP_CASE;
+      else process.env.SPP_CASE = saved.SPP_CASE;
+    }
+    assert.equal(readFileSync(calls, "utf8").split("\n").filter((l) => l === "remote get-url origin").length, 1);
+  });
+
+  // F16: the Hand-back read the progress comment once for its write and again for the Signal.
+  test("a Hand-back reads the progress comment once: a second read failing still records its Signal", async () => {
+    const dir = scratch([ISSUE, "needs-info", "--reason", "r"], { [comments(12)]: [{ stdout: progress({ verifyPinBy: maker("harden") }) }, { stderr: "HTTP 502", code: 1 }] });
+    const r = await runCase("hand-back", dir);
+    assert.deepEqual([r.code, r.stderr, r.writes.length], [0, "", 3]);
+    assert.deepEqual(signals().map((s) => [s.category, s.skill]), [["brief-gap", "harden"]]);
   });
 });
 
