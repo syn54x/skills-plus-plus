@@ -2,6 +2,9 @@
  * `spp feedback` works on Skill feedback: it checks a draft before anyone files it, and lists the Signals waiting to
  * become one.
  *
+ * `spp feedback checkpoint` offers the pending candidates between steps of an Attended session, printing them with the
+ * steps an agent follows to file, skip or keep each one, and prints nothing on a worker's `sdd/` branch.
+ *
  * It also acts on a pending candidate. `spp feedback file <fingerprint>` files it on the one grouped Skill feedback
  * issue for that skill step and category on syn54x/skills-plus-plus, and rewrites the person's own tally comment
  * there; under the person's Submission mode Review it first prints what it would post and files only when run again
@@ -20,7 +23,7 @@
  *
  * @module
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -30,7 +33,7 @@ import { GhError, runGh } from "../gh.ts";
 import { find, flagPairs, parseIssue, put, readTrailer, UsageError } from "../markers.ts";
 import { currentRepo } from "../notes.ts";
 import { parseRouting, readSelfImprovementMode, type SelfImprovementMode } from "../routing.ts";
-import { candidate, pendingCandidates, readDecisions, recordDecision, runCounts } from "../signals.ts";
+import { candidate, collecting, type FeedbackCandidate, pendingCandidates, readDecisions, recordDecision, runCounts } from "../signals.ts";
 import { readSubmissionMode, type SubmissionMode, writeSubmissionMode } from "../submission.ts";
 
 export type { FeedbackCandidate } from "../signals.ts";
@@ -41,6 +44,7 @@ export const USAGE = `usage: spp feedback check <body-file> [--title-file <file>
        spp feedback file <fingerprint> [--epic <epic number | issue URL>] [--change <change>] [--note <text>] [--confirm <hash>]
        spp feedback skip <fingerprint>
        spp feedback submission [Auto|Review]
+       spp feedback checkpoint
 <change> is one of: ${CHANGES.join(", ")}
 `;
 const OWNER_REPO = /^[\w.-]+\/[\w.-]+$/;
@@ -48,6 +52,19 @@ const OFF = "Self-improvement mode is Off (or unset): nothing may be filed";
 // The modes from least to most a report may say; a run takes the lowest of every repo it touches.
 const MODE_ORDER: SelfImprovementMode[] = ["Off", "Anonymous", "Full Detail"];
 const SUBMISSION_MODES: SubmissionMode[] = ["Auto", "Review"];
+
+/** The steps `spp feedback checkpoint` prints after the pending candidates, for the agent at the checkpoint. */
+export const CHECKPOINT_STEPS = `This is a checkpoint. For each candidate, run \`spp feedback file <fingerprint>\`, adding \`--epic <epic>\` when the work belongs to an Epic, and \`--change <change>\` and \`--note <text>\` when the evidence supports them. Its exit says what to do next:
+- 0: filed. Tell the person its last line.
+- 3: a preview. Show it whole and ask: file, skip or later. File: run the same command again with \`--confirm <hash>\`. Skip: run \`spp feedback skip <fingerprint>\`. Later: do nothing; it is offered at the next checkpoint.
+- 2: the outbound check blocked it. Redraft \`--note\` without the flagged text and run it once more; if it blocks again, leave it for later.
+- 1: tell the person the reason it printed and go on.
+Draft \`--note\` and \`--change\` from evidence only: a count, or the moment a step was followed and was wrong. The charge may move to an earlier step than the one named only with that evidence; the note names that step and the evidence.
+Run this between steps, never in the middle of one, and never from a worker.
+`;
+
+// One candidate as `spp feedback pending` prints it, and the checkpoint after it.
+const pendingLine = (c: FeedbackCandidate) => `${c.fingerprint} ${c.count} ${c.skill} ${c.step} ${c.category}\n`;
 
 const fail = (sub: string, message: string) => (process.stderr.write(`spp feedback ${sub}: ${message}\n`), 1);
 const usage = (sub: string, e: UsageError) => (process.stderr.write((e.message ? `spp feedback ${sub}: ${e.message}\n` : "") + USAGE), 1);
@@ -62,12 +79,14 @@ function outboundContext(ctx: Omit<FeedbackContext, "paths">): FeedbackContext {
 }
 
 /**
- * Checks a skill-feedback draft, lists, files or skips the pending candidates, or reads or sets the Submission mode.
+ * Checks a skill-feedback draft, lists, files or skips the pending candidates, offers them at a checkpoint, or reads
+ * or sets the Submission mode.
  *
  * @param args - `check`, the draft's body file, then `--title-file <file>` for the titles and repo names it must not
  *   leak; `pending`, then `--json` for the {@link FeedbackCandidate} list; `file <fingerprint>` with `--epic <epic>`
  *   (whose repos' modes also bind), `--change <change>` (the Proposed change, default `unclear`), `--note <text>` and
- *   `--confirm <hash>`; `skip <fingerprint>`; or `submission`, then `Auto` or `Review` in any case to set it.
+ *   `--confirm <hash>`; `skip <fingerprint>`; `submission`, then `Auto` or `Review` in any case to set it; or
+ *   `checkpoint`, alone.
  * @returns For `check`, one `rule <rule> <name>, line <n>: <text>` line per hit on stdout, in line order, with any
  *   secret in the text replaced by `[REDACTED]`. A hit that only warns (rules 1 to 6 under Full Detail) starts with
  *   `warning: `. Exit 0 when the draft is clean or has warnings only; 2 when any hit blocks (a secret in any mode, or
@@ -84,7 +103,15 @@ function outboundContext(ctx: Omit<FeedbackContext, "paths">): FeedbackContext {
  *   or a failing `gh` call, with the reason on stderr and no decision recorded.
  *
  *   For `skip`, `skipped <fingerprint>` and exit 0; 1 on an unknown fingerprint. For `submission`, `Submission mode:
- *   <mode>` and exit 0. Every form exits 1 on a usage error, with the usage on stderr.
+ *   <mode>` and exit 0.
+ *
+ *   For `checkpoint`, always exit 0. It prints nothing under `CI`, outside an Attended session, under Self-improvement
+ *   mode Off, on a worker's `sdd/` branch or with nothing pending. Otherwise it prints `spp: <n> Skill feedback
+ *   candidates pending for <owner/repo>:`, the candidates exactly as `pending` prints them, a blank line, then
+ *   {@link CHECKPOINT_STEPS}. An error (a checkout with no origin remote) writes one `spp feedback checkpoint:
+ *   <message>` line to stderr and still exits 0, so the `SessionStart` hook that runs it never fails.
+ *
+ *   Every form exits 1 on a usage error, with the usage on stderr.
  * @example
  * ```bash
  * spp feedback check draft.md --title-file titles.txt
@@ -93,6 +120,7 @@ function outboundContext(ctx: Omit<FeedbackContext, "paths">): FeedbackContext {
  * spp feedback file 3f2a9c1b7e4d --change "add a check" --confirm 9b1c0d2e3f4a
  * spp feedback skip 3f2a9c1b7e4d
  * spp feedback submission auto
+ * spp feedback checkpoint
  * ```
  */
 export async function run(args: string[]): Promise<number> {
@@ -100,9 +128,10 @@ export async function run(args: string[]): Promise<number> {
   if (sub === "pending" && (args.length === 1 || (args.length === 2 && body === "--json"))) {
     const candidates = pendingCandidates(currentRepo());
     if (body === "--json") process.stdout.write(JSON.stringify(candidates, null, 2) + "\n");
-    else for (const c of candidates) process.stdout.write(`${c.fingerprint} ${c.count} ${c.skill} ${c.step} ${c.category}\n`);
+    else for (const c of candidates) process.stdout.write(pendingLine(c));
     return 0;
   }
+  if (sub === "checkpoint" && args.length === 1) return checkpoint();
   if (sub === "file") return file(args.slice(1));
   if (sub === "skip" && args.length === 2) return skip(body);
   if (sub === "submission" && args.length <= 2) return submission(body);
@@ -123,6 +152,22 @@ export async function run(args: string[]): Promise<number> {
   );
   for (const h of hits) process.stdout.write(formatHit(h) + "\n");
   return hits.some((h) => h.level === "block") ? 2 : 0;
+}
+
+// Never fails: a session start runs it, so an error is one stderr line and exit 0.
+function checkpoint(): number {
+  try {
+    if (!collecting()) return 0;
+    const branch = spawnSync("git", ["branch", "--show-current"], { encoding: "utf8" }).stdout?.trim() ?? "";
+    if (branch.startsWith("sdd/")) return 0; // a worker never offers or files
+    const repo = currentRepo();
+    const candidates = pendingCandidates(repo);
+    if (!candidates.length) return 0;
+    process.stdout.write(`spp: ${candidates.length} Skill feedback candidates pending for ${repo}:\n${candidates.map(pendingLine).join("")}\n${CHECKPOINT_STEPS}`);
+  } catch (e) {
+    process.stderr.write(`spp feedback checkpoint: ${e instanceof Error ? e.message : String(e)}\n`);
+  }
+  return 0;
 }
 
 function submission(value: string | undefined): number {
