@@ -198,7 +198,7 @@ describe("only a closed issue ends a decision", () => {
 describe("the board mirrors workerTicket", () => {
   // R2-F3: hooks/board/register.tsx cannot import spp, so it copies the two patterns, which must stay the same.
   test("register.tsx's WORKER_BRANCH and WORKER_FOLDER are attended.ts's", () => {
-    const patterns = (file: string) => ["WORKER_BRANCH", "WORKER_FOLDER"].map((name) => new RegExp(`const ${name} = (/.+/)$`, "m").exec(readFileSync(join(root, file), "utf8"))?.[1]);
+    const patterns = (file: string) => ["WORKER_BRANCH", "WORKER_FOLDER"].map((name) => new RegExp(`const ${name} = (/.+/);?$`, "m").exec(readFileSync(join(root, file), "utf8"))?.[1]);
     const spp = patterns("spp/src/attended.ts");
     assert.ok(spp.every(Boolean), "attended.ts names both patterns");
     assert.deepEqual(patterns("hooks/board/register.tsx"), spp);

@@ -24,6 +24,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { workerTicket } from "../attended.ts";
 import { runGh } from "../gh.ts";
 import { checkPin } from "../pin.ts";
 import { isIssueRef, parseTicket } from "../ticket.ts";
@@ -147,9 +148,9 @@ async function verify(ref: string): Promise<number> {
  * @internal
  */
 export function stopRefusal(): string | null {
-  const branch = gitOut("branch", "--show-current") ?? "";
-  if (!branch.startsWith("sdd/")) return null;
-  const n = /^sdd\/(\d+)/.exec(branch)?.[1] ?? "<N>";
+  const n = workerTicket(process.cwd());
+  if (n === null) return null;
+  const branch = gitOut("branch", "--show-current") || "HEAD";
   if (gitOut("status", "--porcelain")) return `uncommitted changes on ${branch}. Commit them, then run spp verify ${n}.`;
   const note = gitOut("notes", "--ref=sdd-verify", "show", "HEAD") ?? "";
   if (/^(verified|blocked)\b/.test(note)) return null;

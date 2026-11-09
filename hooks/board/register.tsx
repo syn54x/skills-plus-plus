@@ -179,13 +179,20 @@ async function refresh($: EngineInterface) {
   }
 }
 
-// The Epic to show when none is named, by the first rule that answers: a worker branch sdd/<N>-* names a Sub-issue,
-// whose parent is the Epic; a branch feat/<slug> names the open Epic whose plan records it as its integration branch;
-// otherwise the Epics in flight in this repo (a plan records a branch and a Sub-issue is not merged): one opens, several
-// are listed, none says so. The reply is what to tell the person when no Epic opens.
+// workerTicket's two patterns in spp/src/attended.ts, which the board cannot import; spp's tests check they agree.
+const WORKER_BRANCH = /^sdd\/(\d+)-|^sdd-(\d+)$/
+const WORKER_FOLDER = /^sdd-(\d+)$/
+
+// The Epic to show when none is named, by the first rule that answers: a worker checkout (an sdd/<N>- or sdd-<N>
+// branch, or an sdd-<N> folder) names a Sub-issue, whose parent is the Epic; a branch feat/<slug> names the open Epic
+// whose plan records it as its integration branch; otherwise the Epics in flight in this repo (a plan records a branch
+// and a Sub-issue is not merged): one opens, several are listed, none says so. The reply is what to tell the person
+// when no Epic opens.
 async function pickEpic($: EngineInterface): Promise<{ epic: string } | { text: string }> {
   const branch = await run($, 'git', ['git', 'branch', '--show-current']).then(b => b.trim(), () => '')
-  const ticket = /^sdd\/(\d+)/.exec(branch)?.[1]
+  const named = WORKER_BRANCH.exec(branch)
+  const top = named ? '' : await run($, 'git', ['git', 'rev-parse', '--show-toplevel']).then(t => t.trim(), () => '')
+  const ticket = named?.[1] ?? named?.[2] ?? WORKER_FOLDER.exec(top.split('/').pop() ?? '')?.[1]
   if (ticket) {
     const parent = await run($, 'gh', ['gh', 'issue', 'view', ticket, '--json', 'parent', '--jq', '.parent.url // ""']).then(p => p.trim(), () => '')
     if (parent) return { epic: parent }

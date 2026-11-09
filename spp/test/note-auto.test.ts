@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -32,6 +32,13 @@ describe("happy path", () => {
     assert.equal(r.code, 0, r.stderr);
     assert.deepEqual(texts(r), [[12, "PR open https://github.com/acme/app/pull/57"]]);
     assert.equal(r.log[0].repo, "acme/app");
+  });
+
+  // R2-F3: every worker shape workerTicket knows, not only sdd/<N>-.
+  test("on an sdd-12 branch and in an sdd-12 folder, gh pr create notes PR open for 12", () => {
+    for (const repo of [gitRepo("sdd-12"), gitRepo("worktree-sdd-12", {}, mkdirSync(join(tempDir("spp-repo-"), "sdd-12"), { recursive: true })!)]) {
+      assert.deepEqual(texts(auto(payload("pr-create", repo))), [[12, "PR open https://github.com/acme/app/pull/57"]]);
+    }
   });
 
   test("a spp verify run gives Verify passed with the verified commit", () => {

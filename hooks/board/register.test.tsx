@@ -142,6 +142,7 @@ type Host = {
   agentsError?: string // claude agents exits 1 with this on stderr
   agents?: { id: string; description: string }[]
   branch?: string // the checkout's current branch
+  toplevel?: string // the checkout's folder, as git rev-parse --show-toplevel prints it
   parent?: string // the parent URL `gh issue view` answers for a worker branch's issue
   prsByRepo?: Record<string, { exitCode: number; stdout: string; stderr?: string }> // the answer per repo, over `prs`
   prs?: { exitCode: number; stdout: string; stderr?: string } // the pull-request request's answer; none by default
@@ -169,6 +170,7 @@ function host(on: On, h: Host) {
     seen.argv.push(e.argv)
     const [cmd, ...args] = e.argv
     const ok = (stdout: string) => ({ value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
+    if (cmd === 'git' && args[0] === 'rev-parse') return ok((h.toplevel ?? '/home/t/app') + '\n')
     if (cmd === 'git') return ok((h.branch ?? 'main') + '\n')
     if (cmd === 'gh' && args[0] === 'issue') return ok((h.parent ?? '') + '\n')
     if (cmd === 'gh' && args.some(a => a.includes('query Epics'))) {
@@ -532,6 +534,17 @@ test('on sdd/12-x with no argument the board opens on the parent of #12', async 
   expect(seen.opened).toHaveLength(1)
   expect((await titleOf($)).some(t => t.startsWith('#197 '))).toBe(true)
 })
+
+// Every worker shape spp's workerTicket knows: the desktop driver's sdd-<N> branch, and a claude --bg --worktree
+// sdd-<N> folder before the worker cuts its branch.
+for (const [where, h] of [['on branch sdd-12', { branch: 'sdd-12' }], ['in folder sdd-12', { branch: 'worktree-sdd-12', toplevel: '/home/t/sdd-12' }]] as const) {
+  test(`${where} with no argument the board opens on the parent of #12`, async ($, on) => {
+    const seen = host(on, { ...h, parent: `${URL}/issues/197`, ghByEpic: { 197: snapshot([{ n: 201 }]) } })
+    await $.command.run(NO_ARG)
+    expect(seen.argv.some(a => a.join(' ').startsWith('gh issue view 12 '))).toBe(true)
+    expect(seen.opened).toHaveLength(1)
+  })
+}
 
 test('on feat/x the Epic recording it opens even with every Sub-issue completed, ahead of one in progress', async ($, on) => {
   const seen = host(on, {
