@@ -14,9 +14,15 @@
  * `pin-present`, and must still match that pin, or it fails with `pin-match`. So a ticket never hardened, or edited
  * after hardening, never reaches `ready-for-agent`, and a worker stops before running its block by hand.
  *
+ * A `pin-match` without `--pin` also records a `contract-edited` Signal, charged to the maker of the Verify pin
+ * (harden when it names none), when the issue body's last editor is trusted (ADR 0009); with `--pin` it records none.
+ * It records nothing under `CI`, outside an Attended session, or when the Self-improvement mode is Off, and a failure
+ * while recording is one `signal not recorded:` line on stderr that leaves the exit code as it was.
+ *
  * @module
  */
 import { readFileSync } from "node:fs";
+import { pinCorrection } from "../corrections.ts";
 import { runGh } from "../gh.ts";
 import { type By, parseBy, UsageError } from "../markers.ts";
 import { checkPin } from "../pin.ts";
@@ -89,5 +95,7 @@ export async function run(args: string[]): Promise<number> {
   process.stdout.write(
     args.includes("--json") ? JSON.stringify(result, null, 2) + "\n" : ok ? "ok\n" : failures.map((f) => `${f.rule}: ${f.detail}`).join("\n") + "\n",
   );
+  // Only the ready gate's pin-match is a correction: with --pin it is the hardener's own write racing an edit.
+  if (file === undefined && failures.some((f) => f.rule === "pin-match")) await pinCorrection(rest[1]);
   return ok ? 0 : 1;
 }

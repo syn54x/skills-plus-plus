@@ -7,9 +7,16 @@
  * `spp next` then reports on `dispatch`. The table file is copied in verbatim. The trailer's `by` records the
  * write's maker: to-tickets, or the skill and step `--by` names. It has no `--json`.
  *
+ * Each `--add-deviation` also records a `contract-edited` Signal. When the text starts with an issue (`#N`, `N`,
+ * `owner/repo#N` or an issue URL, a trailing `:` allowed) it is charged to the maker of that issue's Verify pin (harden
+ * when it names none); otherwise to the maker of the plan comment before this write (to-tickets when it names none).
+ * It records nothing under `CI`, outside an Attended session, or when the Self-improvement mode is Off, and a failure
+ * while recording is one `signal not recorded:` line on stderr that leaves the exit code as it was.
+ *
  * @module
  */
 import { existsSync, readFileSync } from "node:fs";
+import { deviationCorrections } from "../corrections.ts";
 import { asDriver } from "../derive.ts";
 import { type By, type Data, flagPairs, guarded, parseBy, print, updateMarker, UsageError } from "../markers.ts";
 
@@ -72,12 +79,15 @@ export function run(args: string[]): Promise<number> {
       } else if (flag === "--driver" && !asDriver(v)) throw new UsageError(`unknown driver ${v}`);
       else patch[flag.slice(2) as "goal" | "constraints" | "branch" | "driver"] = v;
     }
+    let before: Data = {};
     print(
       await updateMarker(epic, "<!-- sdd-plan -->", render, (old) => {
+        before = old;
         const data = { ...DEFAULT, ...old, ...patch };
         data.deviated = [...(data.deviated as string[]), ...added];
         return data;
       }, by),
     );
+    if (added.length) await deviationCorrections(epic, added, before);
   });
 }

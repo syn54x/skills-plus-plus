@@ -5,8 +5,13 @@
  * has moved it writes nothing and the reviewer reviews the new head. The trailer's `by` records the write's maker:
  * review, or the skill and step `--by "<skill> <step>"` names. It has no `--json`.
  *
+ * A verdict with `--spec fail` or `--quality fail` also records a `fix-round` Signal, charged to the maker of the
+ * ticket's progress comment (implement-issue when it names none). It records nothing under `CI`, outside an Attended session, or when the Self-improvement mode is Off, and a failure
+ * while recording is one `signal not recorded:` line on stderr that leaves the exit code as it was.
+ *
  * @module
  */
+import { verdictCorrection } from "../corrections.ts";
 import { runGh } from "../gh.ts";
 import { type By, flagPairs, guarded, parseBy, print, UsageError, writeMarker } from "../markers.ts";
 import { renderVerdict, type Verdict, VERDICT_MARKER } from "../verdict.ts";
@@ -58,6 +63,8 @@ export function run(args: string[]): Promise<number> {
       process.stderr.write(`spp verdict: head moved: the pull request is at ${current}, not ${head}; review the new head\n`);
       return 3;
     }
-    print(await writeVerdict(pr, { ticket: ticket.replace(/^#/, ""), head, spec, quality }, by));
+    const v = { ticket: ticket.replace(/^#/, ""), head, spec, quality };
+    print(await writeVerdict(pr, v, by));
+    await verdictCorrection(pr, v);
   });
 }

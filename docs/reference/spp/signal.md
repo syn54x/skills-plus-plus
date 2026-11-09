@@ -25,8 +25,9 @@ Records one Signal for the current repo.
 `Promise`\<`number`\>
 
 0 when the Signal is recorded, printing `recorded <category> <skill> <step> <fingerprint>`, and 0 when it
-  is not, printing `not recorded: <reason>`; 2 on a usage error, with the usage on stderr; 1 when the checkout has no
-  GitHub origin.
+  is not, printing `not recorded: <reason>`; 2 on a usage error, with the usage on stderr; 1 when it should be
+  recorded but cannot be (the checkout has no GitHub origin, or the log cannot be written), with
+  `spp signal: <reason>` on stderr.
 
 #### Example
 

@@ -7,8 +7,15 @@
  * `ready-for-agent`. `--by "<skill> <step>"` names the progress write's maker in its trailer's `by` (implement-issue
  * when absent). It prints the progress comment's URL and has no `--json`.
  *
+ * Each Hand-back also records a Signal: `needs-info` a `brief-gap` and `blocked` a `missed-edge`, both charged to the
+ * maker of the Verify pin (harden when it names none), and `ready-for-human` a `human-needed`, charged to the maker of
+ * the progress comment before this write (implement-issue when it names none). A reason starting `worker lost`
+ * records none. It records nothing under `CI`, outside an Attended session, or when the Self-improvement mode is Off, and a failure
+ * while recording is one `signal not recorded:` line on stderr that leaves the exit code as it was.
+ *
  * @module
  */
+import { handBackCorrection, trailerBefore } from "../corrections.ts";
 import { runGh } from "../gh.ts";
 import { flagPairs, guarded, parseBy, parseIssue, print, TrailerError, UsageError } from "../markers.ts";
 import { saveProgress } from "./progress.ts";
@@ -48,6 +55,7 @@ export function run(args: string[]): Promise<number> {
     if (!reason) throw new UsageError("hand-back needs --reason");
     if (blockedBy && route !== "blocked") throw new UsageError("--blocked-by goes only with the blocked route");
 
+    const before = await trailerBefore("hand-back", issue.arg, route, reason);
     const steps: [string, () => Promise<unknown>][] = [
       ["1 (progress comment)", async () => print(await saveProgress(issue.arg, { status: "handed-back", route, reason }, by))],
       // The blocked-by edge keeps the ticket out of the Ready queue, so ready-for-agent stays for when it clears;
@@ -64,5 +72,6 @@ export function run(args: string[]): Promise<number> {
         return 1;
       }
     }
+    await handBackCorrection(issue.arg, route, reason, before);
   });
 }
