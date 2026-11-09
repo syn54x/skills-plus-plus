@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { beforeEach, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { fingerprint, recordDecision, runCounts, runsFile, type Signal, signalsFile } from "../src/signals.ts";
+import { issueRepo, parseIssue } from "../src/markers.ts";
+import { fingerprint, recordDecision, recordSignal, runCounts, runsFile, type Signal, signalsFile } from "../src/signals.ts";
 import { runCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -377,6 +378,38 @@ describe("fix round (Refs #342)", () => {
     recordDecision("acme/app", { fingerprint: signals()[0].fingerprint, decision: "filed", issue: 1 });
     assert.equal((await runCase("verdict", dir)).code, 0);
     assert.equal(signals().length, 1);
+  });
+
+  // Round 2: the Signal kept no mode, so filing could not take the lower of the two.
+  test("a Signal about an Anonymous repo's issue in a Full Detail checkout carries Anonymous; a same-repo one carries no mode", async () => {
+    const other = scratch([OTHER_ISSUE, "needs-info", "--reason", "r"], {
+      [otherComments]: { stdout: progress({ verifyPinBy: maker("harden") }) },
+      [contents("CLAUDE.md")]: { stdout: routing("Anonymous") },
+    }, "Full Detail");
+    assert.deepEqual([(await runCase("hand-back", other)).stderr], [""]);
+    assert.equal((await runCase("hand-back", handBackCase("blocked", "r", { verifyPinBy: maker("harden") }, "Full Detail"))).code, 0);
+    assert.deepEqual(signals().map((s) => [s.category, s.mode]), [["brief-gap", "Anonymous"], ["missed-edge", undefined]]);
+    assert.equal("mode" in signals()[1], false);
+  });
+
+  // Round 2: a record about another repo, named by a bare number, asked git for the origin three times.
+  test("a record about another repo asks git for the checkout's origin once", async () => {
+    const dir = scratch([], { [contents("CLAUDE.md")]: { stdout: routing("Anonymous") } });
+    const bin = mkdtempSync(join(tmpdir(), "spp-git-"));
+    const calls = join(bin, "calls");
+    const real = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+    writeFileSync(join(bin, "git"), `#!/bin/sh\necho "$*" >> "${calls}"\nexec "${real}" "$@"\n`, { mode: 0o755 });
+    const saved = { PATH: process.env.PATH, SPP_CASE: process.env.SPP_CASE };
+    Object.assign(process.env, { PATH: `${bin}${delimiter}${join(root, "spp", "test", "stubs")}${delimiter}${saved.PATH}`, SPP_CASE: dir });
+    try {
+      const r = await recordSignal((own) => ({ about: "acme/other", category: "wish", skill: "triage", evidence: `${issueRepo(parseIssue("12"), own)}#12` }), process.env, dir);
+      assert.ok("signal" in r, JSON.stringify(r));
+    } finally {
+      process.env.PATH = saved.PATH;
+      if (saved.SPP_CASE === undefined) delete process.env.SPP_CASE;
+      else process.env.SPP_CASE = saved.SPP_CASE;
+    }
+    assert.equal(readFileSync(calls, "utf8").split("\n").filter((l) => l === "remote get-url origin").length, 1);
   });
 
   // F16: the Hand-back read the progress comment once for its write and again for the Signal.

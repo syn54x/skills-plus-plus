@@ -662,3 +662,24 @@ describe("review round 2 guards", () => {
     assert.equal(lastLine(r.stdout), `filed ${FP} https://github.com/${FEEDBACK}/issues/902 existing`);
   });
 });
+
+describe("fix round 2 (Refs #342)", () => {
+  // The Spec finding: a Signal about an Anonymous repo's issue kept no mode, so filing it without --epic ran at Full Detail.
+  test("a Signal carrying Anonymous files at Anonymous without --epic: the tally has no Repo or Evidence lines", async () => {
+    const c = checkout("Full Detail");
+    setAuto(c);
+    signal(c, { mode: "Anonymous", evidence: "acme/other#12 needs-info: r" });
+    const r = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, ...FRESH });
+    assert.equal(r.code, 0, r.stderr);
+    assert.doesNotMatch(bodyOf(writes(r)[1]), /\*\*Repo:\*\*|\*\*Evidence:\*\*|acme\/other/);
+  });
+
+  test("a same-repo Signal with no mode files at Full Detail without --epic, as before", async () => {
+    const c = checkout("Full Detail");
+    setAuto(c);
+    signal(c, { evidence: "the step named no file" });
+    const r = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, ...FRESH });
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(bodyOf(writes(r)[1]), /\*\*Evidence:\*\*\n\n- the step named no file/);
+  });
+});
