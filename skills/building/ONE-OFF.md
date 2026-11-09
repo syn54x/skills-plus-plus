@@ -12,7 +12,7 @@ Done when a worker is running on the issue.
 
 Be woken when the worker's turn ends; the subagent wakes you. Print the heartbeat while you wait, from the issue's progress comment.
 
-Then read the report (step 3 of `SKILL.md`). A `NEEDS_CONTEXT` that is an unsettled design is the user's to settle here: put the question to them, and when they answer, edit the issue body to match, restore `ready-for-agent` and start the worker again. Settle nothing alone, since a One-off has no Epic to carry a Spec delta.
+Then read the report (step 3 of `SKILL.md`). A `NEEDS_CONTEXT` that is an unsettled design is the user's to settle here: put the question to them as a waiting line (`SKILL.md`, Waiting on the user), and when they answer, edit the issue body to match, restore `ready-for-agent` and start the worker again. Settle nothing alone, since a One-off has no Epic to carry a Spec delta.
 
 Done when the report is `DONE` or `DONE_WITH_CONCERNS` with a pull request, or the issue is handed back and the user told why.
 
