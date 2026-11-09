@@ -51,10 +51,9 @@ function runs(c: Checkout, n: number, over: Partial<Run> = {}): void {
   for (let i = 0; i < n; i++) appendFileSync(file, JSON.stringify({ at: "2026-01-01T00:00:00.000Z", repo: "acme/app", skill: "harden", step: "3", version: "2.3.0", artifact: "x", ...over }) + "\n");
 }
 
-const auto = (c: Checkout) => writeFileSync(join(c.config, "spp", "config.json"), JSON.stringify({ submissionMode: "Auto" }), { flag: "w" });
 function setAuto(c: Checkout): void {
   mkdirSync(join(c.config, "spp"), { recursive: true });
-  auto(c);
+  writeFileSync(join(c.config, "spp", "config.json"), JSON.stringify({ submissionMode: "Auto" }));
 }
 
 // Runs `spp feedback <args>` in the checkout with `gh` answering from `gh`; CI is unset unless `ci` is given.
