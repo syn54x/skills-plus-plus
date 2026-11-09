@@ -190,9 +190,9 @@ const WORKER_FOLDER = /^sdd-(\d+)$/
 // when no Epic opens.
 async function pickEpic($: EngineInterface): Promise<{ epic: string } | { text: string }> {
   const branch = await run($, 'git', ['git', 'branch', '--show-current']).then(b => b.trim(), () => '')
-  const named = WORKER_BRANCH.exec(branch)
-  const top = named ? '' : await run($, 'git', ['git', 'rev-parse', '--show-toplevel']).then(t => t.trim(), () => '')
-  const ticket = named?.[1] ?? named?.[2] ?? WORKER_FOLDER.exec(top.split('/').pop() ?? '')?.[1]
+  const worker = WORKER_BRANCH.exec(branch)
+  const top = worker ? '' : await run($, 'git', ['git', 'rev-parse', '--show-toplevel']).then(t => t.trim(), () => '')
+  const ticket = worker?.[1] ?? worker?.[2] ?? WORKER_FOLDER.exec(top.split('/').pop() ?? '')?.[1]
   if (ticket) {
     const parent = await run($, 'gh', ['gh', 'issue', 'view', ticket, '--json', 'parent', '--jq', '.parent.url // ""']).then(p => p.trim(), () => '')
     if (parent) return { epic: parent }
