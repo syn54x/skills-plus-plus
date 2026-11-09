@@ -12,8 +12,12 @@ Its forms:
   any wave with the same `--n`.
 - `spp wave <epic> pr --ticket T --pr URL|#n` records a pull request on the last wave holding `--ticket`, in any
   of its forms: a number in the Epic's repo, `owner/repo#N` or the issue URL.
-- `spp wave <epic> panel --round R --verdict V [--report URL] ...` records a review panel round, replacing the
-  round with the same `--round`.
+- `spp wave <epic> panel [--pr URL] --round R --verdict V [--report URL] ...` records a review panel round,
+  replacing the entry with the same `--pr` and `--round`. `--pr` is the main-gate pull request the round reviewed,
+  as its URL (`https://github.com/<owner>/<repo>/pull/<n>`, since a bare number is ambiguous across a Multi-repo
+  epic's repos; anything else is a usage error), so each repo's pull request keeps its own round 1. A call with no
+  `--pr` keys the round among the entries with no `pr`, as the trailers written before `--pr` hold them. The comment
+  lists the entries with no `pr` first, then each pull request's rounds in round order, pull requests in URL order.
 
 Waves and panel rounds are lists inside the comment's data trailer, so a retried call replaces its own entry and
 never duplicates one. The writing forms print the comment's URL, and take `--by "<skill> <step>"`: the trailer's
@@ -48,7 +52,7 @@ Plans the next Wave, or records a wave, a pull request or a panel round on the w
 ```bash
 spp wave plan 197 --max 3 --json
 spp wave 197 add --n 1 --tickets 200,201 --workers w1,w2 --started 2026-11-02T09:00:00Z --edges none
-spp wave 197 panel --round 1 --verdict MERGE --report https://github.com/syn54x/skills-plus-plus/pull/9
+spp wave 197 panel --pr https://github.com/syn54x/skills-plus-plus/pull/9 --round 1 --verdict MERGE
 ```
 
 ## Variables
@@ -66,12 +70,14 @@ usage: spp wave plan <epic> [--max N] [--json]
        spp wave <epic> add  --n N --tickets 101,owner/repo#7 --workers w1,w2 --started ISO8601
                              --edges "104<103,owner/repo#7<101" | --edges none
        spp wave <epic> pr    --ticket 101|owner/repo#7 --pr URL|#n
-       spp wave <epic> panel --round R --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE [--report URL]
+       spp wave <epic> panel [--pr https://github.com/owner/repo/pull/N] --round R
+                             --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE [--report URL]
                              [--severity critical=1,important=2,minor=3] [--persona name=count,...] [--dropped D]
 wave plan prints the ready tickets that can run together (at most --max, default 4) and the held ones with why;
 a ready ticket that overlaps work in flight (claimed, assigned or with its PR open) is held until that merges.
-wave add replaces every wave with the same --n; wave panel replaces the entry with the same --round
-(a round shown but never posted has no --report and renders unposted);
+wave add replaces every wave with the same --n; wave panel replaces the entry with the same --pr and --round, so each
+pull request of a Multi-repo epic keeps its own rounds (--pr takes the pull request URL, never a bare number, and
+without it a round is keyed among the rounds with no PR; a round shown but never posted has no --report and renders unposted);
 wave pr records the PR on the last wave whose tickets hold --ticket, in any of its forms (number, owner/repo#N, URL).
 A wave ticket is a number, owner/repo#N or an issue URL, stored and rendered as given.
 add, pr and panel take --by "<skill> <step>", which records the write as that skill's (default build), the rest as its step.

@@ -13,8 +13,12 @@
  *   any wave with the same `--n`.
  * - `spp wave <epic> pr --ticket T --pr URL|#n` records a pull request on the last wave holding `--ticket`, in any
  *   of its forms: a number in the Epic's repo, `owner/repo#N` or the issue URL.
- * - `spp wave <epic> panel --round R --verdict V [--report URL] ...` records a review panel round, replacing the
- *   round with the same `--round`.
+ * - `spp wave <epic> panel [--pr URL] --round R --verdict V [--report URL] ...` records a review panel round,
+ *   replacing the entry with the same `--pr` and `--round`. `--pr` is the main-gate pull request the round reviewed,
+ *   as its URL (`https://github.com/<owner>/<repo>/pull/<n>`, since a bare number is ambiguous across a Multi-repo
+ *   epic's repos; anything else is a usage error), so each repo's pull request keeps its own round 1. A call with no
+ *   `--pr` keys the round among the entries with no `pr`, as the trailers written before `--pr` hold them. The comment
+ *   lists the entries with no `pr` first, then each pull request's rounds in round order, pull requests in URL order.
  *
  * Waves and panel rounds are lists inside the comment's data trailer, so a retried call replaces its own entry and
  * never duplicates one. The writing forms print the comment's URL, and take `--by "<skill> <step>"`: the trailer's
@@ -34,29 +38,32 @@ export const USAGE = `usage: spp wave plan <epic> [--max N] [--json]
        spp wave <epic> add  --n N --tickets 101,owner/repo#7 --workers w1,w2 --started ISO8601
                              --edges "104<103,owner/repo#7<101" | --edges none
        spp wave <epic> pr    --ticket 101|owner/repo#7 --pr URL|#n
-       spp wave <epic> panel --round R --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE [--report URL]
+       spp wave <epic> panel [--pr https://github.com/owner/repo/pull/N] --round R
+                             --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE [--report URL]
                              [--severity critical=1,important=2,minor=3] [--persona name=count,...] [--dropped D]
 wave plan prints the ready tickets that can run together (at most --max, default ${DEFAULT_WAVE_MAX}) and the held ones with why;
 a ready ticket that overlaps work in flight (claimed, assigned or with its PR open) is held until that merges.
-wave add replaces every wave with the same --n; wave panel replaces the entry with the same --round
-(a round shown but never posted has no --report and renders unposted);
+wave add replaces every wave with the same --n; wave panel replaces the entry with the same --pr and --round, so each
+pull request of a Multi-repo epic keeps its own rounds (--pr takes the pull request URL, never a bare number, and
+without it a round is keyed among the rounds with no PR; a round shown but never posted has no --report and renders unposted);
 wave pr records the PR on the last wave whose tickets hold --ticket, in any of its forms (number, owner/repo#N, URL).
 A wave ticket is a number, owner/repo#N or an issue URL, stored and rendered as given.
 add, pr and panel take --by "<skill> <step>", which records the write as that skill's (default build), the rest as its step.
 `;
 
 type Wave = { n: number; tickets: (string | number)[]; workers: string[]; started: string; edges: (string | number)[][]; prs: Record<string, string> };
-type Round = { round: number; verdict: string; report: string | null; severity: Record<string, number>; persona: Record<string, number>; dropped: number };
+type Round = { round: number; verdict: string; report: string | null; severity: Record<string, number>; persona: Record<string, number>; dropped: number; pr?: string };
 type WaveData = { waves: Wave[]; panel: Round[] };
 
 const T = String.raw`(?:\d+|[\w.-]+/[\w.-]+#\d+|https://github\.com/[\w.-]+/[\w.-]+/issues/\d+)`;
 const TICKETS = new RegExp(`^${T}(,${T})*$`);
 const EDGES = new RegExp(`^(none|${T}<${T}(,${T}<${T})*)$`);
 const COUNTS = /^([\w-]+=\d+(,[\w-]+=\d+)*)?$/;
+const PULL_URL = /^https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/pull\/(\d+)$/;
 const FLAGS: Record<string, string[]> = {
   add: ["--n", "--tickets", "--workers", "--started", "--edges"],
   pr: ["--ticket", "--pr"],
-  panel: ["--round", "--verdict", "--report", "--severity", "--persona", "--dropped"],
+  panel: ["--pr", "--round", "--verdict", "--report", "--severity", "--persona", "--dropped"],
 };
 
 const ref = (t: string | number) => (/^\d+$/.test(String(t)) ? `#${t}` : String(t));
@@ -72,7 +79,7 @@ function render(data: Data): string {
       `Edges added: ${w.edges.length ? w.edges.map((e) => `${e[0]} ← ${e[1]}`).join(", ") : "none"}`,
       ...(Object.keys(w.prs).length ? [`PRs: ${Object.entries(w.prs).map(([t, pr]) => `${ref(t)} → ${pr}`).join(", ")}`] : []),
     ]),
-    ...d.panel.map((p) => `Panel round ${p.round}: ${p.verdict} (${p.report ?? "unposted"})`),
+    ...d.panel.map((p) => `Panel round ${p.round}${p.pr ? ` on ${p.pr.replace(PULL_URL, "$1#$2")}` : ""}: ${p.verdict} (${p.report ?? "unposted"})`),
   ].join("\n");
 }
 
@@ -117,6 +124,7 @@ function merger(op: string, f: Record<string, string>, epicRepo: string | null):
   }
   const round = f["--round"] ?? "";
   const dropped = f["--dropped"] ?? "0";
+  if (f["--pr"] !== undefined && !PULL_URL.test(f["--pr"])) throw new UsageError("wave panel --pr takes a pull request URL, https://github.com/owner/repo/pull/N");
   if (!/^\d+$/.test(round)) throw new UsageError("wave panel needs --round R");
   if (!["FIX FIRST", "HUMAN DECISION", "MERGE"].includes(f["--verdict"])) throw new UsageError('wave panel needs --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE');
   if (!COUNTS.test(f["--severity"] ?? "")) throw new UsageError("--severity takes name=count,...");
@@ -129,10 +137,15 @@ function merger(op: string, f: Record<string, string>, epicRepo: string | null):
     severity: counts(f["--severity"] ?? ""),
     persona: counts(f["--persona"] ?? ""),
     dropped: Number(dropped),
+    ...(f["--pr"] && { pr: f["--pr"] }),
   };
-  // A retried round replaces the entry with the same round.
+  // A retried round replaces the entry with the same pull request and round (an entry with no pr is its own group),
+  // so each repo of a Multi-repo epic keeps its own round 1. Entries with no pr come first, then pull requests in URL order.
   return (d) => {
-    d.panel = [...d.panel.filter((p) => p.round !== entry.round), entry].sort((a, b) => a.round - b.round);
+    const url = (p: Round) => p.pr ?? "";
+    d.panel = [...d.panel.filter((p) => p.pr !== entry.pr || p.round !== entry.round), entry].sort(
+      (a, b) => Number(!!a.pr) - Number(!!b.pr) || Number(url(a) > url(b)) - Number(url(a) < url(b)) || a.round - b.round,
+    );
   };
 }
 
@@ -258,7 +271,7 @@ async function runPlan(args: string[]): Promise<number> {
  * ```bash
  * spp wave plan 197 --max 3 --json
  * spp wave 197 add --n 1 --tickets 200,201 --workers w1,w2 --started 2026-11-02T09:00:00Z --edges none
- * spp wave 197 panel --round 1 --verdict MERGE --report https://github.com/syn54x/skills-plus-plus/pull/9
+ * spp wave 197 panel --pr https://github.com/syn54x/skills-plus-plus/pull/9 --round 1 --verdict MERGE
  * ```
  */
 export function run(args: string[]): Promise<number> {

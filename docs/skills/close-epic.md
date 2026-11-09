@@ -2,7 +2,7 @@
 
 `close-epic` finishes an Epic after you merge its integration branch. It checks that the work is really done, posts two comments on the Epic (a retro of the numbers and a summary of what shipped and what was learned), confirms the Spec deltas landed, offers you the pending Skill feedback (or files it, if your Submission mode is Auto), and closes the Epic if the merge has not already done so.
 
-Its numbers are computed by the `spp` tool from GitHub alone: the gate's verdicts on each Sub-issue's pull request, the Hand-back label events, the panel rounds recorded on the Epic, and ponytail's findings when it ran. Nothing depends on the session that built the Epic, so you can run it days later, on another machine. Where an input is missing, the retro says **not found** rather than 0, because a missing input that reads as zero looks like a clean Epic.
+Its numbers are computed by the `spp` tool from GitHub alone: the gate's verdicts on each Sub-issue's pull request and on the Epic's Fix pull requests (counted in a tally of their own beside the Sub-issues' rounds), the Hand-back label events, the panel rounds recorded on the Epic (one for each pull request and round, so every pull request of a Multi-repo epic counts), and ponytail's findings when it ran. Nothing depends on the session that built the Epic, so you can run it days later, on another machine. Where an input is missing, the retro says **not found** rather than 0, because a missing input that reads as zero looks like a clean Epic.
 
 ## When to reach for it
 

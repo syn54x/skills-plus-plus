@@ -363,6 +363,64 @@ describe("integration", () => {
   });
 });
 
+// #383: a panel round is keyed by its pull request and its round, so one Epic's repos each keep their own round 1.
+describe("wave panel --pr", () => {
+  const WEB = "https://github.com/acme/web/pull/30";
+  const API = "https://github.com/acme/api/pull/40";
+  const round = (o: Record<string, unknown>) => ({ round: 1, verdict: "FIX FIRST", report: null, severity: { critical: 0, important: 3, minor: 1 }, persona: {}, dropped: 0, ...o });
+  // The wave comment (#701) as an earlier call left it: a panel list and nothing else.
+  const waveWith = (panel: unknown[]): Comment => ({ id: 701, body: `<!-- sdd-wave -->\n(rendered)\n${trailer({ waves: [], panel })}\n` });
+  const panelOf = async (args: string[], panel: unknown[]) => {
+    const r = await runCase("wave", scratchCase(["12", "panel", ...args], [waveWith(panel)]));
+    assert.equal(r.code, 0, r.stderr);
+    const w = (r.writes as Write[])[0];
+    return { text: body(w), panel: (readTrailer(body(w))?.panel ?? []) as Record<string, unknown>[] };
+  };
+  const call = ["--round", "1", "--verdict", "FIX FIRST", "--severity", "critical=1,important=9,minor=2"];
+
+  test("a round for a second pull request leaves the first's round 1 in place and shows one line each", async () => {
+    const { text, panel } = await panelOf(["--pr", API, ...call], [round({ pr: WEB })]);
+    assert.deepEqual(panel.map((p) => [p.pr, p.round]), [[API, 1], [WEB, 1]]);
+    assert.deepEqual(panel[0].severity, { critical: 1, important: 9, minor: 2 });
+    assert.match(text, /\nPanel round 1 on acme\/api#40: FIX FIRST \(unposted\)\nPanel round 1 on acme\/web#30: FIX FIRST \(unposted\)\n<!-- sdd-data:/);
+  });
+
+  test("repeating a pull request's round with --report replaces that entry and leaves the other pull request's as it was", async () => {
+    const report = `${API}#issuecomment-1`;
+    const web = round({ pr: WEB, severity: { critical: 0, important: 1, minor: 0 } });
+    const { text, panel } = await panelOf(["--pr", API, ...call, "--report", report], [web, round({ pr: API })]);
+    assert.deepEqual(panel, [{ round: 1, verdict: "FIX FIRST", report, severity: { critical: 1, important: 9, minor: 2 }, persona: {}, dropped: 0, pr: API }, web]);
+    assert.match(text, new RegExp(`Panel round 1 on acme/api#40: FIX FIRST \\(${report.replace(/[.#/]/g, "\\$&")}\\)`));
+  });
+
+  test("entries with no pr come first, then each pull request's rounds in round order, pull requests in URL order", async () => {
+    const { text, panel } = await panelOf(["--pr", API, "--round", "2", "--verdict", "MERGE"], [round({ pr: WEB }), round({ pr: API }), round({ round: 2 }), round({})]);
+    assert.deepEqual(panel.map((p) => [p.pr, p.round]), [[undefined, 1], [undefined, 2], [API, 1], [API, 2], [WEB, 1]]);
+    assert.match(text, /Panel round 1: FIX FIRST \(unposted\)\nPanel round 2: FIX FIRST \(unposted\)\nPanel round 1 on acme\/api#40: FIX FIRST/);
+  });
+
+  test("a call with no --pr replaces only the round with no pr, as before, and stores no pr", async () => {
+    const { panel } = await panelOf(["--round", "1", "--verdict", "MERGE"], [round({ pr: API }), round({ severity: { critical: 5, important: 0, minor: 0 } })]);
+    assert.deepEqual(panel.map((p) => [p.pr, p.round, p.verdict]), [[undefined, 1, "MERGE"], [API, 1, "FIX FIRST"]]);
+    assert.ok(!("pr" in panel[0]));
+  });
+
+  test("--pr with --by grill narrow exits 0 and the trailer's by is skill grill, step narrow", async () => {
+    const r = await runCase("wave", scratchCase(["12", "panel", "--pr", API, "--round", "1", "--verdict", "MERGE", "--by", "grill narrow"]));
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(readTrailer(body((r.writes as Write[])[0]))?.by, { skill: "grill", version: VERSION, step: "narrow" });
+  });
+
+  for (const bad of ["40", "#40", "acme/api#40", "https://github.com/acme/api/issues/40", "https://github.com/acme/api/pull/40/files", `${API}#issuecomment-1`, ""]) {
+    test(`--pr ${JSON.stringify(bad)} exits 2 with the usage and writes nothing`, async () => {
+      const r = await runCase("wave", scratchCase(["12", "panel", "--pr", bad, "--round", "1", "--verdict", "MERGE"], [waveWith([])]));
+      assert.equal(r.code, 2);
+      assert.match(r.stderr, /usage: spp wave/);
+      assert.deepEqual(r.writes, []);
+    });
+  }
+});
+
 describe("one trailer encoder (ADR 0007)", () => {
   // Every .ts file under spp/src, recursively.
   const sources = (dir: string): string[] =>

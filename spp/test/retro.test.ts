@@ -8,8 +8,11 @@ import { runCase } from "./harness.ts";
 // A case directory built at test time: an Epic #197 in acme/app whose Sub-issues, pull requests, comments and
 // label events the stub gh answers for. A pull request or events entry left out is a call gh fails.
 type Ticket = { n: number; repo?: string; prs?: number[]; events?: string[] | null };
+type Fix = { n: number; body?: string; state?: "OPEN" | "MERGED" };
 type Setup = {
   tickets: Ticket[];
+  branch?: string; // the integration branch the plan comment records; without it fixes cannot be looked for
+  fixes?: Fix[]; // trusted pull requests into the branch that close no Sub-issue (ADR 0011), in acme/app
   reviews?: Record<number, { reviews?: string[]; comments?: string[] }>; // by pull request number (acme/app)
   epicComments?: string[];
   args?: string[];
@@ -33,6 +36,7 @@ function build(s: Setup): string {
               url: `https://github.com/${REPO}/issues/197`,
               title: "Epic",
               repository: { nameWithOwner: REPO },
+              comments: { nodes: s.branch ? [{ body: `<!-- sdd-plan -->\n${trailer({ branch: s.branch })}`, author: { login: "maint" }, authorAssociation: "OWNER" }] : [] },
               subIssues: {
                 nodes: s.tickets.map((t) => ({
                   number: t.n,
@@ -60,6 +64,13 @@ function build(s: Setup): string {
     if (t.events === null) continue;
     answers[`api repos/${t.repo ?? REPO}/issues/${t.n}/events --paginate --jq .[] | select(.event == "labeled") | .label.name`] = { stdout: (t.events ?? []).map((e) => e + "\n").join("") };
   }
+  if (s.branch) {
+    for (const repo of new Set([REPO, ...s.tickets.map((t) => t.repo ?? REPO)])) {
+      const [owner, name] = repo.split("/");
+      const nodes = repo === REPO ? (s.fixes ?? []).map((f) => ({ ...pr(f.n), state: f.state ?? "MERGED", baseRefName: s.branch, body: f.body ?? "", author: { login: "maint" }, authorAssociation: "OWNER", comments: { nodes: [] } })) : [];
+      answers[`api graphql -f query=PullRequests -f owner=${owner} -f repo=${name} -f branch=${s.branch}`] = { stdout: { data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes } } } } };
+    }
+  }
   for (const [n, v] of Object.entries(s.reviews ?? {})) {
     answers[`pr view https://github.com/${REPO}/pull/${n} --json reviews,comments`] = {
       stdout: { reviews: (v.reviews ?? []).map((body) => ({ body })), comments: (v.comments ?? []).map((body) => ({ body })) },
@@ -78,6 +89,7 @@ type Retro = {
   byCause: Record<string, number>;
   byTicket: Record<string, number>;
   rounds: number;
+  fixPrRounds: number | "not found";
   handBacks: number;
   panel: { rounds: number; findings: number } | "not found";
   ponytail: { hits: number; unique: number; overlap: number } | "not found";
@@ -187,7 +199,7 @@ describe("happy path", () => {
     assert.equal(r.code, 0, r.stderr);
     assert.equal(
       r.stdout,
-      ["acme/app#197 Epic", "By cause: CLAUDE.md#x 1", "By ticket: #301 1", "Fix rounds: 1", "Hand-backs: 1", "Panel: not found", "Ponytail: not found", ""].join("\n"),
+      ["acme/app#197 Epic", "By cause: CLAUDE.md#x 1", "By ticket: #301 1", "Fix rounds: 1", "Fix pull request rounds: not found", "Hand-backs: 1", "Panel: not found", "Ponytail: not found", ""].join("\n"),
     );
   });
 });
@@ -250,5 +262,95 @@ describe("error paths", () => {
     const r = await runCase("retro", dir);
     assert.equal(r.code, 1);
     assert.match(r.stderr, /epic not found/);
+  });
+});
+
+// #383: a panel round is one per pull request and round, so a Multi-repo epic's repos each count their own.
+describe("panel rounds per pull request", () => {
+  const A = "https://github.com/acme/api/pull/40";
+  const B = "https://github.com/acme/web/pull/30";
+  const round = (n: number, important: number, pr?: string) => ({ round: n, verdict: "FIX FIRST", report: null, severity: { critical: 0, important, minor: 0 }, persona: {}, dropped: 0, ...(pr && { pr }) });
+  const panelOf = async (panel: unknown[]) => (await retro({ tickets: [{ n: 301 }], epicComments: [wave({ waves: [], panel })] })).out.panel;
+
+  test("rounds 1 and 2 for one pull request and round 1 for another are 3 rounds and the sum of all their findings", async () => {
+    assert.deepEqual(await panelOf([round(1, 12, A), round(2, 5, A), round(1, 4, B)]), { rounds: 3, findings: 21 });
+  });
+
+  test("a round 1 with no pr and a round 1 for a pull request are 2 rounds", async () => {
+    assert.deepEqual(await panelOf([round(1, 3), round(1, 4, A)]), { rounds: 2, findings: 7 });
+  });
+});
+
+// #383: a Fix pull request refs a Sub-issue and closes none, so it is found through derive's fixes (ADR 0011).
+describe("Fix pull requests", () => {
+  const BRANCH = "feat/epic";
+  const gate = spec(`- Important · [CLAUDE.md#a] · ${LOC} · one`, `- Minor · [epic#b] · ${LOC} · two`);
+  // Sub-issue #301 with its own pull request #501, which failed one gate on one finding.
+  const slice = { tickets: [{ n: 301, prs: [501] }], branch: BRANCH, reviews: { 501: { reviews: [spec(`- Minor · [CLAUDE.md#a] · ${LOC} · own`)] } } };
+
+  test("a merged Fix pull request refing #301 with one failing verdict of two findings is one fix round, its findings counted under #301 and by tag", async () => {
+    const { out, stderr } = await retro({ ...slice, fixes: [{ n: 601, body: "Refs #301\n\nFix round" }], reviews: { ...slice.reviews, 601: { reviews: [gate] } } });
+    assert.equal(out.fixPrRounds, 1);
+    assert.equal(out.rounds, 1); // the slice pull request's, unchanged
+    assert.deepEqual(out.byTicket, { "#301": 3 });
+    assert.deepEqual(out.byCause, { "CLAUDE.md#a": 2, "epic#b": 1 });
+    assert.equal(stderr, "");
+  });
+
+  test("an open Fix pull request counts too, and a passing verdict is no round", async () => {
+    const { out } = await retro({ ...slice, fixes: [{ n: 601, body: "Refs #301", state: "OPEN" }], reviews: { ...slice.reviews, 601: { reviews: [verdict("## Spec: PASS")] } } });
+    assert.equal(out.fixPrRounds, 0);
+    assert.deepEqual(out.byTicket, { "#301": 1 });
+  });
+
+  test("a Fix pull request with no Refs line and one failing verdict is a fix round in byCause only, with no byTicket entry", async () => {
+    const { out } = await retro({ ...slice, fixes: [{ n: 601, body: "Lint only" }], reviews: { ...slice.reviews, 601: { reviews: [gate] } } });
+    assert.equal(out.fixPrRounds, 1);
+    assert.deepEqual(out.byCause, { "CLAUDE.md#a": 2, "epic#b": 1 });
+    assert.deepEqual(out.byTicket, { "#301": 1 });
+  });
+
+  test("a Fix pull request the wave trailer also records for #301 counts once, as that Sub-issue's pull request", async () => {
+    const { out } = await retro({
+      ...slice,
+      fixes: [{ n: 601, body: "Refs #301" }],
+      epicComments: [wave({ waves: [{ n: 1, tickets: ["301"], workers: [], started: "", edges: [], prs: { "301": "#601" } }], panel: [] })],
+      reviews: { ...slice.reviews, 601: { reviews: [gate] } },
+    });
+    assert.equal(out.fixPrRounds, 0);
+    assert.equal(out.rounds, 2);
+    assert.deepEqual(out.byTicket, { "#301": 3 });
+    assert.deepEqual(out.byCause, { "CLAUDE.md#a": 2, "epic#b": 1 });
+  });
+
+  test("a Fix pull request refing a Sub-issue in another repo is counted under owner/repo#N", async () => {
+    const { out } = await retro({ tickets: [{ n: 301 }, { n: 302, repo: "acme/api", prs: [] }], branch: BRANCH, fixes: [{ n: 601, body: "Refs acme/api#302" }], reviews: { 601: { reviews: [gate] } } });
+    assert.equal(out.fixPrRounds, 1);
+    assert.equal(out.byTicket["acme/api#302"], 2);
+  });
+
+  test("with no fixes on a plan that records the branch, fixPrRounds is 0 and nothing is named on stderr", async () => {
+    const { out, stderr } = await retro({ ...slice });
+    assert.equal(out.fixPrRounds, 0);
+    assert.equal(stderr, "");
+  });
+
+  test("with no plan comment fixPrRounds is not found and stderr names the integration branch", async () => {
+    const { out, stderr } = await retro({ tickets: [{ n: 301, prs: [501] }], reviews: { 501: { reviews: [spec(`- Minor · [none] · ${LOC} · x`)] } } });
+    assert.equal(out.fixPrRounds, "not found");
+    assert.match(stderr, /^spp retro: not found: integration branch$/m);
+  });
+
+  test("a Fix pull request gh cannot read is named reviews on its URL, and fixPrRounds counts the fixes that were read", async () => {
+    const { out, stderr } = await retro({ ...slice, fixes: [{ n: 601, body: "Refs #301" }, { n: 602, body: "Refs #301" }], reviews: { ...slice.reviews, 601: { reviews: [gate] } } });
+    assert.equal(out.fixPrRounds, 1);
+    assert.match(stderr, /not found: reviews on https:\/\/github\.com\/acme\/app\/pull\/602\b/);
+    assert.deepEqual(out.byTicket, { "#301": 3 });
+  });
+
+  test("the text view prints Fix pull request rounds on the line after Fix rounds", async () => {
+    const r = await runCase("retro", build({ ...slice, fixes: [{ n: 601, body: "Refs #301" }], reviews: { ...slice.reviews, 601: { reviews: [gate] } }, args: ["197"] }));
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /\nFix rounds: 1\nFix pull request rounds: 1\nHand-backs: /);
   });
 });
