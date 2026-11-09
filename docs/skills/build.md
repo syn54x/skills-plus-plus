@@ -78,6 +78,9 @@ The first Wave is where the plan meets the code. Later Waves that follow the pla
 **The Epic is large. Do I run the review panel myself?**
 `spp next` decides: four or more Sub-issues, any size L, or 1,000 changed lines runs the panel on the Epic's pull request. Smaller Epics get a single spec verdict from [review](review.md). The panel's skill is user-invoked, so `build` walks the panel's own steps itself: it gathers the panel folder, picks the Personas, fans them out, and merges what they found into one verdict.
 
+**Why does it ask me about Skill feedback between Waves?**
+When a step spp made had to be corrected (a failed verdict, a hand-back), spp records a Signal against that step. At the end of each Wave, and when the run ends, `build` runs `spp feedback checkpoint`, which lists what is pending and lets you file, skip or keep each one for later. It asks only between steps, because a question in the middle of a gate or fix round would interrupt work that is still running. Under Submission mode Auto it files them and tells you the issue links instead.
+
 **Can it build an issue from another repo?**
 Give `/build` the issue's URL. Each Sub-issue is built in the repo it lives in, and a cross-repo blocker has to have merged before its consumer is ready.
 
@@ -86,5 +89,6 @@ Give `/build` the issue's URL. Each Sub-issue is built in the repo it lives in, 
 - Interrupting the run and starting it again changes nothing you have to repair.
 - Each worker's pull request is open against the integration branch, and each carries `Closes #<N>` on its first line.
 - You are asked once, before the first Wave, and not again unless the plan changed.
+- Nothing about Skill feedback is asked while a gate or fix round runs.
 - No pull request reaches your base branch without a spec verdict and a quality verdict on its head.
 - The run ends with a pull request for you to merge and a pointer to `/close-epic`, or with a clear list of the issues that were handed back.

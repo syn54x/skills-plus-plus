@@ -20,6 +20,8 @@ Each action has a `kind`, the `tickets` and `pr` it concerns, a `reason`, and on
 
 When one run prints several actions, do them together: the workers of one dispatch start in one batch, and the gates of separate pull requests run side by side.
 
+**The end of a Wave** is the moment `spp next` prints `dispatch` for any Wave after the first, `main-gate` with no pull request, `close` or `stuck`. Run the checkpoint (`SKILL.md`, Checkpoint) then, before you act on that action. A `gate`, `fix` or `merge` in the same run is mid-step: finish it, run `spp next` again, and check once more.
+
 ## Branch
 
 Run `spp branch <epic>`. It cuts `feat/<slug>` from `origin/<base>`, pushes it and records it on the plan comment. The base is the default branch; when the Epic's plan comment names another in its Constraints, pass `--from <base>`. In a multi-repo Epic each repo that has a Sub-issue gets its own branch of the same name, made from a worktree of that repo's checkout and never by switching the user's.
@@ -107,4 +109,4 @@ After the round, run again whichever main gate `spp next` names: the panel by `r
 
 `close` means the pull request to the base branch merged. Tell the user to run `/close-epic <epic>`; it writes the summary and the retro and closes the Epic. Then remove the finished workers' worktrees (see `CLAUDE-CODE.md`). If the session ends before the user merges, say so: `/close-epic` runs from GitHub state alone in any later session.
 
-Finish with one table: issue, tier, pull request, state (merged, handed back, open), and anything cut, deferred or edited in the plan.
+Finish with one table: issue, tier, pull request, state (merged, handed back, open), and anything cut, deferred or edited in the plan. The table also lists the Skill feedback this run's checkpoints offered, one row each: filed (with its issue link), skipped or left for later.

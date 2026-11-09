@@ -73,6 +73,10 @@ Done when each report has a named next action.
 
 Read the reference file for the kind from step 1 now and follow it. It calls back to steps 2 and 3 for the driver and the report, and it ends the run.
 
+## Checkpoint
+
+A **checkpoint** offers the pending Skill feedback between steps. Run `spp feedback checkpoint` and follow what it prints; when it prints nothing, there is nothing to offer and you go on. Run it only at the points `EPIC.md` and `ONE-OFF.md` name, after one step has ended and before the next begins: never while a gate, a fix round or a merge is under way. A worker never runs it, so never put it in a worker's brief or message.
+
 ## Heartbeat
 
 Whenever you are woken, or you surface to the user, print one line per live worker: the issue, its state and its latest note with the note's age. The sources are `spp status <epic>` and `spp note --list <epic>`; a One-off has no Epic, so its line comes from the issue's progress comment. Read no worker's transcript and invent no state: a worker with no note is "no update since dispatch".
@@ -86,3 +90,4 @@ Whenever you are woken, or you surface to the user, print one line per live work
 - `/review-panel`, `/close-epic` and `/triage` are user-invoked. Name them to the user; the Skill tool cannot start them.
 - A merge conflict is never resolved by you: the worker rebases.
 - One Epic or One-off per run.
+- Skill feedback is offered only at a checkpoint, by you, between steps; never mid-step and never through a worker.
