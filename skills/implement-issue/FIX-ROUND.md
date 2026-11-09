@@ -17,6 +17,8 @@ Done when every finding has an entry with all four lines, and no two entries edi
 
 ## 2. Fix
 
+Tell spp this is a fix round: write the first progress comment of the round with `--by "implement-issue fix round"`, which records a run under that step. Later progress writes pass no `--by`, which returns the step to plain `implement-issue`.
+
 Run step 4 of `SKILL.md`. Each Guard is a Test scenario, taken in the plan's order and red first. Stay inside Files owned and whatever files the round's brief hands you. Before step 5, rerun the test files for everything in every Reach, not only the files the findings named.
 
 ## 3. Finish
