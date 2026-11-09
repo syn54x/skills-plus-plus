@@ -45,7 +45,7 @@ Only you start these, by typing `/<name>`.
 | Plan | [to-spec](./skills/to-spec/SKILL.md) | Writes the plan the conversation settled as an Epic issue |
 | Plan | [to-tickets](./skills/to-tickets/SKILL.md) | Cuts an Epic into Sub-issues with blocking edges and pins the plan |
 | Plan | [triage](./skills/triage/SKILL.md) | Moves a filed bug or enhancement to a triage role, hardened and sized when it is ready to build |
-| Build | [build](./skills/build/SKILL.md) | Builds an Epic or a hardened One-off into pull requests by handing it to building |
+| Build | [build](./skills/build/SKILL.md) | Builds an Epic or a hardened One-off into pull requests, here or in a sub-session you choose, by handing it to building |
 | Review | [review-panel](./skills/review-panel/SKILL.md) | Reads a pull request to main with several reviewer Personas and ends in MERGE, FIX FIRST or HUMAN DECISION |
 | Review | [improve-architecture](./skills/improve-architecture/SKILL.md) | Finds deepening opportunities in the repo or a pull request and files the ones you accept |
 | Ship | [prepare-release-notes](./skills/prepare-release-notes/SKILL.md) | Drafts release highlights since the latest tag and prints the release command |
@@ -69,6 +69,7 @@ You can type these too, but the agent starts them when a task fits, and other sk
 | Plan | [prototype](./skills/prototype/SKILL.md) | Answers one design question with throwaway code on its own branch |
 | Plan | [harden](./skills/harden/SKILL.md) | Writes the Ticket contract into one issue and gates it with `spp lint ticket` |
 | Build | [building](./skills/building/SKILL.md) | Builds an Epic or a hardened One-off into pull requests, with parallel workers behind a review gate; what `/build` runs, and what an agent starts when told to build an issue |
+| Build | [delegating](./skills/delegating/SKILL.md) | Runs one issue's skill here or in a sub-session in the issue's checkout, and passes your answers on to it; what `/build` uses to choose where the build runs |
 | Build | [implement-issue](./skills/implement-issue/SKILL.md) | The worker's procedure for one hardened issue, from the claim to a verified pull request |
 | Build | [tdd](./skills/tdd/SKILL.md) | Grows code test-first in thin vertical slices |
 | Build | [diagnosing-bugs](./skills/diagnosing-bugs/SKILL.md) | Builds a command that goes red on the bug before forming any theory |

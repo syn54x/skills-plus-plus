@@ -1,8 +1,13 @@
 ## What it does
 
-`build` is the command you type to build an Epic or a hardened One-off into pull requests. It hands the issue to [building](building.md), the skill that holds the build itself, and does nothing else: the Waves, the gates, the merges and the questions you are asked all come from `building`.
+`build` is the command you type to build an Epic or a hardened One-off into pull requests. Its one decision is where the build runs: here, or in a sub-session. It hands that choice to [delegating](delegating.md), and the build itself to [building](building.md): the Waves, the gates, the merges and the questions about them all come from `building`.
 
-`/build <N>` and a session told "use building for #N" run the same build. `building` reads every decision from GitHub, so a build started either way can be resumed either way.
+| Where you type `/build <N>` | What happens |
+| --- | --- |
+| A terminal, or anywhere a session cannot be started | No question. The build runs here. |
+| The desktop app | One question first: here or sub-session, with a recommendation. |
+
+The sub-session is recommended when this session has already started other sessions, or when its folder is not a checkout of N's repository. Choose it and the build runs in a session of its own, in N's checkout, while this one stays free. [delegating](delegating.md) explains how the checkout is found and how your answers reach the sub-session.
 
 ## When to reach for it
 
@@ -13,9 +18,13 @@ An agent cannot type `/build`, so an agent that starts a build, such as a Chief 
 ## Common questions
 
 **Where did the build steps go?**
-To [building](building.md), with its page. `/build` behaves as it did before: it calls `building` for the issue you named.
+To [building](building.md), with its page. `/build` and a session told "use building for #N" run the same build, and `building` reads every decision from GitHub, so a build started either way can be resumed either way.
+
+**Will the sub-session ask me again where to run?**
+No. Its prompt tells it to use `building`, which never asks where to run.
 
 ## It's working if
 
-- `/build <N>` and "use building for #N" start the same build on N.
-- Everything the run asks you, and everything it does, is described on the [building](building.md) page.
+- In a terminal, `/build <N>` starts building without a question about where.
+- In the desktop app, the first thing `/build <N>` asks is here or sub-session.
+- Everything the build asks after that, and everything it does, is described on the [building](building.md) page.
