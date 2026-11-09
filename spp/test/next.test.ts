@@ -20,6 +20,7 @@ type Opts = {
   epicState?: string;
   driver?: string;
   fixes?: PrSpec[]; // open or merged pull requests into the integration branch that close no Sub-issue
+  waves?: (string | number)[][]; // the wave comment's waves, Wave 1 first, each as its tickets
 };
 type Action = { kind: string; tickets?: string[]; pr?: string; driver?: string; panel?: boolean; reason: string };
 
@@ -82,7 +83,7 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
               url: ISSUE + 197,
               title: "Epic",
               repository: { nameWithOwner: "acme/app" },
-              comments: { nodes: [by(plan)] },
+              comments: { nodes: [by(plan), ...(o.waves ? [by(trailer("<!-- sdd-wave -->", { waves: o.waves.map((tickets, i) => ({ n: i + 1, tickets })), panel: [] }))] : [])] },
               subIssues: { nodes: tickets.map(node) },
             },
           },
@@ -394,6 +395,36 @@ describe("in-flight work holds an overlapping ready ticket until it merges", () 
   test("an in-flight ticket that touches other files holds nothing", async () => {
     const actions = await next([{ n: 12, labels: [...READY, "claimed"], files: ["src/y.ts"] }, C]);
     assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["13"]]]);
+  });
+});
+
+// F5 on #430: a ticket dispatched on the current Wave is held until its worker claims it, without reading sessions.
+describe("a dispatched ticket is in flight until it claims", () => {
+  test("#12 on the current Wave, no claim, no pull request: wait, not dispatched again", async () => {
+    const actions = await next([{ n: 12 }], { waves: [[12]] });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#12 dispatched, not claimed yet/);
+  });
+
+  test("#12 on the current Wave holds #13, which shares its file", async () => {
+    const actions = await next([{ n: 12, files: ["src/x.ts"] }, { n: 13, files: ["src/x.ts"] }], { waves: [[12]] });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#13 held: shares src\/x\.ts with 12/);
+  });
+
+  test("a ticket on an earlier Wave only is ready again", async () => {
+    const actions = await next([{ n: 12 }, { n: 13 }], { waves: [[12], [13]] });
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["12"]]]);
+  });
+
+  test("the current Wave naming the ticket by URL holds it too", async () => {
+    const actions = await next([{ n: 12 }], { waves: [[ISSUE + 12]] });
+    assert.deepEqual(kinds(actions), ["wait"]);
+  });
+
+  test("--resume: the worker died with the session, so #12 is dispatched again", async () => {
+    const actions = await next([{ n: 12 }], { waves: [[12]], resume: true });
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["12"]]]);
   });
 });
 

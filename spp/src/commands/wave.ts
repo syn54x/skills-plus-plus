@@ -238,7 +238,7 @@ export async function wavePlan(state: EpicState, max: number): Promise<WavePlan>
     body: (JSON.parse(await runGh(["issue", "view", t.url, "--json", "body"])) as { body: string }).body ?? "",
   });
   const [ready, running] = await Promise.all([
-    Promise.all(state.tickets.filter((t) => t.state === "ready").map(input)),
+    Promise.all(state.tickets.filter((t) => t.state === "ready" && !t.dispatched).map(input)),
     Promise.all(state.tickets.filter(inFlight).map(input)),
   ]);
   return planWave(ready, max, running);

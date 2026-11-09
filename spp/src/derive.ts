@@ -42,6 +42,11 @@ export type Ticket = {
    * one of the Epic's repositories, opened by a trusted author and, while open, into the integration branch.
    */
   pr: Pr | null;
+  /**
+   * Whether a worker was started on it and has not claimed it yet: it is listed on the current (latest) Wave of the
+   * wave comment and is unheld, with no pull request, and has not landed. Such a ticket is in flight, never dispatched again.
+   */
+  dispatched: boolean;
   /** The progress comment's Worker line, or null. */
   worker: string | null;
   /** The latest local note (`spp note`) with its ISO time, or null. */
@@ -170,8 +175,24 @@ function fixesOf(s: Snapshot, branch: string | null): Fix[] {
     .sort((a, b) => a.number - b.number);
 }
 
+/**
+ * The tickets on the wave comment's latest Wave, each as `owner/repo#N` in lower case. A ticket is stored as a number
+ * in the Epic's repo, `owner/repo#N` or the issue URL.
+ */
+function currentWave(wave: Snapshot["wave"], epicRepo: string): Set<string> {
+  const waves = Array.isArray(wave?.waves) ? (wave.waves as { n: number; tickets: (string | number)[] }[]) : [];
+  const last = waves.reduce<(typeof waves)[number] | undefined>((a, w) => (!a || w.n > a.n ? w : a), undefined);
+  return new Set(
+    (last?.tickets ?? []).map((t) => {
+      const m = /^(?:https:\/\/github\.com\/)?([\w.-]+\/[\w.-]+)(?:#|\/issues\/)(\d+)$/.exec(String(t));
+      return (m ? `${m[1]}#${m[2]}` : `${epicRepo}#${t}`).toLowerCase();
+    }),
+  );
+}
+
 export function derive(s: Snapshot): EpicState {
   const branch = text(s.plan?.branch);
+  const wave = currentWave(s.wave, s.epic.repo);
   const repos = new Set([s.epic.repo, ...s.issues.map((i) => i.repo)].map((r) => r.toLowerCase()));
   const own = new Map(s.issues.map((i) => [i.url, ownPrs(i.prs, branch, repos)]));
   // A landed blocker no longer blocks, even while its issue stays open.
@@ -194,6 +215,7 @@ export function derive(s: Snapshot): EpicState {
       assignees: i.assignees,
       labels: i.labels,
       pr,
+      dispatched: wave.has(`${i.repo}#${i.number}`.toLowerCase()) && !done.has(i.url) && !i.labels.includes("claimed") && !i.assignees.length && !pr,
       worker: text(i.progress?.worker),
       note: null,
     };

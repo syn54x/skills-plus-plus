@@ -7,7 +7,8 @@
  * With `--resume`, for the first call of a run, a Sub-issue that is claimed, has no open or merged pull request and
  * no assignee comes back as a `hand-back` action with the reason `worker lost`: the session that started its worker
  * is gone, so the user decides whether to hand it back or start a worker again. Without it such a Sub-issue is in
- * flight.
+ * flight. A Sub-issue on the current Wave that no worker has claimed yet is in flight too, so it is not dispatched
+ * again; with `--resume` its worker is gone with the session, and it is dispatched again.
  *
  * @module
  */
@@ -85,7 +86,9 @@ async function actions(arg: string, resume: boolean): Promise<Action[]> {
     if (!(e instanceof Failure)) throw e;
     return [{ kind: "preflight", reason: `${e.message}; fix: ${e.fix}` }];
   }
-  const state = (await fetchState(epic.arg))!;
+  const fetched = (await fetchState(epic.arg))!;
+  // A resumed build lost the workers its Wave started, so a ticket none of them claimed is ready again.
+  const state = resume ? { ...fetched, tickets: fetched.tickets.map((t) => ({ ...t, dispatched: false })) } : fetched;
   const branch = state.epic.branch;
   if (!branch) return [{ kind: "branch", reason: `epic ${epic.label} has no integration branch; run spp branch ${epic.arg}` }];
 

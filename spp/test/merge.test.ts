@@ -400,7 +400,7 @@ describe("integration", () => {
     // 1. spp next names the cross-repo ticket by its issue URL.
     const ticket: Ticket = {
       ...{ number: 7, url: TICKET_URL, repo: "acme/api", title: "Api ticket", size: "S", state: "ready", layer: 0, blockedBy: [], landed: false },
-      ...{ claimed: false, assignees: [], labels: ["ready-for-agent"], pr: null, worker: null, note: null },
+      ...{ claimed: false, assignees: [], labels: ["ready-for-agent"], pr: null, dispatched: false, worker: null, note: null },
     };
     const counts = { blocked: 0, ready: 1, claimed: 0, "pr-open": 0, "gate-pass": 0, "gate-fail": 0, merged: 0, "handed-back": 0, "not-agent": 0 };
     const state: EpicState = { epic: { number: 197, url: EPIC, repo: "acme/app", title: "Epic", branch: "feat/x" }, tickets: [ticket], layers: [[TICKET_URL]], cycle: [], counts, fixes: [] };

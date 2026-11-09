@@ -43,10 +43,10 @@ export const lostWorker = (t: Ticket) => !t.landed && t.state === "claimed" && t
 const done = (t: Ticket) => t.landed;
 
 /**
- * Whether a worker holds or works on the ticket until it merges: claimed or assigned, or its pull request open. The
- * parallel safety check holds a ready ticket against these on every call.
+ * Whether a worker holds or works on the ticket until it merges: dispatched on the current Wave and not claimed yet,
+ * claimed or assigned, or its pull request open. The parallel safety check holds a ready ticket against these on every call.
  */
-export const inFlight = (t: Ticket) => !done(t) && (t.claimed || t.assignees.length > 0 || t.pr?.state === "OPEN");
+export const inFlight = (t: Ticket) => !done(t) && (t.dispatched || t.claimed || t.assignees.length > 0 || t.pr?.state === "OPEN");
 
 export function planNext(input: NextInput): Action[] {
   const { state, panel, resume, checks, failedHeads, mainPr } = input;
@@ -121,7 +121,10 @@ export function planNext(input: NextInput): Action[] {
     const pr = t.pr?.url ?? "";
     const one = { tickets: [id(t)], pr };
     const c = checks[pr] ?? { result: "pending", failing: [] };
-    if (t.state === "ready") continue; // dispatched above, or held by the wave
+    if (t.state === "ready") {
+      if (t.dispatched) waitingOn.push(`${ref(t.url)} dispatched, not claimed yet`);
+      continue; // dispatched above, or held by the wave
+    }
     if (resume && lostWorker(t)) {
       // A resumed build lost its workers with its session: a claim with no pull request is work nobody is doing.
       const reason = `${ref(t.url)} is claimed with no pull request and no assignee${t.worker ? `, by ${t.worker}` : ""}: worker lost; ask the user before handing it back`;
