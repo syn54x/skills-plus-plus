@@ -11,7 +11,9 @@ When this session already started a sub-session for `<skill>` #N and that sub-se
 
 ## Kind first
 
-When `<skill>` is `building`, run `spp kind <N>` before step 1, since only an Epic or a One-off is built. For `sub-issue` or `raw`, stop here with the reason, in the words `building` uses in its step 1: a Sub-issue is built through its Epic, so ask the user to run `/build <epic>` on its parent; a raw issue lacks the contract, so ask them to run `/triage <N>`. Start no sub-session and ask nothing about where to run. For `epic` or `one-off`, go on. When N's repository is unknown (a bare number outside a git repository, as step 2 says), the kind waits for the URL that step 2 asks for: read it then, before step 3.
+When `<skill>` is `building`, run `spp kind <N>` before step 1, since only an Epic or a One-off is built. For `sub-issue` or `raw`, stop here with the reason, in the words `building` uses in its step 1: a Sub-issue is built through its Epic, so ask the user to run `/build <epic>` on its parent; a raw issue lacks the contract, so ask them to run `/triage <N>`. Start no sub-session and ask nothing about where to run. For `epic` or `one-off`, go on.
+
+N's repository is unknown when N is a bare number and this folder is not a git repository. Then, whatever `<skill>` is, ask only for the issue's URL (or its `owner/name`) and end the turn: the kind, step 3's checkout match and step 4's prompt all need it. On the answer, read the kind as above, then go on to step 1.
 
 ## 1. Can this session start sessions?
 
@@ -27,7 +29,7 @@ Settle the recommendation first, from two facts:
 - Has this session already started other sessions? List the sessions it started.
 - Is this session's folder a checkout of N's repository? Compare the folder's git remote with the repository that owns N (the URL's, or the repository you stand in for a bare number). A folder that is not a git repository is not a checkout.
 
-N's repository is unknown when N is a bare number and this folder is not a git repository. Then the recommendation is the sub-session, and the question below also asks for the issue's URL (or its `owner/name`), since step 3 matches checkouts by that repository and step 4's prompt names the issue by URL.
+A folder that is not a git repository never matches, so the recommendation there is the sub-session.
 
 | This session | Recommend |
 | --- | --- |
