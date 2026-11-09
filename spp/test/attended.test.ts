@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { attendedFile, isAttended, passDecision, workerTicket } from "../src/attended.ts";
@@ -28,15 +28,28 @@ function checkout(branch: string, decision: string | null, folder = "app") {
   return { dir, env, log: signalsFile(env, "acme/app") };
 }
 
-// Runs `spp signal step-unclear --by "harden 3" --evidence x` in the checkout with only the variables `env` gives.
-function signal(c: ReturnType<typeof checkout>, env: Record<string, string>) {
-  const base: NodeJS.ProcessEnv = { ...process.env, ...c.env };
+// A fake gh first on the PATH: it logs its argv to `log` and answers `{"state": <state>}`, or exits 1 when state is null.
+function fakeGh(state: "OPEN" | "CLOSED" | null) {
+  const bin = mkdtempSync(join(tmpdir(), "spp-attended-gh-"));
+  const log = join(bin, "calls");
+  const answer = state ? `echo '{"state":"${state}"}'` : "echo 'gh: HTTP 502' >&2; exit 1";
+  writeFileSync(join(bin, "gh"), `#!/bin/sh\necho "$*" >> "${log}"\n${answer}\n`, { mode: 0o755 });
+  return { PATH: `${bin}${delimiter}${process.env.PATH}`, calls: () => (existsSync(log) ? readFileSync(log, "utf8").split("\n").filter(Boolean) : []) };
+}
+
+// Runs `spp signal step-unclear --by "harden 3" --evidence x` in the checkout with only the variables `env` gives,
+// with a gh that finds the issue `state` (OPEN unless a test says otherwise).
+function signal(c: ReturnType<typeof checkout>, env: Record<string, string>, gh = fakeGh("OPEN")) {
+  const base: NodeJS.ProcessEnv = { ...process.env, ...c.env, PATH: gh.PATH };
   delete base.CI;
   delete base.CLAUDE_CODE_SESSION_ATTENDED;
   const args = ["signal", "step-unclear", "--by", "harden 3", "--evidence", "x"];
   const r = spawnSync(process.execPath, [join(root, "bin", "spp"), ...args], { cwd: c.dir, encoding: "utf8", env: { ...base, ...env } });
-  return { code: r.status, stdout: r.stdout, stderr: r.stderr };
+  return { code: r.status, stdout: r.stdout, stderr: r.stderr, ghCalls: gh.calls() };
 }
+
+const NOT_ATTENDED = "not recorded: not an attended session\n";
+const recorded = (c: ReturnType<typeof checkout>) => (existsSync(c.log) ? readFileSync(c.log, "utf8").split("\n").filter(Boolean).length : 0);
 
 describe("happy path", () => {
   test("true for 12 on sdd/12-invoice-endpoint with CLAUDE_CODE_SESSION_ATTENDED=0: spp signal records one Signal", () => {
@@ -61,9 +74,46 @@ describe("workerTicket", () => {
     assert.equal(workerTicket(checkout("sdd/12-invoice-endpoint", null).dir), 12);
     assert.equal(workerTicket(checkout("worktree-sdd-12", null, "sdd-12").dir), 12);
     assert.equal(workerTicket(checkout("sdd/7-other", null, "sdd-12").dir), 7);
+    // The desktop driver's worker starts on a branch named sdd-<N>.
+    assert.equal(workerTicket(checkout("sdd-12", null).dir), 12);
+    assert.equal(workerTicket(checkout("sdd-12x", null).dir), null);
     assert.equal(workerTicket(checkout("main", null).dir), null);
     assert.equal(workerTicket(checkout("main", null, "sdd-12x").dir), null);
     assert.equal(workerTicket(mkdtempSync(join(tmpdir(), "spp-attended-nogit-"))), null);
+  });
+});
+
+describe("a decision lasts while its issue is open", () => {
+  // Round 2: a One-off is merged by a person, never by spp merge, so the worker drops the decision once its issue closes.
+  test("issue 12 OPEN: one gh issue view, the decision holds and its file stays", () => {
+    const c = checkout("sdd/12-invoice-endpoint", "true\n");
+    const r = signal(c, { CLAUDE_CODE_SESSION_ATTENDED: "0" });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(recorded(c), 1);
+    assert.deepEqual(r.ghCalls, ["issue view 12 -R acme/app --json state"]);
+    assert.equal(existsSync(attendedFile(c.env, "acme/app", 12)), true);
+  });
+
+  test("issue 12 CLOSED: no decision, the file is deleted, and the harness signal decides", () => {
+    const c = checkout("sdd/12-invoice-endpoint", "true\n");
+    const r = signal(c, { CLAUDE_CODE_SESSION_ATTENDED: "0" }, fakeGh("CLOSED"));
+    assert.deepEqual([r.code, r.stdout], [0, NOT_ATTENDED]);
+    assert.equal(existsSync(attendedFile(c.env, "acme/app", 12)), false);
+  });
+
+  test("gh fails: no decision, the worker's own environment decides, the file stays and the exit code is 0", () => {
+    const c = checkout("sdd/12-invoice-endpoint", "false\n");
+    const r = signal(c, { CLAUDE_CODE_SESSION_ATTENDED: "1" }, fakeGh(null));
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(recorded(c), 1);
+    assert.equal(existsSync(attendedFile(c.env, "acme/app", 12)), true);
+  });
+
+  test("no decision file: no gh call", () => {
+    const c = checkout("sdd/12-invoice-endpoint", null);
+    const r = signal(c, { CLAUDE_CODE_SESSION_ATTENDED: "1" });
+    assert.equal(recorded(c), 1);
+    assert.deepEqual(r.ghCalls, []);
   });
 });
 
