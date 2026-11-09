@@ -91,6 +91,7 @@ spp carries concepts from these projects. Each skill that drew on one lists its 
 - [ECC](https://github.com/affaan-m/ECC): hooks that enforce a gate instead of trusting the model to remember it.
 - [OpenSpec](https://github.com/Fission-AI/OpenSpec): the spec as the source of truth, with changes recorded as deltas against it.
 - [GSD](https://github.com/gsd-build/get-shit-done): keeping each worker's context small and fresh, and state that survives an interrupted session.
+- [gitleaks](https://github.com/gitleaks/gitleaks): the secret-detection rules behind the outbound check on Skill feedback, translated from its rule set.
 
 ## License
 

@@ -128,3 +128,18 @@ test("the repository passes, with grilling credited", () => {
   const grilling = readFileSync(join(repoRoot, "skills/grilling/SKILL.md"), "utf8");
   assert.match(grilling, /^  credits:\n    - skill: grilling\n      author: Matt Pocock$/m);
 });
+
+const MIT_SOURCE = { "spp/src/rules.ts": "// Patterns from gitleaks (MIT License, Copyright (c) 2019 Zachary Rice).\n" };
+
+test("a source comment naming a copyright line missing from LICENSE fails, naming the file", () => {
+  const result = run("check-credits.ts", tree({ ...MIT_SOURCE, LICENSE: "MIT License\n\nCopyright (c) 2026 Someone\n" }));
+  assert.equal(result.status, 1);
+  assert.equal(result.stderr.trim().split("\n").length, 1);
+  assert.match(result.stderr, /spp\/src\/rules\.ts.*Copyright \(c\) 2019 Zachary Rice/);
+});
+
+test("a source comment naming a copyright line that LICENSE carries passes", () => {
+  const result = run("check-credits.ts", tree({ ...MIT_SOURCE, LICENSE: "Copyright (c) 2019 Zachary Rice\n" }));
+  assert.equal(result.stderr, "");
+  assert.equal(result.status, 0);
+});
