@@ -15,7 +15,7 @@ type Opts = {
   branch?: string | null;
   panel?: string;
   mainPr?: { state: "OPEN" | "MERGED" | "CLOSED"; lines: number } | null;
-  agents?: unknown[];
+  resume?: boolean; // pass --resume
   env?: Record<string, string>;
   epicState?: string;
   driver?: string;
@@ -37,7 +37,8 @@ const by = (body: string, outsider = false) => ({ body, author: { login: outside
 const ticketBody = (t: Spec) => `## Files owned\n\n- Modify: ${(t.files ?? [`src/f${t.n}.ts`]).map((f) => `\`${f}\``).join(", ")}\n\n## Interfaces\n\n- Consumes: none\n- Produces: none\n`;
 
 // A case directory for Epic 197 in acme/app: its Sub-issues, their pull requests, CI and verdict history,
-// the pull request to the base branch, the Routing block and the claude session list.
+// the pull request to the base branch and the Routing block. The claude stub logs every call it gets, so a case that
+// reads the claude session list shows that call among its writes.
 function scratch(tickets: Spec[], o: Opts = {}): string {
   const dir = mkdtempSync(join(tmpdir(), "spp-next-"));
   const branch = o.branch === undefined ? "feat/epic" : o.branch;
@@ -127,10 +128,9 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
   }
   gh["api graphql -f query=PullRequests *"] = { stdout: { data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: (o.fixes ?? []).map(pr) } } } } };
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
-  if (o.agents) writeFileSync(join(dir, "agents.json"), JSON.stringify({ "agents --json --all": { stdout: o.agents } }));
   const routing = ["<!-- sdd-routing -->", "- Mode: org", "- Laws: CLAUDE.md", ...(o.panel ? [`- Panel: ${o.panel}`] : []), "<!-- /sdd-routing -->"];
   writeFileSync(join(dir, "CLAUDE.md"), routing.join("\n") + "\n");
-  writeFileSync(join(dir, "args"), "197\n--json\n");
+  writeFileSync(join(dir, "args"), `197\n--json\n${o.resume ? "--resume\n" : ""}`);
   return dir;
 }
 
@@ -142,7 +142,7 @@ async function next(tickets: Spec[], o: Opts = {}): Promise<Action[]> {
   try {
     const r = await runCase("next", dir);
     assert.equal(r.code, 0, r.stderr);
-    assert.deepEqual(r.writes, [], "spp next writes nothing");
+    assert.deepEqual(r.writes, [], "spp next writes nothing and makes no claude call");
     return (r.json as { actions: Action[] }).actions;
   } finally {
     if (socket === undefined) delete process.env.CLAUDE_CODE_MESSAGING_SOCKET;
@@ -236,14 +236,6 @@ describe("edge cases", () => {
     assert.deepEqual(kinds(await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, checks: "pending" } }])), ["wait"]);
   });
 
-  test("a gate-fail ticket whose worker is still running its fix round: wait, not fix again", async () => {
-    const actions = await next([{ n: 12, labels: [...READY, "claimed"], worker: "t-12", pr: { n: 40, verdict: FAIL } }], {
-      agents: [{ name: "t-12", kind: "background", state: "working" }],
-    });
-    assert.deepEqual(kinds(actions), ["wait"]);
-    assert.match(actions[0].reason, /t-12 working/);
-  });
-
   test("a gate-fail ticket in its first fix round: fix", async () => {
     const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, verdict: FAIL } }]);
     assert.deepEqual(kinds(actions), ["fix"]);
@@ -317,37 +309,60 @@ describe("edge cases", () => {
     assert.equal(actions[0].panel, false);
   });
 
-  // Review of #271: a claimed worker that died before its pull request must end the wait loop, not feed it.
-  test("a claimed ticket with no pull request whose worker session stopped: one hand-back naming the lost worker, on every call", async () => {
-    const tickets: Spec[] = [{ n: 12, labels: [...READY, "claimed"], worker: "t-12" }];
-    const agents = [{ name: "t-12", kind: "background", state: "done" }];
-    for (let call = 0; call < 2; call++) {
-      const actions = await next(tickets, { agents });
-      assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["hand-back", ["12"]]]);
-      assert.match(actions[0].reason, /#12 .*t-12 done.*worker lost/);
-    }
-  });
-
-  test("once that lost worker's ticket is handed back, next is stuck on it, not waiting", async () => {
-    const actions = await next([{ n: 12, labels: ["size:S", "needs-info"], worker: "t-12" }], { agents: [{ name: "t-12", kind: "background", state: "done" }] });
+  test("once a lost worker's ticket is handed back, next is stuck on it, not waiting", async () => {
+    const actions = await next([{ n: 12, labels: ["size:S", "needs-info"], worker: "t-12" }], { resume: true });
     assert.deepEqual(kinds(actions), ["stuck"]);
     assert.match(actions[0].reason, /#12 is handed back/);
   });
 
-  test("a ticket a person holds by assignment, with a stale t-<N> session listed, is a live hold: wait", async () => {
-    const actions = await next([{ n: 12, assignees: ["alice"] }], { agents: [{ name: "t-12", kind: "background", state: "done" }] });
+  test("a ticket a person holds by assignment is a live hold: wait", async () => {
+    const actions = await next([{ n: 12, assignees: ["alice"] }]);
     assert.deepEqual(kinds(actions), ["wait"]);
-  });
-
-  test("a ready ticket whose dispatched worker session is still working is waited on, not dispatched again", async () => {
-    const actions = await next([{ n: 12, worker: "t-12" }], { agents: [{ name: "t-12", kind: "background", state: "working" }] });
-    assert.deepEqual(kinds(actions), ["wait"]);
-    assert.match(actions[0].reason, /t-12/);
   });
 
   test("a pull request merged into the integration branch counts as merged while its issue is still open", async () => {
     const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, state: "MERGED" } }], { mainPr: null });
     assert.deepEqual(kinds(actions), ["main-gate"]);
+  });
+});
+
+// #408: a build resumed after its session died asks about each Sub-issue its lost workers left claimed.
+describe("--resume reports lost workers", () => {
+  const claimed: Spec = { n: 12, labels: [...READY, "claimed"], worker: "t-12" };
+
+  test("spp next 197 --resume --json with #12 claimed, no pull request, no assignee: a hand-back for #12, worker lost", async () => {
+    const actions = await next([claimed], { resume: true });
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["hand-back", ["12"]]]);
+    assert.match(actions[0].reason, /#12 .*worker lost/);
+  });
+
+  test("spp next 197 --json with the same state: no hand-back for #12", async () => {
+    const actions = await next([claimed]);
+    assert.deepEqual(kinds(actions), ["wait"]);
+  });
+
+  test("spp next 197 --resume --json with #12 claimed and assigned to alice: no hand-back for #12", async () => {
+    const actions = await next([{ ...claimed, assignees: ["alice"] }], { resume: true });
+    assert.deepEqual(kinds(actions), ["wait"]);
+  });
+
+  test("spp next 197 --resume --json with #12 claimed and an open pull request: no hand-back for #12", async () => {
+    const actions = await next([{ ...claimed, pr: { n: 40, checks: "pending" } }], { resume: true });
+    assert.deepEqual(kinds(actions), ["wait"]);
+  });
+
+  test("spp next 197, spp wait 197 --timeout 1 and spp wave plan 197: the stubbed claude records no agents call", async () => {
+    const dir = scratch([claimed, { n: 13 }]);
+    for (const [command, args] of [
+      ["next", "197\n"],
+      ["wait", "197\n--interval\n1\n--timeout\n1\n"],
+      ["wave", "plan\n197\n"],
+    ]) {
+      writeFileSync(join(dir, "args"), args);
+      const r = await runCase(command, dir);
+      assert.equal(r.code, 0, `${command}: ${r.stderr}`);
+      assert.deepEqual(r.writes, [], `spp ${command} makes no claude call`);
+    }
   });
 });
 
@@ -363,12 +378,6 @@ describe("in-flight work holds an overlapping ready ticket until it merges", () 
       assert.deepEqual(kinds(actions), ["wait"]);
       assert.match(actions[0].reason, /#13 held: shares src\/x\.ts with 12/);
     }
-  });
-
-  test("A dispatched with its session live but not yet claimed: C held", async () => {
-    const actions = await next([{ n: 12, files: ["src/x.ts"] }, C], { agents: [{ name: "t-12", kind: "background", state: "working" }] });
-    assert.deepEqual(kinds(actions), ["wait"]);
-    assert.match(actions[0].reason, /#13 held: shares src\/x\.ts with 12/);
   });
 
   test("A with its pull request open: C held", async () => {
@@ -532,11 +541,6 @@ describe("fix pull requests", () => {
     const actions = await next(landed, { fixes: [FIX(77, { checks: "pending" })] });
     assert.deepEqual(kinds(actions), ["wait"]);
     assert.match(WHY(actions[0]), /#77 checks pending/);
-  });
-
-  test("its Sub-issue's worker still running: wait, not gate", async () => {
-    const agents = [{ name: "t-12", state: "working" }];
-    assert.deepEqual(kinds(await next(landed, { fixes: [FIX(77)], agents })), ["wait"]);
   });
 
   test("an unattributed fix with nothing else in flight: stuck, naming it, Refs and the other way out", async () => {

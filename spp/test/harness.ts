@@ -1,5 +1,5 @@
 // The spp CLI test seam. runCase runs `bin/spp <command> <args>` with stub gh and claude first on the PATH;
-// the stubs answer from the case directory and log every gh write they are asked to make.
+// the stubs answer from the case directory and log every gh write and every claude call they are asked to make.
 //
 // A case directory holds:
 //   args                    the arguments after the command, one per line
@@ -10,7 +10,7 @@
 //   expected.json           the JSON stdout assertCase compares (optional)
 //   expected.txt            the text stdout assertCase compares (optional)
 //   expected-writes.jsonl   one { "cmd": "gh" | "claude", "argv": [...], "input"?: string } per write, in order (absent means none);
-//                           every claude call but `claude agents` counts as a write
+//                           every claude call counts as a write, `claude agents` included, since spp reads no sessions
 //
 // Keys and logged argv are stable: a `query=` argument becomes `query=<operation name>`, and a `k=@file`,
 // `--body-file file` or `--input file` argument has the file's contents inlined.
@@ -139,7 +139,7 @@ export function stub(name: "gh" | "claude"): void {
   const keyArgs = argv.map((a) => a.replace(/^query=\s*(?:query|mutation)\s+(\w+)[\s\S]*$/, "query=$1"));
   const key = keyArgs.join(" ");
   const input = process.stdin.isTTY ? "" : readStdin();
-  const write = name === "gh" ? isGhWrite(argv) : argv[0] !== "agents";
+  const write = name === "gh" ? isGhWrite(argv) : true;
   if (write) appendFileSync(process.env.SPP_WRITES ?? "/dev/null", JSON.stringify({ cmd: name, argv: keyArgs, ...(input && { input }) }) + "\n");
   const answers = JSON.parse(read(dir, name === "gh" ? "gh.json" : "agents.json") ?? "{}") as Record<string, Answer | Answer[]>;
   // A key ending in " *" answers any argv that starts with the rest, for argv that carries a temp path.

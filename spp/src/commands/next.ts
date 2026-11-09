@@ -1,15 +1,19 @@
 /**
- * `spp next <epic> [--json]` prints the build's next actions, one per line. The build loop is: run `spp next`, do
- * what it says, run it again. It reads the Epic's preconditions, its state, CI on open pull requests, the gate's
- * verdict history, the pull request to the base branch and the session list, all from GitHub and `claude`, never
- * from local state. With `--json` it prints {@link NextActions}.
+ * `spp next <epic> [--json] [--resume]` prints the build's next actions, one per line. The build loop is: run
+ * `spp next`, do what it says, run it again. It reads the Epic's preconditions, its state, CI on open pull requests,
+ * the gate's verdict history and the pull request to the base branch, all from GitHub, never from local state or a
+ * session list. With `--json` it prints {@link NextActions}.
+ *
+ * With `--resume`, for the first call of a run, a Sub-issue that is claimed, has no open or merged pull request and
+ * no assignee comes back as a `hand-back` action with the reason `worker lost`: the session that started its worker
+ * is gone, so the user decides whether to hand it back or start a worker again. Without it such a Sub-issue is in
+ * flight.
  *
  * @module
  */
-import { spawnSync } from "node:child_process";
 import { runGh } from "../gh.ts";
 import { guarded, parseIssue, readTrailer, UsageError } from "../markers.ts";
-import { type Action, DEFAULT_WAVE_MAX, planNext, type Session } from "../plan-next.ts";
+import { type Action, DEFAULT_WAVE_MAX, planNext } from "../plan-next.ts";
 import { trustedMarker } from "../snapshot.ts";
 import { readVerdict, VERDICT_MARKER } from "../verdict.ts";
 import { culprits, readChecks } from "./checks.ts";
@@ -26,8 +30,9 @@ export type NextActions = {
 };
 
 /** The usage text `spp next --help` prints. */
-export const USAGE = `usage: spp next <epic number | issue URL> [--json]
+export const USAGE = `usage: spp next <epic number | issue URL> [--json] [--resume]
 Prints the next actions: preflight, branch, dispatch, gate, fix, hand-back, merge, wait, main-gate, close or stuck.
+--resume, on a run's first call, hands back each claimed Sub-issue with no pull request and no assignee as "worker lost".
 `;
 
 const PULL_URL = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)$/;
@@ -47,20 +52,6 @@ const VERDICT_HISTORY = `query VerdictHistory($owner: String!, $repo: String!, $
     }
   }
 }`;
-
-/**
- * The sessions `claude agents` lists; none when claude is missing or fails, since the session list is only a hint.
- *
- * @internal
- */
-export function readSessions(): Session[] {
-  const r = spawnSync("claude", ["agents", "--json", "--all"], { encoding: "utf8" });
-  try {
-    return r.status === 0 ? (JSON.parse(r.stdout) as Session[]) : [];
-  } catch {
-    return [];
-  }
-}
 
 // How many different heads failed a verdict or CI: 1 is the first failure, 2 or more means the fix round is spent.
 // shortcut: every red head counts, so a worker that pushes red and then green inside one round spends the round early.
@@ -85,7 +76,7 @@ async function failedHeads(pr: string): Promise<number> {
   return heads.size;
 }
 
-async function actions(arg: string): Promise<Action[]> {
+async function actions(arg: string, resume: boolean): Promise<Action[]> {
   const epic = parseIssue(arg);
   let panel;
   try {
@@ -98,12 +89,11 @@ async function actions(arg: string): Promise<Action[]> {
   const branch = state.epic.branch;
   if (!branch) return [{ kind: "branch", reason: `epic ${epic.label} has no integration branch; run spp branch ${epic.arg}` }];
 
-  const sessions = readSessions();
   const openFixes = state.fixes.filter((f) => f.state === "OPEN");
   const attributed = openFixes.filter((f) => f.ticket); // an unattributed fix is never gated, so its checks are not read
   const prs = (st: string) => state.tickets.flatMap((t) => (t.pr && t.state === st ? [t.pr.url] : []));
   const [wave, checks, list] = await Promise.all([
-    wavePlan(state, DEFAULT_WAVE_MAX, sessions),
+    wavePlan(state, DEFAULT_WAVE_MAX),
     Promise.all([...prs("pr-open"), ...attributed.map((f) => f.url)].map(async (pr) => [pr, await readChecks(pr)] as const)),
     runGh(["pr", "list", "-R", state.epic.repo, "--head", branch, "--state", "all", "--json", "number,url,state,additions,deletions"]),
   ]);
@@ -114,7 +104,7 @@ async function actions(arg: string): Promise<Action[]> {
   return planNext({
     state,
     panel,
-    sessions,
+    resume,
     wave,
     checks: Object.fromEntries(checks.map(([pr, c]) => [pr, { result: c.result, failing: culprits(c) }])),
     failedHeads: Object.fromEntries(heads),
@@ -125,20 +115,21 @@ async function actions(arg: string): Promise<Action[]> {
 /**
  * Prints the build's next actions.
  *
- * @param args - The Epic (an issue number in the current repo or an issue URL), and `--json` for the
- *   {@link NextActions} shape.
+ * @param args - The Epic (an issue number in the current repo or an issue URL), `--json` for the
+ *   {@link NextActions} shape, and `--resume` to report each lost worker as a `hand-back`.
  * @returns 0 when it printed the actions, a failed precondition included (as a `preflight` action); 2 on a usage
  *   error, with the usage on stderr. A `gh` error exits 1 with the reason on stderr.
  * @example
  * ```bash
  * spp next 197
+ * spp next 197 --resume --json
  * ```
  */
 export function run(args: string[]): Promise<number> {
   return guarded(() => "next", USAGE, async () => {
-    const rest = args.filter((a) => a !== "--json");
+    const rest = args.filter((a) => a !== "--json" && a !== "--resume");
     if (rest.length !== 1) throw new UsageError("");
-    const list: NextActions = { actions: await actions(rest[0]) };
+    const list: NextActions = { actions: await actions(rest[0], args.includes("--resume")) };
     process.stdout.write(
       args.includes("--json")
         ? JSON.stringify(list, null, 2) + "\n"
