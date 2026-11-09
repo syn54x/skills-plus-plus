@@ -109,7 +109,7 @@ spp findings merge "$ROUND_DIR"/*.json --verdict "$R" --spec <pass|fail> --coher
   --verify <pass|fail> --checks <pass|fail|pending|none> [--missing <name,name>]
 ```
 
-It reads this round's folder and nothing else: each Persona's reply and, from round 2 on, the `recheck-<name>.json` files `ROUNDS.md` adds. The readings are the ones you hold from steps 2 and 3, and `--missing` names each Persona listed as `did not report`. The command drops findings under confidence 80, merges the ones on the same file, within five lines, with the same normalised title (keeping the highest severity and every Persona's name), numbers them `F1`, `F2` and on, prints the three tallies, and ends with a `Verdict:` line. Do not merge, rank, re-number or re-decide by hand.
+It reads this round's folder and nothing else: each Persona's reply and, from round 2 on, the `recheck-<name>.json` files `ROUNDS.md` adds. The readings are the ones you hold from steps 2 and 3, and `--missing` names each Persona listed as `did not report`. The command drops findings under confidence 80, merges the ones on the same file within five lines whatever their titles, so one defect counts once (keeping the highest severity and every Persona's name, and listing each other title as an `Also reported as:` line in the body; a title that starts `ticket-mandated:`, `Candidate ADR:`, `Check after deploy:` or `Terminology` merges only with its own tag), numbers them `F1`, `F2` and on, prints the three tallies, and ends with a `Verdict:` line. Do not merge, rank, re-number or re-decide by hand.
 
 Read `VERDICT.md` now and write the report around the merge output: the verdict line is copied, and you add only its one sentence, the Spec and Coherence sections, the Coverage lines and Residual risk.
 

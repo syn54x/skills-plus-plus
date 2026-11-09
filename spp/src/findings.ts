@@ -53,13 +53,19 @@ export type MergeResult = {
   counts: { severity: Record<string, number>; persona: Record<string, number> };
   dropped: number; // findings under MIN_CONFIDENCE, which never reach the list
   recheck: string[]; // ids of merged findings that absorbed a finding from a `rechecks` input
+  lines: Record<string, number[]>; // for each merged id, the distinct lines its findings sat on, ascending
 };
 
 export const MIN_CONFIDENCE = 80;
-// Two findings are one when they share a file and a normalised title and their lines sit less than WINDOW apart.
+// Findings of one normalised title on a file are one when their lines sit less than WINDOW from the first of them, and
+// those title clusters are one group, whatever their titles, when their first lines sit less than WINDOW from the
+// group's first: Personas rarely word one defect the same. A tagged title (see `tagOf`) merges only with its own tag.
 export const WINDOW = 5;
 
 const normal = (title: string) => title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+// The title prefixes the panel's skills give meaning to (VERDICT.md): a `ticket-mandated:` finding is a person's call, so
+// merging a real Critical into one would turn FIX FIRST into HUMAN DECISION. An untagged title has the tag "".
+const tagOf = (title: string) => /^(ticket-mandated:|candidate adr:|check after deploy:|terminology)/i.exec(title)?.[1].toLowerCase() ?? "";
 const cmp = (a: string | number, b: string | number) => (a < b ? -1 : a > b ? 1 : 0);
 const rank = (s: Severity) => SEVERITIES.indexOf(s);
 
@@ -112,43 +118,74 @@ export function panelVerdict(result: MergeResult, r: Readings): PanelVerdict {
 }
 
 type Candidate = Finding & { persona: string; recheck: boolean };
+const byPlace = (a: Candidate, b: Candidate) => cmp(a.line, b.line) || cmp(a.persona, b.persona) || cmp(a.confidence, b.confidence) || cmp(normal(a.title), normal(b.title));
 
 // `rechecks` are the inputs that re-report an earlier finding; the merged findings they reach are listed in `recheck`.
 export function mergeFindings(inputs: PersonaFindings[], rechecks: ReadonlySet<PersonaFindings> = new Set()): MergeResult {
   const all: Candidate[] = inputs.flatMap((p) => p.findings.map((f) => ({ ...f, persona: p.persona, recheck: rechecks.has(p) })));
   const kept = all.filter((f) => f.confidence >= MIN_CONFIDENCE);
 
-  // Cluster by file and normalised title, then by line: a finding joins the open cluster when it sits less than
-  // WINDOW lines from the cluster's first line. Sorted input makes the clusters independent of the file order.
-  const byKey = new Map<string, Candidate[]>();
+  // Two passes per file, over sorted input so the clusters never depend on the file order. First, findings of one
+  // normalised title cluster by line: one joins the open title cluster when it sits less than WINDOW lines from that
+  // cluster's first line. Second, whole title clusters fold whatever their titles, within one tag: one joins the open
+  // group when its first line sits less than WINDOW lines from the group's first line. A title cluster is never split,
+  // so every merge of one title stays, which a single pass anchored at a neighbour's line could undo.
+  const byTitle = new Map<string, Candidate[]>();
   for (const f of kept) {
     const key = `${f.file}\0${normal(f.title)}`;
-    byKey.set(key, [...(byKey.get(key) ?? []), f]);
+    byTitle.set(key, [...(byTitle.get(key) ?? []), f]);
   }
-  const clusters: Candidate[][] = [];
-  for (const group of byKey.values()) {
-    group.sort((a, b) => cmp(a.line, b.line) || cmp(a.persona, b.persona) || cmp(a.confidence, b.confidence));
+  const titleClusters: Candidate[][] = [];
+  for (const group of byTitle.values()) {
+    group.sort(byPlace);
     let open: Candidate[] | undefined;
     for (const f of group) {
       if (open && f.line - open[0].line < WINDOW) open.push(f);
-      else clusters.push((open = [f]));
+      else titleClusters.push((open = [f]));
     }
   }
+  const byTag = new Map<string, Candidate[][]>();
+  for (const t of titleClusters) {
+    const key = `${t[0].file}\0${tagOf(t[0].title)}`; // titles that differ only in punctuation share a cluster; its first finding names the tag
+    byTag.set(key, [...(byTag.get(key) ?? []), t]);
+  }
+  const clusters: Candidate[][] = [];
+  for (const group of byTag.values()) {
+    group.sort((a, b) => byPlace(a[0], b[0]));
+    let open: Candidate[] | undefined;
+    for (const t of group) {
+      if (open && t[0].line - open[0].line < WINDOW) open.push(...t);
+      else clusters.push((open = [...t]));
+    }
+  }
+  for (const c of clusters) c.sort(byPlace);
 
-  // The highest severity speaks (then the most confident, then the first persona by name); every persona is kept.
+  // The highest severity speaks (then the most confident, then the first persona by name); every persona is kept, and
+  // each other title stays in the body so a fixer still sees a second defect that sits on a neighbouring line.
   const merged = clusters.map((c) => {
     const [top] = [...c].sort((a, b) => rank(a.severity) - rank(b.severity) || b.confidence - a.confidence || cmp(a.persona, b.persona) || cmp(a.line, b.line));
-    const law = [...c].sort((a, b) => cmp(a.persona, b.persona)).find((f) => f.law)?.law;
+    // The speaker's Law tag when it cites one: `spp retro` counts findings by it, and an absorbed defect's tag would misfile this one.
+    const law = top.law || [...c].sort((a, b) => cmp(a.persona, b.persona)).find((f) => f.law)?.law;
     const personas = [...new Set(c.map((f) => f.persona))].sort(cmp);
-    return { file: top.file, line: top.line, title: top.title, severity: top.severity, personas, ...(law && { law }), body: top.body, recheck: c.some((f) => f.recheck) };
+    const spoken = new Set([normal(top.title)]);
+    const also: string[] = [];
+    for (const f of c) { // c is in line, then persona, order: the first finding to use a title is the one named
+      if (spoken.has(normal(f.title))) continue;
+      spoken.add(normal(f.title));
+      also.push(`Also reported as: ${f.title} (${f.persona}, line ${f.line})`);
+    }
+    const body = also.length ? `${top.body}\n\n${also.join("\n")}` : top.body;
+    const lines = [...new Set(c.map((f) => f.line))].sort(cmp);
+    return { file: top.file, line: top.line, title: top.title, severity: top.severity, personas, ...(law && { law }), body, recheck: c.some((f) => f.recheck), lines };
   });
   merged.sort((a, b) => rank(a.severity) - rank(b.severity) || cmp(a.file, b.file) || cmp(a.line, b.line) || cmp(normal(a.title), normal(b.title)) || cmp(a.personas.join(), b.personas.join()));
 
-  const findings: Merged[] = merged.map(({ recheck: _, ...m }, i) => ({ id: `F${i + 1}`, ...m }));
+  const findings: Merged[] = merged.map(({ recheck: _, lines: __, ...m }, i) => ({ id: `F${i + 1}`, ...m }));
   const recheck = findings.filter((_, i) => merged[i].recheck).map((f) => f.id);
+  const lines = Object.fromEntries(findings.map((f, i) => [f.id, merged[i].lines]));
   const severity = Object.fromEntries(SEVERITIES.map((s) => [s, findings.filter((f) => f.severity === s).length]));
   const persona = Object.fromEntries([...new Set(inputs.map((p) => p.persona))].sort(cmp).map((p) => [p, findings.filter((f) => f.personas.includes(p)).length]));
-  return { findings, counts: { severity, persona }, dropped: all.length - kept.length, recheck };
+  return { findings, counts: { severity, persona }, dropped: all.length - kept.length, recheck, lines };
 }
 
 // A path git quoted (non-ASCII or special characters, core.quotePath): drop the quotes and decode \ooo bytes and \" \\ \t \n.

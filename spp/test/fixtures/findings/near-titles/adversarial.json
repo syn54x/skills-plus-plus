@@ -1,0 +1,13 @@
+{
+  "persona": "adversarial",
+  "findings": [
+    {
+      "file": "src/a.ts",
+      "line": 12,
+      "title": "Any gh failure is read as not a Sub-issue",
+      "severity": "important",
+      "confidence": 90,
+      "body": "A rate limit reads as a missing parent."
+    }
+  ]
+}
