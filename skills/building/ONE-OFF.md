@@ -4,13 +4,13 @@ Read only when `spp kind` says `one-off`, never for a `sub-issue`, which is buil
 
 ## 1. Start the worker
 
-Pick the driver from step 2 of `SKILL.md` by testing each capability yourself, in its order: the session-start tool, then the messaging socket, then isolated subagents. `spp next` is not there to report it. `spp dispatch <N> --driver <d>` writes the brief and, for a background session, starts the worker. It refuses an issue that is held; report who holds it and stop. Choose the worker's tier as `SKILL.md` says.
+Start its one worker the way step 2 of `SKILL.md` starts every worker: `spp dispatch <N>` writes the brief and prints its path, then one `spp:worker` subagent starts on it. `spp dispatch` refuses an issue that is held; report who holds it and stop. Choose the worker's tier as `SKILL.md` says.
 
 Done when a worker is running on the issue.
 
 ## 2. Wait
 
-Be woken when the worker's turn ends: desktop and subagent workers wake you, and for a background session ask to be notified when its session next goes idle. Print the heartbeat while you wait, from the issue's progress comment.
+Be woken when the worker's turn ends; the subagent wakes you. Print the heartbeat while you wait, from the issue's progress comment.
 
 Then read the report (step 3 of `SKILL.md`). A `NEEDS_CONTEXT` that is an unsettled design is the user's to settle here: put the question to them, and when they answer, edit the issue body to match, restore `ready-for-agent` and start the worker again. Settle nothing alone, since a One-off has no Epic to carry a Spec delta.
 

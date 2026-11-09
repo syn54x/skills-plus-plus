@@ -6,7 +6,7 @@ It never merges and never writes to GitHub on its own account. Every claim, prog
 
 ## When to reach for it
 
-Type `/implement-issue <N>`, or the agent starts it when a task fits: a brief or a driver hands it an issue whose body holds the full Ticket contract. Most runs start inside `/build`, which writes a brief for each ready Sub-issue and starts one worker per issue, in its own worktree. On the single-issue path, `/build` does the same for a hardened One-off.
+Type `/implement-issue <N>`, or the agent starts it when a task fits: a brief hands it an issue whose body holds the full Ticket contract. Most runs start inside `/build`, which writes a brief for each ready Sub-issue and starts one worker per issue, in its own worktree. On the single-issue path, `/build` does the same for a hardened One-off.
 
 | Your situation | Use |
 | --- | --- |

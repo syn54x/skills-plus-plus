@@ -34,30 +34,24 @@ Run `spp kind <N>`. It prints the kind and the reason.
 
 Done when you hold the kind and, for `sub-issue` or `raw`, the user has the reason.
 
-## 2. Pick the driver
+## 2. Workers
 
-A **Driver** is the mechanism a worker runs in. Every driver keeps one contract: an issue number goes in, a pull request comes out, all state lives in GitHub. Choose once per run, by capability, best first, and test each by the presence of its tool or signal:
-
-1. **Desktop linked sessions**, when a tool that starts a separate linked session is available. Sessions show as sidebar rows, the person can steer them, and the app wakes you when one ends.
-2. **Background sessions**, when the cross-session messaging socket is present. On the Epic path `spp next <epic> --json` reports it as the `driver` of its `dispatch` action (`bg` or `subagent`). A One-off has no `spp next`, so test for the socket yourself, as `CLAUDE-CODE.md` says. `spp dispatch <N> --driver bg` starts the worker, and `spp wait <epic>` run in the background wakes you.
-3. **Isolated subagents** otherwise: one worker agent per issue, each in a worktree of its own.
-
-Never take a lower driver while a higher one is available, and never take a higher one on a guess. The one exception is the user's own choice: a Driver the user chose at the first Wave's approval (`EPIC.md`) stands for the run, even when a higher one is available. The desktop app starts linked sessions only on a turn the user started, so desktop Waves after the first wait for a user message; that is why the user is asked. On Claude Code, [`CLAUDE-CODE.md`](CLAUDE-CODE.md) names the tool or command behind each capability here; read it now.
+Each worker is one isolated subagent, the `spp:worker` agent, in a worktree of its own. It keeps one contract: an issue number goes in, a pull request comes out, all state lives in GitHub. Nothing asks or records how workers run. On Claude Code, [`CLAUDE-CODE.md`](CLAUDE-CODE.md) names the tool or command behind each capability here; read it now.
 
 | Capability | How |
 | --- | --- |
-| Write a worker's brief | `spp dispatch <N> --driver <d>` (it refuses an issue that is held); `spp brief <N>` writes the file alone |
-| Start a worker | per driver, with the brief's path as the prompt |
-| Wake when work changes | `spp wait <epic>` run in the background; desktop and subagent workers also wake you |
+| Write a worker's brief | `spp dispatch <N>` (it refuses an issue that is held); `spp brief <N>` writes the file alone |
+| Start a worker | one `spp:worker` subagent, with the brief's path as the prompt |
+| Wake when work changes | `spp wait <epic>` run in the background; a worker also wakes you when it ends |
 | Resume a worker | message the same worker by name |
 | Start the fresh reviewer | the `review` skill starts it |
 | Settle a design | the `grilling` skill, then `domain-modeling` |
 
-Done when the driver is named and the Claude Code reference is read.
+Done when the Claude Code reference is read.
 
 ## 3. The worker's report
 
-A worker ends with one JSON object: `status` is `DONE`, `DONE_WITH_CONCERNS`, `BLOCKED` or `NEEDS_CONTEXT`; `pr` and `verifySha` are `null` when no pull request opened. A session driver may not hand you the report. The state is still readable then: the issue's progress comment shows a hand-back's route and reason, and the pull request body's Notes for the reviewer holds the concerns.
+A worker ends with one JSON object: `status` is `DONE`, `DONE_WITH_CONCERNS`, `BLOCKED` or `NEEDS_CONTEXT`; `pr` and `verifySha` are `null` when no pull request opened. When a worker stops without one, the state is still readable: the issue's progress comment shows a hand-back's route and reason, and the pull request body's Notes for the reviewer holds the concerns.
 
 Read it before you gate and act on it. Never ignore an escalation, and never re-run a worker unchanged.
 
@@ -70,7 +64,7 @@ Done when each report has a named next action.
 
 ## 4. Run the path
 
-Read the reference file for the kind from step 1 now and follow it. It calls back to steps 2 and 3 for the driver and the report, and it ends the run.
+Read the reference file for the kind from step 1 now and follow it. It calls back to steps 2 and 3 for the workers and the report, and it ends the run.
 
 ## Checkpoint
 
@@ -82,7 +76,7 @@ Whenever you are woken, or you surface to the user, print one line per live work
 
 ## Guardrails
 
-- A worker's tier follows the shape of its issue, never a vendor model name. A mid tier for a well-specified issue in one subsystem with an in-repo pattern to copy; the ceiling tier for cross-cutting, schema or design-judgment work, and for any issue that already bounced once. Set it wherever the driver takes one, since an unset tier inherits yours.
+- A worker's tier follows the shape of its issue, never a vendor model name. A mid tier for a well-specified issue in one subsystem with an in-repo pattern to copy; the ceiling tier for cross-cutting, schema or design-judgment work, and for any issue that already bounced once. Set it on every worker you start, since an unset tier inherits yours.
 - Readiness comes from GitHub (open, unblocked, unheld, `ready-for-agent`) and `spp` computes it; no status label says "in progress".
 - Every issue comment goes through `spp progress`, `spp plan`, `spp wave` or `spp hand-back`, which keep one Marker comment each.
 - Start workers on issues nobody holds, and never claim for them: the worker claims in its first step.
