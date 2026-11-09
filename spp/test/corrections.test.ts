@@ -139,7 +139,7 @@ describe("happy path", () => {
     const [s, ...rest] = signals();
     assert.deepEqual(rest, []);
     assert.deepEqual([s.category, s.skill, s.step], ["contract-edited", "harden", "pin"]);
-    assert.equal(s.evidence, `${ISSUE} Verify block no longer matches pin ${STALE_PIN.slice(0, 12)}`);
+    assert.equal(s.evidence, `acme/app#12 Verify block no longer matches pin ${STALE_PIN.slice(0, 12)}`);
   });
 
   test("lint --pin on a passing ticket with no progress comment counts one harden run", async () => {
@@ -262,6 +262,57 @@ describe("edge cases", () => {
     }
     assert.equal(existsSync(log()), false);
     assert.equal(existsSync(runs()), false);
+  });
+});
+
+describe("references as typed", () => {
+  // A verdict whose --ticket is written `ticket`, with gh answering the progress lookup on acme/app#12.
+  const verdictWith = (ticket: string, mode?: string) => {
+    const dir = verdictCase("fail", mode);
+    writeFileSync(join(dir, "args"), [PR, "--ticket", ticket, "--head", HEAD, "--spec", "fail", "--quality", "pass"].join("\n") + "\n");
+    return dir;
+  };
+
+  test("an owner/repo#N or trailing-slash --ticket keeps the verdict's exit code under CI, Off and attended", async () => {
+    for (const ticket of ["acme/app#12", `${ISSUE}/`]) {
+      process.env.CI = "true";
+      const ci = await runCase("verdict", verdictWith(ticket));
+      delete process.env.CI;
+      const off = await runCase("verdict", verdictWith(ticket, "Off"));
+      const on = await runCase("verdict", verdictWith(ticket));
+      for (const r of [ci, off, on]) assert.deepEqual([r.code, r.stderr], [0, ""], ticket);
+    }
+    assert.deepEqual(signals().map((s) => [s.category, s.skill, s.step]), [["fix-round", "implement-issue", "fix"]]);
+  });
+
+  test("a --ticket that names no issue leaves the exit code and says the Signal was not recorded", async () => {
+    const r = await runCase("verdict", verdictWith("not-an-issue"));
+    assert.equal(r.code, 0);
+    assert.match(r.stderr, /^spp verdict: signal not recorded: .*not-an-issue\n$/);
+    assert.deepEqual(signals(), []);
+  });
+
+  test("pin-match on the same issue as a number and as a URL counts once", async () => {
+    const url = await runCase("lint", lintCase({ login: "maint", author: "maint", association: "OWNER" }));
+    assert.equal(url.code, 1, url.stderr);
+    // The same issue as a bare number, in a checkout whose origin is acme/app.
+    const dir = mkdtempSync(join(tmpdir(), "spp-corrections-"));
+    spawnSync("git", ["init", "-q"], { cwd: dir });
+    spawnSync("git", ["remote", "add", "origin", "https://github.com/acme/app.git"], { cwd: dir });
+    const gh = JSON.parse(readFileSync(join(lintCase(null), "gh.json"), "utf8")) as Record<string, unknown>;
+    const bare = {
+      "issue view 12 --json body,labels": gh[`issue view ${ISSUE} --json body,labels`],
+      "api repos/{owner}/{repo}/issues/12/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json": gh[comments(12)],
+      "api graphql -f query=LastEditor -F owner={owner} -F repo={repo} -F number=12": {
+        stdout: { data: { viewer: { login: "maint" }, repository: { issue: { author: { login: "maint" }, authorAssociation: "OWNER", userContentEdits: { nodes: [{ editor: { login: "maint" } }] } } } } },
+      },
+    };
+    writeFileSync(join(dir, "args"), "ticket\n12\n");
+    writeFileSync(join(dir, "gh.json"), JSON.stringify(bare));
+    writeFileSync(join(dir, "CLAUDE.md"), "# app\n\n<!-- sdd-routing -->\n- Mode: org\n- Self-improvement mode: Anonymous\n<!-- /sdd-routing -->\n");
+    const r = await runCase("lint", dir);
+    assert.deepEqual([r.code, r.stderr], [1, ""]);
+    assert.equal(signals().length, 1);
   });
 });
 
