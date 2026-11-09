@@ -1,5 +1,5 @@
 {
-  "epic": { "number": 197, "url": "https://github.com/acme/app/issues/197", "repo": "acme/app", "title": "Epic", "branch": null, "driver": null },
+  "epic": { "number": 197, "url": "https://github.com/acme/app/issues/197", "repo": "acme/app", "title": "Epic", "branch": null },
   "tickets": [
     {
       "number": 301,
