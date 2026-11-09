@@ -24,10 +24,10 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { checkFeedback, type FeedbackContext, formatHit, type Hit } from "../feedback.ts";
+import { checkFeedback, type FeedbackContext, formatHit } from "../feedback.ts";
 import { CHANGES, FEEDBACK_REPO, issueBody, issueTitle, previewHash, TALLY_MARKER, tallyComment } from "../feedback-file.ts";
 import { GhError, runGh } from "../gh.ts";
-import { find, flagPairs, parseIssue, readTrailer, UsageError } from "../markers.ts";
+import { find, flagPairs, parseIssue, put, readTrailer, UsageError } from "../markers.ts";
 import { currentRepo } from "../notes.ts";
 import { parseRouting, readSelfImprovementMode, type SelfImprovementMode } from "../routing.ts";
 import { candidate, pendingCandidates, readDecisions, recordDecision, runCounts } from "../signals.ts";
@@ -53,12 +53,12 @@ const fail = (sub: string, message: string) => (process.stderr.write(`spp feedba
 const usage = (sub: string, e: UsageError) => (process.stderr.write((e.message ? `spp feedback ${sub}: ${e.message}\n` : "") + USAGE), 1);
 
 /**
- * The outbound check as `check` and `file` both gather it: the person's own repo, the repo names the report must not
- * leak, the titles, and the paths `git ls-files` lists.
+ * The outbound check's context as `check` and `file` both gather it: the person's own repo, the repo names the report
+ * must not leak, the titles, and the paths `git ls-files` lists, read once per run.
  */
-function outbound(body: string, ctx: Omit<FeedbackContext, "paths">): Hit[] {
+function outboundContext(ctx: Omit<FeedbackContext, "paths">): FeedbackContext {
   const paths = execFileSync("git", ["ls-files", "--full-name", "-z", "--", ":/"], { encoding: "utf8", maxBuffer: 1 << 28 }).split("\0").filter(Boolean);
-  return checkFeedback(body, { ...ctx, paths });
+  return { ...ctx, paths };
 }
 
 /**
@@ -117,12 +117,10 @@ export async function run(args: string[]): Promise<number> {
 
   const ownRepo = (await runGh(["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"])).trim();
   const lines = titleFile ? readFileSync(titleFile, "utf8").split(/\r?\n/).map((l) => l.trim()).filter(Boolean) : [];
-  const hits = outbound(readFileSync(body, "utf8"), {
-    profile,
-    ownRepo,
-    names: lines.filter((l) => OWNER_REPO.test(l)),
-    titles: lines.filter((l) => !OWNER_REPO.test(l)),
-  });
+  const hits = checkFeedback(
+    readFileSync(body, "utf8"),
+    outboundContext({ profile, ownRepo, names: lines.filter((l) => OWNER_REPO.test(l)), titles: lines.filter((l) => !OWNER_REPO.test(l)) }),
+  );
   for (const h of hits) process.stdout.write(formatHit(h) + "\n");
   return hits.some((h) => h.level === "block") ? 2 : 0;
 }
@@ -174,12 +172,19 @@ async function epicRepos(arg: string): Promise<string[]> {
 const isPrivate = async (repo: string) => (JSON.parse(await runGh(["repo", "view", repo, "--json", "isPrivate"])) as { isPrivate?: boolean }).isPrivate === true;
 const issueUrl = (n: number) => `https://github.com/${FEEDBACK_REPO}/issues/${n}`;
 
-// The open grouped issue for the fingerprint: the one this repo last filed it on, else the lowest-numbered open issue
-// whose body's trailer names it. Any author's issue counts, since spp only adds the person's own tally to it.
+// The open grouped issue for the fingerprint: the one this repo last created or filed it on, else the lowest-numbered
+// open issue whose body's trailer names it. Any author's issue counts, since spp only adds the person's own tally to it.
 async function findGroup(repo: string, fp: string): Promise<{ number: number; url: string } | null> {
-  const last = readDecisions(repo).filter((d) => d.fingerprint === fp && d.decision === "filed" && typeof d.issue === "number").at(-1);
+  const last = readDecisions(repo)
+    .filter((d) => d.fingerprint === fp && (d.decision === "filed" || d.decision === "created") && typeof d.issue === "number")
+    .at(-1);
   if (last) {
-    const { state } = JSON.parse(await runGh(["issue", "view", String(last.issue), "-R", FEEDBACK_REPO, "--json", "state"])) as { state: string };
+    let state = "";
+    try {
+      state = (JSON.parse(await runGh(["issue", "view", String(last.issue), "-R", FEEDBACK_REPO, "--json", "state"])) as { state: string }).state;
+    } catch (e) {
+      if (!(e instanceof GhError)) throw e; // deleted or transferred: the search below decides
+    }
     if (state === "OPEN") return { number: last.issue!, url: issueUrl(last.issue!) };
   }
   const found = JSON.parse(await runGh(["issue", "list", "-R", FEEDBACK_REPO, "--state", "open", "--search", `${fp} in:body`, "--json", "number,url,body"])) as { number: number; url: string; body: string }[];
@@ -249,8 +254,8 @@ async function file(args: string[]): Promise<number> {
     const title = issueTitle(c, runs);
     const body = group ? null : issueBody(c, runs, opts["--change"] ?? "unclear", auto);
     const tally = tallyComment(c, runs, { repo: profile === "Full Detail" ? repo : undefined, note: opts["--note"], auto });
-    const ctx = { profile, ownRepo: repo, names, titles: [] };
-    const hits = [...(body ? outbound(body, ctx) : []), ...outbound(tally, ctx)];
+    const ctx = outboundContext({ profile, ownRepo: repo, names, titles: [] });
+    const hits = [...(body ? checkFeedback(body, ctx) : []), ...checkFeedback(tally, ctx)];
     for (const h of hits) process.stdout.write(formatHit(h) + "\n");
     if (hits.some((h) => h.level === "block")) return 2;
 
@@ -263,10 +268,13 @@ async function file(args: string[]): Promise<number> {
       }
     }
 
-    const target = group ?? (await createIssue(title, body!));
-    const id = group ? await ownTally(target.number) : null;
-    const [method, path] = id === null ? ["POST", `repos/${FEEDBACK_REPO}/issues/${target.number}/comments`] : ["PATCH", `repos/${FEEDBACK_REPO}/issues/comments/${id}`];
-    await runGh(["api", "-X", method, path, "-f", `body=${tally}`, "--jq", ".html_url"]);
+    let target = group;
+    if (!target) {
+      target = await createIssue(title, body!);
+      // The public issue exists from here on, so it is remembered before the tally, which may still fail.
+      recordDecision(repo, { fingerprint: fp, decision: "created", issue: target.number });
+    }
+    await put(parseIssue(target.url), group ? await ownTally(target.number) : null, tally);
     recordDecision(repo, { fingerprint: fp, decision: "filed", issue: target.number });
     process.stdout.write(`filed ${fp} ${target.url} ${group ? "existing" : "created"}\n`);
     return 0;

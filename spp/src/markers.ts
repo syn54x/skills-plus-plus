@@ -114,7 +114,7 @@ export async function find(issue: Issue, marker: string): Promise<{ id: number; 
 }
 
 // Rewrites the found comment with `body`, or creates one; returns its URL.
-async function put(issue: Issue, id: number | null, body: string): Promise<string> {
+export async function put(issue: Issue, id: number | null, body: string): Promise<string> {
   const [method, path] = id === null ? ["POST", `repos/${issue.repo}/issues/${issue.number}/comments`] : ["PATCH", `repos/${issue.repo}/issues/comments/${id}`];
   return (await runGh(["api", "-X", method, path, "-f", `body=${body}`, "--jq", ".html_url"])).trim();
 }

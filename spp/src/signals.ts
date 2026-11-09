@@ -170,13 +170,16 @@ export function runCounts(repo: string, skill: string, step: string): Record<str
   return counts;
 }
 
-/** A person's decision on a candidate: a line of the decisions log beside the Signal log. */
-export type Decision = { at: string; fingerprint: string; decision: "filed" | "skipped"; issue?: number };
+/**
+ * A line of the decisions log beside the Signal log: a grouped issue `created` (written the moment it exists, so a
+ * failure later in the run cannot lead to a second one), a candidate `filed`, or a candidate `skipped`.
+ */
+export type Decision = { at: string; fingerprint: string; decision: "created" | "filed" | "skipped"; issue?: number };
 
 // owner__repo.feedback.jsonl beside the Signal log.
 export const decisionsFile = (env: { XDG_STATE_HOME?: string; HOME: string }, repo: string): string => signalsFile(env, repo).replace(/\.signals\.jsonl$/, ".feedback.jsonl");
 
-/** Appends a filed or skipped decision to the repo's decisions log. It touches no GitHub state. */
+/** Appends a decision to the repo's decisions log. It touches no GitHub state. */
 export function recordDecision(repo: string, d: Omit<Decision, "at">): Decision {
   const decision: Decision = { at: new Date().toISOString(), ...d };
   append(decisionsFile(stateEnv(process.env), repo), decision);
@@ -205,7 +208,8 @@ function groups(repo: string): Map<string, { c: FeedbackCandidate; latest: numbe
 export const candidate = (repo: string, fp: string): FeedbackCandidate | null => groups(repo).get(fp)?.c ?? null;
 
 // The log's Signals grouped by fingerprint, most Signals first, then by fingerprint; none when there is no log yet.
-// A skipped fingerprint never comes back, and a filed one only once a Signal later than its last filing is recorded.
+// A skipped fingerprint never comes back, and a filed one only once a Signal later than its last filing is recorded;
+// a created line alone leaves the candidate pending.
 export function pendingCandidates(repo: string): FeedbackCandidate[] {
   const skipped = new Set<string>();
   const filed = new Map<string, number>();

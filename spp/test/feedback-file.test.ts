@@ -108,7 +108,7 @@ describe("happy path", () => {
     assert.match(tally, /Filed by spp, unattended \(Submission mode Auto\)\./);
     assert.doesNotMatch(tally, /\*\*Repo:\*\*|\*\*Evidence:\*\*/);
     assert.deepEqual(readTrailer(tally), { fingerprint: FP, versions: { "2.3.0": { signals: 2, runs: 5 } }, auto: true });
-    assert.deepEqual(decisions(c).map((d) => [d.fingerprint, d.decision, d.issue]), [[FP, "filed", 900]]);
+    assert.deepEqual(decisions(c).map((d) => [d.fingerprint, d.decision, d.issue]), [[FP, "created", 900], [FP, "filed", 900]]);
   });
 
   test("a second run with the first run's decision on disk and the issue OPEN patches the tally: existing", async () => {
@@ -316,6 +316,23 @@ describe("edge cases", () => {
     assert.match(r.stdout, /^\*\*Skill:\*\* triage$/m);
   });
 
+  test("the last decision names an issue whose gh issue view fails: spp falls through to the search, creates, exits 0", async () => {
+    const c = checkout();
+    setAuto(c);
+    signal(c);
+    const file = decisionsFile(stateEnv(c), "acme/app");
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify({ at: "2026-01-01T00:00:00.000Z", fingerprint: FP, decision: "filed", issue: 800 }) + "\n");
+    const r = await feedback(c, ["file", FP], {
+      ...PUBLIC,
+      [`issue view 800 -R ${FEEDBACK} --json state`]: { code: 1, stderr: "GraphQL: Could not resolve to an issue" },
+      [LIST]: { stdout: [] },
+      [CREATE]: { stdout: URL + "\n" },
+    });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(lastLine(r.stdout), `filed ${FP} ${URL} created`);
+  });
+
   test("spp feedback skip <fp> prints skipped and pending omits it, even after a newer Signal", async () => {
     const c = checkout();
     signal(c);
@@ -395,6 +412,27 @@ describe("error paths", () => {
     assert.equal(r.code, 1);
     assert.match(r.stderr, /HTTP 403: boom/);
     assert.deepEqual(decisions(c), []);
+  });
+
+  test("gh issue create succeeds and the tally POST fails: exit 1 with one created line; a rerun posts on that issue", async () => {
+    const c = checkout();
+    setAuto(c);
+    signal(c);
+    const POST = `api -X POST repos/${FEEDBACK}/issues/900/comments *`;
+    const r = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: [] }, [CREATE]: { stdout: URL + "\n" }, [POST]: { code: 1, stderr: "HTTP 403: secondary rate limit" } });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /secondary rate limit/);
+    assert.deepEqual(decisions(c).map((d) => [d.decision, d.issue]), [["created", 900]]);
+    assert.equal((await feedback(c, ["pending"])).stdout, `${FP} 1 harden 3 step-unclear\n`);
+    const again = await feedback(c, ["file", FP], {
+      ...PUBLIC,
+      [`issue view 900 -R ${FEEDBACK} --json state`]: { stdout: { state: "OPEN" } },
+      "api user --jq .login": { stdout: "me\n" },
+      [COMMENTS(900)]: { stdout: "" },
+    });
+    assert.equal(again.code, 0, again.stderr);
+    assert.deepEqual(writes(again).map((w) => w.argv.slice(0, 4)), [["api", "-X", "POST", `repos/${FEEDBACK}/issues/900/comments`]]);
+    assert.deepEqual(decisions(c).map((d) => [d.decision, d.issue]), [["created", 900], ["filed", 900]]);
   });
 
   test("submission maybe, file with no fingerprint and --change rewrite it each exit 1 with the usage on stderr", async () => {
