@@ -25,7 +25,7 @@ Done when you are a reviewer that has seen no line of the author's reasoning.
 
 ```bash
 PR=88   # or its URL
-gh pr view "$PR" --json headRefOid,baseRefName,body,files
+gh pr view "$PR" --json headRefOid,baseRefName,body,files,reviews
 gh pr diff "$PR"
 ```
 
