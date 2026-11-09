@@ -166,7 +166,8 @@ async function epicRepos(arg: string): Promise<string[]> {
   const epic = parseIssue(arg);
   const plan = await find(epic, "<!-- sdd-plan -->");
   const data = plan ? readTrailer(plan.body) : null;
-  if (!data) throw new GhError(`no trusted plan comment with a readable trailer on ${epic.label}`, 1, "");
+  // Without the plan, the Epic's repos and their stricter modes are unknown, so nothing is filed.
+  if (!data) throw new Error(`no trusted plan comment with a readable trailer on ${epic.label}`);
   return Array.isArray(data.repos) ? data.repos.filter((r): r is string => typeof r === "string") : [];
 }
 
