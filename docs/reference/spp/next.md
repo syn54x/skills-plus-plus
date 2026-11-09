@@ -1,7 +1,12 @@
-`spp next <epic> [--json]` prints the build's next actions, one per line. The build loop is: run `spp next`, do
-what it says, run it again. It reads the Epic's preconditions, its state, CI on open pull requests, the gate's
-verdict history, the pull request to the base branch and the session list, all from GitHub and `claude`, never
-from local state. With `--json` it prints [NextActions](#nextactions).
+`spp next <epic> [--json] [--resume]` prints the build's next actions, one per line. The build loop is: run
+`spp next`, do what it says, run it again. It reads the Epic's preconditions, its state, CI on open pull requests,
+the gate's verdict history and the pull request to the base branch, all from GitHub, never from local state or a
+session list. With `--json` it prints [NextActions](#nextactions).
+
+With `--resume`, for the first call of a run, a Sub-issue that is claimed, has no open or merged pull request and
+no assignee comes back as a `hand-back` action with the reason `worker lost`: the session that started its worker
+is gone, so the user decides whether to hand it back or start a worker again. Without it such a Sub-issue is in
+flight.
 
 ## Functions
 
@@ -17,7 +22,7 @@ Prints the build's next actions.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `args` | `string`[] | The Epic (an issue number in the current repo or an issue URL), and `--json` for the [NextActions](#nextactions) shape. |
+| `args` | `string`[] | The Epic (an issue number in the current repo or an issue URL), `--json` for the [NextActions](#nextactions) shape, and `--resume` to report each lost worker as a `hand-back`. |
 
 #### Returns
 
@@ -30,6 +35,7 @@ Prints the build's next actions.
 
 ```bash
 spp next 197
+spp next 197 --resume --json
 ```
 
 ## Variables
@@ -43,8 +49,9 @@ const USAGE: string;
 The usage text `spp next --help` prints.
 
 ```text
-usage: spp next <epic number | issue URL> [--json]
+usage: spp next <epic number | issue URL> [--json] [--resume]
 Prints the next actions: preflight, branch, dispatch, gate, fix, hand-back, merge, wait, main-gate, close or stuck.
+--resume, on a run's first call, hands back each claimed Sub-issue with no pull request and no assignee as "worker lost".
 ```
 
 ## Type Aliases
