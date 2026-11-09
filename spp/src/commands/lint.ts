@@ -1,5 +1,6 @@
 /**
- * `spp lint` has two subcommands. `spp lint pr <pr> [--json]` is described after `lint ticket`.
+ * `spp lint ticket <issue>` is the mechanical half of hardening, and `spp lint pr <pr>` is the worker's check of its pull
+ * request body before it reports. Each prints `ok`, or one `<rule>: <detail>` line per failure, and exits 1 on a failure.
  *
  * `spp lint ticket <issue> [--pin <body-file> [--by "<skill> <step>"]] [--json]` is the mechanical half of hardening. It checks the required
  * sections, a fenced Verify block, Files owned lines starting `Create`, `Modify` or `Test`, Test scenarios shaped
