@@ -6,7 +6,8 @@ session list. With `--json` it prints [NextActions](#nextactions).
 With `--resume`, for the first call of a run, a Sub-issue that is claimed, has no open or merged pull request and
 no assignee comes back as a `hand-back` action with the reason `worker lost`: the session that started its worker
 is gone, so the user decides whether to hand it back or start a worker again. Without it such a Sub-issue is in
-flight.
+flight. A Sub-issue on the current Wave that no worker has claimed yet is in flight too, so it is not dispatched
+again; with `--resume` its worker is gone with the session, and it is dispatched again.
 
 ## Functions
 
