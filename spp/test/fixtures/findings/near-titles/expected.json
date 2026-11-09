@@ -1,0 +1,27 @@
+{
+  "findings": [
+    {
+      "id": "F1",
+      "file": "src/a.ts",
+      "line": 12,
+      "title": "Any gh failure is read as not a Sub-issue",
+      "severity": "important",
+      "personas": [
+        "adversarial",
+        "correctness"
+      ],
+      "body": "A rate limit reads as a missing parent.\n\nAlso reported as: Swallows every gh error (correctness, line 10)"
+    }
+  ],
+  "counts": {
+    "severity": {
+      "critical": 0,
+      "important": 1,
+      "minor": 0
+    },
+    "persona": {
+      "adversarial": 1,
+      "correctness": 1
+    }
+  }
+}

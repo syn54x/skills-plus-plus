@@ -1,0 +1,13 @@
+{
+  "persona": "correctness",
+  "findings": [
+    {
+      "file": "src/a.ts",
+      "line": 10,
+      "title": "Swallows every gh error",
+      "severity": "important",
+      "confidence": 90,
+      "body": "The catch hides every GhError."
+    }
+  ]
+}

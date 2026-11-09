@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { mergeFindings, panelVerdict, parsePersonaFindings, type Readings } from "../src/findings.ts";
+import { mergeFindings, panelVerdict, parsePersonaFindings, type PersonaFindings, type Readings, type Severity } from "../src/findings.ts";
 import { runsFile, signalsFile } from "../src/signals.ts";
 import { assertCase, runCase } from "./harness.ts";
 
@@ -47,6 +47,60 @@ describe("edge cases", () => {
 
   test("a finding at confidence 70 is dropped and one at 80 stays", async () => {
     await assertCase("findings", fixture("low-confidence"));
+  });
+});
+
+// One Persona's reply with a single finding on src/a.ts.
+const at = (persona: string, line: number, title: string, severity: Severity = "important"): PersonaFindings => ({
+  persona,
+  findings: [{ file: "src/a.ts", line, title, severity, confidence: 90, body: "b" }],
+});
+
+describe("near titles", () => {
+  test("two Personas titling one defect differently, at lines 10 and 12, give one finding that lists the title that did not speak", async () => {
+    const r = await assertCase("findings", fixture("near-titles")); // expected.json holds the whole output, and no `lines` key
+    assert.deepEqual((r.json as { counts: { severity: unknown } }).counts.severity, { critical: 0, important: 1, minor: 0 });
+  });
+
+  test("findings at lines 10, 12 and 14 are one finding listing two other titles, and a fourth at line 15 is a second finding", () => {
+    const r = mergeFindings([at("a", 10, "first"), at("b", 12, "second"), at("c", 14, "third"), at("d", 15, "fourth")]);
+    assert.equal(r.findings.length, 2);
+    const [one, two] = r.findings;
+    assert.deepEqual(one.personas, ["a", "b", "c"]);
+    assert.equal(one.body, "b\n\nAlso reported as: second (b, line 12)\nAlso reported as: third (c, line 14)");
+    assert.deepEqual(two.personas, ["d"]);
+    assert.equal(two.body, "b");
+    assert.deepEqual(r.lines, { F1: [10, 12, 14], F2: [15] });
+  });
+
+  test("a title two Personas share is listed once, and the title that speaks is never listed", () => {
+    const r = mergeFindings([at("correctness", 10, "Same title"), at("testing", 10, "same title!"), at("adversarial", 12, "Other defect")]);
+    assert.equal(r.findings.length, 1);
+    assert.equal(r.findings[0].title, "Other defect"); // equal severity and confidence: the first Persona by name speaks
+    assert.equal(r.findings[0].body, "b\n\nAlso reported as: Same title (correctness, line 10)");
+    assert.deepEqual(r.lines, { F1: [10, 12] });
+  });
+
+  test("a tagged title merges only with its own tag, matched case-insensitively, and never with an untagged one", () => {
+    for (const [one, other] of [["ticket-mandated: retry", "Ticket-Mandated: log"], ["Candidate ADR: sqlite", "candidate adr: postgres"], ["Check after deploy: queue", "check after deploy: cache"], ["Terminology: gate", "terminology drift in the docs"]]) {
+      assert.equal(mergeFindings([at("a", 10, one), at("b", 11, other)]).findings.length, 1, `${one} with ${other}`);
+      assert.equal(mergeFindings([at("a", 10, one), at("b", 11, "an untagged defect")]).findings.length, 2, `${one} with an untagged title`);
+    }
+    assert.equal(mergeFindings([at("a", 10, "Candidate ADR: sqlite"), at("b", 11, "ticket-mandated: retry")]).findings.length, 2);
+  });
+
+  test("a ticket-mandated finding beside a real defect on the next line stays two findings, and the verdict is FIX FIRST", () => {
+    const result = mergeFindings([at("correctness", 10, "ticket-mandated: retry on every call", "critical"), at("testing", 11, "real defect", "critical")]);
+    assert.equal(result.findings.length, 2);
+    assert.equal(panelVerdict(result, { round: 1, spec: "pass", coherence: "pass", verify: "pass", checks: "pass", missing: [] }), "FIX FIRST");
+  });
+
+  test("a recheck- input merged with another Persona's differently titled finding is listed once in recheck", () => {
+    const recheck = at("correctness", 10, "old defect");
+    const r = mergeFindings([recheck, at("testing", 11, "same defect, other words")], new Set([recheck]));
+    assert.equal(r.findings.length, 1);
+    assert.deepEqual(r.recheck, ["F1"]);
+    assert.deepEqual(r.lines, { F1: [10, 11] });
   });
 });
 
@@ -247,8 +301,32 @@ describe("--fix-diff", () => {
     assert.equal(signals(runsFile({ XDG_STATE_HOME: off.state, HOME: off.dir }, "acme/app")).length, 0);
   });
 
+  // A merged finding stands on every line its findings sat on, so a context-line speaker cannot hide a neighbour on a + line.
+  test("a merged finding that speaks from a context line and absorbed one on a + line records one Signal naming the + line", () => {
+    const c = setup({
+      "persona-correctness.json": [{ ...finding("src/a.ts", 10), title: "retry is unbounded", severity: "critical" }],
+      "persona-testing.json": [{ ...finding("src/a.ts", 11), title: "no test covers the retry" }],
+    });
+    const r = merge(c, ["persona-correctness.json", "persona-testing.json", "--fix-diff", "fix-2.patch"]);
+    assert.equal(r.stderr, "fix-regression F1 recorded\n");
+    const [s, ...rest] = signals(c.log);
+    assert.deepEqual(rest, []);
+    assert.match(s.evidence, /^F1 src\/a\.ts:11 is on a line fix-2\.patch changed: retry is unbounded$/);
+  });
+
+  test("a recheck- finding merged with another Persona's differently titled finding on a changed line records nothing", () => {
+    const c = setup({
+      "recheck-correctness.json": [{ ...finding("src/a.ts", 10), title: "retry is unbounded" }],
+      "persona-testing.json": [{ ...finding("src/a.ts", 11), title: "no test covers the retry" }],
+    });
+    const r = merge(c, ["recheck-correctness.json", "persona-testing.json", "--fix-diff", "fix-2.patch"]);
+    assert.equal(r.stderr, "");
+    assert.deepEqual(signals(c.log), []);
+  });
+
   test("two regressed findings give two Signals with one fingerprint", () => {
-    const c = setup({ "persona-correctness.json": [finding("src/a.ts", 11), finding("src/a.ts", 13)] });
+    const c = setup({ "persona-correctness.json": [finding("src/a.ts", 11), finding("src/b.ts", 1)] });
+    writeFileSync(join(c.dir, "fix-2.patch"), PATCH + "--- a/src/b.ts\n+++ b/src/b.ts\n@@ -1 +1 @@\n-x\n+y\n"); // src/b.ts line 1 is a + line too
     const r = merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
     assert.equal(r.stderr, "fix-regression F1 recorded\nfix-regression F2 recorded\n");
     const s = signals(c.log);
