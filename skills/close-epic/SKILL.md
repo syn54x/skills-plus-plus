@@ -38,7 +38,7 @@ An Epic that is already closed passes the gate. The pull request to the base bra
 spp retro "$EPIC" --json
 ```
 
-It returns `byCause` (fix-round findings by **Law tag**), `byTicket`, `rounds`, `handBacks`, `panel` and `ponytail`. A value of `"not found"` means its input was missing, and stderr names what: write **not found** in the comment, never 0. `ponytail` is `"not found"` whenever ponytail did not run on the Epic, so say "did not run" for it.
+It returns `byCause` (fix-round findings by **Law tag**), `byTicket`, `rounds` (failing gates on the Sub-issues' pull requests), `fixPrRounds` (failing gates on the **Fix pull requests**), `handBacks`, `panel` and `ponytail`. A value of `"not found"` means its input was missing, and stderr names what: write **not found** in the comment, never 0. `ponytail` is `"not found"` whenever ponytail did not run on the Epic, so say "did not run" for it.
 
 Read the plan comment (first line `<!-- sdd-plan -->`) for its Deviated lines, and each Sub-issue's progress comment for a Hand-back reason. Those become the Note column in step 4.
 

@@ -116,12 +116,12 @@ Read `VERDICT.md` now and write the report around the merge output: the verdict 
 Show the report, then record the round when the pull request has an Epic:
 
 ```bash
-spp wave "$EPIC" panel --round "$R" --verdict "<verdict>" --severity critical=<n>,important=<n>,minor=<n> --persona <name>=<n>,... --dropped <n>
+spp wave "$EPIC" panel --pr "$(gh pr view "$PR" --json url --jq .url)" --round "$R" --verdict "<verdict>" --severity critical=<n>,important=<n>,minor=<n> --persona <name>=<n>,... --dropped <n>
 ```
 
-The numbers are the merge output's tallies, with a `--persona` entry for every Persona that ran, `0` included.
+The numbers are the merge output's tallies, with a `--persona` entry for every Persona that ran, `0` included. `--pr` is the pull request URL, so each pull request of a **Multi-repo epic** keeps its own rounds on the wave comment.
 
-Ask once whether to post the report as a comment on the pull request. Post only on a yes, with `gh pr comment "$PR" --body-file <file>` (never an approval or a request for changes), then repeat the `spp wave` call with `--report <comment URL>`. A report never posted stays on the wave comment as `unposted`. Without an Epic, nothing is recorded.
+Ask once whether to post the report as a comment on the pull request. Post only on a yes, with `gh pr comment "$PR" --body-file <file>` (never an approval or a request for changes), then repeat the `spp wave` call, `--pr` included, with `--report <comment URL>`. A report never posted stays on the wave comment as `unposted`. Without an Epic, nothing is recorded.
 
 Done when the report is shown and the round is on the wave comment.
 
