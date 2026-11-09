@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -97,6 +97,16 @@ describe("error path", () => {
     const r = runSpp(["verify", "--check"], "", repo);
     assert.equal(r.code, 2);
     assert.match(r.stderr, /uncommitted changes/);
+  });
+
+  // R2-F3: every worker shape workerTicket knows, not only sdd/<N>-.
+  test("uncommitted changes exit 2 on an sdd-12 branch and in an sdd-12 folder too, naming spp verify 12", () => {
+    for (const repo of [gitRepo("sdd-12"), gitRepo("worktree-sdd-12", {}, mkdirSync(join(tempDir("spp-repo-"), "sdd-12"), { recursive: true })!)]) {
+      writeFileSync(join(repo, "loose.txt"), "x");
+      const r = runSpp(["verify", "--check"], "", repo);
+      assert.equal(r.code, 2);
+      assert.match(r.stderr, /uncommitted changes.*spp verify 12\./);
+    }
   });
 
   test("a Verify block that no longer matches its pin is refused: nothing runs, no note, re-harden named", async () => {

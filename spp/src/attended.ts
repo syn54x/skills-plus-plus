@@ -5,8 +5,8 @@
 //
 // The decision is made once, where the work starts: `spp dispatch` writes it to one file per ticket in spp's state
 // directory, and a worker (see workerTicket) trusts its ticket's file over its own environment while the issue is
-// open. `spp merge` and `spp hand-back` delete the file, and a worker that finds the issue closed deletes it, so no
-// decision outlives its worker.
+// open. Only the issue closing ends it: the same worker is resumed after its slice merges and after a needs-info
+// hand-back, so a worker that finds the issue closed deletes the file, and nothing else does.
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -21,7 +21,7 @@ type StateEnv = { XDG_STATE_HOME?: string; HOME?: string };
 const TABLE = new URL(import.meta.url.endsWith(".ts") ? "../../hooks/attended.json" : "../hooks/attended.json", import.meta.url);
 
 // owner__repo.attended/<N> in the notes log's directory: one file per ticket, so no write ever reads another's.
-export const attendedFile = (env: StateEnv, repo: string, ticket: number): string =>
+const attendedFile = (env: StateEnv, repo: string, ticket: number): string =>
   `${notesFile({ XDG_STATE_HOME: env.XDG_STATE_HOME, HOME: env.HOME || homedir() }, repo).replace(/\.jsonl$/, ".attended")}/${ticket}`;
 
 /** Records the attended decision for `ticket`'s worker, replacing any earlier one for that ticket. */
@@ -29,11 +29,6 @@ export function passDecision(env: StateEnv, repo: string, ticket: number, attend
   const file = attendedFile(env, repo, ticket);
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, `${attended}\n`);
-}
-
-/** Deletes `ticket`'s passed decision, once its worker is done (merged or handed back). Missing is fine. */
-export function forgetDecision(env: StateEnv, repo: string, ticket: number): void {
-  rmSync(attendedFile(env, repo, ticket), { force: true });
 }
 
 // The passed decision for `ticket`: true or false, undefined when there is none or it is unreadable.
@@ -46,6 +41,10 @@ function passed(env: StateEnv, repo: string, ticket: number): boolean | undefine
   }
 }
 
+// hooks/board/register.tsx mirrors these two, and spp/test/attended.test.ts checks they stay the same.
+const WORKER_BRANCH = /^sdd\/(\d+)-|^sdd-(\d+)$/;
+const WORKER_FOLDER = /^sdd-(\d+)$/;
+
 /**
  * The ticket a worker in `dir` builds: N from an `sdd/<N>-` branch or an `sdd-<N>` branch (the desktop driver's),
  * else from a checkout whose folder is `sdd-<N>` (what `claude --bg --worktree sdd-<N>` makes, before the worker
@@ -54,8 +53,8 @@ function passed(env: StateEnv, repo: string, ticket: number): boolean | undefine
  */
 export function workerTicket(dir: string): number | null {
   const git = (...args: string[]) => spawnSync("git", args, { cwd: dir, encoding: "utf8" }).stdout?.trim() ?? "";
-  const branch = /^sdd\/(\d+)-|^sdd-(\d+)$/.exec(git("branch", "--show-current"));
-  const n = branch?.[1] ?? branch?.[2] ?? /^sdd-(\d+)$/.exec(basename(git("rev-parse", "--show-toplevel")))?.[1];
+  const branch = WORKER_BRANCH.exec(git("branch", "--show-current"));
+  const n = branch?.[1] ?? branch?.[2] ?? WORKER_FOLDER.exec(basename(git("rev-parse", "--show-toplevel")))?.[1];
   return n ? Number(n) : null;
 }
 
@@ -78,7 +77,7 @@ function liveDecision(env: StateEnv, repo: string, ticket: number): boolean | un
   const state = states.get(key);
   if (state === "CLOSED") {
     try {
-      forgetDecision(env, repo, ticket);
+      rmSync(attendedFile(env, repo, ticket), { force: true });
     } catch {} // a file that will not go is ignored all the same while the issue stays closed
   }
   return state === "OPEN" ? decision : undefined;

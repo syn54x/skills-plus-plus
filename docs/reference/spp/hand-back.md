@@ -13,9 +13,6 @@ records none. It records nothing under `CI`, outside an Attended session, or whe
 another repo whose issue it is about, is Off. A Signal goes to this checkout's log, and a failure
 while recording is one `signal not recorded:` line on stderr that leaves the exit code as it was.
 
-Last, it deletes the attended decision `spp dispatch` passed down for this ticket, so no later run in the worker's
-checkout inherits it.
-
 ## Functions
 
 ### run()

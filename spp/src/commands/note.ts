@@ -14,6 +14,7 @@
  *
  * @module
  */
+import { workerTicket } from "../attended.ts";
 import { guarded, issueRepo, parseIssue, print, UsageError } from "../markers.ts";
 import { appendNote, currentRepo } from "../notes.ts";
 import { saveProgress } from "./progress.ts";
@@ -49,7 +50,7 @@ async function auto(): Promise<void> {
   const verify = /\bspp"?\s+verify\s+(?!--check)\S/.test(command);
   if (!stop && !pr && !verify) return;
   enterHookCwd(input);
-  const ticket = /^sdd\/(\d+)/.exec(gitOut("branch", "--show-current") ?? "")?.[1];
+  const ticket = workerTicket(process.cwd());
   if (!ticket) return;
   let text = "";
   if (stop && stopRefusal()) return; // verify --check refuses this stop beside us, so the worker keeps going
@@ -62,7 +63,7 @@ async function auto(): Promise<void> {
     const state = /^(verified|failed)\b/.exec(gitOut("notes", "--ref=sdd-verify", "show", "HEAD") ?? "")?.[1];
     if (state) text = `Verify ${state === "verified" ? "passed" : "failed"} ${gitOut("rev-parse", "--short=7", "HEAD")}`;
   }
-  if (text) appendNote(currentRepo(), Number(ticket), text, false);
+  if (text) appendNote(currentRepo(), ticket, text, false);
 }
 
 async function list(args: string[]): Promise<void> {
