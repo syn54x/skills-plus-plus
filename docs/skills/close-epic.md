@@ -34,7 +34,7 @@ A zero claims the thing did not happen; "not found" says the record that would s
 Each finding in a failed gate verdict is tagged with the Law it cites, and `spp retro` totals them per tag. The skill then splits those totals in two. Findings citing a Law the worker was given (the Epic, the Sub-issue, a cited document, a skill rule, or a file on your Laws line) mean the worker was given the rule but still broke it. Findings citing a repo file outside the Laws line mean no one told the worker to read it, and the fix is one line in the Routing block.
 
 **What leaves my repo?**
-Only Skill feedback issues on `syn54x/skills-plus-plus`, one per skill step and category, each with a tally comment from you. Two settings decide what they say and who files them. Your repo's Self-improvement mode (the `Self-improvement mode:` line of the Routing block) sets what an issue may contain:
+Only Skill feedback issues on `syn54x/skills-plus-plus`, one per skill step and category, each with a tally comment from you for every repo you file from. spp adds your tally only to an issue a maintainer or you opened, never to a stranger's. Two settings decide what they say and who files them. Your repo's Self-improvement mode (the `Self-improvement mode:` line of the Routing block) sets what an issue may contain:
 
 | Self-improvement mode | What an issue may contain |
 | --- | --- |
@@ -47,7 +47,7 @@ Your own Submission mode, set for each repo with `spp feedback submission`, deci
 spp builds each body itself and checks it before anything is posted. A token, key or private key blocks it in every mode, and the check prints it as `[REDACTED]`. Under Anonymous six more rules block file paths, code, repo names, titles, URLs and error text; under Full Detail those rules print as warnings and let the body through. It never rewrites a body. Every issue also asks for an eval case that reproduces the defect, to land with the fix.
 
 **What happens in an unattended run?**
-Nothing is collected outside an Attended session (CI, a `claude -p` script, a scheduled task), so there is nothing to offer or draft, and nothing is filed.
+Nothing is collected outside an Attended session (CI, a `claude -p` script, a scheduled task), so there is nothing to offer or draft, and nothing is filed. `spp feedback file` and `skip` refuse there, and in a worker, with one line saying why.
 
 ## It's working if
 

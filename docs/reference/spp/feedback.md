@@ -50,14 +50,19 @@ For `check`, one `rule <rule> <name>, line <n>: <text>` line per hit on stdout, 
   For `file`, stdout starts with one such line per hit on the issue body (when one would be created) and the tally
   comment, checked under the lowest Self-improvement mode of the checkout and the Epic's repos. Exit 0 when filed,
   last line `filed <fingerprint> <issue URL> created|existing`. Exit 3 under Review with nothing written: `title:
-  <title>` and the issue body (or `issue: <issue URL>` when the group exists), a blank line, the tally comment, then
-  `confirm: <hash>`; the same command with `--confirm <hash>` files that text, and a stale hash shows the new text.
-  Submission mode Auto files at once, falling back to Review, with a line on stderr, when any of those repos is
-  private. Exit 2 when the check blocks, nothing written. Exit 1 under `CI`, an Off mode, an unknown fingerprint
-  or a failing `gh` call, with the reason on stderr and no decision recorded.
+  <title>` and the issue body (or `issue: <issue URL> (by <author>)` when the group exists), a blank line, the tally
+  comment, then `confirm: <hash>`; the same command with `--confirm <hash>` files that text, and a stale hash shows
+  the new text. Submission mode Auto files at once, falling back to Review, with a line on stderr, when any of those
+  repos is private. Exit 2 when the check blocks, nothing written. Exit 1 under `CI`, outside an Attended session,
+  in a worker's checkout, under an Off mode, on an unknown fingerprint or a failing `gh` call, with the reason on
+  stderr and no decision recorded.
 
-  For `skip`, `skipped <fingerprint>` and exit 0; 1 on an unknown fingerprint. For `submission`, `Submission mode:
-  <mode>` and exit 0.
+  The grouped issue is only ever one opened by the gh user or by an OWNER, MEMBER or COLLABORATOR of
+  syn54x/skills-plus-plus (ADR 0009); a stranger's issue carrying the fingerprint is passed over. The person keeps
+  one tally comment on it for each repo they file from, matched by a hash of the repo in its trailer.
+
+  For `skip`, `skipped <fingerprint>` and exit 0; 1 on an unknown fingerprint, and in the cases `file` refuses before
+  reading the fingerprint. For `submission`, `Submission mode: <mode>` and exit 0.
 
   For `checkpoint` with no other argument, exit 0 whatever happens. It prints nothing under `CI`, outside an Attended session, under Self-improvement
   mode Off, on a worker's `sdd/` branch or with nothing pending. Otherwise it prints `spp: <n> Skill feedback
