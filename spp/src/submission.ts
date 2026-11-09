@@ -1,7 +1,7 @@
 // The Submission mode: whether a person's Skill feedback is filed unattended (Auto) or shown to them first (Review).
 // It belongs to the person, for each repo (ADR 0012), so it lives in spp's config directory, outside every checkout.
 import { randomBytes } from "node:crypto";
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname } from "node:path";
 
@@ -13,12 +13,15 @@ export const submissionFile = (env: { XDG_CONFIG_HOME?: string; HOME: string }):
 
 const fileOf = (env: NodeJS.ProcessEnv) => submissionFile({ XDG_CONFIG_HOME: env.XDG_CONFIG_HOME, HOME: env.HOME || homedir() });
 
-// Writes the config file whole and leaves it readable by its owner alone, since it holds the tally secret: the mode
-// a write gives applies only when it creates the file.
+// Writes the config file whole, readable by its owner alone since it holds the tally secret: a new file made 0600 is
+// renamed over it, because a write's mode applies only when it creates the file, and the secret is never in a file
+// anyone else can read.
 function writeConfig(file: string, config: Record<string, unknown>): void {
   mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, JSON.stringify(config, null, 2) + "\n", { mode: 0o600 });
-  chmodSync(file, 0o600);
+  const tmp = `${file}.${process.pid}.tmp`;
+  rmSync(tmp, { force: true }); // a crashed run's leftover; wx below then makes the file fresh, at 0600
+  writeFileSync(tmp, JSON.stringify(config, null, 2) + "\n", { mode: 0o600, flag: "wx" });
+  renameSync(tmp, file);
 }
 
 // The config file's object; {} when it is missing, unreadable or not an object.

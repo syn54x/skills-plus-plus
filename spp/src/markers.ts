@@ -138,12 +138,14 @@ export function ownMarkerBody(marker: string, render: string, data: Data, by: { 
 
 /**
  * Posts `body`, exactly as given (the text {@link ownMarkerBody} built and a preview showed), as the gh user's own
- * comment on the issue: it rewrites the one that starts with `marker` and whose trailer holds `value` under `key`, or
- * creates one; returns its URL. Several people each keep one such comment per key (a tally per person and repo), so
+ * comment on the issue: it rewrites the one that starts with `marker` and whose trailer holds the same value under
+ * `key` as `body`'s trailer, or creates one; returns its URL. Several people each keep one such comment per key (a tally per person and repo), so
  * another author's, or the user's own under another key, is never touched.
  */
-export async function writeOwnMarker(arg: string, marker: string, body: string, key: string, value: unknown): Promise<string> {
+export async function writeOwnMarker(arg: string, marker: string, body: string, key: string): Promise<string> {
   const issue = parseIssue(arg);
+  const value = readTrailer(body)?.[key];
+  if (value === undefined) throw new Error(`writeOwnMarker: the body's trailer has no ${key}`);
   const me = await viewerLogin();
   const out = await runGh(["api", `repos/${issue.repo}/issues/${issue.number}/comments`, "--paginate", "--jq", ".[] | [.id, .body, .user.login] | @json"]);
   let id: number | null = null;

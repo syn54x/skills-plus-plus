@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, test } from "node:test";
-import { attendedFile, passDecision } from "../src/attended.ts";
+import { passDecision } from "../src/attended.ts";
+import { notesFile } from "../src/notes-log.ts";
 import { CHECKPOINT_STEPS } from "../src/commands/feedback.ts";
 import { fingerprint, signalsFile, type Signal } from "../src/signals.ts";
 import { runCase } from "./harness.ts";
@@ -119,7 +120,7 @@ describe("edge cases: nothing printed, exit 0", () => {
     } finally {
       process.env = saved;
     }
-    assert.ok(existsSync(attendedFile(env, "acme/app", 12)));
+    assert.ok(existsSync(`${notesFile(env, "acme/app").replace(/\.jsonl$/, ".attended")}/12`));
   });
 });
 

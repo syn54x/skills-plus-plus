@@ -709,7 +709,8 @@ describe("fix round 2 (Refs #342)", () => {
   });
 
   // R2-F1: a step with no recorded runs read "over 0 recorded runs".
-  test("a skill step with no recorded runs says so in the title and the body", async () => {
+  // PR #390 review: the tally, which the per-version rate is read from, still showed and stored 0 runs.
+  test("a skill step with no recorded runs says so in the title, the body and the tally, which stores no 0", async () => {
     const c = checkout();
     signal(c);
     const r = await feedback(c, ["file", FP], { [LIST]: { stdout: "" } });
@@ -717,6 +718,9 @@ describe("fix round 2 (Refs #342)", () => {
     assert.ok(r.stdout.startsWith("title: harden 3: step-unclear (1 Signals, runs not recorded)\n"));
     assert.match(r.stdout, /^\*\*Observed:\*\* 1 Signals of this category were charged to this step, whose runs are not recorded\.$/m);
     assert.doesNotMatch(r.stdout, /over 0 recorded runs/);
+    const tally = r.stdout.slice(r.stdout.indexOf("<!-- spp-feedback-tally -->"));
+    assert.deepEqual(tallyRow(tally), ["| 2.3.0 | 1 | not recorded |"]);
+    assert.deepEqual((readTrailer(tally) as { versions: unknown }).versions, { "2.3.0": { signals: 1, runs: null } });
   });
 
   // R2-F14: the preview and the write were built by two calls that had to agree.

@@ -334,7 +334,7 @@ async function file(args: string[]): Promise<number> {
       // The public issue exists from here on, so it is remembered before the tally, which may still fail.
       recordDecision(repo, { fingerprint: fp, decision: "created", issue: target.number });
     }
-    await writeOwnMarker(target.url, TALLY_MARKER, tally, "repoKey", key);
+    await writeOwnMarker(target.url, TALLY_MARKER, tally, "repoKey");
     recordDecision(repo, { fingerprint: fp, decision: "filed", issue: target.number });
     process.stdout.write(`filed ${fp} ${target.url} ${group ? "existing" : "created"}\n`);
     return 0;

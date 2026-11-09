@@ -7,13 +7,14 @@
  * `--fix-diff` names the patch of the fixes the round reviewed: each merged finding on a line that patch added or
  * changed, and not merged with a `recheck-` file's finding, records a `fix-regression` Signal (the Signal gates apply),
  * and a line on stderr says whether it was recorded. Each merge with `--fix-diff` also records one run of
- * `implement-issue` step `fix round`, which is what the fix-regression rate is counted over. The run is named for the
- * patch's folder and file, `spp-panel-<PR>/fix-<round>.patch` as the panel writes it, and a merge of a round already
- * recorded records no second run. stdout, the `--json` shape and the exit code do not change.
+ * `implement-issue` step `fix round`, which is what the fix-regression rate is counted over. The run is named by the
+ * patch's content, `fix diff <hash>` (the first 12 hex characters of its SHA-256), after `pull request <N>` when the
+ * patch sits in the panel's `spp-panel-<N>` folder, so merging the same round again records no second run. stdout, the `--json` shape and the exit code do not change.
  *
  * @module
  */
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { basename, dirname, resolve } from "node:path";
 import { changedLines, mergeFindings, panelVerdict, parsePersonaFindings, type MergeResult, type Merged, type PanelVerdict, type Readings } from "../findings.ts";
 import { guarded, UsageError } from "../markers.ts";
@@ -83,6 +84,12 @@ function load(path: string) {
   return parsePersonaFindings(json, path);
 }
 
+// A fix round's run name: the patch's content hash, after the pull request its spp-panel-<N> folder names.
+function fixRound(path: string, patch: string): string {
+  const pr = /^spp-panel-(\d+)$/.exec(basename(dirname(resolve(path))))?.[1];
+  return `${pr ? `pull request ${pr} ` : ""}fix diff ${createHash("sha256").update(patch).digest("hex").slice(0, 12)}`;
+}
+
 const tally = (counts: Record<string, number>) => Object.entries(counts).map(([k, n]) => `${k} ${n}`).join(", ");
 
 function render(r: MergeResult): string {
@@ -97,8 +104,8 @@ function render(r: MergeResult): string {
 }
 
 // Each fix round the panel looked at counts one run of `implement-issue` step `fix round`, silently: the denominator
-// of the fix-regression rate, whether or not a finding regressed. `run` names the round by the patch's folder and
-// file (the panel's spp-panel-<PR>/fix-<round>.patch), so merging the same round again adds no run. Then one
+// of the fix-regression rate, whether or not a finding regressed. `run` names the round by its patch's content, since
+// the panel's round number starts again at 1 on a fresh run, so merging the same round again adds no run. Then one
 // fix-regression Signal per merged finding on a changed line that no recheck finding was merged into, and one stderr
 // line each. recordRun and recordSignal apply the gates and never throw, so nothing here changes the exit code.
 async function recordRegressions(result: MergeResult, patch: string, name: string, run: string): Promise<void> {
@@ -166,6 +173,6 @@ export function run(args: string[]): Promise<number> {
     const out: PanelFindings = { findings: result.findings, counts: result.counts, ...(verdict && { verdict }) };
     if (json) process.stdout.write(JSON.stringify(out, null, 2) + "\n");
     else process.stdout.write(render(result) + (verdict ? `Verdict: ${verdict}\n` : ""));
-    if (patch !== undefined && fixDiff !== undefined) await recordRegressions(result, patch, basename(fixDiff), `${basename(dirname(resolve(fixDiff)))}/${basename(fixDiff)}`);
+    if (patch !== undefined && fixDiff !== undefined) await recordRegressions(result, patch, basename(fixDiff), fixRound(fixDiff, patch));
   });
 }
