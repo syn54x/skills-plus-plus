@@ -10,6 +10,6 @@ This session runs in the desktop app and can start sessions: a ToolSearch here f
 
 This is not a fresh build. Earlier in this session you ran this same `/build 340`, I chose the sub-session, and you started `build-340` in `~/work/skills-plus-plus` with the prompt `Use building for https://github.com/syn54x/skills-plus-plus/issues/340.` Its turn-end note has just arrived here, and opens:
 
-> #340 waits on you: approve Wave 1 (#341, #342, #343 in parallel, default tier)
+> #340 waits on you: start Wave 1 with these 3 issues? Reply yes, or say what to change.
 
 My answer to it: yes

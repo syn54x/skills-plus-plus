@@ -20,7 +20,7 @@ _Avoid_: ticket, except in skill names (`to-tickets`) and for a **Decision ticke
 A state label that triage puts on an **Issue** (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`).
 
 **Kind**:
-What `/build <N>` finds N to be: an **Epic**, a hardened **Sub-issue** (built through its **Epic**, never as a **One-off**), a hardened **One-off**, or a raw issue that has to go through triage first. `spp kind` decides it.
+What `/build <N>` finds N to be: an **Epic**, a hardened **Sub-issue** (built through its **Epic**, never as a **One-off**), a hardened **One-off**, or a raw issue that has to go through triage first. `spp kind` decides it. `delegating` reads it before it asks where `/build` runs, and `building` reads it again first thing wherever it runs, since a session told to use `building` skips `delegating`.
 
 ### Planning
 

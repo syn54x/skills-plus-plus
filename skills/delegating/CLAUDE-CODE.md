@@ -16,5 +16,5 @@ Read only when running on Claude Code. Each capability the skill names, and the 
 
 - `start_session` starts a session only on a turn the user started. The user's answer to step 2's question is such a turn, so start the sub-session in that same turn, not on a later wake-up.
 - Pass `cwd` even when the checkout is this session's own folder; `use_worktree: false` with `cwd` keeps that folder as it is.
-- The parent sees only the opening of a child's turn-end note, about the first 400 characters. That is why `building` puts its waiting line first; relay what the user answered to that line and nothing more.
+- The parent sees only the opening of a child's turn-end note, about the first 400 characters. That is why `building` opens every turn that waits on the user with `#<N> waits on you: <question>`; relay what the user answered to that line and nothing more.
 - If a send reports anything but `delivered` or `queued`, tell the user the answer did not reach the sub-session and to answer there instead.
