@@ -72,7 +72,7 @@ A **checkpoint** offers the pending Skill feedback between steps. Run `spp feedb
 
 ## Waiting on the user
 
-Every turn that ends waiting on the user opens with one line, before anything else: `#<N> waits on you: <question>`, where N is the issue this run builds. The first Wave's approval, a lost worker, a red `spp verify` after a merge, an unsettled design and a wrong kind all ask this way, and so does any other question. The detail (a table, the findings, the reason) follows the line. A parent session sees only about the first 400 characters of a child session's turn-end note, and `delegating` relays an answer only to a note that opens with this line, so a question placed anywhere else never reaches the user there.
+Every turn that ends waiting on the user opens with one line, before anything else: `#<N> waits on you: <question>`, where N is the issue this run builds. The first Wave's approval, a lost worker, a red `spp verify` after a merge, an unsettled design and a wrong kind all ask this way, and so does any other question. The detail (a table, the findings, the reason) follows the line. A parent session may see only the opening of a child session's turn-end note, and `delegating` relays an answer only to a note that opens with this line, so a question placed anywhere else never reaches the user there.
 
 ## Heartbeat
 
