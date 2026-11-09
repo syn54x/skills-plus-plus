@@ -7,7 +7,7 @@
  *
  * @module
  */
-import { refIn } from "../derive.ts";
+import { derive, refIn } from "../derive.ts";
 import { WINDOW } from "../findings.ts";
 import { fetchSnapshot } from "../fetch-snapshot.ts";
 import { runGh } from "../gh.ts";
@@ -16,26 +16,41 @@ import type { Snapshot } from "../snapshot.ts";
 
 /** The usage text `spp retro --help` prints. */
 export const USAGE = `usage: spp retro <epic number | issue URL> [--json]
-Prints the Epic's retro numbers from GitHub: findings by Law tag and by ticket, fix rounds, hand-backs,
-the panel's rounds and findings, and ponytail's hits, unique hits and overlap. A number whose input is missing
-reads "not found" (and, for the others, is named on stderr), never 0.
+Prints the Epic's retro numbers from GitHub: findings by Law tag and by ticket, fix rounds, the failed gates of
+Fix pull requests, hand-backs, the panel's rounds (one per pull request and round) and findings, and ponytail's
+hits, unique hits and overlap. A number whose input is missing reads "not found" (and, for the others, is named
+on stderr), never 0.
 `;
 
 /** The Epic's retro numbers: the `--json` shape of `spp retro`. */
 export type Retro = {
   /**
    * Findings in failing verdicts by Law tag, `none` for an untagged one. A verdict is a review or comment on a
-   * Sub-issue's pull request with a `## Spec: FAIL` or `## Quality: FAIL` heading, and each of its finding lines
-   * (`- <severity> · [<source>#<id>] · <file:line at sha> · ...`) counts once under its whole tag.
+   * Sub-issue's pull request, or on a Fix pull request, with a `## Spec: FAIL` or `## Quality: FAIL` heading, and
+   * each of its finding lines (`- <severity> · [<source>#<id>] · <file:line at sha> · ...`) counts once under its
+   * whole tag.
    */
   byCause: Record<string, number>;
-  /** The same findings by Sub-issue, `#N` or `owner/repo#N`. */
+  /**
+   * The same findings by Sub-issue, `#N` or `owner/repo#N`. A Fix pull request's findings count under the Sub-issue
+   * its `Refs` line names; an unattributed fix adds none.
+   */
   byTicket: Record<string, number>;
-  /** Failing verdicts across the Epic, one per fix round. */
+  /** Failing verdicts on the Sub-issues' pull requests, one per fix round; {@link Retro.fixPrRounds} counts the Fix pull requests' apart. */
   rounds: number;
+  /**
+   * Failing verdicts on the Epic's Fix pull requests, found as `spp status` finds them (ADR 0011): a trusted pull
+   * request into the integration branch that closes no Sub-issue. A fix the wave comment's trailer also records for
+   * a Sub-issue is that Sub-issue's pull request and counts in {@link Retro.rounds} only. `"not found"` when the
+   * plan comment records no integration branch, since fixes cannot be looked for without it.
+   */
+  fixPrRounds: number | "not found";
   /** `labeled` events for `needs-info`, `ready-for-human` and `blocked` on the Sub-issues. */
   handBacks: number;
-  /** The panel rounds the wave comment's trailer records (`spp wave <epic> panel`) and their findings. */
+  /**
+   * The panel rounds the wave comment's trailer records (`spp wave <epic> panel`), one per distinct pull request and
+   * round (a round recorded with no pull request counts by its round alone), and their findings.
+   */
   panel: { rounds: number; findings: number } | "not found";
   /**
    * Ponytail's findings that stood after verification, from pull request comments that start `## Ponytail` with one
@@ -56,6 +71,7 @@ const findingsIn = (body: string): Found[] =>
   });
 
 type PrData = { rounds: number; causes: string[]; gate: Found[]; ponytail: Found[] | null };
+type Review = { reviews?: { body?: string }[]; comments?: { body?: string }[] };
 
 function analyse(bodies: string[]): PrData {
   const verdicts = bodies.filter((b) => /^## (Spec|Quality): (PASS|FAIL)/m.test(b));
@@ -75,11 +91,23 @@ const count = (keys: string[]) => {
   return Object.fromEntries(Object.entries(n).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)));
 };
 
-type Wave = { panel?: { round: number; severity?: Record<string, number> }[]; waves?: { prs?: Record<string, string> }[] };
+type Wave = { panel?: { round: number; pr?: string; severity?: Record<string, number> }[]; waves?: { prs?: Record<string, string> }[] };
+
+// A pull request's verdicts and Ponytail hits, or null (named on stderr) when gh cannot read its reviews.
+async function read(url: string, notFound: string[]): Promise<PrData | null> {
+  try {
+    const view = JSON.parse(await runGh(["pr", "view", url, "--json", "reviews,comments"])) as Review;
+    return analyse([...(view.reviews ?? []), ...(view.comments ?? [])].map((x) => x.body ?? ""));
+  } catch {
+    notFound.push(`reviews on ${url}`);
+    return null;
+  }
+}
 
 async function collect(arg: string, notFound: string[]): Promise<{ epic: Snapshot["epic"]; retro: Retro }> {
   const epic = parseIssue(arg);
   const snap = (await fetchSnapshot(epic.arg))!;
+  const state = derive(snap);
   const ref = refIn(snap.epic.repo);
   if (!snap.issues.length) notFound.push("sub-issues");
 
@@ -101,13 +129,21 @@ async function collect(arg: string, notFound: string[]): Promise<{ epic: Snapsho
       if (t) prsOf.get(t.url)!.add(url);
     }
   }
+  const slicePrs = new Set([...prsOf.values()].flatMap((s) => [...s]));
   const data = new Map<string, PrData>();
-  for (const url of new Set([...prsOf.values()].flatMap((s) => [...s]))) {
-    try {
-      const view = JSON.parse(await runGh(["pr", "view", url, "--json", "reviews,comments"])) as { reviews?: { body?: string }[]; comments?: { body?: string }[] };
-      data.set(url, analyse([...(view.reviews ?? []), ...(view.comments ?? [])].map((x) => x.body ?? "")));
-    } catch {
-      notFound.push(`reviews on ${url}`);
+  for (const url of slicePrs) {
+    const d = await read(url, notFound);
+    if (d) data.set(url, d);
+  }
+
+  // The Fix pull requests (ADR 0011), as `spp status` lists them. One the wave trailer also records for a Sub-issue
+  // is that Sub-issue's pull request, already read above and counted once there.
+  const fixes: { ticket: string | null; data: PrData }[] = [];
+  if (state.epic.branch === null) notFound.push("integration branch");
+  else {
+    for (const f of state.fixes.filter((f) => !slicePrs.has(f.url))) {
+      const d = await read(f.url, notFound);
+      if (d) fixes.push({ ticket: f.ticket, data: d });
     }
   }
 
@@ -125,7 +161,9 @@ async function collect(arg: string, notFound: string[]): Promise<{ epic: Snapsho
     }
   }
 
-  const rounds = new Map((wave.panel ?? []).map((p) => [p.round, p])); // the latest entry per round
+  for (const f of fixes) if (f.ticket) byTicket[ref(f.ticket)] = (byTicket[ref(f.ticket)] ?? 0) + f.data.causes.length;
+
+  const rounds = new Map((wave.panel ?? []).map((p) => [JSON.stringify([p.pr ?? null, p.round]), p])); // the latest entry per pull request and round
   const prs = [...data.values()];
   const withPonytail = prs.filter((p) => p.ponytail);
   const hits = withPonytail.flatMap((p) => p.ponytail!.map((h) => ({ h, gate: p.gate })));
@@ -133,9 +171,10 @@ async function collect(arg: string, notFound: string[]): Promise<{ epic: Snapsho
   return {
     epic: snap.epic,
     retro: {
-      byCause: count(prs.flatMap((p) => p.causes)),
+      byCause: count([...prs, ...fixes.map((f) => f.data)].flatMap((p) => p.causes)),
       byTicket,
       rounds: prs.reduce((n, p) => n + p.rounds, 0),
+      fixPrRounds: state.epic.branch === null ? "not found" : fixes.reduce((n, f) => n + f.data.rounds, 0),
       handBacks,
       panel: rounds.size ? { rounds: rounds.size, findings: [...rounds.values()].reduce((n, r) => n + Object.values(r.severity ?? {}).reduce((a, b) => a + b, 0), 0) } : "not found",
       ponytail: withPonytail.length ? { hits: hits.length, unique: hits.length - overlap, overlap } : "not found",
@@ -151,6 +190,7 @@ function render(epic: Snapshot["epic"], r: Retro): string {
       `By cause: ${list(r.byCause)}`,
       `By ticket: ${list(r.byTicket)}`,
       `Fix rounds: ${r.rounds}`,
+      `Fix pull request rounds: ${r.fixPrRounds}`,
       `Hand-backs: ${r.handBacks}`,
       `Panel: ${r.panel === "not found" ? r.panel : `${r.panel.rounds} rounds, ${r.panel.findings} findings`}`,
       `Ponytail: ${r.ponytail === "not found" ? r.ponytail : `${r.ponytail.hits} hits, ${r.ponytail.unique} unique, ${r.ponytail.overlap} overlap`}`,
