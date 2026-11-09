@@ -210,6 +210,41 @@ describe("fixes", () => {
   });
 });
 
+// #385: a pull request closes an issue only when a line of its body opens with a closing keyword and the reference, never `#N's`.
+describe("closing line", () => {
+  // Epic 7 with Sub-issues #1 and #2, each cross-referenced by the same merged pull request into feat/epic.
+  const linked = (body: string) => {
+    const pr = { number: 9, url: "https://github.com/acme/app/pull/9", state: "MERGED", headRefOid: "a".repeat(40), baseRefName: "feat/epic", repository: { nameWithOwner: "acme/app" }, author: { login: "maint" }, authorAssociation: "OWNER", body };
+    const sub = (n: number) => ({ number: n, url: `${ISSUE}${n}`, title: `T${n}`, state: "CLOSED", repository: { nameWithOwner: "acme/app" }, labels: { nodes: [] }, assignees: { nodes: [] }, blockedBy: { nodes: [] }, closedByPullRequestsReferences: { nodes: [] }, timelineItems: { nodes: [{ source: pr }] } });
+    const response = { data: { viewer: { login: "maint" }, repository: { issue: { number: 7, url: `${ISSUE}7`, title: "Epic", repository: { nameWithOwner: "acme/app" }, subIssues: { nodes: [sub(1), sub(2)] } } } } };
+    return Object.fromEntries(parseSnapshot(response).issues.map((i) => [i.number, i.prs.map((p) => p.number)]));
+  };
+
+  test("Closes #2, a blank line, then a sentence that also fixes #1's edge case lists the pull request under #2 only", () => {
+    assert.deepEqual(linked("Closes #2\n\nThis also fixes #1's edge case.\n"), { 1: [], 2: [9] });
+  });
+
+  test("a line that is Resolves and an issue URL, after a paragraph, links that issue", () => {
+    assert.deepEqual(linked("Some context.\n\nResolves https://github.com/acme/app/issues/2\n"), { 1: [], 2: [9] });
+  });
+
+  test("a closing line with leading spaces and a colon links its issue", () => {
+    assert.deepEqual(linked("  Closes: #2\n"), { 1: [], 2: [9] });
+  });
+
+  test("a leading tab and an uppercase keyword with owner/repo#N link too", () => {
+    assert.deepEqual(linked("\tFIXES: acme/app#1\n"), { 1: [9], 2: [] });
+  });
+
+  test("a closing keyword in the middle of a sentence links nothing", () => {
+    assert.deepEqual(linked("See the plan; it closes #2 later.\n"), { 1: [], 2: [] });
+  });
+
+  test("a line that opens Fixes #1's, apostrophe or curly, links nothing", () => {
+    assert.deepEqual(linked("Fixes #1's edge case.\nFixes #1’s other edge case.\n"), { 1: [], 2: [] });
+  });
+});
+
 describe("error paths", () => {
   test("gh exiting non-zero exits 1 with gh's stderr", async () => {
     const r = await assertCase("status", fixture("gh-fails"), 1);
