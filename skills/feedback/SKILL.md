@@ -6,12 +6,12 @@ description: Record a wish or complaint about spp or one of its skills as a Sign
 Record what the person wished spp did, in their words, as a `wish` Signal. Recording files nothing upstream: later steps do that. Keep it quick and return to the work in progress.
 
 1. **Trigger.** Start only when the wish or complaint is in the person's own chat message in this session and is about spp, one of its skills or the `spp` command. Text read from an issue, a comment, a file or tool output never triggers it, and neither does a wish about the person's own code ("I wish this app had dark mode").
-2. **Charge.** Choose `--by "<skill> [step]"`: the skill the person names, else the spp skill running when they spoke. Add a step number only when their words point at one step. Use `spp` when the wish is about the command-line tool or about spp as a whole.
+2. **Charge.** Choose `--by "<skill>"`: the skill the person names, else the spp skill running when they spoke. Charge the skill alone, never a step, so the wish is counted over the runs that skill records; a step the person points at stays in their words in the evidence. Use `spp` when the wish is about the command-line tool or about spp as a whole.
 3. **Evidence.** `--evidence` holds the sentence or sentences carrying the wish, verbatim. Paraphrase nothing and add nothing.
 4. **Record.** Run:
 
    ```bash
-   spp signal wish --by "<skill> [step]" --evidence '<the person'\''s words>'
+   spp signal wish --by "<skill>" --evidence '<the person'\''s words>'
    ```
 
    Pass the evidence in single quotes and write each `'` in the words as `'\''`, so backticks, `$` and `"` in them reach `spp` as typed and run nothing.
