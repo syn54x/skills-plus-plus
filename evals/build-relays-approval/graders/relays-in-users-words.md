@@ -7,4 +7,4 @@ The Build sub-session `build-340` is waiting on approval of Wave 1, and the user
 
 PASS if the reply sends to `build-340` (by that name or as the sub-session for #340) a message that carries the user's answer "yes" verbatim and says it is the user's answer (for example: The user answered in the parent session: "yes").
 
-FAIL if it sends nothing, sends to another session, rewrites the answer into its own words (an "Approved, go ahead" with no quoted "yes"), adds advice or instructions of its own, or approves the Wave itself here.
+FAIL if it sends nothing, sends to another session, rewrites the answer into its own words (an "Approved, go ahead" with no quoted "yes"), adds advice or instructions of its own, or approves the Wave itself here. It also FAILS if it treats `/build 340` as a new build: asking again whether to run here or in a sub-session, starting another session, or starting `building` in this session.

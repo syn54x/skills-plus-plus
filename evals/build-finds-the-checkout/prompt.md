@@ -6,7 +6,7 @@ allowed_tools: [Read, Glob, Grep, Skill]
 
 /build https://github.com/syn54x/skills-plus-plus/issues/340
 
-You have no shell and no session tools in this run, so describe instead of calling. This session runs in the desktop app and can start sessions; it has started none. Its folder is `~/work`, which is not a git repository. One level down, `~/work/skills-plus-plus` has the git remote `git@github.com:syn54x/skills-plus-plus.git`, and `~/work/notes` has `https://github.com/syn54x/notes.git`.
+This session runs in the desktop app and can start sessions: a ToolSearch here finds the session-start tool (`mcp__ccd_session__start_session`). This eval run has withheld that tool and the shell from you, so where you would call one, write out the call instead. This session has started no sessions. Its folder is `~/work`, which is not a git repository. One level down, `~/work/skills-plus-plus` has the git remote `git@github.com:syn54x/skills-plus-plus.git`, and `~/work/notes` has `https://github.com/syn54x/notes.git`.
 
 I choose the sub-session. Reply with the exact settings you would start it with: the folder, whether it gets a worktree of its own, and its prompt.
 

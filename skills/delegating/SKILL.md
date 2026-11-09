@@ -21,6 +21,8 @@ Settle the recommendation first, from two facts:
 - Has this session already started other sessions? List the sessions it started.
 - Is this session's folder a checkout of N's repository? Compare the folder's git remote with the repository that owns N (the URL's, or the repository you stand in for a bare number). A folder that is not a git repository is not a checkout.
 
+N's repository is unknown when N is a bare number and this folder is not a git repository. Then the recommendation is the sub-session, and the question below also asks for the issue's URL (or its `owner/name`), since step 3 matches checkouts by that repository and step 4's prompt names the issue by URL.
+
 | This session | Recommend |
 | --- | --- |
 | Has started other sessions, or sits outside a checkout of N's repository | Sub-session |
