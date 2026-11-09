@@ -283,9 +283,28 @@ describe("fix pull request", () => {
   test("a body with neither a closing line nor Refs refuses with closes no issue and refs no Sub-issue", async () => {
     await refused({ fix: {}, body: "Just a change\n" }, /^closes no issue and refs no Sub-issue$/);
   });
+
+  // #385: a closing line opens with the keyword, and `#N's` is prose.
+  test("a fix whose prose says it also fixes #31's flake merges as a fix of #30, not refused as #31's slice", async () => {
+    const r = await merge({ fix: {}, body: "Refs #30\n\nThis also fixes #31's flake.\n" });
+    assert.deepEqual(r.out, { merged: true });
+    assert.deepEqual(r.writes.map((w) => w.argv), [["pr", "merge", FIX_URL, "--squash", "--match-head-commit", "6".repeat(40)]]);
+  });
+
+  test("a body whose prose says it fixes #303 too, with no Refs line, closes no issue", async () => {
+    await refused({ fix: {}, body: "This fixes #303 too.\n", noParent: 303 }, /^closes no issue and refs no Sub-issue$/);
+  });
 });
 
 describe("edge cases", () => {
+  // #385: the prose line before the closing line names another ticket, which is not what the pull request closes.
+  test("#30's own pull request whose prose also fixes #31's flake, then Closes #30, merges as #30's slice", async () => {
+    const r = await merge({ body: "This also fixes #31's flake.\nCloses #30\n" });
+    assert.deepEqual(r.out, { merged: true });
+    assert.equal(r.writes.length, 2);
+    assert.deepEqual(r.writes[0].argv, ["pr", "merge", `${REPO}/pull/40`, "--squash", "--match-head-commit", HEAD[40]]);
+  });
+
   // F39 (Round 3) on #267.
   test("a stranger's open pull request in another repository that says it closes #30 does not stop #30's own from merging", async () => {
     const r = await merge({ foreign: true });
