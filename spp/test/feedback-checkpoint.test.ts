@@ -95,6 +95,11 @@ describe("edge cases: nothing printed, exit 0", () => {
     spawnSync("git", ["checkout", "-q", "-b", "sdd/12-add-export"], { cwd: c.dir });
     silent(await feedback(c, ["checkpoint"]));
   });
+  test("a desktop driver's sdd-<N> branch (F21: the one worker check)", async () => {
+    const c = seeded();
+    spawnSync("git", ["checkout", "-q", "-b", "sdd-12"], { cwd: c.dir });
+    silent(await feedback(c, ["checkpoint"]));
+  });
   test("an empty Signal log", async () => silent(await feedback(checkout(), ["checkpoint"])));
 });
 

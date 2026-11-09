@@ -2,7 +2,8 @@
 // FEEDBACK.md template with only the fields spp knows outside /close-epic, and the person's tally comment on it.
 // spp/src/commands/feedback.ts finds the issue, checks both texts and writes them.
 import { createHash } from "node:crypto";
-import type { FeedbackCandidate } from "./signals.ts";
+import { type FeedbackCandidate, pluginVersion } from "./signals.ts";
+import { encodeTrailer } from "./snapshot.ts";
 
 /** Where Skill feedback is filed. */
 export const FEEDBACK_REPO = "syn54x/skills-plus-plus";
@@ -13,7 +14,12 @@ export const TALLY_MARKER = "<!-- spp-feedback-tally -->";
 /** The values `--change` takes, as FEEDBACK.md's Proposed change field names them. */
 export const CHANGES = ["add a check", "tighten the step", "add an example", "drop the step", "unclear"];
 
-const trailer = (data: unknown) => `<!-- sdd-data: ${Buffer.from(JSON.stringify(data)).toString("base64")} -->`;
+/**
+ * The key a tally comment carries for the repo it was filed from: the first 12 hex characters of the SHA-256 of the
+ * lowercased `owner/repo`, so one person keeps one tally per repo on a grouped issue and the comment names no repo.
+ */
+export const repoKey = (repo: string): string => createHash("sha256").update(repo.toLowerCase()).digest("hex").slice(0, 12);
+
 const total = (counts: Record<string, number>) => Object.values(counts).reduce((a, b) => a + b, 0);
 const skillStep = (c: FeedbackCandidate) => (c.step ? `${c.skill} ${c.step}` : c.skill);
 
@@ -41,15 +47,20 @@ export function issueBody(c: FeedbackCandidate, runs: Record<string, number>, ch
     "**Eval case:** the fix lands with an eval case that reproduces this defect, red before the fix and green after it.",
     `**Fingerprint:** ${c.fingerprint}`,
     ...(auto ? ["**Filed by:** spp, unattended (Submission mode Auto)"] : []),
-    trailer({ fingerprint: c.fingerprint, skill: c.skill, step: c.step, category: c.category }),
+    encodeTrailer({ fingerprint: c.fingerprint, skill: c.skill, step: c.step, category: c.category }),
   ].join("\n") + "\n";
 }
 
 /**
  * A person's tally comment: Signals and runs per plugin version, then under Full Detail (`repo` given) the repo and
- * each Signal's evidence, the note, and whether spp filed it unattended. Its trailer carries the same counts.
+ * each Signal's evidence, the note, and whether spp filed it unattended. Its trailer carries the same counts, the
+ * `repoKey` of the repo it was filed from ({@link repoKey}), and the maker (skill `feedback`, the plugin version) as Marker comments do.
  */
-export function tallyComment(c: FeedbackCandidate, runs: Record<string, number>, opts: { repo?: string; note?: string; auto: boolean }): string {
+export function tallyComment(
+  c: FeedbackCandidate,
+  runs: Record<string, number>,
+  opts: { repoKey: string; repo?: string; note?: string; auto: boolean },
+): string {
   const versions: Record<string, { signals: number; runs: number }> = {};
   for (const v of [...new Set([...Object.keys(c.versions), ...Object.keys(runs)])].sort(byVersion)) versions[v] = { signals: c.versions[v] ?? 0, runs: runs[v] ?? 0 };
   const sections = [
@@ -57,7 +68,7 @@ export function tallyComment(c: FeedbackCandidate, runs: Record<string, number>,
     ...(opts.repo ? [`**Repo:** ${opts.repo}`, ["**Evidence:**", "", ...c.evidence.map((e) => `- ${e.replace(/\s+/g, " ").trim()}`)].join("\n")] : []),
     ...(opts.note ? [`**Note:** ${opts.note}`] : []),
     ...(opts.auto ? ["Filed by spp, unattended (Submission mode Auto)."] : []),
-    trailer({ fingerprint: c.fingerprint, versions, auto: opts.auto }),
+    encodeTrailer({ fingerprint: c.fingerprint, versions, auto: opts.auto, repoKey: opts.repoKey, by: { skill: "feedback", version: pluginVersion() } }),
   ];
   return sections.join("\n\n") + "\n";
 }
