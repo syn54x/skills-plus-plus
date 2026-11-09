@@ -8,7 +8,7 @@ It changes only what is not already right, and it shows you every change before 
 
 You type `/setup-spp`; the agent never starts it on its own, and no other skill can start it for you. Run it in each repo that will use spp, ahead of its first `/to-spec` or `/build`. When `spp preflight` or a skill tells you there is no Routing block, this is the fix.
 
-A repo set up earlier needs a run only when something in it should change: a new Panel threshold, a different feedback profile, a document to add to the Laws line, or labels someone deleted. `ask-spp` routes between every skill when the right one is unclear.
+A repo set up earlier needs a run only when something in it should change: a new Panel threshold, a different Self-improvement mode, a document to add to the Laws line, or labels someone deleted. `ask-spp` routes between every skill when the right one is unclear.
 
 ## What it writes
 
@@ -18,6 +18,7 @@ A repo set up earlier needs a run only when something in it should change: a new
 | Issue types, org repos only | `Epic` and `Task` | only the ones missing, and only after you agree, since they belong to the whole organization |
 | `CLAUDE.md` or `AGENTS.md` | the Routing block between `<!-- sdd-routing -->` markers | created, or rewritten in place |
 | the same file | a `## Domain docs` section naming the glossary and ADR locations | only when missing |
+| spp's config directory, not the repo | your own Submission mode, `Auto` or `Review`, kept for you and this repo only, so your other repos keep theirs; set with `spp feedback submission` | only when setup writes the `Self-improvement mode` line and you chose a mode other than Off |
 
 It writes to `CLAUDE.md` when that file exists, to `AGENTS.md` otherwise, and asks which to create when neither does. It creates no glossary or ADR file: `domain-modeling` does that when you settle a term or a decision.
 
@@ -31,7 +32,7 @@ The block holds what `spp` and the skills need to know about this repo:
 | `Sizes` | the `size:S/M/L` labels |
 | `Panel` | optional: thresholds that override when the review panel runs by itself (`tickets>=N`, `lines>=N`, and `no-size-L` to stop a size L Sub-issue from triggering it). Left out unless you ask for them. |
 | `Merge` | optional: how `spp merge` merges a slice (`squash`, `merge` or `rebase`). Setup never asks for it, and a re-run keeps the line if you added it. |
-| `Upstream feedback` | what `close-epic` may put in a skill-defect issue: `off`, `counts`, `detailed` or `attributed`. Each proposed issue is shown to you first. |
+| `Self-improvement mode` | how much spp may say about this repo's work in Skill feedback: `Off`, `Anonymous` or `Full Detail`. Setup recommends Full Detail for a public repo and Anonymous for a private one. |
 | `Laws` | the repo documents that bind every worker and reviewer |
 
 The Laws line starts from whichever standard documents your repo has (`GLOSSARY.md`, `CLAUDE.md`, the ADR directory and a few more), and you can add others, such as a design system. On a re-run every entry already on the line stays.
@@ -49,6 +50,9 @@ It reads the repo again, compares, and reports `unchanged` for everything alread
 
 **It could not create the issue types.**
 Types belong to the organization, and creating them needs admin rights there. Ask an admin to add `Epic` and `Task`; `/to-spec` files Epics with the first of them.
+
+**Why does Auto still show me reports in a private repo?**
+Auto files without asking only in a public repo. In a private one it acts as Review, and shows you each report first, because a private repo's details should not leave it unseen ([ADR 0012](https://github.com/syn54x/skills-plus-plus/blob/main/.agents/adr/0012-self-improvement-runs-in-attended-sessions-under-two-modes.md)).
 
 **Can I change a threshold by hand instead?**
 Yes. The block is plain text in your instructions file, and `spp` reads it as it stands. Edit the line, keeping the field names and the markers as they are.
