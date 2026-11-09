@@ -14,7 +14,7 @@ The repo's **Self-improvement mode** is the `Self-improvement mode:` line of the
 
 An old `Upstream feedback:` line still works: `off` reads as Off, `counts` and `detailed` as Anonymous, `attributed` as Full Detail.
 
-The person's **Submission mode** is read and set with `spp feedback submission [Auto|Review]`:
+The person's **Submission mode** is set for each repo with `spp feedback submission [Auto|Review]`, run in a checkout of that repo:
 
 | Mode | What happens at a checkpoint |
 | --- | --- |

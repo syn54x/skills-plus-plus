@@ -42,7 +42,7 @@ Only Skill feedback issues on `syn54x/skills-plus-plus`, one per skill step and 
 | Anonymous | which skill step failed, one category from a fixed set, Signal and run counts per plugin version, and a sentence of yours with no project detail |
 | Full Detail | the same, plus your repo's name and the evidence behind each Signal |
 
-Your own Submission mode (`spp feedback submission`) decides who files. Under Review you see each preview whole and answer file, skip or later. Under Auto spp files without asking and the issue says so, except in a private repo, where Auto falls back to Review.
+Your own Submission mode, set for each repo with `spp feedback submission`, decides who files. Under Review you see each preview whole and answer file, skip or later. Under Auto spp files without asking and the issue says so, except in a private repo, where Auto falls back to Review.
 
 spp builds each body itself and checks it before anything is posted. A token, key or private key blocks it in every mode, and the check prints it as `[REDACTED]`. Under Anonymous six more rules block file paths, code, repo names, titles, URLs and error text; under Full Detail those rules print as warnings and let the body through. It never rewrites a body. Every issue also asks for an eval case that reproduces the defect, to land with the fix.
 

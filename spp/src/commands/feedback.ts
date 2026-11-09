@@ -7,9 +7,9 @@
  *
  * It also acts on a pending candidate. `spp feedback file <fingerprint>` files it on the one grouped Skill feedback
  * issue for that skill step and category on syn54x/skills-plus-plus, and rewrites the person's own tally comment
- * there; under the person's Submission mode Review it first prints what it would post and files only when run again
+ * there; under the person's Submission mode Review for this repo it first prints what it would post and files only when run again
  * with that text's `--confirm` hash. `spp feedback skip <fingerprint>` drops a candidate for good, and
- * `spp feedback submission [Auto|Review]` reads or sets the person's Submission mode.
+ * `spp feedback submission [Auto|Review]` reads or sets the person's Submission mode for this repo.
  *
  * The check and the list:
  *
@@ -85,7 +85,7 @@ function outboundContext(ctx: Omit<FeedbackContext, "paths">): FeedbackContext {
  * @param args - `check`, the draft's body file, then `--title-file <file>` for the titles and repo names it must not
  *   leak; `pending`, then `--json` for the {@link FeedbackCandidate} list; `file <fingerprint>` with `--epic <epic>`
  *   (whose repos' modes also bind), `--change <change>` (the Proposed change, default `unclear`), `--note <text>` and
- *   `--confirm <hash>`; `skip <fingerprint>`; `submission`, then `Auto` or `Review` in any case to set it; or
+ *   `--confirm <hash>`; `skip <fingerprint>`; `submission`, then `Auto` or `Review` in any case to set it for this repo; or
  *   `checkpoint`, alone.
  * @returns For `check`, one `rule <rule> <name>, line <n>: <text>` line per hit on stdout, in line order, with any
  *   secret in the text replaced by `[REDACTED]`. A hit that only warns (rules 1 to 6 under Full Detail) starts with
@@ -171,12 +171,18 @@ function checkpoint(): number {
 }
 
 function submission(value: string | undefined): number {
+  let repo: string;
+  try {
+    repo = currentRepo();
+  } catch (e) {
+    return fail("submission", e instanceof Error ? e.message : String(e));
+  }
   if (value !== undefined) {
     const mode = SUBMISSION_MODES.find((m) => m.toLowerCase() === value.toLowerCase());
     if (!mode) return usage("submission", new UsageError(`Submission mode must be Auto or Review, got ${JSON.stringify(value)}`));
-    writeSubmissionMode(mode);
+    writeSubmissionMode(repo, mode);
   }
-  process.stdout.write(`Submission mode: ${readSubmissionMode()}\n`);
+  process.stdout.write(`Submission mode: ${readSubmissionMode(repo)}\n`);
   return 0;
 }
 
@@ -286,7 +292,7 @@ async function file(args: string[]): Promise<number> {
     }
     if (profile === "Off") return fail("file", OFF);
 
-    let auto = readSubmissionMode() === "Auto";
+    let auto = readSubmissionMode(repo) === "Auto";
     for (const r of auto ? [...new Set([repo, ...names])] : []) {
       if (!(await isPrivate(r))) continue;
       process.stderr.write(`spp feedback file: Submission mode Auto falls back to Review: ${r} is private\n`);

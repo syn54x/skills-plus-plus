@@ -22,10 +22,10 @@ const b64 = (data: unknown) => Buffer.from(JSON.stringify(data)).toString("base6
 type Checkout = { dir: string; state: string; config: string };
 
 // A git checkout whose origin is acme/app, with a Routing block holding `mode`, and state and config directories of its own.
-function checkout(mode = "Anonymous", tracked: string[] = []): Checkout {
+function checkout(mode = "Anonymous", tracked: string[] = [], origin = "acme/app"): Checkout {
   const dir = mkdtempSync(join(tmpdir(), "spp-file-"));
   spawnSync("git", ["init", "-q"], { cwd: dir });
-  spawnSync("git", ["remote", "add", "origin", "https://github.com/acme/app.git"], { cwd: dir });
+  spawnSync("git", ["remote", "add", "origin", `https://github.com/${origin}.git`], { cwd: dir });
   writeFileSync(join(dir, "CLAUDE.md"), ROUTING(mode));
   for (const t of tracked) {
     mkdirSync(join(dir, dirname(t)), { recursive: true });
@@ -51,9 +51,9 @@ function runs(c: Checkout, n: number, over: Partial<Run> = {}): void {
   for (let i = 0; i < n; i++) appendFileSync(file, JSON.stringify({ at: "2026-01-01T00:00:00.000Z", repo: "acme/app", skill: "harden", step: "3", version: "2.3.0", artifact: "x", ...over }) + "\n");
 }
 
-function setAuto(c: Checkout): void {
+function setAuto(c: Checkout, repo = "acme/app"): void {
   mkdirSync(join(c.config, "spp"), { recursive: true });
-  writeFileSync(join(c.config, "spp", "config.json"), JSON.stringify({ submissionMode: "Auto" }));
+  writeFileSync(join(c.config, "spp", "config.json"), JSON.stringify({ submissionMode: { [repo]: "Auto" } }));
 }
 
 // Runs `spp feedback <args>` in the checkout with `gh` answering from `gh`; CI is unset unless `ci` is given.
@@ -193,7 +193,7 @@ describe("happy path", () => {
     const r = await feedback(c, ["submission", "auto"]);
     assert.equal(r.code, 0, r.stderr);
     assert.equal(r.stdout, "Submission mode: Auto\n");
-    assert.deepEqual(JSON.parse(readFileSync(join(c.config, "spp", "config.json"), "utf8")), { other: 1, submissionMode: "Auto" });
+    assert.deepEqual(JSON.parse(readFileSync(join(c.config, "spp", "config.json"), "utf8")), { other: 1, submissionMode: { "acme/app": "Auto" } });
     const read = await feedback(c, ["submission"]);
     assert.equal(read.stdout, "Submission mode: Auto\n");
   });
@@ -203,7 +203,55 @@ describe("happy path", () => {
     const r = await feedback(c, ["submission", "review"]);
     assert.equal(r.code, 0, r.stderr);
     assert.equal(r.stdout, "Submission mode: Review\n");
-    assert.deepEqual(JSON.parse(readFileSync(join(c.config, "spp", "config.json"), "utf8")), { submissionMode: "Review" });
+    assert.deepEqual(JSON.parse(readFileSync(join(c.config, "spp", "config.json"), "utf8")), { submissionMode: { "acme/app": "Review" } });
+  });
+
+  const cfg = (c: Checkout) => join(c.config, "spp", "config.json");
+  // Two checkouts of different repos for the same person share one config directory.
+  const sameConfig = (a: Checkout, b: Checkout) => ((b.config = a.config), b);
+
+  test("the mode is kept per repo: Auto in acme/site and Review in acme/internal stay apart", async () => {
+    const site = checkout("Anonymous", [], "acme/site");
+    const internal = sameConfig(site, checkout("Anonymous", [], "acme/internal"));
+    const w = await feedback(site, ["submission", "Auto"]);
+    assert.equal(w.code, 0, w.stderr);
+    assert.equal(w.stdout, "Submission mode: Auto\n");
+    assert.deepEqual(JSON.parse(readFileSync(cfg(site), "utf8")), { submissionMode: { "acme/site": "Auto" } });
+    assert.equal((await feedback(internal, ["submission", "review"])).stdout, "Submission mode: Review\n");
+    assert.deepEqual(JSON.parse(readFileSync(cfg(site), "utf8")), { submissionMode: { "acme/site": "Auto", "acme/internal": "Review" } });
+    assert.equal((await feedback(site, ["submission"])).stdout, "Submission mode: Auto\n");
+  });
+
+  test("a repo with no entry reads Review", async () => {
+    const c = checkout("Anonymous", [], "acme/new");
+    setAuto(c, "acme/site");
+    assert.equal((await feedback(c, ["submission"])).stdout, "Submission mode: Review\n");
+  });
+
+  test("a string submissionMode reads as Review and the next write replaces it, keeping other keys", async () => {
+    const c = checkout();
+    mkdirSync(join(c.config, "spp"), { recursive: true });
+    writeFileSync(cfg(c), JSON.stringify({ other: 1, submissionMode: "Auto" }));
+    assert.equal((await feedback(c, ["submission"])).stdout, "Submission mode: Review\n");
+    await feedback(c, ["submission", "auto"]);
+    assert.deepEqual(JSON.parse(readFileSync(cfg(c), "utf8")), { other: 1, submissionMode: { "acme/app": "Auto" } });
+  });
+
+  test("spp feedback file previews when only another repo is Auto", async () => {
+    const c = checkout();
+    setAuto(c, "acme/site");
+    signal(c);
+    const r = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: [] } });
+    assert.equal(r.code, 3, r.stderr);
+    assert.deepEqual(writes(r), []);
+  });
+
+  test("a checkout with no GitHub origin exits 1 with the origin message", async () => {
+    const c = checkout();
+    spawnSync("git", ["remote", "remove", "origin"], { cwd: c.dir });
+    const r = await feedback(c, ["submission"]);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /^spp feedback submission: cannot tell this checkout's GitHub repository/);
   });
 });
 
