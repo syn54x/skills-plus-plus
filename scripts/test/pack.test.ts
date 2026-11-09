@@ -19,18 +19,19 @@ const firstPack = (stdout: string): Pack => {
 // A throwaway copy of the package: prepack builds dist/ here, never in the repo, so `bin/spp` in the repo keeps running the sources.
 function copyRepo(): string {
   const copy = mkdtempSync(join(tmpdir(), "spp-copy-"));
-  for (const p of ["bin", "spp/src", "package.json", "tsconfig.json", "tsconfig.build.json", "README.md", "LICENSE"]) {
+  for (const p of ["bin", "spp/src", "hooks/attended.json", "package.json", "tsconfig.json", "tsconfig.build.json", "README.md", "LICENSE"]) {
     cpSync(join(repoRoot, p), join(copy, p), { recursive: true });
   }
   symlinkSync(join(repoRoot, "node_modules"), join(copy, "node_modules"));
   return copy;
 }
 
-test("npm pack lists only bin, dist and the package files, with a dist file per command", () => {
+test("npm pack lists only bin, dist, hooks/attended.json and the package files, with a dist file per command", () => {
   const result = sh("npm", ["pack", "--dry-run", "--json"], copyRepo());
   assert.equal(result.status, 0, result.stderr);
   const paths = firstPack(result.stdout).files.map((f) => f.path);
-  const allowed = /^(bin\/|dist\/|package\.json$|README\.md$|LICENSE$)/;
+  const allowed = /^(bin\/|dist\/|hooks\/attended\.json$|package\.json$|README\.md$|LICENSE$)/;
+  assert.ok(paths.includes("hooks/attended.json"), "the Attended table ships with the package");
   assert.deepEqual(paths.filter((p) => !allowed.test(p)), []);
   const commands = readdirSync(join(repoRoot, "spp/src/commands")).filter((f) => f.endsWith(".ts"));
   assert.ok(commands.length > 0);
@@ -57,6 +58,10 @@ test("the packed tarball installs into a temp folder and runs spp --help and --v
   const ver = sh("npx", ["spp", "--version"], project);
   assert.equal(ver.status, 0, ver.stderr);
   assert.equal(ver.stdout.trim(), `spp ${version}`);
+  // The compiled Attended check finds the table the package ships, so an npm install can see an Attended session.
+  const attended = join(project, "node_modules/@syn54x/spp/dist/attended.js");
+  const check = (value: string) => sh(process.execPath, ["--input-type=module", "-e", `const { isAttended } = await import(${JSON.stringify(attended)}); console.log(isAttended({ CLAUDE_CODE_SESSION_ATTENDED: "${value}" }));`], project);
+  assert.deepEqual([check("1").stdout.trim(), check("0").stdout.trim()], ["true", "false"]);
 });
 
 test("with spp/src beside it, bin/spp runs an edited command even when a stale dist/ is present", () => {

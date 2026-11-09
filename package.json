@@ -8,7 +8,8 @@
   },
   "files": [
     "bin/",
-    "dist/"
+    "dist/",
+    "hooks/attended.json"
   ],
   "publishConfig": {
     "access": "public",
