@@ -81,6 +81,33 @@ describe("near titles", () => {
     assert.deepEqual(r.lines, { F1: [10, 12] });
   });
 
+  // PR #412 gate: one pass anchored at line 10 ended the window before line 16, splitting two copies of one title that `main` merged.
+  test("a title cluster is never split: a minor at line 10 and one title at lines 14 and 16 are one finding, in any input order", () => {
+    const inputs = [at("correctness", 10, "Comment has a typo", "minor"), at("testing", 14, "Swallows every gh error"), at("adversarial", 16, "Swallows every gh error")];
+    const r = mergeFindings(inputs);
+    assert.equal(r.findings.length, 1);
+    assert.deepEqual(r.counts.severity, { critical: 0, important: 1, minor: 0 });
+    assert.deepEqual(r.findings[0].personas, ["adversarial", "correctness", "testing"]);
+    assert.equal(r.findings[0].body, "b\n\nAlso reported as: Comment has a typo (correctness, line 10)");
+    assert.deepEqual(r.lines, { F1: [10, 14, 16] });
+    assert.deepEqual(mergeFindings([...inputs].reverse()), r);
+  });
+
+  test("a title cluster outside the window of the group's first line starts another group", () => {
+    const r = mergeFindings([at("a", 10, "first"), at("b", 15, "second"), at("c", 17, "second")]);
+    assert.deepEqual(r.lines, { F1: [10], F2: [15, 17] });
+  });
+
+  // PR #412 gate: `spp retro` counts findings by Law tag, so a finding must not be filed under a Law only an absorbed one cites.
+  test("a merged finding carries the speaking finding's Law tag, and otherwise the first Law tag by Persona name", () => {
+    const cited = (p: PersonaFindings, law?: string): PersonaFindings => ({ ...p, findings: p.findings.map((f) => ({ ...f, law })) });
+    const speaks = mergeFindings([cited(at("testing", 10, "retry is unbounded", "critical"), "CLAUDE.md#Checks"), cited(at("adversarial", 11, "no test covers it"), "CLAUDE.md#Prose")]);
+    assert.equal(speaks.findings.length, 1);
+    assert.equal(speaks.findings[0].law, "CLAUDE.md#Checks");
+    const silent = mergeFindings([at("testing", 10, "retry is unbounded", "critical"), cited(at("correctness", 11, "no test covers it"), "CLAUDE.md#Errors"), cited(at("adversarial", 12, "swallows errors"), "CLAUDE.md#Prose")]);
+    assert.equal(silent.findings[0].law, "CLAUDE.md#Prose");
+  });
+
   test("a tagged title merges only with its own tag, matched case-insensitively, and never with an untagged one", () => {
     for (const [one, other] of [["ticket-mandated: retry", "Ticket-Mandated: log"], ["Candidate ADR: sqlite", "candidate adr: postgres"], ["Check after deploy: queue", "check after deploy: cache"], ["Terminology: gate", "terminology drift in the docs"]]) {
       assert.equal(mergeFindings([at("a", 10, one), at("b", 11, other)]).findings.length, 1, `${one} with ${other}`);
