@@ -1,7 +1,7 @@
 /**
  * `spp findings merge <file...> [--json] [--verdict <round> ...] [--fix-diff <file>]` merges the review panel's Persona findings. Each
  * file is one {@link PersonaFindings}. Findings under 80 confidence are dropped. The rest merge in two passes per file:
- * findings with the same normalised title, less than 5 lines from the first of them, form a title cluster; then title
+ * findings whose titles match once case and punctuation are ignored, less than 5 lines from the first of them, form a title cluster; then title
  * clusters whose first lines are less than 5 lines from the first line of the group they join fold into one finding
  * whatever their titles, so a defect that several Personas word differently counts once. A title cluster is never
  * split. The merged finding keeps the highest severity and every Persona, and its body ends with one
@@ -43,8 +43,8 @@ export const USAGE = `usage: spp findings merge <file...> [--json] [--fix-diff <
          [--verdict <round> --spec pass|fail --coherence pass|fail --verify pass|fail
           --checks pass|fail|pending|none [--missing name,name]]
 Each file is { "persona": NAME, "findings": [{ file, line, title, severity, confidence, law?, body }] }.
-Findings under 80 confidence are dropped. On one file, findings with the same normalised title merge within 5 lines of
-the first of them; then those title groups merge whatever their titles when a group's first line is within 5 lines of
+Findings under 80 confidence are dropped. On one file, findings whose titles match (case and punctuation ignored)
+merge within 5 lines of the first of them; then those title groups merge whatever their titles when a group's first line is within 5 lines of
 the first line of the merged group. The result keeps the highest severity and every persona, with an
 "Also reported as: <title> (<persona>, line <line>)" line in the body for each other title. A title that starts
 ticket-mandated:, Candidate ADR:, Check after deploy: or Terminology merges only with findings that start the same
