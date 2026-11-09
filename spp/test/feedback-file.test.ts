@@ -22,9 +22,11 @@ const VIEW = (n: number) => `api repos/${FEEDBACK}/issues/${n} --jq [.state, .us
 const open = () => ({ stdout: JSON.stringify(["open", "me", "NONE"]) + "\n" });
 // Search hits as the jq prints them: one [number, url, body, login, association] line each.
 const hits = (...issues: [number, string, string, string][]) => ({ stdout: issues.map(([n, body, login, assoc]) => JSON.stringify([n, `https://github.com/${FEEDBACK}/issues/${n}`, body, login, assoc]) + "\n").join("") });
-const ME = { "api user --jq .login": { stdout: "me\n" } };
+const ME = { "api graphql -f query=Viewer --jq .data.viewer.login": { stdout: "me\n" } };
 const CREATE = `issue create -R ${FEEDBACK} *`;
 const COMMENTS = (n: number) => `api repos/${FEEDBACK}/issues/${n}/comments --paginate --jq .[] | [.id, .body, .user.login] | @json`;
+// A newly created issue 900: no comments yet, so the tally is posted.
+const FRESH = { [CREATE]: { stdout: URL + "\n" }, [COMMENTS(900)]: { stdout: "" }, ...ME };
 const PRIVATE = (repo: string) => `repo view ${repo} --json isPrivate`;
 const RAW = (repo: string, file: string) => `api repos/${repo}/contents/${file} -H Accept: application/vnd.github.raw`;
 const ROUTING = (mode: string) => `# x\n\n<!-- sdd-routing -->\n- Mode: org\n- Self-improvement mode: ${mode}\n<!-- /sdd-routing -->\n`;
@@ -116,7 +118,7 @@ describe("happy path", () => {
     signal(c);
     signal(c, { evidence: "again" });
     runs(c, 5);
-    const r = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, [CREATE]: { stdout: URL + "\n" } });
+    const r = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, ...FRESH });
     assert.equal(r.code, 0, r.stderr);
     assert.equal(lastLine(r.stdout), `filed ${FP} ${URL} created`);
     const [create, post, ...rest] = writes(r);
@@ -145,13 +147,13 @@ describe("happy path", () => {
     signal(c);
     signal(c);
     runs(c, 5);
-    const first = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, [CREATE]: { stdout: URL + "\n" } });
+    const first = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, ...FRESH });
     assert.equal(first.code, 0, first.stderr);
     const tally = bodyOf(writes(first)[1]);
     const r = await feedback(c, ["file", FP], {
       ...PUBLIC,
       [VIEW(900)]: open(),
-      "api user --jq .login": { stdout: "me\n" },
+      ...ME,
       [COMMENTS(900)]: { stdout: JSON.stringify([55, tally, "me"]) + "\n" },
     });
     assert.equal(r.code, 0, r.stderr);
@@ -171,7 +173,7 @@ describe("happy path", () => {
     const r = await feedback(c, ["file", FP], {
       ...PUBLIC,
       [LIST]: hits([901, other, "me", "NONE"], [903, mine, "me", "NONE"], [902, mine, "lead", "MEMBER"]),
-      "api user --jq .login": { stdout: "me\n" },
+      ...ME,
       [COMMENTS(902)]: { stdout: [JSON.stringify([70, tallyFor("acme/app"), "other"]), JSON.stringify([71, tallyFor("acme/app"), "me"])].join("\n") + "\n" },
     });
     assert.equal(r.code, 0, r.stderr);
@@ -183,7 +185,7 @@ describe("happy path", () => {
     const c = checkout();
     signal(c);
     runs(c, 2);
-    const gh = { [LIST]: { stdout: "" }, [CREATE]: { stdout: URL + "\n" } };
+    const gh = { [LIST]: { stdout: "" }, ...FRESH };
     const r = await feedback(c, ["file", FP], gh);
     assert.equal(r.code, 3, r.stderr);
     assert.deepEqual(writes(r), []);
@@ -210,7 +212,7 @@ describe("happy path", () => {
     signal(c, { version: "2.4.0" });
     runs(c, 1, { version: "2.4.0" });
     runs(c, 1, { version: "2.10.0" });
-    const r = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, [CREATE]: { stdout: URL + "\n" } });
+    const r = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, ...FRESH });
     assert.equal(r.code, 0, r.stderr);
     assert.deepEqual(tallyRow(bodyOf(writes(r)[1])), ["| 2.3.0 | 1 | 0 |", "| 2.4.0 | 1 | 1 |", "| 2.10.0 | 0 | 1 |"]);
   });
@@ -313,7 +315,7 @@ describe("edge cases", () => {
       ...PUBLIC,
       [PRIVATE("acme/api")]: { stdout: { isPrivate: false } },
       [LIST]: { stdout: "" },
-      [CREATE]: { stdout: URL + "\n" },
+      ...FRESH,
     });
     assert.equal(r.code, 0, r.stderr);
     assert.doesNotMatch(bodyOf(writes(r)[1]), /\*\*Repo:\*\*|\*\*Evidence:\*\*/);
@@ -331,7 +333,7 @@ describe("edge cases", () => {
       ...PUBLIC,
       [PRIVATE("acme/api")]: { stdout: { isPrivate: false } },
       [LIST]: { stdout: "" },
-      [CREATE]: { stdout: URL + "\n" },
+      ...FRESH,
     });
     assert.equal(r.code, 0, r.stderr);
     const tally = bodyOf(writes(r)[1]);
@@ -372,7 +374,7 @@ describe("edge cases", () => {
   test("Review with --confirm of a stale hash (a Signal added after the preview) shows the new preview, exit 3, no writes", async () => {
     const c = checkout();
     signal(c);
-    const gh = { [LIST]: { stdout: "" }, [CREATE]: { stdout: URL + "\n" } };
+    const gh = { [LIST]: { stdout: "" }, ...FRESH };
     const first = await feedback(c, ["file", FP], gh);
     const hash = lastLine(first.stdout).slice("confirm: ".length);
     signal(c);
@@ -404,7 +406,7 @@ describe("edge cases", () => {
       ...PUBLIC,
       [VIEW(800)]: { code: 1, stderr: "GraphQL: Could not resolve to an issue" },
       [LIST]: { stdout: "" },
-      [CREATE]: { stdout: URL + "\n" },
+      ...FRESH,
     });
     assert.equal(r.code, 0, r.stderr);
     assert.equal(lastLine(r.stdout), `filed ${FP} ${URL} created`);
@@ -426,7 +428,7 @@ describe("edge cases", () => {
     const c = checkout();
     setAuto(c);
     signal(c);
-    assert.equal((await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, [CREATE]: { stdout: URL + "\n" } })).code, 0);
+    assert.equal((await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, ...FRESH })).code, 0);
     assert.equal((await feedback(c, ["pending"])).stdout, "");
     signal(c, { at: "2999-01-01T00:00:00.000Z" });
     assert.equal((await feedback(c, ["pending"])).stdout, `${FP} 2 harden 3 step-unclear\n`);
@@ -438,7 +440,7 @@ describe("error paths", () => {
     const c = checkout();
     setAuto(c);
     signal(c);
-    const r = await feedback(c, ["file", FP, "--note", "see https://example.com"], { ...PUBLIC, [LIST]: { stdout: "" }, [CREATE]: { stdout: URL + "\n" } });
+    const r = await feedback(c, ["file", FP, "--note", "see https://example.com"], { ...PUBLIC, [LIST]: { stdout: "" }, ...FRESH });
     assert.equal(r.code, 2, r.stderr);
     assert.match(r.stdout, /^rule 1 URLs, line \d+: \*\*Note:\*\* see https:\/\/example\.com$/m);
     assert.deepEqual(writes(r), []);
@@ -449,7 +451,7 @@ describe("error paths", () => {
     const c = checkout("Full Detail", ["src/billing/invoice.ts"]);
     setAuto(c);
     signal(c, { evidence: "edited src/billing/invoice.ts by hand" });
-    const r = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, [CREATE]: { stdout: URL + "\n" } });
+    const r = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, ...FRESH });
     assert.equal(r.code, 0, r.stderr);
     assert.match(r.stdout, /^warning: rule 3 Paths, line \d+: - edited src\/billing\/invoice\.ts by hand$/m);
     assert.equal(lastLine(r.stdout), `filed ${FP} ${URL} created`);
@@ -496,7 +498,7 @@ describe("error paths", () => {
     setAuto(c);
     signal(c);
     const POST = `api -X POST repos/${FEEDBACK}/issues/900/comments *`;
-    const r = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, [CREATE]: { stdout: URL + "\n" }, [POST]: { code: 1, stderr: "HTTP 403: secondary rate limit" } });
+    const r = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, ...FRESH, [POST]: { code: 1, stderr: "HTTP 403: secondary rate limit" } });
     assert.equal(r.code, 1);
     assert.match(r.stderr, /secondary rate limit/);
     assert.deepEqual(decisions(c).map((d) => [d.decision, d.issue]), [["created", 900]]);
@@ -504,7 +506,7 @@ describe("error paths", () => {
     const again = await feedback(c, ["file", FP], {
       ...PUBLIC,
       [VIEW(900)]: open(),
-      "api user --jq .login": { stdout: "me\n" },
+      ...ME,
       [COMMENTS(900)]: { stdout: "" },
     });
     assert.equal(again.code, 0, again.stderr);
@@ -530,7 +532,7 @@ describe("review round 1 guards", () => {
     setAuto(c);
     signal(c);
     const forged = `**Fingerprint:** ${FP}\n${encodeTrailer({ fingerprint: FP })}\n`;
-    const r = await feedback(c, ["file", FP], { ...PUBLIC, ...ME, [LIST]: hits([5, forged, "mallory", "NONE"]), [CREATE]: { stdout: URL + "\n" } });
+    const r = await feedback(c, ["file", FP], { ...PUBLIC, ...ME, [LIST]: hits([5, forged, "mallory", "NONE"]), ...FRESH });
     assert.equal(r.code, 0, r.stderr);
     assert.equal(lastLine(r.stdout), `filed ${FP} ${URL} created`);
     assert.deepEqual(writes(r).map((w) => w.argv.slice(0, 2)), [["issue", "create"], ["api", "-X"]]);
@@ -585,7 +587,7 @@ describe("review round 1 guards", () => {
       "api repos/{owner}/{repo}/issues/7/comments --paginate --jq .[] | [.id, .body, .user.login, .author_association] | @json": { stdout: plan },
       ...PUBLIC,
       [LIST]: { stdout: "" },
-      [CREATE]: { stdout: URL + "\n" },
+      ...FRESH,
     });
     assert.equal(r.code, 0, r.stderr);
     assert.match(bodyOf(writes(r)[1]), /\*\*Repo:\*\* acme\/app/);
@@ -643,7 +645,7 @@ describe("review round 2 guards", () => {
     const c = checkout();
     setAuto(c);
     signal(c);
-    const first = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, [CREATE]: { stdout: URL + "\n" } });
+    const first = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, ...FRESH });
     const second = await feedback(c, ["file", FP], { ...PUBLIC, ...ME, [VIEW(900)]: open(), [COMMENTS(900)]: { stdout: JSON.stringify([55, bodyOf(writes(first)[1]), "me"]) + "\n" } });
     assert.equal(second.code, 0, second.stderr);
     assert.deepEqual(writes(second)[0].argv.slice(0, 4), ["api", "-X", "PATCH", `repos/${FEEDBACK}/issues/comments/55`]);

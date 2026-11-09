@@ -31,7 +31,7 @@ import { workerTicket } from "../attended.ts";
 import { checkFeedback, type FeedbackContext, formatHit } from "../feedback.ts";
 import { CHANGES, FEEDBACK_REPO, issueBody, issueTitle, previewHash, repoKey, TALLY_MARKER, tallyComment } from "../feedback-file.ts";
 import { GhError, runGh } from "../gh.ts";
-import { find, flagPairs, parseIssue, put, readTrailer, UsageError } from "../markers.ts";
+import { find, flagPairs, ownMarkerBody, parseIssue, readTrailer, UsageError, viewerLogin, writeOwnMarker } from "../markers.ts";
 import { currentRepo } from "../notes.ts";
 import { readSelfImprovementMode, type SelfImprovementMode, selfImprovementModeOf } from "../routing.ts";
 import { TRUSTED_ASSOCIATIONS, trustedAuthor } from "../snapshot.ts";
@@ -222,10 +222,9 @@ async function epicRepos(arg: string): Promise<string[]> {
 
 const isPrivate = async (repo: string) => (JSON.parse(await runGh(["repo", "view", repo, "--json", "isPrivate"])) as { isPrivate?: boolean }).isPrivate === true;
 const issueUrl = (n: number) => `https://github.com/${FEEDBACK_REPO}/issues/${n}`;
+// The maker the tally comment's trailer records.
+const TALLY_BY = { skill: "feedback" };
 
-let viewer: Promise<string> | undefined;
-// The gh user's login, asked at most once per run.
-const viewerLogin = () => (viewer ??= runGh(["api", "user", "--jq", ".login"]).then((s) => s.trim()));
 // Whether spp may act on what this author wrote (ADR 0009), as `find` decides it: the gh user is asked only when the
 // association does not settle it.
 const trusted = async (login: string | null, association: string) =>
@@ -255,18 +254,6 @@ async function findGroup(repo: string, fp: string): Promise<Group | null> {
   const found = out.split("\n").filter(Boolean).map((l) => JSON.parse(l) as [number, string, string | null, string | null, string]);
   for (const [number, url, body, login, association] of found.sort((a, b) => a[0] - b[0])) {
     if (readTrailer(body ?? "")?.fingerprint === fp && (await trusted(login, association))) return { number, url, author: login ?? "" };
-  }
-  return null;
-}
-
-// The gh user's own tally comment on the issue for the repo with this key; another person's, or another repo's, is
-// never touched.
-async function ownTally(n: number, key: string): Promise<number | null> {
-  const me = await viewerLogin();
-  const out = await runGh(["api", `repos/${FEEDBACK_REPO}/issues/${n}/comments`, "--paginate", "--jq", ".[] | [.id, .body, .user.login] | @json"]);
-  for (const line of out.split("\n").filter(Boolean)) {
-    const [id, body, login] = JSON.parse(line) as [number, string, string];
-    if (body.startsWith(TALLY_MARKER) && login === me && readTrailer(body)?.repoKey === key) return id;
   }
   return null;
 }
@@ -324,7 +311,8 @@ async function file(args: string[]): Promise<number> {
     const title = issueTitle(c, runs);
     const body = group ? null : issueBody(c, runs, opts["--change"] ?? "unclear", auto);
     const key = repoKey(repo, tallySecret());
-    const tally = tallyComment(c, runs, { repoKey: key, repo: profile === "Full Detail" ? repo : undefined, note: opts["--note"], auto });
+    const t = tallyComment(c, runs, { repoKey: key, repo: profile === "Full Detail" ? repo : undefined, note: opts["--note"], auto });
+    const tally = ownMarkerBody(TALLY_MARKER, t.render, t.data, TALLY_BY);
     const ctx = outboundContext({ profile, ownRepo: repo, names, titles: [] });
     const hits = [...(body ? checkFeedback(body, ctx) : []), ...checkFeedback(tally, ctx)];
     for (const h of hits) process.stdout.write(formatHit(h) + "\n");
@@ -345,7 +333,7 @@ async function file(args: string[]): Promise<number> {
       // The public issue exists from here on, so it is remembered before the tally, which may still fail.
       recordDecision(repo, { fingerprint: fp, decision: "created", issue: target.number });
     }
-    await put(parseIssue(target.url), group ? await ownTally(target.number, key) : null, tally);
+    await writeOwnMarker(target.url, TALLY_MARKER, "repoKey", t.render, t.data, TALLY_BY);
     recordDecision(repo, { fingerprint: fp, decision: "filed", issue: target.number });
     process.stdout.write(`filed ${fp} ${target.url} ${group ? "existing" : "created"}\n`);
     return 0;

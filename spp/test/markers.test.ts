@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import type { EpicState } from "../src/derive.ts";
-import { readMaker, readTrailer } from "../src/markers.ts";
+import { ownMarkerBody, readMaker, readTrailer, writeOwnMarker } from "../src/markers.ts";
+import { encodeTrailer } from "../src/snapshot.ts";
 import { assertCase, runCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -358,5 +359,54 @@ describe("integration", () => {
     assert.equal(s.tickets.find((t) => t.number === 12)?.worker, "worker-12");
     assert.equal(s.tickets.find((t) => t.number === 13)?.worker, null);
     assert.equal(s.epic.branch, "feat/x");
+  });
+});
+
+describe("one trailer encoder (ADR 0007)", () => {
+  // Every .ts file under spp/src, recursively.
+  const sources = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? sources(join(dir, e.name)) : e.name.endsWith(".ts") ? [join(dir, e.name)] : []));
+
+  test("only snapshot.ts encodes an sdd-data trailer: no other source builds one or base64-encodes anything", () => {
+    const src = join(here, "..", "src");
+    const offenders = sources(src)
+      .filter((f) => !f.endsWith(join("src", "snapshot.ts")))
+      .filter((f) => /sdd-data: \$\{|toString\(["']base64["']\)|btoa\(/.test(readFileSync(f, "utf8")));
+    assert.deepEqual(offenders, []);
+  });
+});
+
+describe("writeOwnMarker", () => {
+  const ISSUE = "https://github.com/acme/feedback/issues/7";
+  const LIST = "api repos/acme/feedback/issues/7/comments --paginate --jq .[] | [.id, .body, .user.login] | @json";
+  const STUBS = join(here, "stubs");
+
+  // Calls writeOwnMarker in this process with the stub gh first on the PATH, answering from `gh`; returns the writes.
+  async function own(gh: Record<string, unknown>, key: string, data: Record<string, unknown>): Promise<Write[]> {
+    const dir = mkdtempSync(join(tmpdir(), "spp-own-"));
+    writeFileSync(join(dir, "gh.json"), JSON.stringify({ [VIEWER]: { stdout: "me\n" }, ...gh }));
+    const saved = { ...process.env };
+    Object.assign(process.env, { PATH: `${STUBS}${delimiter}${process.env.PATH}`, SPP_CASE: dir, SPP_WRITES: join(dir, "writes.jsonl") });
+    try {
+      await writeOwnMarker(ISSUE, "<!-- own -->", key, "rendered", data, { skill: "feedback" });
+    } finally {
+      process.env = saved;
+    }
+    return readFileSync(join(dir, "writes.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l) as Write);
+  }
+  const mine = (id: number, k: string, login = "me") => JSON.stringify([id, `<!-- own -->\nold\n\n${trailer({ k })}\n`, login]);
+
+  test("rewrites only the gh user's comment with the same key, stamping by with the encoder's trailer", async () => {
+    const w = await own({ [LIST]: { stdout: [mine(1, "a", "other"), mine(2, "b"), mine(3, "a")].join("\n") + "\n" } }, "k", { k: "a", n: 1 });
+    assert.equal(w.length, 1);
+    assert.deepEqual(w[0].argv.slice(0, 4), ["api", "-X", "PATCH", "repos/acme/feedback/issues/comments/3"]);
+    assert.equal(body(w[0]), `<!-- own -->\nrendered\n\n${encodeTrailer({ k: "a", n: 1, by: { skill: "feedback", version: VERSION } })}\n`);
+    assert.equal(body(w[0]), ownMarkerBody("<!-- own -->", "rendered", { k: "a", n: 1 }, { skill: "feedback" }));
+  });
+
+  test("posts a new comment when only another person's, or the user's own under another key, carries the marker", async () => {
+    const w = await own({ [LIST]: { stdout: [mine(1, "a", "other"), mine(2, "b")].join("\n") + "\n" } }, "k", { k: "a" });
+    assert.deepEqual(w.map((x) => x.argv.slice(0, 4)), [["api", "-X", "POST", "repos/acme/feedback/issues/7/comments"]]);
+    assert.deepEqual(readTrailer(body(w[0])), { k: "a", by: { skill: "feedback", version: VERSION } });
   });
 });
