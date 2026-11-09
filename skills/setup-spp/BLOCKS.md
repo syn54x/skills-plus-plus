@@ -19,7 +19,7 @@ The template below is the whole block. Replace each `{{slot}}` with the answer f
 - Sizes: {{sizes}}
 - Panel: {{panel}}
 - Merge: {{merge}}
-- Upstream feedback: {{feedback}}
+- Self-improvement mode: {{selfImprovement}}
 - Laws: {{laws}}
 <!-- /sdd-routing -->
 ```
@@ -30,19 +30,25 @@ The template below is the whole block. Replace each `{{slot}}` with the answer f
 | `sizes` | `` `size:S/M/L` labels `` | The labels `to-tickets` and triage put on each Sub-issue. |
 | `panel` | `tickets>=N`, `size:L` or `no-size-L`, `lines>=N`, comma-separated | Each token overrides one threshold; the rest keep their defaults (4 tickets, any size L, 1,000 lines). `no-size-L` stops a size L Sub-issue from starting the panel by itself; `size:L` keeps the default and never goes on one line with `no-size-L`. Leave the line out when there is no override. |
 | `merge` | `squash`, `merge` or `rebase` | How `spp merge` merges a slice. Never asked: leave the line out unless the block already has it or the person names a method. |
-| `feedback` | `off`, `counts`, `detailed` or `attributed` | What `close-epic` may put in a skill-defect issue it proposes, each one shown and approved first. Default `off`. |
+| `selfImprovement` | `Off`, `Anonymous` or `Full Detail` | The most spp may say about this repo's work in Skill feedback. Unset is Off. |
 | `laws` | comma-separated paths | The repo documents workers and reviewers must obey. A trailing `/` marks a directory. |
 
-### Upstream feedback profiles
+### Self-improvement mode
 
-| Profile | What a proposed issue may carry |
+| Mode | What a report may say |
 | --- | --- |
-| `off` | Nothing is proposed. |
-| `counts` | The skill, the step, a category, the retro's counts and one sentence the person types. No repo name, URL, title, path or code. |
-| `detailed` | `counts` plus a short account of the skill's instruction, the agent's response and the manual work that followed. |
-| `attributed` | `detailed` plus the repository's name, with links to the Epic and its Sub-issues and pull requests. |
+| Off | Nothing. |
+| Anonymous | No names, paths, titles or code from the project. |
+| Full Detail | Project details, where they define the problem. |
 
-Recommend `off` unless the repo is the person's own, and `counts` or `detailed` when it is. A profile is public once filed, so the person picks it; never default to more than `off`.
+The Submission mode is the person's own, kept outside the repo with `spp feedback submission <Auto|Review>`. Recommend:
+
+| Repo | Self-improvement mode | Submission mode |
+| --- | --- | --- |
+| public | Full Detail | Auto |
+| private | Anonymous | Review |
+
+Auto acts as Review in a private repo, and a secrets scan blocks every report in every mode. A report is public once filed, so the person picks the modes.
 
 ### The Laws line
 
@@ -52,7 +58,16 @@ On a re-run the existing line is the starting point. Every entry on it stays, an
 
 ### Rewriting an existing block
 
-Replace what sits between the markers in place and never append a second block. Carry forward every field line the block already holds (Mode, Sizes, Panel, Merge, Laws, Upstream feedback, and any line outside the template), and write the other lines from the template only when they differ. A block that already equals what would be written is left alone.
+Replace what sits between the markers in place and never append a second block. Carry forward every field line the block already holds (Mode, Sizes, Panel, Merge, Laws, Self-improvement mode, and any line outside the template), and write the other lines from the template only when they differ. A block that already equals what would be written is left alone.
+
+A block with an `Upstream feedback:` line and no `Self-improvement mode:` line has that line replaced by `- Self-improvement mode: <mode>`, by this table (any other value to Off). A block holding both keeps `Self-improvement mode:` and drops the `Upstream feedback:` line. Show the migration as a `change` entry like any other.
+
+| Upstream feedback | Self-improvement mode |
+| --- | --- |
+| `off` | Off |
+| `counts` | Anonymous |
+| `detailed` | Anonymous |
+| `attributed` | Full Detail |
 
 ## Domain docs section
 
