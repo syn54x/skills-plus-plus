@@ -18,7 +18,7 @@ import { GhError, runGh } from "../gh.ts";
 import { find, parseIssue, readTrailer } from "../markers.ts";
 import { readRouting } from "../routing.ts";
 import { fetchSnapshot } from "../fetch-snapshot.ts";
-import { CLOSING_KEYWORD, refs } from "../snapshot.ts";
+import { closingLine, refs } from "../snapshot.ts";
 import { readVerdict, VERDICT_MARKER } from "../verdict.ts";
 import { culprits, readChecks } from "./checks.ts";
 
@@ -37,10 +37,10 @@ export type MergeResult = {
 };
 type PrView = { number: number; url: string; state: string; body: string; baseRefName: string; mergeable: string };
 
-// The issue the body closes first, as a URL: #N in the pull request's own repo, owner/repo#N, or the issue URL.
+// The issue the body's first closing line names, as a URL: #N in the pull request's own repo, owner/repo#N, or the issue URL.
 function closedIssue(body: string, prRepo: string): string | null {
-  const ref = String.raw`(?:https://github\.com/([\w.-]+/[\w.-]+)/issues/(\d+)|([\w.-]+/[\w.-]+)?#(\d+))(?![\w/])`;
-  const m = new RegExp(CLOSING_KEYWORD + ref, "i").exec(body);
+  const ref = String.raw`(?:https://github\.com/([\w.-]+/[\w.-]+)/issues/(\d+)|([\w.-]+/[\w.-]+)?#(\d+))`;
+  const m = closingLine(ref).exec(body);
   return m ? `https://github.com/${m[1] ?? m[3] ?? prRepo}/issues/${m[2] ?? m[4]}` : null;
 }
 

@@ -178,15 +178,15 @@ function markerData(comments: Nodes<Comment> | undefined, marker: string, viewer
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// GitHub's closing keywords and the space before the reference they close.
-export const CLOSING_KEYWORD = String.raw`\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+`;
+// The one definition of a closing line, read by `closes` and by `spp merge`: a line of the body that opens (spaces or
+// tabs aside) with one of GitHub's closing keywords and then `ref`. A keyword mid-sentence is prose, and so is `#N's`.
+export const closingLine = (ref: string) => new RegExp(String.raw`^[ \t]*(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+${ref}(?![\w/'’])`, "im");
 
-// A closing keyword followed by #N (same repo only), owner/repo#N or the issue URL.
+// A closing line naming #N (same repo only), owner/repo#N or the issue URL.
 function closes(body: string, prRepo: string, issue: RawIssue): boolean {
   const repo = issue.repository.nameWithOwner;
   const refs = [issue.url, `${repo}#${issue.number}`, ...(prRepo.toLowerCase() === repo.toLowerCase() ? [`#${issue.number}`] : [])];
-  const pattern = String.raw`${CLOSING_KEYWORD}(?:${refs.map(escape).join("|")})(?![\w/])`;
-  return new RegExp(pattern, "i").test(body);
+  return closingLine(`(?:${refs.map(escape).join("|")})`).test(body);
 }
 
 function pr(p: RawPr, viewer: string | null): Pr {
