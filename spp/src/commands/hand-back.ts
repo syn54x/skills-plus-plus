@@ -13,11 +13,16 @@
  * records none. It records nothing under `CI`, outside an Attended session, or when the Self-improvement mode is Off, and a failure
  * while recording is one `signal not recorded:` line on stderr that leaves the exit code as it was.
  *
+ * Last, it deletes the attended decision `spp dispatch` passed down for this ticket, so no later run in the worker's
+ * checkout inherits it.
+ *
  * @module
  */
+import { forgetDecision } from "../attended.ts";
 import { handBackCorrection, trailerBefore } from "../corrections.ts";
 import { runGh } from "../gh.ts";
 import { flagPairs, guarded, parseBy, parseIssue, print, TrailerError, UsageError } from "../markers.ts";
+import { currentRepo } from "../notes.ts";
 import { saveProgress } from "./progress.ts";
 
 /** The usage text `spp hand-back --help` prints. */
@@ -73,5 +78,9 @@ export function run(args: string[]): Promise<number> {
       }
     }
     await handBackCorrection(issue.arg, route, reason, before);
+    // The worker is gone, so its passed attended decision goes too (ADR 0012); after the Signal, which still reads it.
+    try {
+      forgetDecision(process.env, issue.repo === "{owner}/{repo}" ? currentRepo() : issue.repo, Number(issue.number));
+    } catch {} // no GitHub origin: there is no decision to find either, and the hand-back itself is done
   });
 }
