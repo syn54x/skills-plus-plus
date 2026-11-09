@@ -1,6 +1,6 @@
 # The One-off path
 
-Read only when `spp kind` says `one-off`, never for a `sub-issue`, which is built through its Epic. A One-off has no Epic and no integration branch: its worker branches from the repo's default branch and its pull request targets it. One worker, one gate, one pull request that the user merges. There is no Wave to approve, since the user's `/build <N>` is the approval, and no `spp next`, `spp wait` or Wave comment, all of which read an Epic.
+Read only when `spp kind` says `one-off`, never for a `sub-issue`, which is built through its Epic. A One-off has no Epic and no integration branch: its worker branches from the repo's default branch and its pull request targets it. One worker, one gate, one pull request that the user merges. There is no Wave to approve, since the request that started this build is the approval, and no `spp next`, `spp wait` or Wave comment, all of which read an Epic.
 
 ## 1. Start the worker
 
