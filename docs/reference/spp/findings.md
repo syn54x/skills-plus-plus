@@ -5,7 +5,8 @@ less than 5 lines apart and with the same normalised title become one that keeps
 key; from round 3 a FIX FIRST is written HUMAN DECISION. With `--json` it prints [PanelFindings](#panelfindings).
 `--fix-diff` names the patch of the fixes the round reviewed: each merged finding on a line that patch added or
 changed, and not merged with a `recheck-` file's finding, records a `fix-regression` Signal (the Signal gates apply),
-and a line on stderr says whether it was recorded. stdout, the `--json` shape and the exit code do not change.
+and a line on stderr says whether it was recorded. Each merge with `--fix-diff` also records one run of
+`implement-issue` step `fix round`, named for the patch, which is what the fix-regression rate is counted over. stdout, the `--json` shape and the exit code do not change.
 
 ## Functions
 

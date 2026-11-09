@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { mergeFindings, panelVerdict, parsePersonaFindings, type Readings } from "../src/findings.ts";
-import { signalsFile } from "../src/signals.ts";
+import { runsFile, signalsFile } from "../src/signals.ts";
 import { assertCase, runCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -216,6 +216,22 @@ describe("--fix-diff", () => {
     assert.deepEqual(rest, []);
     assert.deepEqual([s.category, s.skill, s.step], ["fix-regression", "implement-issue", "fix round"]);
     assert.equal(s.evidence, "F1 src/a.ts:11 is on a line fix-2.patch changed: problem at 11");
+  });
+
+  test("each merge with --fix-diff records one fix round run, regressed or not; CI and Off record none", () => {
+    const c = setup({ "persona-correctness.json": [finding("src/other.ts", 1)] });
+    const runs = () => signals(runsFile({ XDG_STATE_HOME: c.state, HOME: c.dir }, "acme/app"));
+    merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
+    assert.deepEqual(runs().map((r) => [r.skill, r.step, r.artifact]), [["implement-issue", "fix round", "fix-2.patch"]]);
+    merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
+    assert.equal(runs().length, 2);
+    merge(c, ["persona-correctness.json"]);
+    assert.equal(runs().length, 2);
+    merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"], { CLAUDE_CODE_SESSION_ATTENDED: "1", CI: "true" });
+    assert.equal(runs().length, 2);
+    const off = setup({ "persona-correctness.json": [] }, "Off");
+    merge(off, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
+    assert.equal(signals(runsFile({ XDG_STATE_HOME: off.state, HOME: off.dir }, "acme/app")).length, 0);
   });
 
   test("two regressed findings give two Signals with one fingerprint", () => {
