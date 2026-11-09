@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, test } from "node:test";
@@ -14,7 +14,8 @@ const PLAN = `<!-- sdd-plan -->\n<!-- sdd-data: ${Buffer.from(JSON.stringify({ b
 type Write = { cmd: string; argv: string[] };
 
 // Runs `spp dispatch` in a case with a state directory of its own and only the attended variables `env` gives, so
-// the runner's CI and harness never leak in. Returns the result and the decision file's contents (null when absent).
+// the runner's CI and harness never leak in. Returns the result and the passed decisions, one file per ticket, as
+// { "<N>": true | false } (null when there are none).
 async function dispatch(dir: string, env: Record<string, string> = { CLAUDE_CODE_SESSION_ATTENDED: "1" }) {
   const saved = { ...process.env };
   delete process.env.CI;
@@ -22,8 +23,9 @@ async function dispatch(dir: string, env: Record<string, string> = { CLAUDE_CODE
   Object.assign(process.env, { XDG_STATE_HOME: join(dir, ".state") }, env);
   try {
     const r = await runCase("dispatch", dir);
-    const file = join(dir, ".state", "spp", "acme__app.attended.json");
-    return { ...r, decision: existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as unknown) : null };
+    const folder = join(dir, ".state", "spp", "acme__app.attended");
+    const decision = existsSync(folder) ? Object.fromEntries(readdirSync(folder).map((n) => [n, readFileSync(join(folder, n), "utf8") === "true\n"])) : null;
+    return { ...r, decision };
   } finally {
     process.env = saved;
   }
@@ -105,10 +107,10 @@ describe("edge cases: the attended decision", () => {
     assert.deepEqual(r.decision, { "12": false });
   });
 
-  test('a decision file holding {"7": true}: dispatch 12 keeps "7" and adds "12"', async () => {
+  test("a passed decision for 7: dispatch 12 leaves 7's file as it was and writes 12's", async () => {
     const dir = scratch(["--driver", "bg"]);
-    mkdirSync(join(dir, ".state", "spp"), { recursive: true });
-    writeFileSync(join(dir, ".state", "spp", "acme__app.attended.json"), '{"7": true}');
+    mkdirSync(join(dir, ".state", "spp", "acme__app.attended"), { recursive: true });
+    writeFileSync(join(dir, ".state", "spp", "acme__app.attended", "7"), "true\n");
     const r = await dispatch(dir);
     assert.equal(r.code, 0, r.stderr);
     assert.deepEqual(r.decision, { "7": true, "12": true });
