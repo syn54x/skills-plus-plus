@@ -23,18 +23,20 @@
  *
  * @module
  */
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { workerTicket } from "../attended.ts";
 import { checkFeedback, type FeedbackContext, formatHit } from "../feedback.ts";
-import { CHANGES, FEEDBACK_REPO, issueBody, issueTitle, previewHash, TALLY_MARKER, tallyComment } from "../feedback-file.ts";
+import { CHANGES, FEEDBACK_REPO, issueBody, issueTitle, previewHash, repoKey, TALLY_MARKER, tallyComment } from "../feedback-file.ts";
 import { GhError, runGh } from "../gh.ts";
-import { find, flagPairs, parseIssue, put, readTrailer, UsageError } from "../markers.ts";
+import { find, flagPairs, ownMarkerBody, parseIssue, readTrailer, UsageError, viewerLogin, writeOwnMarker } from "../markers.ts";
 import { currentRepo } from "../notes.ts";
-import { parseRouting, readSelfImprovementMode, type SelfImprovementMode } from "../routing.ts";
+import { readSelfImprovementMode, type SelfImprovementMode, selfImprovementModeOf } from "../routing.ts";
+import { TRUSTED_ASSOCIATIONS, trustedAuthor } from "../snapshot.ts";
 import { candidate, collecting, type FeedbackCandidate, pendingCandidates, readDecisions, recordDecision, runCounts } from "../signals.ts";
-import { readSubmissionMode, type SubmissionMode, writeSubmissionMode } from "../submission.ts";
+import { readSubmissionMode, type SubmissionMode, tallySecret, writeSubmissionMode } from "../submission.ts";
 
 export type { FeedbackCandidate } from "../signals.ts";
 
@@ -96,14 +98,20 @@ function outboundContext(ctx: Omit<FeedbackContext, "paths">): FeedbackContext {
  *   For `file`, stdout starts with one such line per hit on the issue body (when one would be created) and the tally
  *   comment, checked under the lowest Self-improvement mode of the checkout and the Epic's repos. Exit 0 when filed,
  *   last line `filed <fingerprint> <issue URL> created|existing`. Exit 3 under Review with nothing written: `title:
- *   <title>` and the issue body (or `issue: <issue URL>` when the group exists), a blank line, the tally comment, then
- *   `confirm: <hash>`; the same command with `--confirm <hash>` files that text, and a stale hash shows the new text.
- *   Submission mode Auto files at once, falling back to Review, with a line on stderr, when any of those repos is
- *   private. Exit 2 when the check blocks, nothing written. Exit 1 under `CI`, an Off mode, an unknown fingerprint
- *   or a failing `gh` call, with the reason on stderr and no decision recorded.
+ *   <title>` and the issue body (or `issue: <issue URL> (by <author>)` when the group exists), a blank line, the tally
+ *   comment, then `confirm: <hash>`; the same command with `--confirm <hash>` files that text, and a stale hash shows
+ *   the new text. Submission mode Auto files at once, falling back to Review, with a line on stderr, when any of those
+ *   repos is private. Exit 2 when the check blocks, nothing written. Exit 1 under `CI`, outside an Attended session,
+ *   in a worker's checkout, under an Off mode, on an unknown fingerprint or a failing `gh` call, with the reason on
+ *   stderr and no decision recorded.
  *
- *   For `skip`, `skipped <fingerprint>` and exit 0; 1 on an unknown fingerprint. For `submission`, `Submission mode:
- *   <mode>` and exit 0.
+ *   The grouped issue is only ever one opened by the gh user or by an OWNER, MEMBER or COLLABORATOR of
+ *   syn54x/skills-plus-plus (ADR 0009); a stranger's issue carrying the fingerprint is passed over. The person keeps
+ *   one tally comment on it for each repo they file from, matched by a keyed hash of the repo (under a secret in the
+ *   spp config file) in its trailer.
+ *
+ *   For `skip`, `skipped <fingerprint>` and exit 0; 1 on an unknown fingerprint. It posts nothing, so it runs
+ *   anywhere. For `submission`, `Submission mode: <mode>` and exit 0.
  *
  *   For `checkpoint` with no other argument, exit 0 whatever happens. It prints nothing under `CI`, outside an Attended session, under Self-improvement
  *   mode Off, on a worker's `sdd/` branch or with nothing pending. Otherwise it prints `spp: <n> Skill feedback
@@ -158,8 +166,7 @@ export async function run(args: string[]): Promise<number> {
 function checkpoint(): number {
   try {
     if (!collecting()) return 0;
-    const branch = spawnSync("git", ["branch", "--show-current"], { encoding: "utf8" }).stdout?.trim() ?? "";
-    if (branch.startsWith("sdd/")) return 0; // a worker never offers or files
+    if (workerTicket(process.cwd()) !== null) return 0; // a worker never offers or files
     const repo = currentRepo();
     const candidates = pendingCandidates(repo);
     if (!candidates.length) return 0;
@@ -186,28 +193,21 @@ function submission(value: string | undefined): number {
   return 0;
 }
 
+// Filing needs what recording needs (CI unset, an Attended session, a mode other than Off) and never runs in a
+// worker: the reason it may not, or null when it may. Skipping posts nothing, so it is not gated.
+function notFiling(): string | null {
+  if (process.env.CI) return "not filed: CI";
+  if (workerTicket(process.cwd()) !== null) return "not filed: a worker never files";
+  if (!collecting()) return readSelfImprovementMode(process.cwd()) === "Off" ? OFF : "not filed: not an Attended session";
+  return null;
+}
+
 function skip(fp: string): number {
   const repo = currentRepo();
   if (!candidate(repo, fp)) return fail("skip", `no Signals with fingerprint ${fp}`);
   recordDecision(repo, { fingerprint: fp, decision: "skipped" });
   process.stdout.write(`skipped ${fp}\n`);
   return 0;
-}
-
-// The Self-improvement mode on a repo's default branch: its CLAUDE.md, else AGENTS.md, that carries a Routing block.
-// Neither file, or no block, is Off.
-async function remoteMode(repo: string): Promise<SelfImprovementMode> {
-  for (const f of ["CLAUDE.md", "AGENTS.md"]) {
-    let text: string;
-    try {
-      text = await runGh(["api", `repos/${repo}/contents/${f}`, "-H", "Accept: application/vnd.github.raw"]);
-    } catch (e) {
-      if (e instanceof GhError) continue;
-      throw e;
-    }
-    if (text.includes("<!-- sdd-routing -->")) return parseRouting(text).selfImprovement;
-  }
-  return "Off";
 }
 
 // The repos on the Epic's trusted plan comment.
@@ -222,33 +222,38 @@ async function epicRepos(arg: string): Promise<string[]> {
 
 const isPrivate = async (repo: string) => (JSON.parse(await runGh(["repo", "view", repo, "--json", "isPrivate"])) as { isPrivate?: boolean }).isPrivate === true;
 const issueUrl = (n: number) => `https://github.com/${FEEDBACK_REPO}/issues/${n}`;
+// The maker the tally comment's trailer records.
+const TALLY_BY = { skill: "feedback" };
 
-// The open grouped issue for the fingerprint: the one this repo last created or filed it on, else the lowest-numbered
-// open issue whose body's trailer names it. Any author's issue counts, since spp only adds the person's own tally to it.
-async function findGroup(repo: string, fp: string): Promise<{ number: number; url: string } | null> {
+// Whether spp may act on what this author wrote (ADR 0009), as `find` decides it: the gh user is asked only when the
+// association does not settle it.
+const trusted = async (login: string | null, association: string) =>
+  trustedAuthor(login, association, TRUSTED_ASSOCIATIONS.includes(association) ? null : await viewerLogin());
+
+type Group = { number: number; url: string; author: string };
+
+// The open grouped issue for the fingerprint, opened by an author spp trusts (ADR 0009): the one this repo last created
+// or filed it on, else the lowest-numbered open issue whose body's trailer names it. A stranger's issue carrying the
+// fingerprint is passed over, so it never collects anyone's tally.
+async function findGroup(repo: string, fp: string): Promise<Group | null> {
   const last = readDecisions(repo)
     .filter((d) => d.fingerprint === fp && (d.decision === "filed" || d.decision === "created") && typeof d.issue === "number")
     .at(-1);
   if (last) {
-    let state = "";
+    let seen: [string, string | null, string] | null = null;
     try {
-      state = (JSON.parse(await runGh(["issue", "view", String(last.issue), "-R", FEEDBACK_REPO, "--json", "state"])) as { state: string }).state;
+      seen = JSON.parse(await runGh(["api", `repos/${FEEDBACK_REPO}/issues/${last.issue}`, "--jq", "[.state, .user.login, .author_association] | @json"]));
     } catch (e) {
       if (!(e instanceof GhError)) throw e; // deleted or transferred: the search below decides
     }
-    if (state === "OPEN") return { number: last.issue!, url: issueUrl(last.issue!) };
+    if (seen?.[0] === "open" && (await trusted(seen[1], seen[2]))) return { number: last.issue!, url: issueUrl(last.issue!), author: seen[1] ?? "" };
   }
-  const found = JSON.parse(await runGh(["issue", "list", "-R", FEEDBACK_REPO, "--state", "open", "--search", `${fp} in:body`, "--json", "number,url,body"])) as { number: number; url: string; body: string }[];
-  return found.filter((i) => readTrailer(i.body)?.fingerprint === fp).sort((a, b) => a.number - b.number)[0] ?? null;
-}
-
-// The gh user's own tally comment on the issue; another person's is never touched.
-async function ownTally(n: number): Promise<number | null> {
-  const me = (await runGh(["api", "user", "--jq", ".login"])).trim();
-  const out = await runGh(["api", `repos/${FEEDBACK_REPO}/issues/${n}/comments`, "--paginate", "--jq", ".[] | [.id, .body, .user.login] | @json"]);
-  for (const line of out.split("\n").filter(Boolean)) {
-    const [id, body, login] = JSON.parse(line) as [number, string, string];
-    if (body.startsWith(TALLY_MARKER) && login === me) return id;
+  const q = `${fp} in:body repo:${FEEDBACK_REPO} is:issue is:open`;
+  // Every page: strangers' issues carrying the fingerprint must not push the trusted group off the first one.
+  const out = await runGh(["api", "--paginate", "-X", "GET", "search/issues", "-f", `q=${q}`, "--jq", ".items[] | [.number, .html_url, .body, .user.login, .author_association] | @json"]);
+  const found = out.split("\n").filter(Boolean).map((l) => JSON.parse(l) as [number, string, string | null, string | null, string]);
+  for (const [number, url, body, login, association] of found.sort((a, b) => a[0] - b[0])) {
+    if (readTrailer(body ?? "")?.fingerprint === fp && (await trusted(login, association))) return { number, url, author: login ?? "" };
   }
   return null;
 }
@@ -277,7 +282,8 @@ async function file(args: string[]): Promise<number> {
     if (e instanceof UsageError) return usage("file", e);
     throw e;
   }
-  if (process.env.CI) return fail("file", "not filed: CI");
+  const refused = notFiling();
+  if (refused) return fail("file", refused);
   const repo = currentRepo();
   const c = candidate(repo, fp);
   if (!c) return fail("file", `no Signals with fingerprint ${fp}`);
@@ -287,7 +293,7 @@ async function file(args: string[]): Promise<number> {
     // The Epic reference is parsed here, past the gates, so a malformed one cannot change a CI or Off exit.
     const names = profile !== "Off" && opts["--epic"] !== undefined ? await epicRepos(opts["--epic"]) : [];
     for (const r of names) {
-      const mode = await remoteMode(r);
+      const mode = await selfImprovementModeOf(r);
       if (MODE_ORDER.indexOf(mode) < MODE_ORDER.indexOf(profile)) profile = mode;
     }
     if (profile === "Off") return fail("file", OFF);
@@ -304,14 +310,16 @@ async function file(args: string[]): Promise<number> {
     const runs = runCounts(repo, c.skill, c.step);
     const title = issueTitle(c, runs);
     const body = group ? null : issueBody(c, runs, opts["--change"] ?? "unclear", auto);
-    const tally = tallyComment(c, runs, { repo: profile === "Full Detail" ? repo : undefined, note: opts["--note"], auto });
+    const key = repoKey(repo, tallySecret());
+    const t = tallyComment(c, runs, { repoKey: key, repo: profile === "Full Detail" ? repo : undefined, note: opts["--note"], auto });
+    const tally = ownMarkerBody(TALLY_MARKER, t.render, t.data, TALLY_BY);
     const ctx = outboundContext({ profile, ownRepo: repo, names, titles: [] });
     const hits = [...(body ? checkFeedback(body, ctx) : []), ...checkFeedback(tally, ctx)];
     for (const h of hits) process.stdout.write(formatHit(h) + "\n");
     if (hits.some((h) => h.level === "block")) return 2;
 
     if (!auto) {
-      const preview = `${group ? `issue: ${group.url}\n` : `title: ${title}\n${body}`}\n${tally}`;
+      const preview = `${group ? `issue: ${group.url} (by ${group.author})\n` : `title: ${title}\n${body}`}\n${tally}`;
       const hash = previewHash(preview);
       if (opts["--confirm"] !== hash) {
         process.stdout.write(`${preview}confirm: ${hash}\n`);
@@ -319,13 +327,13 @@ async function file(args: string[]): Promise<number> {
       }
     }
 
-    let target = group;
+    let target: { number: number; url: string } | null = group;
     if (!target) {
       target = await createIssue(title, body!);
       // The public issue exists from here on, so it is remembered before the tally, which may still fail.
       recordDecision(repo, { fingerprint: fp, decision: "created", issue: target.number });
     }
-    await put(parseIssue(target.url), group ? await ownTally(target.number) : null, tally);
+    await writeOwnMarker(target.url, TALLY_MARKER, "repoKey", t.render, t.data, TALLY_BY);
     recordDecision(repo, { fingerprint: fp, decision: "filed", issue: target.number });
     process.stdout.write(`filed ${fp} ${target.url} ${group ? "existing" : "created"}\n`);
     return 0;

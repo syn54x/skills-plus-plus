@@ -2,6 +2,8 @@
 // AGENTS.md. `parseRouting` is pure (text in, Routing out); `readRouting` is the one place that touches the filesystem.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { GhError, runGh } from "./gh.ts";
+import { currentRepo } from "./notes.ts";
 
 /** The Self-improvement mode: the most a skill-feedback issue may say about the repo's work; under Off nothing is recorded or filed. */
 export type SelfImprovementMode = "Off" | "Anonymous" | "Full Detail";
@@ -78,3 +80,27 @@ export function readRouting(dir: string): { file: string; routing: Routing } | n
 
 // The repo's Self-improvement mode; Off when `dir` has no Routing block.
 export const readSelfImprovementMode = (dir: string): SelfImprovementMode => readRouting(dir)?.routing.selfImprovement ?? "Off";
+
+/**
+ * Any repo's Self-improvement mode: the checkout's own Routing block when `repo` is the checkout in `dir`, otherwise
+ * the first of the same files on `repo`'s default branch, read over gh, that carries a Routing block. Neither file,
+ * or no block, is Off; a gh error other than a failing read (a missing file) is thrown.
+ */
+export async function selfImprovementModeOf(repo: string, dir: string = process.cwd()): Promise<SelfImprovementMode> {
+  let own: string | null = null;
+  try {
+    own = currentRepo(dir);
+  } catch {} // no GitHub origin: every repo is another repo
+  if (own?.toLowerCase() === repo.toLowerCase()) return readSelfImprovementMode(dir);
+  for (const file of ROUTING_FILES) {
+    let text: string;
+    try {
+      text = await runGh(["api", `repos/${repo}/contents/${file}`, "-H", "Accept: application/vnd.github.raw"]);
+    } catch (e) {
+      if (e instanceof GhError) continue;
+      throw e;
+    }
+    if (text.includes("<!-- sdd-routing -->")) return parseRouting(text).selfImprovement;
+  }
+  return "Off";
+}

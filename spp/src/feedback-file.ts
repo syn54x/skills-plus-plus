@@ -1,8 +1,9 @@
 // What `spp feedback file` posts, built in pure code: the grouped Skill feedback issue's title and body, after the
 // FEEDBACK.md template with only the fields spp knows outside /close-epic, and the person's tally comment on it.
 // spp/src/commands/feedback.ts finds the issue, checks both texts and writes them.
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import type { FeedbackCandidate } from "./signals.ts";
+import { encodeTrailer } from "./snapshot.ts";
 
 /** Where Skill feedback is filed. */
 export const FEEDBACK_REPO = "syn54x/skills-plus-plus";
@@ -13,7 +14,13 @@ export const TALLY_MARKER = "<!-- spp-feedback-tally -->";
 /** The values `--change` takes, as FEEDBACK.md's Proposed change field names them. */
 export const CHANGES = ["add a check", "tighten the step", "add an example", "drop the step", "unclear"];
 
-const trailer = (data: unknown) => `<!-- sdd-data: ${Buffer.from(JSON.stringify(data)).toString("base64")} -->`;
+/**
+ * The key a tally comment carries for the repo it was filed from: the first 12 hex characters of the HMAC-SHA-256 of
+ * the lowercased `owner/repo` under the person's `secret` (`tallySecret` in submission.ts). One person keeps one tally
+ * per repo on a grouped issue, and since the secret never leaves their machine, nobody can confirm a guessed repo name.
+ */
+export const repoKey = (repo: string, secret: string): string => createHmac("sha256", secret).update(repo.toLowerCase()).digest("hex").slice(0, 12);
+
 const total = (counts: Record<string, number>) => Object.values(counts).reduce((a, b) => a + b, 0);
 const skillStep = (c: FeedbackCandidate) => (c.step ? `${c.skill} ${c.step}` : c.skill);
 
@@ -41,25 +48,30 @@ export function issueBody(c: FeedbackCandidate, runs: Record<string, number>, ch
     "**Eval case:** the fix lands with an eval case that reproduces this defect, red before the fix and green after it.",
     `**Fingerprint:** ${c.fingerprint}`,
     ...(auto ? ["**Filed by:** spp, unattended (Submission mode Auto)"] : []),
-    trailer({ fingerprint: c.fingerprint, skill: c.skill, step: c.step, category: c.category }),
+    encodeTrailer({ fingerprint: c.fingerprint, skill: c.skill, step: c.step, category: c.category }),
   ].join("\n") + "\n";
 }
 
 /**
- * A person's tally comment: Signals and runs per plugin version, then under Full Detail (`repo` given) the repo and
- * each Signal's evidence, the note, and whether spp filed it unattended. Its trailer carries the same counts.
+ * A person's tally comment, as markers.ts `ownMarkerBody` and `writeOwnMarker` take it: `render` is the text under
+ * {@link TALLY_MARKER} (Signals and runs per plugin version, then under Full Detail, `repo` given, the repo and each
+ * Signal's evidence, the note, and whether spp filed it unattended), and `data` is its trailer: the same counts and
+ * the `repoKey` of the repo it was filed from ({@link repoKey}). The writer adds the maker, as on Marker comments.
  */
-export function tallyComment(c: FeedbackCandidate, runs: Record<string, number>, opts: { repo?: string; note?: string; auto: boolean }): string {
+export function tallyComment(
+  c: FeedbackCandidate,
+  runs: Record<string, number>,
+  opts: { repoKey: string; repo?: string; note?: string; auto: boolean },
+): { render: string; data: Record<string, unknown> } {
   const versions: Record<string, { signals: number; runs: number }> = {};
   for (const v of [...new Set([...Object.keys(c.versions), ...Object.keys(runs)])].sort(byVersion)) versions[v] = { signals: c.versions[v] ?? 0, runs: runs[v] ?? 0 };
   const sections = [
-    [TALLY_MARKER, "| Plugin version | Signals | Runs |", "| --- | --- | --- |", ...Object.entries(versions).map(([v, n]) => `| ${v} | ${n.signals} | ${n.runs} |`)].join("\n"),
+    ["| Plugin version | Signals | Runs |", "| --- | --- | --- |", ...Object.entries(versions).map(([v, n]) => `| ${v} | ${n.signals} | ${n.runs} |`)].join("\n"),
     ...(opts.repo ? [`**Repo:** ${opts.repo}`, ["**Evidence:**", "", ...c.evidence.map((e) => `- ${e.replace(/\s+/g, " ").trim()}`)].join("\n")] : []),
     ...(opts.note ? [`**Note:** ${opts.note}`] : []),
     ...(opts.auto ? ["Filed by spp, unattended (Submission mode Auto)."] : []),
-    trailer({ fingerprint: c.fingerprint, versions, auto: opts.auto }),
   ];
-  return sections.join("\n\n") + "\n";
+  return { render: sections.join("\n\n"), data: { fingerprint: c.fingerprint, versions, auto: opts.auto, repoKey: opts.repoKey } };
 }
 
 /** The hash `--confirm` must name: the first 12 hex characters of the SHA-256 of the preview text. */

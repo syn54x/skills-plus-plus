@@ -4,7 +4,7 @@
 import { runGh } from "./gh.ts";
 import { currentRepo } from "./notes.ts";
 import { collecting, pluginVersion, recordRun } from "./signals.ts";
-import { readTrailer, TRUSTED_ASSOCIATIONS, trustedAuthor } from "./snapshot.ts";
+import { encodeTrailer, readTrailer, TRUSTED_ASSOCIATIONS, trustedAuthor } from "./snapshot.ts";
 
 export { readTrailer };
 
@@ -96,7 +96,7 @@ export function print(url: string): void {
 let viewer: Promise<string> | undefined;
 
 // The gh user's login, asked at most once per run.
-function viewerLogin(): Promise<string> {
+export function viewerLogin(): Promise<string> {
   return (viewer ??= runGh(["api", "graphql", "-f", "query=query Viewer { viewer { login } }", "--jq", ".data.viewer.login"]).then((s) => s.trim()));
 }
 
@@ -117,6 +117,37 @@ export async function find(issue: Issue, marker: string): Promise<{ id: number; 
 export async function put(issue: Issue, id: number | null, body: string): Promise<string> {
   const [method, path] = id === null ? ["POST", `repos/${issue.repo}/issues/${issue.number}/comments`] : ["PATCH", `repos/${issue.repo}/issues/comments/${id}`];
   return (await runGh(["api", "-X", method, path, "-f", `body=${body}`, "--jq", ".html_url"])).trim();
+}
+
+// A write's maker as every trailer records it: the skill, the step when there is one, and the plugin version.
+const makerOf = (skill: string, step?: string): Data => ({ skill, version: pluginVersion(), ...(step && { step }) });
+
+/**
+ * The text of a person's own marked comment: the marker, the rendered text, a blank line, then the trailer holding
+ * `data` and the maker `by` stamped as on Marker comments. A preview shows this, and {@link writeOwnMarker} posts it.
+ */
+export function ownMarkerBody(marker: string, render: string, data: Data, by: { skill: string; step?: string }): string {
+  return `${marker}\n${render}\n\n${encodeTrailer({ ...data, by: makerOf(by.skill, by.step) })}\n`;
+}
+
+/**
+ * Creates or rewrites the gh user's own comment on the issue that starts with `marker` and whose trailer holds the
+ * same `data[key]`, as {@link ownMarkerBody} writes it; returns its URL. Several people each keep one such comment
+ * per key (a tally per person and repo), so another author's, or the user's own under another key, is never touched.
+ */
+export async function writeOwnMarker(arg: string, marker: string, key: string, render: string, data: Data, by: { skill: string; step?: string }): Promise<string> {
+  const issue = parseIssue(arg);
+  const me = await viewerLogin();
+  const out = await runGh(["api", `repos/${issue.repo}/issues/${issue.number}/comments`, "--paginate", "--jq", ".[] | [.id, .body, .user.login] | @json"]);
+  let id: number | null = null;
+  for (const line of out.split("\n").filter(Boolean)) {
+    const [cid, body, login] = JSON.parse(line) as [number, string, string | null];
+    if (body.startsWith(marker) && login === me && readTrailer(body)?.[key] === data[key]) {
+      id = cid;
+      break;
+    }
+  }
+  return put(issue, id, ownMarkerBody(marker, render, data, by));
 }
 
 // Writes `body` verbatim as the comment that starts with `marker` (the one-writer comments: summary, retro).
@@ -140,10 +171,9 @@ export async function updateMarker(
   const found = await find(issue, marker);
   const old = found ? readTrailer(found.body) : {};
   if (old === null) throw new TrailerError(`${marker} on ${issue.label} has an sdd-data trailer that does not decode; refusing to overwrite it`);
-  const maker: Data = { skill: by.skill ?? MAKERS[marker], version: pluginVersion(), ...(by.step && { step: by.step }) };
+  const maker = makerOf(by.skill ?? MAKERS[marker], by.step);
   const data = { ...merge(old, maker), by: maker };
-  const trailer = `<!-- sdd-data: ${Buffer.from(JSON.stringify(data)).toString("base64")} -->`;
-  const url = await put(issue, found?.id ?? null, [marker, render(data), trailer].filter(Boolean).join("\n") + "\n");
+  const url = await put(issue, found?.id ?? null, [marker, render(data), encodeTrailer(data)].filter(Boolean).join("\n") + "\n");
   countRun(issue, marker, readMaker(old), data); // old is {} on a create, so its maker is null
   return url;
 }
