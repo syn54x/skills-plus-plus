@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import type { EpicState } from "../src/derive.ts";
-import { ownMarkerBody, readMaker, readTrailer, writeOwnMarker } from "../src/markers.ts";
+import { issueRepo, ownMarkerBody, parseIssue, readMaker, readTrailer, writeOwnMarker } from "../src/markers.ts";
 import { encodeTrailer } from "../src/snapshot.ts";
 import { assertCase, runCase } from "./harness.ts";
 
@@ -408,5 +409,29 @@ describe("writeOwnMarker", () => {
     const w = await own({ [LIST]: { stdout: [mine(1, "a", "other"), mine(2, "b")].join("\n") + "\n" } }, "k", { k: "a" });
     assert.deepEqual(w.map((x) => x.argv.slice(0, 4)), [["api", "-X", "POST", "repos/acme/feedback/issues/7/comments"]]);
     assert.deepEqual(readTrailer(body(w[0])), { k: "a", by: { skill: "feedback", version: VERSION } });
+  });
+});
+
+describe("issueRepo (Refs #342)", () => {
+  test("an issue URL gives its own repo; a bare number gives the checkout's origin", () => {
+    assert.equal(issueRepo(parseIssue("https://github.com/acme/other/issues/12")), "acme/other");
+    const dir = mkdtempSync(join(tmpdir(), "spp-issue-repo-"));
+    spawnSync("git", ["init", "-q"], { cwd: dir });
+    spawnSync("git", ["remote", "add", "origin", "https://github.com/acme/app.git"], { cwd: dir });
+    const cwd = process.cwd();
+    process.chdir(dir);
+    try {
+      assert.equal(issueRepo(parseIssue("12")), "acme/app");
+    } finally {
+      process.chdir(cwd);
+    }
+  });
+
+  // F25, F29: the placeholder was resolved by hand in each module that needed a real repo.
+  test("no module but markers.ts resolves the {owner}/{repo} placeholder itself", () => {
+    const src = join(here, "..", "src");
+    const files = readdirSync(src, { recursive: true, encoding: "utf8" }).filter((f) => f.endsWith(".ts"));
+    const hits = files.filter((f) => /=== "\{owner\}\/\{repo\}"/.test(readFileSync(join(src, f), "utf8")));
+    assert.deepEqual(hits, ["markers.ts"]);
   });
 });
