@@ -29,9 +29,9 @@ For work too small to file, skip spp and edit directly. `ask-spp` routes between
 | `branch` | The integration branch is cut from the base and recorded on the plan comment. |
 | `dispatch` | A Wave of ready, non-overlapping Sub-issues starts, one worker each. You approve the first Wave only. |
 | `gate` | A fresh reviewer reads the pull request and returns the spec and quality verdicts. |
-| `fix` | A failed gate, on a slice or a fix pull request, goes back to the same worker for one fix round. |
-| `hand-back` | The fix round is spent, so the issue returns to you with the open findings; or its worker stopped before opening a pull request (`worker lost`), and you are asked whether to hand it back or start a worker again (after `spp unclaim`, on a fresh branch). |
-| `merge` | A passing pull request merges once its blockers have. A conflict sends the worker back to rebase. |
+| `fix` | A failed gate, on a slice or a fix pull request, goes back to the worker that opened it for one fix round, or to a fresh worker on the same branch when that worker died with an earlier session. |
+| `hand-back` | The fix round is spent, so the issue returns to you with the open findings; or its worker stopped before opening a pull request (`worker lost`), and you are asked whether to hand it back or start a worker again (its local worktree and branch are removed first, then `spp unclaim`, on a fresh branch). |
+| `merge` | A passing pull request merges once its blockers have. A conflict sends the worker back to rebase, or a fresh worker on its branch when that worker is gone. |
 | `main-gate` | Every Sub-issue merged. `building` opens the Epic's pull request and gates it. |
 | `close` | The pull request merged. `building` points you to `/close-epic`. |
 
@@ -41,7 +41,7 @@ When the Epic gets stuck, `spp next` says so (`stuck`) and `building` reports wh
 
 Every worker is a subagent, one per issue, each in its own worktree cut from the session's checkout. `building` asks nothing about how workers run, so each Wave after the first starts on its own, even on a wake-up. A worker keeps one contract: an issue number goes in, a pull request comes out, and all state lives in GitHub.
 
-When you approve the first Wave, the question is the first line of `building`'s message and the Wave's table follows it. A parent session sees only the opening of a sub-session's message, so you can answer from the parent, and the answer it passes on counts as yours.
+Whenever `building` stops to wait on you, its message opens with one line, `#<N> waits on you: <question>`, and the detail follows: the first Wave's approval with the Wave's table, a lost worker, a red Verify after a merge, a design to settle, or an issue it cannot build (a Sub-issue or a raw issue). A parent session sees only the opening of a sub-session's message, so you can answer from the parent, and the answer it passes on counts as yours.
 
 While workers run, `building` prints one line per worker from `spp status` and the workers' notes. It never reads a worker's transcript. A worker with no note shows as "no update since dispatch".
 
@@ -57,7 +57,7 @@ The worker opens it into the integration branch with `Refs #<Sub-issue>`. `build
 If a second head still fails, one round of fixing has not settled it, and more rounds mostly burn tokens. The issue goes back to you with its open findings, and the rest of the Epic keeps moving.
 
 **I closed the terminal in the middle of a Wave. Is anything lost?**
-No. Workers keep their claim and their pull requests in GitHub. Run `/build <N>` again: `spp next` reads the state, sees the claimed issues and the open pull requests, and picks up from there.
+The workers are. Every worker is a subagent of the session you closed, so it stopped with it, and any work it had not pushed is gone. What GitHub holds survives: the claims, the pushed branches and the open pull requests. Run `/build <N>` again and `building` picks up from that state. Open pull requests carry on as before; one that needs a fix round or a rebase gets a fresh worker on its existing branch. For each issue still claimed with no pull request, you are asked whether to hand it back or start a worker on it again, with its leftover worktree and branches named.
 
 **Why am I asked to approve only the first Wave?**
 The first Wave is where the plan meets the code. Later Waves that follow the plan start by themselves, and `building` comes back to you only when the plan changes, such as a new blocked-by edge or a re-bundled issue.
