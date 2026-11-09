@@ -67,8 +67,8 @@ describe("the pin is checked before any hand run of a Verify block", () => {
     assert.match(lockIn, /For an issue with a Verify block, the loop is the commands `spp verify <N> --print` prints/);
   });
 
-  test("build runs a merged issue's Verify through spp verify, never by hand", () => {
-    const merged = /^- `0`: merged\..*$/m.exec(readFileSync(join(root, "skills", "build", "EPIC.md"), "utf8"))?.[0] ?? "";
+  test("building runs a merged issue's Verify through spp verify, never by hand", () => {
+    const merged = /^- `0`: merged\..*$/m.exec(readFileSync(join(root, "skills", "building", "EPIC.md"), "utf8"))?.[0] ?? "";
     assert.match(merged, /`spp verify <N>`/);
     assert.doesNotMatch(merged, /run the merged issue's Verify block/);
   });

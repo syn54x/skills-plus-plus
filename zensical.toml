@@ -35,6 +35,7 @@ nav = [
     ] },
     { "Build" = [
       { "build" = "skills/build.md" },
+      { "building" = "skills/building.md" },
       { "implement-issue" = "skills/implement-issue.md" },
       { "tdd" = "skills/tdd.md" },
       { "diagnosing-bugs" = "skills/diagnosing-bugs.md" },

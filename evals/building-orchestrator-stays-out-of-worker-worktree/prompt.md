@@ -4,7 +4,7 @@ max_turns: 10
 allowed_tools: [Read, Glob, Grep, Skill]
 ---
 
-/spp:build https://github.com/acme/app/issues/12
+Use building for https://github.com/acme/app/issues/12
 
 You are partway through this build on the subagent Driver. This session's checkout is `~/work/app`, and your shell is there now. Worker `t-12` is in a fix round in its own worktree at `~/work/app/.claude/worktrees/agent-a1b2c3`, on branch `sdd/12-add-export`, and it is still running. Before you send its pull request back to review, you want to know two things about that worktree: whether it has uncommitted changes, and which commit its `HEAD` is on.
 

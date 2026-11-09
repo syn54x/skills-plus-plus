@@ -1,4 +1,4 @@
-# build on Claude Code
+# building on Claude Code
 
 Read only when running on Claude Code. Each capability the skill names, and the tool or command behind it here. Tool names below may be deferred in a session: load them with ToolSearch before the first call.
 
