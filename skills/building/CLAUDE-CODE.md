@@ -10,7 +10,9 @@ Read only when running on Claude Code. Each capability the skill names, and the 
 
 The prompt: `Your full brief is the file <path>. Read it completely before anything else, then run the implement-issue skill for <issue URL> and follow it.`
 
-A worker's name is `t-<N>`, the same name `spp brief` tells the worker to write on its Worker line. The Agent tool takes no name, so the description carries it, first: the Epic board links a worker to its row by the whole `t-<N>` token in the description. Wave comments take those names as `--workers`.
+A worker's name is `t-<N>`, the same name `spp brief` tells the worker to write on its Worker line. The Agent tool takes no name, so the description carries it. The Epic board links a worker to its row when the description holds `t-<N>` as a whole word, wherever it stands (`t-1` never matches `t-12`); put it first so a person reading the agent list sees it too. Wave comments take those names as `--workers`.
+
+The started list (`EPIC.md`) gains an issue when its Agent call returns. An Agent call that returns an error started no worker, so its issue leaves the list; so does an issue whose worker's report wakes you.
 
 ## Capabilities
 
