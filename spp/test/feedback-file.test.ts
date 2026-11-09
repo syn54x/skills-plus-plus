@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
@@ -9,7 +9,7 @@ import { repoKey } from "../src/feedback-file.ts";
 import { readTrailer } from "../src/markers.ts";
 import { encodeTrailer } from "../src/snapshot.ts";
 import { decisionsFile, fingerprint, pluginVersion, runsFile, signalsFile, type Run, type Signal } from "../src/signals.ts";
-import { tallySecret } from "../src/submission.ts";
+import { tallySecret, writeSubmissionMode } from "../src/submission.ts";
 import { runCase } from "./harness.ts";
 
 const FEEDBACK = "syn54x/skills-plus-plus";
@@ -381,7 +381,7 @@ describe("edge cases", () => {
     const r = await feedback(c, ["file", FP, "--confirm", hash], gh);
     assert.equal(r.code, 3, r.stderr);
     assert.notEqual(lastLine(r.stdout), lastLine(first.stdout));
-    assert.match(r.stdout, /\(2 Signals\)/);
+    assert.match(r.stdout, /\(2 Signals, runs not recorded\)/);
     assert.deepEqual(writes(r), []);
   });
 
@@ -391,7 +391,7 @@ describe("edge cases", () => {
     const fp = fingerprint("triage", "", "other");
     const r = await feedback(c, ["file", fp], { [SEARCH(fp)]: { stdout: "" } });
     assert.equal(r.code, 3, r.stderr);
-    assert.ok(r.stdout.startsWith("title: triage: other (1 Signals)\n"));
+    assert.ok(r.stdout.startsWith("title: triage: other (1 Signals, runs not recorded)\n"));
     assert.match(r.stdout, /^\*\*Skill:\*\* triage$/m);
   });
 
@@ -641,6 +641,21 @@ describe("review round 2 guards", () => {
     assert.notEqual(tallySecret({ XDG_CONFIG_HOME: fresh, HOME: fresh }), secret);
   });
 
+  // R2-F31: the mode applied only when the write created the file, so the secret landed in an existing 0644 one.
+  test("every write of the config file leaves it at mode 0600, an existing world-readable one included", () => {
+    const config = mkdtempSync(join(tmpdir(), "spp-config-"));
+    const env = { XDG_CONFIG_HOME: config, HOME: config };
+    const file = join(config, "spp", "config.json");
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, "{}", { mode: 0o644 });
+    chmodSync(file, 0o644);
+    tallySecret(env);
+    assert.equal(statSync(file).mode & 0o777, 0o600);
+    chmodSync(file, 0o644);
+    writeSubmissionMode("acme/app", "Auto", env);
+    assert.equal(statSync(file).mode & 0o777, 0o600);
+  });
+
   test("the same repo filed twice keys both tallies alike, so the second run patches the first", async () => {
     const c = checkout();
     setAuto(c);
@@ -672,6 +687,53 @@ describe("fix round 2 (Refs #342)", () => {
     const r = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, ...FRESH });
     assert.equal(r.code, 0, r.stderr);
     assert.doesNotMatch(bodyOf(writes(r)[1]), /\*\*Repo:\*\*|\*\*Evidence:\*\*|acme\/other/);
+  });
+
+  // R2-F4: the private check and the outbound names covered only the checkout and the --epic repos.
+  test("Auto falls back to Review when a Signal is about a private repo, without --epic", async () => {
+    const c = checkout("Full Detail");
+    setAuto(c);
+    signal(c, { mode: "Full Detail", about: "acme/secret", evidence: "acme/secret#12 needs-info: r" });
+    const r = await feedback(c, ["file", FP], { ...PUBLIC, [PRIVATE("acme/secret")]: { stdout: { isPrivate: true } }, [LIST]: { stdout: "" } });
+    assert.equal(r.code, 3, r.stderr);
+    assert.match(r.stderr, /falls back to Review: acme\/secret is private/);
+    assert.deepEqual(writes(r), []);
+  });
+
+  test("a Signal's about repo is a name the outbound check guards, without --epic", async () => {
+    const c = checkout();
+    signal(c, { mode: "Anonymous", about: "acme/secret", evidence: "acme/secret#12 needs-info: r" });
+    const r = await feedback(c, ["file", FP, "--note", "seen in secret"], { [LIST]: { stdout: "" } });
+    assert.equal(r.code, 2, r.stdout);
+    assert.match(r.stdout, /^rule .*seen in secret/m);
+  });
+
+  // R2-F1: a step with no recorded runs read "over 0 recorded runs".
+  // PR #390 review: the tally, which the per-version rate is read from, still showed and stored 0 runs.
+  test("a skill step with no recorded runs says so in the title, the body and the tally, which stores no 0", async () => {
+    const c = checkout();
+    signal(c);
+    const r = await feedback(c, ["file", FP], { [LIST]: { stdout: "" } });
+    assert.equal(r.code, 3, r.stderr);
+    assert.ok(r.stdout.startsWith("title: harden 3: step-unclear (1 Signals, runs not recorded)\n"));
+    assert.match(r.stdout, /^\*\*Observed:\*\* 1 Signals of this category were charged to this step, whose runs are not recorded\.$/m);
+    assert.doesNotMatch(r.stdout, /over 0 recorded runs/);
+    const tally = r.stdout.slice(r.stdout.indexOf("<!-- spp-feedback-tally -->"));
+    assert.deepEqual(tallyRow(tally), ["| 2.3.0 | 1 | not recorded |"]);
+    assert.deepEqual((readTrailer(tally) as { versions: unknown }).versions, { "2.3.0": { signals: 1, runs: null } });
+  });
+
+  // R2-F14: the preview and the write were built by two calls that had to agree.
+  test("the confirmed tally is posted exactly as the preview showed it", async () => {
+    const c = checkout();
+    signal(c);
+    const gh = { [LIST]: { stdout: "" }, ...FRESH };
+    const preview = await feedback(c, ["file", FP], gh);
+    const hash = /^confirm: (\w+)$/m.exec(preview.stdout)![1];
+    const tally = preview.stdout.slice(preview.stdout.indexOf("<!-- spp-feedback-tally -->"), preview.stdout.lastIndexOf("confirm: "));
+    const r = await feedback(c, ["file", FP, "--confirm", hash], gh);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(bodyOf(writes(r)[1]), tally);
   });
 
   test("a same-repo Signal with no mode files at Full Detail without --epic, as before", async () => {

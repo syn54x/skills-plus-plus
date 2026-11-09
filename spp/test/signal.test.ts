@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { fingerprint, recordSignal, type Signal, signalsFile } from "../src/signals.ts";
+import { SELF_IMPROVEMENT_MODES } from "../src/routing.ts";
+import { fingerprint, notCollecting, recordRun, recordSignal, type Signal, signalsFile } from "../src/signals.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { version: string };
@@ -241,5 +242,35 @@ describe("fix round (Refs #342)", () => {
     const r = await recordSignal(build, { ...env, XDG_STATE_HOME: on.state, HOME: on.dir }, on.dir);
     assert.ok("signal" in r, JSON.stringify(r));
     assert.equal(built, 1);
+  });
+});
+
+describe("fix round 3 (Refs #346)", () => {
+  // R2-F21, R2-F27: collecting() reduced the gate to a boolean, so filing rebuilt the reason in a second copy.
+  test("notCollecting gives the gate's own reason, or null when it would record", () => {
+    const c = checkout();
+    const env = { CLAUDE_CODE_SESSION_ATTENDED: "1", XDG_STATE_HOME: c.state, HOME: c.dir };
+    assert.equal(notCollecting(env, c.dir), null);
+    assert.equal(notCollecting({ ...env, CI: "true" }, c.dir), "CI");
+    assert.equal(notCollecting(env, checkout("Off").dir), "Self-improvement mode is Off");
+    assert.equal(notCollecting({ XDG_STATE_HOME: c.state, HOME: c.dir }, c.dir), "not an attended session");
+  });
+
+  // R2-F29: signals.ts kept its own copy of the mode list to validate a log line.
+  test("the Signal log's mode check uses routing's one exported list", () => {
+    assert.deepEqual(SELF_IMPROVEMENT_MODES, ["Off", "Anonymous", "Full Detail"]);
+    const src = readFileSync(join(root, "spp", "src", "signals.ts"), "utf8");
+    assert.doesNotMatch(src, /\["Off", "Anonymous", "Full Detail"\]/);
+    assert.match(src, /SELF_IMPROVEMENT_MODES/);
+  });
+
+  // R2-F5: recordRun appended without reading the log.
+  test("recordRun drops a run whose skill, step and artifact the runs log already holds", async () => {
+    const c = checkout();
+    const env = { CLAUDE_CODE_SESSION_ATTENDED: "1", XDG_STATE_HOME: c.state, HOME: c.dir };
+    const run = { skill: "implement-issue", step: "fix round", artifact: "spp-panel-9/fix-2.patch" };
+    assert.ok("run" in (await recordRun(run, env, c.dir)));
+    assert.deepEqual(await recordRun(run, env, c.dir), { skipped: "already in the runs log" });
+    assert.ok("run" in (await recordRun({ ...run, step: "" }, env, c.dir)));
   });
 });

@@ -390,6 +390,8 @@ describe("fix round (Refs #342)", () => {
     assert.equal((await runCase("hand-back", handBackCase("blocked", "r", { verifyPinBy: maker("harden") }, "Full Detail"))).code, 0);
     assert.deepEqual(signals().map((s) => [s.category, s.mode]), [["brief-gap", "Anonymous"], ["missed-edge", undefined]]);
     assert.equal("mode" in signals()[1], false);
+    // R2-F4: it also keeps the other repo's name, which filing adds to the private check and the outbound names.
+    assert.deepEqual(signals().map((s) => s.about), ["acme/other", undefined]);
   });
 
   // Round 2: a record about another repo, named by a bare number, asked git for the origin three times.

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
@@ -218,16 +219,28 @@ describe("--fix-diff", () => {
     assert.equal(s.evidence, "F1 src/a.ts:11 is on a line fix-2.patch changed: problem at 11");
   });
 
-  test("each merge with --fix-diff records one fix round run, regressed or not; CI and Off record none", () => {
+  // R2-F5: a second merge of the same round counted the run again while its regressions were deduped.
+  // PR #390 review: the round counter resets on a fresh panel run, so the run is named by the patch's content.
+  test("a fix round's run is named by its patch's content: the same patch twice is one run, another patch under the same name a second; CI and Off record none", () => {
     const c = setup({ "persona-correctness.json": [finding("src/other.ts", 1)] });
     const runs = () => signals(runsFile({ XDG_STATE_HOME: c.state, HOME: c.dir }, "acme/app"));
+    const hash = (text: string) => createHash("sha256").update(text).digest("hex").slice(0, 12);
     merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
-    assert.deepEqual(runs().map((r) => [r.skill, r.step, r.artifact]), [["implement-issue", "fix round", "fix-2.patch"]]);
-    merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
-    assert.equal(runs().length, 2);
+    assert.deepEqual(runs().map((r) => [r.skill, r.step, r.artifact]), [["implement-issue", "fix round", `fix diff ${hash(PATCH)}`]]);
+    merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch", "--json"]);
+    writeFileSync(join(c.dir, "fix-3.patch"), PATCH);
+    merge(c, ["persona-correctness.json", "--fix-diff", "fix-3.patch"]);
+    assert.equal(runs().length, 1);
+    // A fresh panel run on the same pull request writes round 1's patch again, with other fixes in it.
+    mkdirSync(join(c.dir, "spp-panel-9"));
+    const second = PATCH + "--- a/src/b.ts\n+++ b/src/b.ts\n@@ -1 +1 @@\n-x\n+y\n";
+    writeFileSync(join(c.dir, "spp-panel-9", "fix-2.patch"), second);
+    merge(c, ["persona-correctness.json", "--fix-diff", "spp-panel-9/fix-2.patch"]);
+    assert.deepEqual(runs().map((r) => r.artifact), [`fix diff ${hash(PATCH)}`, `pull request 9 fix diff ${hash(second)}`]);
     merge(c, ["persona-correctness.json"]);
     assert.equal(runs().length, 2);
-    merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"], { CLAUDE_CODE_SESSION_ATTENDED: "1", CI: "true" });
+    writeFileSync(join(c.dir, "fix-4.patch"), PATCH + "\n");
+    merge(c, ["persona-correctness.json", "--fix-diff", "fix-4.patch"], { CLAUDE_CODE_SESSION_ATTENDED: "1", CI: "true" });
     assert.equal(runs().length, 2);
     const off = setup({ "persona-correctness.json": [] }, "Off");
     merge(off, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);

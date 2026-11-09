@@ -2,7 +2,8 @@
 become one.
 
 `spp feedback checkpoint` offers the pending candidates between steps of an Attended session, printing them with the
-steps an agent follows to file, skip or keep each one, and prints nothing on a worker's `sdd/` branch.
+steps an agent follows to file, skip or keep each one, and prints nothing in a worker's checkout (an `sdd/<N>-` or
+`sdd-<N>` branch, or an `sdd-<N>` worktree folder).
 
 It also acts on a pending candidate. `spp feedback file <fingerprint>` files it on the one grouped Skill feedback
 issue for that skill step and category on syn54x/skills-plus-plus, and rewrites the person's own tally comment
@@ -48,7 +49,8 @@ For `check`, one `rule <rule> <name>, line <n>: <text>` line per hit on stdout, 
   out skipped fingerprints and filed ones with no later Signal.
 
   For `file`, stdout starts with one such line per hit on the issue body (when one would be created) and the tally
-  comment, checked under the lowest Self-improvement mode of the checkout and the Epic's repos. Exit 0 when filed,
+  comment, checked under the lowest Self-improvement mode of the checkout, the Epic's repos and the other repos the
+  candidate's Signals are about, whose names the check also guards. Exit 0 when filed,
   last line `filed <fingerprint> <issue URL> created|existing`. Exit 3 under Review with nothing written: `title:
   <title>` and the issue body (or `issue: <issue URL> (by <author>)` when the group exists), a blank line, the tally
   comment, then `confirm: <hash>`; the same command with `--confirm <hash>` files that text, and a stale hash shows
@@ -65,8 +67,9 @@ For `check`, one `rule <rule> <name>, line <n>: <text>` line per hit on stdout, 
   For `skip`, `skipped <fingerprint>` and exit 0; 1 on an unknown fingerprint. It posts nothing, so it runs
   anywhere. For `submission`, `Submission mode: <mode>` and exit 0.
 
-  For `checkpoint` with no other argument, exit 0 whatever happens. It prints nothing under `CI`, outside an Attended session, under Self-improvement
-  mode Off, on a worker's `sdd/` branch or with nothing pending. Otherwise it prints `spp: <n> Skill feedback
+  For `checkpoint` with no other argument, exit 0 whatever happens. It prints nothing in a worker's checkout (an
+  `sdd/<N>-` or `sdd-<N>` branch, or an `sdd-<N>` worktree folder), under `CI`, outside an Attended session, under
+  Self-improvement mode Off or with nothing pending. Otherwise it prints `spp: <n> Skill feedback
   candidates pending for <owner/repo>:`, the candidates exactly as `pending` prints them, a blank line, then
   [CHECKPOINT\_STEPS](#checkpoint_steps). An error (a checkout with no origin remote) writes one `spp feedback checkpoint:
   <message>` line to stderr and still exits 0, so the `SessionStart` hook that runs it never fails.
@@ -127,3 +130,4 @@ The Signals of one skill step and category, grouped: an entry of the `spp feedba
 | <a id="property-versions"></a> `versions` | `Record`\<`string`, `number`\> | The same count by the plugin version each Signal was charged to. |
 | <a id="property-evidence"></a> `evidence` | `string`[] | Each Signal's evidence, oldest first. |
 | <a id="property-mode"></a> `mode?` | [`SelfImprovementMode`](preflight.md#selfimprovementmode) | The lowest mode the group's Signals carry, present only when one about another repo's issue carries one. |
+| <a id="property-about"></a> `about?` | `string`[] | The other repos the group's Signals are about, present only when there are any: filing treats them as an Epic's repos. |

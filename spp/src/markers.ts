@@ -137,23 +137,26 @@ export function ownMarkerBody(marker: string, render: string, data: Data, by: { 
 }
 
 /**
- * Creates or rewrites the gh user's own comment on the issue that starts with `marker` and whose trailer holds the
- * same `data[key]`, as {@link ownMarkerBody} writes it; returns its URL. Several people each keep one such comment
- * per key (a tally per person and repo), so another author's, or the user's own under another key, is never touched.
+ * Posts `body`, exactly as given (the text {@link ownMarkerBody} built and a preview showed), as the gh user's own
+ * comment on the issue: it rewrites the one that starts with `marker` and whose trailer holds the same value under
+ * `key` as `body`'s trailer, or creates one; returns its URL. Several people each keep one such comment per key (a tally per person and repo), so
+ * another author's, or the user's own under another key, is never touched.
  */
-export async function writeOwnMarker(arg: string, marker: string, key: string, render: string, data: Data, by: { skill: string; step?: string }): Promise<string> {
+export async function writeOwnMarker(arg: string, marker: string, body: string, key: string): Promise<string> {
   const issue = parseIssue(arg);
+  const value = readTrailer(body)?.[key];
+  if (value === undefined) throw new Error(`writeOwnMarker: the body's trailer has no ${key}`);
   const me = await viewerLogin();
   const out = await runGh(["api", `repos/${issue.repo}/issues/${issue.number}/comments`, "--paginate", "--jq", ".[] | [.id, .body, .user.login] | @json"]);
   let id: number | null = null;
   for (const line of out.split("\n").filter(Boolean)) {
-    const [cid, body, login] = JSON.parse(line) as [number, string, string | null];
-    if (body.startsWith(marker) && login === me && readTrailer(body)?.[key] === data[key]) {
+    const [cid, text, login] = JSON.parse(line) as [number, string, string | null];
+    if (text.startsWith(marker) && login === me && readTrailer(text)?.[key] === value) {
       id = cid;
       break;
     }
   }
-  return put(issue, id, ownMarkerBody(marker, render, data, by));
+  return put(issue, id, body);
 }
 
 // Writes `body` verbatim as the comment that starts with `marker` (the one-writer comments: summary, retro).
