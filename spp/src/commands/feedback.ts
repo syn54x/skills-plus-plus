@@ -36,7 +36,7 @@ import { currentRepo } from "../notes.ts";
 import { readSelfImprovementMode, type SelfImprovementMode, selfImprovementModeOf } from "../routing.ts";
 import { TRUSTED_ASSOCIATIONS, trustedAuthor } from "../snapshot.ts";
 import { candidate, collecting, type FeedbackCandidate, pendingCandidates, readDecisions, recordDecision, runCounts } from "../signals.ts";
-import { readSubmissionMode, type SubmissionMode, writeSubmissionMode } from "../submission.ts";
+import { readSubmissionMode, type SubmissionMode, tallySecret, writeSubmissionMode } from "../submission.ts";
 
 export type { FeedbackCandidate } from "../signals.ts";
 
@@ -107,10 +107,11 @@ function outboundContext(ctx: Omit<FeedbackContext, "paths">): FeedbackContext {
  *
  *   The grouped issue is only ever one opened by the gh user or by an OWNER, MEMBER or COLLABORATOR of
  *   syn54x/skills-plus-plus (ADR 0009); a stranger's issue carrying the fingerprint is passed over. The person keeps
- *   one tally comment on it for each repo they file from, matched by a hash of the repo in its trailer.
+ *   one tally comment on it for each repo they file from, matched by a keyed hash of the repo (under a secret in the
+ *   spp config file) in its trailer.
  *
- *   For `skip`, `skipped <fingerprint>` and exit 0; 1 on an unknown fingerprint, and in the cases `file` refuses before
- *   reading the fingerprint. For `submission`, `Submission mode: <mode>` and exit 0.
+ *   For `skip`, `skipped <fingerprint>` and exit 0; 1 on an unknown fingerprint. It posts nothing, so it runs
+ *   anywhere. For `submission`, `Submission mode: <mode>` and exit 0.
  *
  *   For `checkpoint` with no other argument, exit 0 whatever happens. It prints nothing under `CI`, outside an Attended session, under Self-improvement
  *   mode Off, on a worker's `sdd/` branch or with nothing pending. Otherwise it prints `spp: <n> Skill feedback
@@ -192,8 +193,8 @@ function submission(value: string | undefined): number {
   return 0;
 }
 
-// Filing and skipping need what recording needs (CI unset, an Attended session, a mode other than Off) and never run
-// in a worker: the reason they may not, or null when they may.
+// Filing needs what recording needs (CI unset, an Attended session, a mode other than Off) and never runs in a
+// worker: the reason it may not, or null when it may. Skipping posts nothing, so it is not gated.
 function notFiling(): string | null {
   if (process.env.CI) return "not filed: CI";
   if (workerTicket(process.cwd()) !== null) return "not filed: a worker never files";
@@ -202,8 +203,6 @@ function notFiling(): string | null {
 }
 
 function skip(fp: string): number {
-  const refused = notFiling();
-  if (refused) return fail("skip", refused);
   const repo = currentRepo();
   if (!candidate(repo, fp)) return fail("skip", `no Signals with fingerprint ${fp}`);
   recordDecision(repo, { fingerprint: fp, decision: "skipped" });
@@ -251,7 +250,8 @@ async function findGroup(repo: string, fp: string): Promise<Group | null> {
     if (seen?.[0] === "open" && (await trusted(seen[1], seen[2]))) return { number: last.issue!, url: issueUrl(last.issue!), author: seen[1] ?? "" };
   }
   const q = `${fp} in:body repo:${FEEDBACK_REPO} is:issue is:open`;
-  const out = await runGh(["api", "-X", "GET", "search/issues", "-f", `q=${q}`, "--jq", ".items[] | [.number, .html_url, .body, .user.login, .author_association] | @json"]);
+  // Every page: strangers' issues carrying the fingerprint must not push the trusted group off the first one.
+  const out = await runGh(["api", "--paginate", "-X", "GET", "search/issues", "-f", `q=${q}`, "--jq", ".items[] | [.number, .html_url, .body, .user.login, .author_association] | @json"]);
   const found = out.split("\n").filter(Boolean).map((l) => JSON.parse(l) as [number, string, string | null, string | null, string]);
   for (const [number, url, body, login, association] of found.sort((a, b) => a[0] - b[0])) {
     if (readTrailer(body ?? "")?.fingerprint === fp && (await trusted(login, association))) return { number, url, author: login ?? "" };
@@ -323,7 +323,7 @@ async function file(args: string[]): Promise<number> {
     const runs = runCounts(repo, c.skill, c.step);
     const title = issueTitle(c, runs);
     const body = group ? null : issueBody(c, runs, opts["--change"] ?? "unclear", auto);
-    const key = repoKey(repo);
+    const key = repoKey(repo, tallySecret());
     const tally = tallyComment(c, runs, { repoKey: key, repo: profile === "Full Detail" ? repo : undefined, note: opts["--note"], auto });
     const ctx = outboundContext({ profile, ownRepo: repo, names, titles: [] });
     const hits = [...(body ? checkFeedback(body, ctx) : []), ...checkFeedback(tally, ctx)];

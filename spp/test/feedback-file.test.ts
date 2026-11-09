@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -8,12 +9,13 @@ import { repoKey } from "../src/feedback-file.ts";
 import { readTrailer } from "../src/markers.ts";
 import { encodeTrailer } from "../src/snapshot.ts";
 import { decisionsFile, fingerprint, pluginVersion, runsFile, signalsFile, type Run, type Signal } from "../src/signals.ts";
+import { tallySecret } from "../src/submission.ts";
 import { runCase } from "./harness.ts";
 
 const FEEDBACK = "syn54x/skills-plus-plus";
 const FP = fingerprint("harden", "3", "step-unclear");
 const URL = `https://github.com/${FEEDBACK}/issues/900`;
-const SEARCH = (fp: string) => `api -X GET search/issues -f q=${fp} in:body repo:${FEEDBACK} is:issue is:open --jq .items[] | [.number, .html_url, .body, .user.login, .author_association] | @json`;
+const SEARCH = (fp: string) => `api --paginate -X GET search/issues -f q=${fp} in:body repo:${FEEDBACK} is:issue is:open --jq .items[] | [.number, .html_url, .body, .user.login, .author_association] | @json`;
 const LIST = SEARCH(FP);
 const VIEW = (n: number) => `api repos/${FEEDBACK}/issues/${n} --jq [.state, .user.login, .author_association] | @json`;
 // The decision's issue, open and opened by the gh user.
@@ -61,8 +63,18 @@ function runs(c: Checkout, n: number, over: Partial<Run> = {}): void {
 }
 
 function setAuto(c: Checkout, repo = "acme/app"): void {
-  mkdirSync(join(c.config, "spp"), { recursive: true });
-  writeFileSync(join(c.config, "spp", "config.json"), JSON.stringify({ submissionMode: { [repo]: "Auto" } }));
+  configure(c, { submissionMode: { [repo]: "Auto" } });
+}
+
+const SECRET = "5ec7e75ec7e75ec7e75ec7e75ec7e75ec7e75ec7e75ec7e75ec7e75ec7e75ec7";
+// Gives the person a known tally secret, so a test can build the tally key a run will match.
+const seedSecret = (c: Checkout) => configure(c, { tallySecret: SECRET });
+
+// Merges `over` into the person's config file, creating it.
+function configure(c: Checkout, over: Record<string, unknown>): void {
+  const file = join(c.config, "spp", "config.json");
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, JSON.stringify({ ...(existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {}), ...over }));
 }
 
 // Runs `spp feedback <args>` in the checkout with `gh` answering from `gh`, in an Attended session unless `attended` is
@@ -95,7 +107,7 @@ const lastLine = (s: string) => s.trimEnd().split("\n").at(-1)!;
 const PUBLIC = { [PRIVATE("acme/app")]: { stdout: { isPrivate: false } } };
 const tallyRow = (body: string) => body.split("\n").filter((l) => /^\| \d/.test(l));
 // A tally comment body as filing from `repo` writes it: only its marker and trailer matter to the match.
-const tallyFor = (repo: string) => `<!-- spp-feedback-tally -->\n${encodeTrailer({ fingerprint: FP, repoKey: repoKey(repo) })}\n`;
+const tallyFor = (repo: string) => `<!-- spp-feedback-tally -->\n${encodeTrailer({ fingerprint: FP, repoKey: repoKey(repo, SECRET) })}\n`;
 
 describe("happy path", () => {
   test("Auto, public repo, no open group: creates the issue, posts one tally, prints created", async () => {
@@ -122,7 +134,7 @@ describe("happy path", () => {
     assert.deepEqual(tallyRow(tally), ["| 2.3.0 | 2 | 5 |"]);
     assert.match(tally, /Filed by spp, unattended \(Submission mode Auto\)\./);
     assert.doesNotMatch(tally, /\*\*Repo:\*\*|\*\*Evidence:\*\*/);
-    assert.deepEqual(readTrailer(tally), { fingerprint: FP, versions: { "2.3.0": { signals: 2, runs: 5 } }, auto: true, repoKey: repoKey("acme/app"), by: { skill: "feedback", version: pluginVersion() } });
+    assert.deepEqual(readTrailer(tally), { fingerprint: FP, versions: { "2.3.0": { signals: 2, runs: 5 } }, auto: true, repoKey: repoKey("acme/app", JSON.parse(readFileSync(join(c.config, "spp", "config.json"), "utf8")).tallySecret), by: { skill: "feedback", version: pluginVersion() } });
     assert.doesNotMatch(tally, /acme/);
     assert.deepEqual(decisions(c).map((d) => [d.fingerprint, d.decision, d.issue]), [[FP, "created", 900], [FP, "filed", 900]]);
   });
@@ -152,6 +164,7 @@ describe("happy path", () => {
   test("no local decision: the search's issue whose trailer holds the fingerprint gets my tally, another user's is left alone", async () => {
     const c = checkout();
     setAuto(c);
+    seedSecret(c);
     signal(c);
     const other = `x\n<!-- sdd-data: ${b64({ fingerprint: "000000000000" })} -->\n`;
     const mine = `x\n<!-- sdd-data: ${b64({ fingerprint: FP })} -->\n`;
@@ -538,6 +551,7 @@ describe("review round 1 guards", () => {
   test("F7/F8: filing from a second repo posts its own tally and leaves the first repo's alone", async () => {
     const c = checkout("Anonymous", [], "acme/site");
     setAuto(c, "acme/site");
+    seedSecret(c);
     signal(c); // signal() writes acme/app's log; it is copied to acme/site's, the checkout's repo
     const site = signalsFile(stateEnv(c), "acme/site");
     writeFileSync(site, readFileSync(signalsFile(stateEnv(c), "acme/app"), "utf8").replaceAll("acme/app", "acme/site"));
@@ -552,7 +566,7 @@ describe("review round 1 guards", () => {
     const [post, ...rest] = writes(r);
     assert.deepEqual(rest, []);
     assert.deepEqual(post.argv.slice(0, 4), ["api", "-X", "POST", `repos/${FEEDBACK}/issues/902/comments`]);
-    assert.equal(readTrailer(bodyOf(post))?.repoKey, repoKey("acme/site"));
+    assert.equal(readTrailer(bodyOf(post))?.repoKey, repoKey("acme/site", SECRET));
     assert.doesNotMatch(bodyOf(post), /acme/);
   });
 
@@ -577,22 +591,72 @@ describe("review round 1 guards", () => {
     assert.match(bodyOf(writes(r)[1]), /\*\*Repo:\*\* acme\/app/);
   });
 
-  test("filing and skipping refuse outside an Attended session and in a worker, with one reason line and no writes", async () => {
+  test("filing refuses outside an Attended session and in a worker, with one reason line and no writes", async () => {
     const c = checkout();
     setAuto(c);
     signal(c);
-    for (const sub of ["file", "skip"]) {
-      const r = await feedback(c, [sub, FP], {}, undefined, false);
-      assert.equal(r.code, 1, sub);
-      assert.equal(r.stderr, `spp feedback ${sub}: not filed: not an Attended session\n`);
-      assert.deepEqual(writes(r), []);
-    }
+    const r = await feedback(c, ["file", FP], {}, undefined, false);
+    assert.equal(r.code, 1);
+    assert.equal(r.stderr, "spp feedback file: not filed: not an Attended session\n");
+    assert.deepEqual(writes(r), []);
     spawnSync("git", ["checkout", "-q", "-b", "sdd/12-add-export"], { cwd: c.dir });
-    for (const sub of ["file", "skip"]) {
-      const r = await feedback(c, [sub, FP]);
-      assert.equal(r.code, 1, sub);
-      assert.equal(r.stderr, `spp feedback ${sub}: not filed: a worker never files\n`);
-    }
+    const w = await feedback(c, ["file", FP]);
+    assert.equal(w.code, 1);
+    assert.equal(w.stderr, "spp feedback file: not filed: a worker never files\n");
     assert.deepEqual(decisions(c), []);
+  });
+});
+
+describe("review round 2 guards", () => {
+  test("skip still drops a candidate outside an Attended session and in a worker: it writes nothing public", async () => {
+    const c = checkout();
+    signal(c);
+    spawnSync("git", ["checkout", "-q", "-b", "sdd/12-add-export"], { cwd: c.dir });
+    const r = await feedback(c, ["skip", FP], {}, undefined, false);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout, `skipped ${FP}\n`);
+  });
+
+  test("repoKey is an HMAC under the person's secret: two repos two keys, one repo one key, never the plain hash", () => {
+    assert.notEqual(repoKey("acme/app", SECRET), repoKey("acme/site", SECRET));
+    assert.equal(repoKey("acme/app", SECRET), repoKey("Acme/App", SECRET));
+    assert.notEqual(repoKey("acme/app", SECRET), repoKey("acme/app", "another secret"));
+    assert.notEqual(repoKey("acme/app", SECRET), createHash("sha256").update("acme/app").digest("hex").slice(0, 12));
+    assert.match(repoKey("acme/app", SECRET), /^[0-9a-f]{12}$/);
+  });
+
+  test("tallySecret creates a secret in a fresh config, keeps every other key, and returns the same one after", () => {
+    const config = mkdtempSync(join(tmpdir(), "spp-config-"));
+    const env = { XDG_CONFIG_HOME: config, HOME: config };
+    const file = join(config, "spp", "config.json");
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify({ other: 1, submissionMode: { "acme/app": "Auto" } }));
+    const secret = tallySecret(env);
+    assert.match(secret, /^[0-9a-f]{64}$/);
+    assert.equal(tallySecret(env), secret);
+    assert.deepEqual(JSON.parse(readFileSync(file, "utf8")), { other: 1, submissionMode: { "acme/app": "Auto" }, tallySecret: secret });
+    const fresh = mkdtempSync(join(tmpdir(), "spp-config-"));
+    assert.notEqual(tallySecret({ XDG_CONFIG_HOME: fresh, HOME: fresh }), secret);
+  });
+
+  test("the same repo filed twice keys both tallies alike, so the second run patches the first", async () => {
+    const c = checkout();
+    setAuto(c);
+    signal(c);
+    const first = await feedback(c, ["file", FP], { ...PUBLIC, [LIST]: { stdout: "" }, [CREATE]: { stdout: URL + "\n" } });
+    const second = await feedback(c, ["file", FP], { ...PUBLIC, ...ME, [VIEW(900)]: open(), [COMMENTS(900)]: { stdout: JSON.stringify([55, bodyOf(writes(first)[1]), "me"]) + "\n" } });
+    assert.equal(second.code, 0, second.stderr);
+    assert.deepEqual(writes(second)[0].argv.slice(0, 4), ["api", "-X", "PATCH", `repos/${FEEDBACK}/issues/comments/55`]);
+  });
+
+  test("the search reads every page: 40 strangers' issues ahead of the trusted group still find the group", async () => {
+    const c = checkout();
+    setAuto(c);
+    signal(c);
+    const body = `x\n${encodeTrailer({ fingerprint: FP })}\n`;
+    const strangers = Array.from({ length: 40 }, (_, i) => [i + 1, body, `stranger${i}`, "NONE"] as [number, string, string, string]);
+    const r = await feedback(c, ["file", FP], { ...PUBLIC, ...ME, [LIST]: hits(...strangers, [902, body, "lead", "MEMBER"]), [COMMENTS(902)]: { stdout: "" } });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(lastLine(r.stdout), `filed ${FP} https://github.com/${FEEDBACK}/issues/902 existing`);
   });
 });

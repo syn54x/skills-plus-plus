@@ -1,7 +1,7 @@
 // What `spp feedback file` posts, built in pure code: the grouped Skill feedback issue's title and body, after the
 // FEEDBACK.md template with only the fields spp knows outside /close-epic, and the person's tally comment on it.
 // spp/src/commands/feedback.ts finds the issue, checks both texts and writes them.
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { type FeedbackCandidate, pluginVersion } from "./signals.ts";
 import { encodeTrailer } from "./snapshot.ts";
 
@@ -15,10 +15,11 @@ export const TALLY_MARKER = "<!-- spp-feedback-tally -->";
 export const CHANGES = ["add a check", "tighten the step", "add an example", "drop the step", "unclear"];
 
 /**
- * The key a tally comment carries for the repo it was filed from: the first 12 hex characters of the SHA-256 of the
- * lowercased `owner/repo`, so one person keeps one tally per repo on a grouped issue and the comment names no repo.
+ * The key a tally comment carries for the repo it was filed from: the first 12 hex characters of the HMAC-SHA-256 of
+ * the lowercased `owner/repo` under the person's `secret` (`tallySecret` in submission.ts). One person keeps one tally
+ * per repo on a grouped issue, and since the secret never leaves their machine, nobody can confirm a guessed repo name.
  */
-export const repoKey = (repo: string): string => createHash("sha256").update(repo.toLowerCase()).digest("hex").slice(0, 12);
+export const repoKey = (repo: string, secret: string): string => createHmac("sha256", secret).update(repo.toLowerCase()).digest("hex").slice(0, 12);
 
 const total = (counts: Record<string, number>) => Object.values(counts).reduce((a, b) => a + b, 0);
 const skillStep = (c: FeedbackCandidate) => (c.step ? `${c.skill} ${c.step}` : c.skill);
