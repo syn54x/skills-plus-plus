@@ -17,7 +17,7 @@ Input: a pull request number or URL. Use the URL when the pull request lives in 
 
 ## 1. Be the fresh reviewer
 
-The reviewer carries none of the author's conversation. If this session wrote the change or holds the worker's context, start a fresh read-only reviewer with this skill and the pull request as its whole input, return what it returns, and stop. On Claude Code, [`CLAUDE-CODE.md`](CLAUDE-CODE.md) names the agent. With no way to start one, review here and open the comment with `Not a fresh review: <why>`.
+The reviewer carries none of the author's conversation. If this session wrote the change or holds the worker's context, start a fresh read-only reviewer with this skill and send it the pull request and nothing else: no criteria or things to check, no account of the fix or of earlier rounds, no setup notes. It finds each itself (earlier rounds through step 2 and `REREVIEW.md`); a concern of yours goes to the person or into the ticket. Return what it returns, and stop. On Claude Code, [`CLAUDE-CODE.md`](CLAUDE-CODE.md) names the agent. With no way to start one, review here and open the comment with `Not a fresh review: <why>`.
 
 Done when you are a reviewer that has seen no line of the author's reasoning.
 

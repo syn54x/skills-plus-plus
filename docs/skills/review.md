@@ -60,3 +60,4 @@ The next review is scoped: it reads only the commits since the head it last revi
 - Each finding points at a file and line and names its rule.
 - A pull request with no `Closes #N` line gets a quality verdict and a sentence saying why there is no spec verdict.
 - Ponytail findings, when present, sit in their own comment and each one was checked before it reached the fix round.
+- The reviewer's request was `Review pull request <PR or URL>.` and nothing more. A concern of yours goes to the person or into the ticket, never into the reviewer's prompt.
