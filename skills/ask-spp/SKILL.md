@@ -57,8 +57,9 @@ The person can type any of these. Model-invoked skills also start on their own w
 | `/to-tickets` | Plan | person | an Epic becomes Sub-issues |
 | `/triage` | Plan | person | path 2 starts, or the incoming queue needs sorting |
 | `/harden` | Plan | either | one issue needs its Ticket contract written or repaired, as when `spp lint ticket` fails |
-| `/build` | Build | person | an Epic or a hardened One-off is ready; it hands the issue to `/building` |
+| `/build` | Build | person | an Epic or a hardened One-off is ready; it asks `/delegating` whether `/building` runs here or in a sub-session |
 | `/building` | Build | either | a session, such as a Chief of Staff, is told to build a specific Epic or issue number |
+| `/delegating` | Build | either | an entry skill hands one issue's `building` or `triaging` to run here or in a sub-session |
 | `/implement-issue` | Build | either | one hardened issue needs building alone; `/build` gives each worker this |
 | `/tdd` | Build | either | a behaviour should be built test-first |
 | `/diagnosing-bugs` | Build | either | something is broken, flaky or slow and the cause is unknown |
