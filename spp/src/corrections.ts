@@ -1,13 +1,13 @@
 // The corrections spp commands already see, recorded as Signals (ADR 0012): a failed verdict, a Hand-back, a
 // deviation added to the plan, and the ready gate's `pin-match`. Each is charged to the maker of the corrected
 // artifact, read from a trusted Marker comment's trailer, or to a fallback skill when no trailer names one. Nothing
-// here changes a command's exit code, stdout or GitHub writes: with nothing collected it makes no gh call, and any
-// failure while recording is one `spp <command>: signal not recorded: <reason>` line on stderr.
+// here changes a command's exit code, stdout or GitHub writes: each correction is a builder `recordSignal` calls only
+// once its gate says yes, so with nothing collected it makes no gh call, and any failure while recording is one
+// `spp <command>: signal not recorded: <reason>` line on stderr.
 import { runGh } from "./gh.ts";
-import { type Data, find, type Issue, parseIssue, PROGRESS_MARKER, readMaker, readTrailer } from "./markers.ts";
-import { currentRepo } from "./notes.ts";
+import { type Data, find, type Issue, issueRepo, parseIssue, PROGRESS_MARKER, readMaker, readTrailer } from "./markers.ts";
 import { PIN_KEY } from "./pin.ts";
-import { collecting, fingerprint, pendingCandidates, recordSignal, type SignalCategory } from "./signals.ts";
+import { recordSignal, type SignalCategory } from "./signals.ts";
 import { trustedAuthor } from "./snapshot.ts";
 
 // One correction: the issue whose Marker comment names the maker, as the caller typed it (`ref`, resolved against
@@ -27,8 +27,6 @@ type Correction = {
 const say = (command: string, reason: unknown) =>
   process.stderr.write(`spp ${command}: signal not recorded: ${reason instanceof Error ? reason.message : String(reason)}\n`);
 
-const repoOf = (issue: Issue) => (issue.repo === "{owner}/{repo}" ? currentRepo() : issue.repo);
-
 // Whether a word names an issue: `#N`, `N`, `owner/repo#N` or an issue URL.
 const ISSUE_REF = /^(#?\d+|[\w.-]+\/[\w.-]+#\d+|https:\/\/github\.com\/[^/]+\/[^/]+\/issues\/\d+\/?)$/;
 
@@ -44,29 +42,20 @@ function resolve(ref: string, base?: string): Issue {
 }
 
 /**
- * Records `c` unless nothing is collected, its check fails, or the log already holds the same fingerprint and
- * evidence. The trailer is `trailer` when the caller holds the one that stood before its own write, or else the
- * issue's progress trailer. Everything that can fail, the reference included, is resolved here, after the gate.
+ * Records `c` unless nothing is collected or its check fails; `recordSignal` drops it when the log already holds it.
+ * The trailer is `trailer` when the caller holds the one that stood before its own write, or else the issue's
+ * progress trailer. Everything that can fail, the reference included, is resolved in the builder, after the gate.
  */
 async function record(command: string, c: Correction, trailer?: Data | null): Promise<void> {
-  let input: Parameters<typeof recordSignal>[0];
-  try {
-    if (!collecting()) return;
+  const r = await recordSignal(async () => {
     const issue = resolve(c.ref, c.base);
-    if (c.allow && !(await c.allow(issue))) return;
+    if (c.allow && !(await c.allow(issue))) return null;
     const data = trailer !== undefined ? trailer : readTrailer((await find(issue, PROGRESS_MARKER))?.body ?? "");
     const maker = readMaker(data, c.field);
-    const repo = repoOf(issue);
-    const skill = maker?.skill ?? c.fallback;
-    const step = maker?.step ?? "";
-    const evidence = c.evidence(data, `${repo}#${issue.number}`);
-    const fp = fingerprint(skill, step, c.category);
-    if (pendingCandidates(repo).some((p) => p.fingerprint === fp && p.evidence.includes(evidence))) return;
-    input = { repo, category: c.category, skill, step, evidence, ...(maker && { version: maker.version }) };
-  } catch (e) {
-    return void say(command, e);
-  }
-  const r = recordSignal(input);
+    const about = issueRepo(issue);
+    const evidence = c.evidence(data, `${about}#${issue.number}`);
+    return { about, category: c.category, skill: maker?.skill ?? c.fallback, step: maker?.step ?? "", evidence, ...(maker && { version: maker.version }) };
+  });
   if ("failed" in r) say(command, r.failed);
 }
 
@@ -82,21 +71,6 @@ export async function verdictCorrection(pr: string, v: { ticket: string; head: s
   });
 }
 
-/**
- * The progress trailer as it stands before a `ready-for-human` Hand-back rewrites it, since that Signal is charged to
- * the worker whose write the Hand-back replaces; undefined when no Signal will be recorded for it.
- */
-export async function trailerBefore(command: string, arg: string, route: string, reason: string): Promise<Data | null | undefined> {
-  if (route !== "ready-for-human" || reason.startsWith("worker lost")) return undefined;
-  try {
-    if (!collecting()) return undefined;
-    return readTrailer((await find(parseIssue(arg), PROGRESS_MARKER))?.body ?? "");
-  } catch (e) {
-    say(command, e);
-    return undefined;
-  }
-}
-
 const HAND_BACKS: Record<string, { category: SignalCategory; field?: "verifyPin"; fallback: string }> = {
   "needs-info": { category: "brief-gap", field: "verifyPin", fallback: "harden" },
   blocked: { category: "missed-edge", field: "verifyPin", fallback: "harden" },
@@ -105,10 +79,11 @@ const HAND_BACKS: Record<string, { category: SignalCategory; field?: "verifyPin"
 
 /**
  * A Hand-back along `route`: `brief-gap` or `missed-edge` charged to the pin's maker, or `human-needed` charged to the
- * worker, from `before` (what `trailerBefore` returned). A reason starting `worker lost` names no wrong artifact.
+ * worker whose write the Hand-back replaced, both read from `before`, the progress trailer as it stood before the
+ * Hand-back's own write. A reason starting `worker lost` names no wrong artifact.
  */
-export async function handBackCorrection(arg: string, route: string, reason: string, before: Data | null | undefined): Promise<void> {
-  if (reason.startsWith("worker lost") || (route === "ready-for-human" && before === undefined)) return;
+export async function handBackCorrection(arg: string, route: string, reason: string, before: Data): Promise<void> {
+  if (reason.startsWith("worker lost")) return;
   await record("hand-back", { ref: arg, ...HAND_BACKS[route], evidence: (_, name) => `${name} ${route}: ${reason}` }, before);
 }
 

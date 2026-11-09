@@ -272,12 +272,11 @@ export function run(args: string[]): Promise<number> {
     const f = Object.fromEntries(flagPairs(rest, [...FLAGS[op], "--by"]));
     const by = f["--by"] === undefined ? undefined : parseBy(f["--by"]);
     const merge = merger(op, f, e.repoFlag.length ? e.repo : null);
-    print(
-      await updateMarker(epic, "<!-- sdd-wave -->", render, (old) => {
-        const data = { waves: [], panel: [], ...old } as WaveData;
-        merge(data);
-        return data;
-      }, by),
-    );
+    const { url } = await updateMarker(epic, "<!-- sdd-wave -->", render, (old) => {
+      const data = { waves: [], panel: [], ...old } as WaveData;
+      merge(data);
+      return data;
+    }, by);
+    print(url);
   });
 }

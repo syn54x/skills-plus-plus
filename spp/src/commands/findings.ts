@@ -15,7 +15,6 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { changedLines, mergeFindings, panelVerdict, parsePersonaFindings, type MergeResult, type Merged, type PanelVerdict, type Readings } from "../findings.ts";
 import { guarded, UsageError } from "../markers.ts";
-import { currentRepo } from "../notes.ts";
 import { recordRun, recordSignal } from "../signals.ts";
 
 export type { Finding, Merged, PanelVerdict, PersonaFindings, Severity } from "../findings.ts";
@@ -95,26 +94,18 @@ function render(r: MergeResult): string {
   );
 }
 
-// Each merge with --fix-diff is one fix round the panel looked at, so it is one run of `implement-issue` step `fix round`,
-// the denominator of the fix-regression rate, whether or not a finding regressed. Silent; the Signal gates apply.
-function recordFixRound(name: string): void {
-  try {
-    recordRun({ repo: currentRepo(process.cwd()), skill: "implement-issue", step: "fix round", artifact: name });
-  } catch {
-    // no resolvable repo: nothing to count against
-  }
-}
-
-// One fix-regression Signal per merged finding on a changed line that no recheck finding was merged into, and one
-// stderr line each. Nothing here changes the exit code.
-function recordRegressions(result: MergeResult, patch: string, name: string): void {
-  recordFixRound(name);
+// Each merge with --fix-diff is one fix round the panel looked at, so it counts one run of `implement-issue` step
+// `fix round`, silently: the denominator of the fix-regression rate, whether or not a finding regressed. Then one
+// fix-regression Signal per merged finding on a changed line that no recheck finding was merged into, and one stderr
+// line each. recordRun and recordSignal apply the gates and never throw, so nothing here changes the exit code.
+async function recordRegressions(result: MergeResult, patch: string, name: string): Promise<void> {
+  await recordRun({ skill: "implement-issue", step: "fix round", artifact: name });
   const changed = changedLines(patch);
   const regressed = result.findings.filter((f) => !result.recheck.includes(f.id) && changed.get(f.file)?.has(f.line));
   if (!regressed.length) return;
   for (const f of regressed) {
     const evidence = `${f.id} ${f.file}:${f.line} is on a line ${name} changed: ${f.title}`;
-    const r = recordSignal({ category: "fix-regression", skill: "implement-issue", step: "fix round", evidence });
+    const r = await recordSignal({ category: "fix-regression", skill: "implement-issue", step: "fix round", evidence });
     const outcome = "skipped" in r ? `not recorded: ${r.skipped}` : "failed" in r ? `not recorded: ${r.failed}` : "recorded";
     process.stderr.write(`fix-regression ${f.id} ${outcome}\n`);
   }
@@ -172,6 +163,6 @@ export function run(args: string[]): Promise<number> {
     const out: PanelFindings = { findings: result.findings, counts: result.counts, ...(verdict && { verdict }) };
     if (json) process.stdout.write(JSON.stringify(out, null, 2) + "\n");
     else process.stdout.write(render(result) + (verdict ? `Verdict: ${verdict}\n` : ""));
-    if (patch !== undefined && fixDiff !== undefined) recordRegressions(result, patch, basename(fixDiff));
+    if (patch !== undefined && fixDiff !== undefined) await recordRegressions(result, patch, basename(fixDiff));
   });
 }

@@ -16,7 +16,8 @@
  *
  * A `pin-match` without `--pin` also records a `contract-edited` Signal, charged to the maker of the Verify pin
  * (harden when it names none), when the issue body's last editor is trusted (ADR 0009); with `--pin` it records none.
- * It records nothing under `CI`, outside an Attended session, or when the Self-improvement mode is Off, and a failure
+ * It records nothing under `CI`, outside an Attended session, or when the Self-improvement mode of this checkout, or of
+ * another repo whose issue it is about, is Off. A Signal goes to this checkout's log, and a failure
  * while recording is one `signal not recorded:` line on stderr that leaves the exit code as it was.
  *
  * @module

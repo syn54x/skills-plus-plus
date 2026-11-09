@@ -126,7 +126,7 @@ describe("edge cases", () => {
     const c = checkout();
     assert.equal(spp(c, args).code, 0);
     appendFileSync(c.log, '{"at":"torn\n\n');
-    assert.equal(spp(c, args).code, 0);
+    assert.equal(spp(c, [...args.slice(0, -1), "y"]).code, 0);
     const r = spp(c, ["feedback", "pending"]);
     assert.equal(r.code, 0, r.stderr);
     assert.equal(r.stdout, `${fingerprint("harden", "3", "step-unclear")} 2 harden 3 step-unclear\n`);

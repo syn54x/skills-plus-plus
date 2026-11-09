@@ -47,11 +47,12 @@ export function renderProgress(data: Data): string {
 }
 
 /**
- * Merges `patch` over the stored progress fields and rewrites the comment; returns its URL.
+ * Merges `patch` over the stored progress fields and rewrites the comment; returns its URL and the trailer as it
+ * stood before this write.
  *
  * @internal
  */
-export function saveProgress(issue: string, patch: Data, by?: By): Promise<string> {
+export function saveProgress(issue: string, patch: Data, by?: By): Promise<{ url: string; before: Data }> {
   return updateMarker(issue, MARKER, renderProgress, (old) => ({ ...DEFAULT, ...old, ...patch }), by);
 }
 
@@ -61,8 +62,8 @@ export function saveProgress(issue: string, patch: Data, by?: By): Promise<strin
  *
  * @internal
  */
-export function savePin(issue: string, block: string, by: By = {}): Promise<string> {
-  return updateMarker(issue, MARKER, renderProgress, (old, maker) => ({ ...old, ...pinFields(block, maker) }), { skill: PIN_MAKER, ...by });
+export async function savePin(issue: string, block: string, by: By = {}): Promise<string> {
+  return (await updateMarker(issue, MARKER, renderProgress, (old, maker) => ({ ...old, ...pinFields(block, maker) }), { skill: PIN_MAKER, ...by })).url;
 }
 
 /**
@@ -98,6 +99,6 @@ export function run(args: string[]): Promise<number> {
         else throw new UsageError('--verify must be "not-run", "passed <sha7>" or "failed <sha7>"');
       } else patch[flag.slice(2)] = v;
     }
-    print(await saveProgress(issue, patch, by));
+    print((await saveProgress(issue, patch, by)).url);
   });
 }
