@@ -170,16 +170,52 @@ export function runCounts(repo: string, skill: string, step: string): Record<str
   return counts;
 }
 
-// The log's Signals grouped by fingerprint, most Signals first, then by fingerprint; none when there is no log yet.
-export function pendingCandidates(repo: string): FeedbackCandidate[] {
-  const groups = new Map<string, FeedbackCandidate>();
+/** A person's decision on a candidate: a line of the decisions log beside the Signal log. */
+export type Decision = { at: string; fingerprint: string; decision: "filed" | "skipped"; issue?: number };
+
+// owner__repo.feedback.jsonl beside the Signal log.
+export const decisionsFile = (env: { XDG_STATE_HOME?: string; HOME: string }, repo: string): string => signalsFile(env, repo).replace(/\.signals\.jsonl$/, ".feedback.jsonl");
+
+/** Appends a filed or skipped decision to the repo's decisions log. It touches no GitHub state. */
+export function recordDecision(repo: string, d: Omit<Decision, "at">): Decision {
+  const decision: Decision = { at: new Date().toISOString(), ...d };
+  append(decisionsFile(stateEnv(process.env), repo), decision);
+  return decision;
+}
+
+/** The repo's decisions, oldest first; a torn or blank line is skipped. */
+export const readDecisions = (repo: string): Partial<Decision>[] => logLines<Decision>(decisionsFile(stateEnv(process.env), repo));
+
+// The log's Signals grouped by fingerprint, with each group's latest `at`.
+function groups(repo: string): Map<string, { c: FeedbackCandidate; latest: number }> {
+  const out = new Map<string, { c: FeedbackCandidate; latest: number }>();
   for (const s of logLines<Signal>(signalsFile(stateEnv(process.env), repo)) as Signal[]) {
     if (typeof s.fingerprint !== "string") continue;
-    const c = groups.get(s.fingerprint) ?? { fingerprint: s.fingerprint, skill: s.skill, step: s.step, category: s.category, count: 0, versions: {}, evidence: [] };
-    c.count++;
-    c.versions[s.version] = (c.versions[s.version] ?? 0) + 1;
-    c.evidence.push(s.evidence);
-    groups.set(s.fingerprint, c);
+    const g = out.get(s.fingerprint) ?? { c: { fingerprint: s.fingerprint, skill: s.skill, step: s.step, category: s.category, count: 0, versions: {}, evidence: [] }, latest: -Infinity };
+    g.c.count++;
+    g.c.versions[s.version] = (g.c.versions[s.version] ?? 0) + 1;
+    g.c.evidence.push(s.evidence);
+    g.latest = Math.max(g.latest, Date.parse(s.at));
+    out.set(s.fingerprint, g);
   }
-  return [...groups.values()].sort((a, b) => b.count - a.count || (a.fingerprint < b.fingerprint ? -1 : a.fingerprint > b.fingerprint ? 1 : 0));
+  return out;
+}
+
+/** One fingerprint's group over every Signal in the log, whatever was decided on it; null when the log has none. */
+export const candidate = (repo: string, fp: string): FeedbackCandidate | null => groups(repo).get(fp)?.c ?? null;
+
+// The log's Signals grouped by fingerprint, most Signals first, then by fingerprint; none when there is no log yet.
+// A skipped fingerprint never comes back, and a filed one only once a Signal later than its last filing is recorded.
+export function pendingCandidates(repo: string): FeedbackCandidate[] {
+  const skipped = new Set<string>();
+  const filed = new Map<string, number>();
+  for (const d of readDecisions(repo)) {
+    if (typeof d.fingerprint !== "string") continue;
+    if (d.decision === "skipped") skipped.add(d.fingerprint);
+    if (d.decision === "filed") filed.set(d.fingerprint, Math.max(filed.get(d.fingerprint) ?? -Infinity, Date.parse(d.at ?? "")));
+  }
+  return [...groups(repo).values()]
+    .filter((g) => !skipped.has(g.c.fingerprint) && !(g.latest <= (filed.get(g.c.fingerprint) ?? -Infinity)))
+    .map((g) => g.c)
+    .sort((a, b) => b.count - a.count || (a.fingerprint < b.fingerprint ? -1 : a.fingerprint > b.fingerprint ? 1 : 0));
 }
