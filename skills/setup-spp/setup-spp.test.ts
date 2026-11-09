@@ -98,6 +98,16 @@ describe("a block that already holds a Merge line", () => {
   });
 });
 
+describe("the docs page", () => {
+  test("keeps the Domain docs row pointing at the instructions file, with the Submission mode row after it", () => {
+    const rows = readFileSync(join(here, "../../docs/skills/setup-spp.md"), "utf8").split("\n").filter((l) => l.startsWith("|"));
+    const domain = rows.findIndex((l) => l.includes("## Domain docs"));
+    assert.match(rows[domain], /^\| the same file \|/);
+    assert.match(rows[domain - 1], /CLAUDE\.md/);
+    assert.match(rows[domain + 1], /Submission mode/);
+  });
+});
+
 describe("the label table", () => {
   const names = [...read("GITHUB.md").matchAll(/^\| `([^`]+)` \|/gm)].map((m) => m[1]);
 

@@ -35,7 +35,7 @@ Build the change list by comparing what step 1 found with what [`BLOCKS.md`](BLO
 
 1. **Which file**, when neither `CLAUDE.md` nor `AGENTS.md` exists. Never create the second file of the pair.
 2. **Self-improvement mode**, only when the block holds neither line. Show the recommendation table from `BLOCKS.md`. A block with only the old line is migrated by the table there, not asked about.
-3. **Submission mode** (Auto or Review), only when step 3 will write the `Self-improvement mode:` line (a new block, or a block without that line) and the chosen mode is not Off. `spp feedback submission` prints Review both when unset and when chosen, so asking only alongside the new line keeps a second run quiet. When the repo is private and the person picks Auto, say that Auto acts as Review here.
+3. **Submission mode** (Auto or Review), only when step 3 will write the `Self-improvement mode:` line (a new block, or a block without that line) and the chosen mode is not Off. `spp feedback submission` prints Review both when unset and when chosen, so asking only alongside the new line keeps a second run quiet. When the repo is private and the person picks Auto, say that Auto acts as Review here. Show the current value from step 1 as the existing setting, and say the choice is kept for this repo only.
 4. **The Laws line**, as `BLOCKS.md` describes it: the default list first, then one question about any other binding document.
 5. **Panel thresholds**, only when the person has said they want their own; otherwise leave the line out.
 6. **Domain docs layout**, only when a `GLOSSARY-MAP.md` or several glossaries suggest more than one context.
@@ -46,12 +46,12 @@ Done when every entry is marked and no question is left open.
 
 ## 3. Show, then write
 
-Send the person the change list in full: each label to create, the exact text of each block to add or the lines of an existing block that change, each issue type to add, and the Submission mode as its own entry, marked as stored for the person outside the repo. Name the file each edit lands in. When every entry is `unchanged`, say the repo is already set up, skip to step 4 and write nothing.
+Send the person the change list in full: each label to create, the exact text of each block to add or the lines of an existing block that change, each issue type to add, and the Submission mode as its own entry, marked as stored for the person, for this repo, outside the repo, so other repos are untouched. Name the file each edit lands in. When every entry is `unchanged`, say the repo is already set up, skip to step 4 and write nothing.
 
 Write only after the person confirms, and only the entries that were shown:
 
 1. Create the missing labels, and in `org` mode the missing issue types the person approved, with the commands in `GITHUB.md`.
-2. Write or rewrite the Routing block from `BLOCKS.md`, replacing what lies between the markers and never adding a second block. Then store the Submission mode with `spp feedback submission <Auto|Review>`.
+2. Write or rewrite the Routing block from `BLOCKS.md`, replacing what lies between the markers and never adding a second block. When step 2 asked the Submission mode, store the answer with `spp feedback submission <Auto|Review>`; otherwise leave it alone.
 3. Add the domain docs section when it is missing. Create no glossary or ADR file; `domain-modeling` does that when a term or a decision is settled.
 
 Done when `gh label list` shows every label in the table, and re-reading the block shows each field line in the form `BLOCKS.md` gives: Mode exactly `org` or `labels-only`, and any Panel token one of `tickets>=N`, `size:L`, `no-size-L`, `lines>=N`.

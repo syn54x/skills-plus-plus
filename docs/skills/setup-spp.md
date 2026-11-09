@@ -17,8 +17,8 @@ A repo set up earlier needs a run only when something in it should change: a new
 | GitHub labels | the five triage roles, `claimed`, `needs-plan`, `blocked`, `size:S`, `size:M`, `size:L`, `wayfinder:map` and the four `wayfinder:` types | each one only if the repo lacks it |
 | Issue types, org repos only | `Epic` and `Task` | only the ones missing, and only after you agree, since they belong to the whole organization |
 | `CLAUDE.md` or `AGENTS.md` | the Routing block between `<!-- sdd-routing -->` markers | created, or rewritten in place |
-| spp's config directory, not the repo | your own Submission mode, `Auto` or `Review`, set with `spp feedback submission` | only when setup writes the `Self-improvement mode` line and you chose a mode other than Off |
 | the same file | a `## Domain docs` section naming the glossary and ADR locations | only when missing |
+| spp's config directory, not the repo | your own Submission mode, `Auto` or `Review`, kept for you and this repo only, so your other repos keep theirs; set with `spp feedback submission` | only when setup writes the `Self-improvement mode` line and you chose a mode other than Off |
 
 It writes to `CLAUDE.md` when that file exists, to `AGENTS.md` otherwise, and asks which to create when neither does. It creates no glossary or ADR file: `domain-modeling` does that when you settle a term or a decision.
 

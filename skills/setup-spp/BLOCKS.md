@@ -41,7 +41,7 @@ The template below is the whole block. Replace each `{{slot}}` with the answer f
 | Anonymous | No names, paths, titles or code from the project. |
 | Full Detail | Project details, where they define the problem. |
 
-The Submission mode is the person's own, kept outside the repo with `spp feedback submission <Auto|Review>`. Recommend:
+The Submission mode is the person's own, kept for this repo outside it, so choosing it here leaves the person's other repos as they were. Set it with `spp feedback submission <Auto|Review>`. Recommend:
 
 | Repo | Self-improvement mode | Submission mode |
 | --- | --- | --- |
