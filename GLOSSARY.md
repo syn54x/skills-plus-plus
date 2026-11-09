@@ -178,7 +178,7 @@ How much a repo lets spp say about its work in **Skill feedback**: Off, Anonymou
 _Avoid_: upstream feedback profile
 
 **Submission mode**:
-Whether a person's **Skill feedback** is filed unreviewed (Auto) or shown to them for approval first (Review). Each person chooses their own, and Auto never applies in a private repo.
+Whether a person's **Skill feedback** from one repo is filed unreviewed (Auto) or shown to them for approval first (Review). Each person chooses their own for each repo, kept outside the repo; a repo they never chose for reads as Review, and Auto never applies in a private repo.
 
 **Attended session**:
 A session a person started on purpose in an AI tool, together with every worker and subagent it starts. A CI run never is one, and spp collects **Signals** only in attended sessions.
