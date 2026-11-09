@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { describe, test } from "node:test";
-import { attendedFile, passDecision } from "../src/attended.ts";
+import { isAttended, passDecision } from "../src/attended.ts";
 import type { EpicState, Ticket } from "../src/derive.ts";
 import { readTrailer } from "../src/markers.ts";
 import { planNext } from "../src/plan-next.ts";
@@ -185,27 +186,24 @@ describe("happy path", () => {
 });
 
 describe("the passed attended decision", () => {
-  // F5: a merged slice's worker is done, so its decision goes; a refused merge keeps it for the rebase.
-  async function withDecision(o: Opts, code: number) {
+  // R2-F8: the merged slice's worker is resumed for the Epic's fix round while #30 stays open, so its decision stays.
+  test("spp merge 40 keeps ticket 30's passed decision: the worker in sdd/30-x still counts as attended", async () => {
     const env = { XDG_STATE_HOME: mkdtempSync(join(tmpdir(), "spp-merge-state-")), HOME: "" };
     passDecision(env, "acme/app", 30, true);
-    const saved = process.env.XDG_STATE_HOME;
+    const saved = { ...process.env };
     process.env.XDG_STATE_HOME = env.XDG_STATE_HOME;
     try {
-      await merge(o, code);
+      await merge({}, 0);
+      const dir = mkdtempSync(join(tmpdir(), "spp-merge-worker-"));
+      spawnSync("git", ["init", "-q", "-b", "sdd/30-x"], { cwd: dir });
+      const bin = mkdtempSync(join(tmpdir(), "spp-merge-gh-"));
+      writeFileSync(join(bin, "gh"), `#!/bin/sh\necho '{"state":"OPEN"}'\n`, { mode: 0o755 });
+      process.env.PATH = `${bin}${delimiter}${saved.PATH}`;
+      delete process.env.CI;
+      assert.equal(isAttended({ ...env, CLAUDE_CODE_SESSION_ATTENDED: "0" }, { repo: "acme/app", dir }), true);
     } finally {
-      if (saved === undefined) delete process.env.XDG_STATE_HOME;
-      else process.env.XDG_STATE_HOME = saved;
+      process.env = saved;
     }
-    return existsSync(attendedFile(env, "acme/app", 30));
-  }
-
-  test("spp merge 40 deletes ticket 30's passed decision", async () => {
-    assert.equal(await withDecision({}, 0), false);
-  });
-
-  test("a refused spp merge 40 (checks failing) keeps it", async () => {
-    assert.equal(await withDecision({ checks: [{ name: "ci", bucket: "fail" }] }, 1), true);
   });
 });
 
