@@ -54,7 +54,7 @@ Every skill is user-invoked or model-invoked, and no skill calls a user-invoked 
 
 Claude Code is the only harness 2.0.0 ships for. These three rules keep a later Codex or Cursor port to a new reference file, a driver and a manifest, with no rewrite:
 
-1. Claude-only features (session drivers, the epic board, workflows, hooks) sit at the edges behind capability detection.
+1. Claude-only features (the sub-session hand-off, the epic board, workflows, hooks) sit at the edges behind capability detection.
 2. Skills name capabilities, never harness tools.
 3. Each harness's specifics live in one reference file, read only on that harness.
 

@@ -88,9 +88,12 @@ The **Sub-issues** whose blockers that have not landed all sit in earlier layers
 **Wave**:
 One concurrent dispatch of workers over the **Ready queue**, after the parallel safety check (no two workers own the same file), one worktree each.
 
-**Driver**:
-The mechanism a worker runs in, chosen by capability in this order: a desktop linked session, a background session, or an isolated subagent. A Driver the user chose at the first Wave's approval stands for the run, even when a higher one is available. Every driver keeps the same contract: a ticket number in, a pull request out, all state in GitHub.
-_Avoid_: harness dispatch
+**Build session**:
+The session `building` runs in, either the one `/build` was typed in or a sub-session it started.
+
+**Worker**:
+One isolated subagent that builds one **Sub-issue** in a worktree of its own. Every worker keeps the same contract: a ticket number in, a pull request out, all state in GitHub.
+_Avoid_: Driver (the old term for the mechanism a worker ran in; there is one way now, a subagent), harness dispatch
 
 **Claim**:
 Marking a **Sub-issue** as held by whoever builds it, with the **Claim mark**. It leaves the **Ready queue** until a **Hand-back** or a merge.
@@ -188,7 +191,7 @@ _Avoid_: interactive session
 
 - An **Epic** holds many **Sub-issues**; a **Sub-issue** may live in another repo than its **Epic**.
 - `/build` reads the **Kind** of N before it does anything.
-- A **Wave** dispatches part of the **Ready queue**, one **Driver** per worker.
+- A **Wave** dispatches part of the **Ready queue**, one subagent **Worker** per **Sub-issue**.
 - A **Hand-back** clears the **Claim mark** and returns the **Sub-issue** to the **Ready queue** or to a person.
 - A **Law tag** names one **Law**; the **Retro** counts findings by it.
 - A **Depth check** that fires at a gate is a finding; the same check in `improve-architecture` is a **Deepening opportunity**.
