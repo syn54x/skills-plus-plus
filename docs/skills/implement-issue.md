@@ -23,6 +23,8 @@ A worker sees nothing but its brief and the issue. That narrowness is what lets 
 
 The pull request body is written with [pr](pr.md), and its Ticket, Laws, Interfaces and Verify sections are claims that the review gate checks line by line against the diff.
 
+Before it reports, the worker runs `spp lint pr <PR>`, which fails on a missing `Closes` or `Refs` line, Ticket or Laws section, Verify line on the head commit, `Verify block corrected:` line or `Interfaces changed:` line, so the body is fixed before the gate reads it. Whether a claim is true stays with the gate.
+
 ## Common questions
 
 **What does the `claimed` label mean?**

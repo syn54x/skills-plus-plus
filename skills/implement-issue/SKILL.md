@@ -98,6 +98,7 @@ Against the pushed branch, confirm each of these, and fix (commit, step 5, push)
 
 - Every test, file and hunk the pull request names is in `git diff origin/<base>...origin/<branch>`.
 - The Ticket section covers every acceptance criterion and every Test scenario.
+- `spp lint pr <PR>` prints `ok`. Fix the body for each line it prints, then run it again, before step 9 reports.
 - Any test changed since it first failed has passed again on the final commit, and the verified SHA is the pushed head.
 - `git status --porcelain` is empty.
 

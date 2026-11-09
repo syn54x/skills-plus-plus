@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { readTrailer } from "../src/markers.ts";
-import { parseTicket } from "../src/ticket.ts";
+import { lintPr, parseTicket } from "../src/ticket.ts";
 import { assertCase, runCase } from "./harness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -239,5 +239,182 @@ describe("parseTicket", () => {
     assert.equal(p.verify, null);
     assert.deepEqual(p.filesOwned, []);
     assert.deepEqual(p.scenarios, []);
+  });
+});
+
+// `spp lint pr` and its pure check: the form of the body's gate sections, never whether a claim is true.
+describe("lintPr", () => {
+  const HEAD = "abc1234" + "0123456789abcdef0123456789abcdef0";
+  const BODY = [
+    "Closes #12",
+    "",
+    "## Summary",
+    "",
+    "`greet` now prints a greeting.",
+    "",
+    "## Verify",
+    "",
+    "Ran the Verify block on `abc1234`: passed.",
+    "Verify block corrected: no",
+    "",
+    "## Ticket",
+    "",
+    "- AC1: `test/greet.test.ts::prints hello`",
+    "",
+    "## Interfaces",
+    "",
+    "Interfaces changed: none",
+    "",
+    "## Laws",
+    "",
+    "- CLAUDE.md: no em-dashes in the diff.",
+    "",
+  ].join("\n");
+  const rules = (body: string, head = HEAD) => lintPr(body, head).map((f) => f.rule);
+  const without = (line: string) => BODY.split("\n").filter((l) => !l.startsWith(line)).join("\n");
+
+  test("a body with every gate section passes", () => {
+    assert.deepEqual(lintPr(BODY, HEAD), []);
+  });
+
+  test("a Fix pull request's Refs line stands in for Closes", () => {
+    for (const refs of ["Refs #12", "Refs acme/app#12", "Refs https://github.com/acme/app/issues/12"]) {
+      assert.deepEqual(lintPr(BODY.replace("Closes #12", refs), HEAD), [], refs);
+    }
+    assert.deepEqual(lintPr(BODY.replace("Closes #12", "Fixes #12"), HEAD), []);
+  });
+
+  test("Verify block corrected: yes: followed by text passes", () => {
+    const body = BODY.replace("corrected: no", "corrected: yes: the block named npm run lint, ran npm run check");
+    assert.deepEqual(rules(body), []);
+  });
+
+  test("a line that says Verified and names the head needs no Verify heading", () => {
+    assert.deepEqual(rules(BODY.replace("## Verify", "## Evidence").replace("Ran the Verify block on `abc1234`: passed.", "Verified on abc1234.")), []);
+  });
+
+  test("an HTML comment after the Verify block corrected value is ignored", () => {
+    assert.deepEqual(rules(BODY.replace("corrected: no", "corrected: no <!-- why -->")), []);
+  });
+
+  test("the corrected and Interfaces lines inside a fenced block only count as missing", () => {
+    const quoted = [without("Verify block corrected:"), "", "```markdown", "Verify block corrected: no", "Interfaces changed: none", "```"].join("\n").replace("Interfaces changed: none\n\n## Laws", "\n## Laws");
+    assert.deepEqual(rules(quoted).sort(), ["interfaces", "verify-corrected"]);
+  });
+
+  test("a missing or empty Laws section is section-present naming Laws", () => {
+    for (const body of [BODY.replace("## Laws\n\n- CLAUDE.md: no em-dashes in the diff.\n", ""), BODY.replace("- CLAUDE.md: no em-dashes in the diff.", "<!-- later -->")]) {
+      const f = lintPr(body, HEAD);
+      assert.deepEqual(f.map((x) => x.rule), ["section-present"]);
+      assert.match(f[0].detail, /Laws/);
+    }
+  });
+
+  test("a missing Ticket section is section-present naming Ticket", () => {
+    const f = lintPr(BODY.replace("## Ticket\n\n- AC1: `test/greet.test.ts::prints hello`\n", ""), HEAD);
+    assert.deepEqual(f.map((x) => x.rule), ["section-present"]);
+    assert.match(f[0].detail, /Ticket/);
+  });
+
+  test("Verify block corrected: none is verify-corrected naming no and yes:", () => {
+    const f = lintPr(BODY.replace("corrected: no", "corrected: none. No RED: none."), HEAD);
+    assert.deepEqual(f.map((x) => x.rule), ["verify-corrected"]);
+    assert.match(f[0].detail, /`no`/);
+    assert.match(f[0].detail, /`yes:`/);
+  });
+
+  test("a yes: with nothing after it is verify-corrected", () => {
+    assert.deepEqual(rules(BODY.replace("corrected: no", "corrected: yes:")), ["verify-corrected"]);
+  });
+
+  test("no Verify block corrected line, or two, is verify-corrected", () => {
+    assert.deepEqual(rules(without("Verify block corrected:")), ["verify-corrected"]);
+    assert.deepEqual(rules(BODY.replace("corrected: no", "corrected: no\nVerify block corrected: no")), ["verify-corrected"]);
+  });
+
+  test("a Verify line naming an older head is verify-sha naming the head's short SHA", () => {
+    const f = lintPr(BODY.replace("`abc1234`", "`0000000`"), HEAD);
+    assert.deepEqual(f.map((x) => x.rule), ["verify-sha"]);
+    assert.match(f[0].detail, /abc1234/);
+  });
+
+  test("no Verify line at all is verify-sha", () => {
+    assert.deepEqual(rules(without("Ran the Verify block")), ["verify-sha"]);
+  });
+
+  test("a Ticket line reading n/a is ticket-na quoting the line; n/a in a code span is not", () => {
+    const f = lintPr(BODY.replace("## Interfaces", "- AC2: n/a\n\n## Interfaces"), HEAD);
+    assert.deepEqual(f.map((x) => x.rule), ["ticket-na"]);
+    assert.match(f[0].detail, /- AC2: n\/a/);
+    assert.deepEqual(lintPr(BODY.replace("## Interfaces", "- AC2: `n/a` is quoted\n\n## Interfaces"), HEAD), []);
+  });
+
+  test("no Interfaces changed line is interfaces", () => {
+    assert.deepEqual(rules(without("Interfaces changed:")), ["interfaces"]);
+  });
+
+  test("a first line that is no closing keyword, with no Refs line, is link", () => {
+    assert.deepEqual(rules(BODY.replace("Closes #12", "## Summary")), ["link"]);
+  });
+
+  test("a body breaking three rules reports three failures, in rule order", () => {
+    const body = without("Interfaces changed:").replace("corrected: no", "corrected: none").replace("`abc1234`", "`0000000`");
+    assert.deepEqual(rules(body), ["verify-sha", "verify-corrected", "interfaces"]);
+  });
+});
+
+describe("spp lint pr", () => {
+  const OK = JSON.parse(readFileSync(join(fixture("pr-ok"), "gh.json"), "utf8"))["pr view 40 --json body,headRefOid"].stdout as { body: string; headRefOid: string };
+
+  // A case directory that runs `spp lint <args>` with gh answering `answers`.
+  function prCase(args: string[], answers: Record<string, unknown>): string {
+    const dir = mkdtempSync(join(tmpdir(), "spp-lint-pr-"));
+    writeFileSync(join(dir, "args"), args.join("\n") + "\n");
+    writeFileSync(join(dir, "gh.json"), JSON.stringify(answers));
+    return dir;
+  }
+
+  test("spp lint pr 40 on a body with every gate section prints ok and exits 0", async () => {
+    await assertCase("lint", fixture("pr-ok"));
+  });
+
+  test("a pull request URL reaches gh pr view as given", async () => {
+    const url = "https://github.com/o/r/pull/40";
+    const r = await assertCase("lint", prCase(["pr", url], { [`pr view ${url} --json body,headRefOid`]: { stdout: OK } }));
+    assert.equal(r.stdout, "ok\n");
+  });
+
+  test("a body breaking three rules prints one rule: detail line each and exits 1", async () => {
+    const body = OK.body.replace("Interfaces changed: none", "").replace("corrected: no", "corrected: none").replace("`abc1234`", "`0000000`");
+    const dir = prCase(["pr", "40"], { "pr view 40 --json body,headRefOid": { stdout: { ...OK, body } } });
+    const r = await runCase("lint", dir);
+    assert.equal(r.code, 1);
+    const lines = r.stdout.trimEnd().split("\n");
+    assert.equal(lines.length, 3);
+    assert.match(lines[0], /^verify-sha: .*abc1234/);
+    assert.match(lines[1], /^verify-corrected: /);
+    assert.match(lines[2], /^interfaces: /);
+    writeFileSync(join(dir, "args"), "pr\n40\n--json\n");
+    const j = await runCase("lint", dir);
+    assert.equal(j.code, 1);
+    const result = j.json as { ok: boolean; failures: { rule: string }[] };
+    assert.equal(result.ok, false);
+    assert.deepEqual(result.failures.map((f) => f.rule), ["verify-sha", "verify-corrected", "interfaces"]);
+  });
+
+  test("no pull request, or an issue URL, exits 2 with a usage naming both subcommands", async () => {
+    for (const args of [["pr"], ["pr", "https://github.com/o/r/issues/4"], ["pr", "40", "41"]]) {
+      const r = await runCase("lint", prCase(args, {}));
+      assert.equal(r.code, 2, args.join(" "));
+      assert.match(r.stderr, /usage: spp lint ticket/);
+      assert.match(r.stderr, /spp lint pr <pr number \| pr URL>/);
+      assert.deepEqual(r.writes, []);
+    }
+  });
+
+  test("a gh error exits 1 with the reason on stderr", async () => {
+    const r = await runCase("lint", prCase(["pr", "40"], { "pr view 40 --json body,headRefOid": { code: 1, stderr: "no pull requests found" } }));
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /no pull requests found/);
   });
 });
