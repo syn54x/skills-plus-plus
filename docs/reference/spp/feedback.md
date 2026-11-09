@@ -59,10 +59,11 @@ For `check`, one `rule <rule> <name>, line <n>: <text>` line per hit on stdout, 
 
   The grouped issue is only ever one opened by the gh user or by an OWNER, MEMBER or COLLABORATOR of
   syn54x/skills-plus-plus (ADR 0009); a stranger's issue carrying the fingerprint is passed over. The person keeps
-  one tally comment on it for each repo they file from, matched by a hash of the repo in its trailer.
+  one tally comment on it for each repo they file from, matched by a keyed hash of the repo (under a secret in the
+  spp config file) in its trailer.
 
-  For `skip`, `skipped <fingerprint>` and exit 0; 1 on an unknown fingerprint, and in the cases `file` refuses before
-  reading the fingerprint. For `submission`, `Submission mode: <mode>` and exit 0.
+  For `skip`, `skipped <fingerprint>` and exit 0; 1 on an unknown fingerprint. It posts nothing, so it runs
+  anywhere. For `submission`, `Submission mode: <mode>` and exit 0.
 
   For `checkpoint` with no other argument, exit 0 whatever happens. It prints nothing under `CI`, outside an Attended session, under Self-improvement
   mode Off, on a worker's `sdd/` branch or with nothing pending. Otherwise it prints `spp: <n> Skill feedback

@@ -47,7 +47,7 @@ Your own Submission mode, set for each repo with `spp feedback submission`, deci
 spp builds each body itself and checks it before anything is posted. A token, key or private key blocks it in every mode, and the check prints it as `[REDACTED]`. Under Anonymous six more rules block file paths, code, repo names, titles, URLs and error text; under Full Detail those rules print as warnings and let the body through. It never rewrites a body. Every issue also asks for an eval case that reproduces the defect, to land with the fix.
 
 **What happens in an unattended run?**
-Nothing is collected outside an Attended session (CI, a `claude -p` script, a scheduled task), so there is nothing to offer or draft, and nothing is filed. `spp feedback file` and `skip` refuse there, and in a worker, with one line saying why.
+Nothing is collected outside an Attended session (CI, a `claude -p` script, a scheduled task), so there is nothing to offer or draft, and nothing is filed. `spp feedback file` refuses there, and in a worker, with one line saying why.
 
 ## It's working if
 
