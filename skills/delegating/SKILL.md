@@ -7,6 +7,8 @@ You were called for one skill and one issue: `Call the Skill tool with "delegati
 
 Before step 1, read the reference file for the harness you are on; on Claude Code that is [`CLAUDE-CODE.md`](CLAUDE-CODE.md), which names the tool behind each capability below.
 
+When this session already started a sub-session for `<skill>` #N and that sub-session waits on the user, this is not a new run: go straight to step 5.
+
 ## 1. Can this session start sessions?
 
 Test for the capability to start a separate session.
