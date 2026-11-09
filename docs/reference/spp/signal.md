@@ -2,7 +2,8 @@
 correction only judgment can see, in the repo's Signal log beside the notes log. The Signal is charged to the skill
 step named by `--by` and to the plugin version in `--maker-version`, or to the current plugin version without it.
 It records nothing under `CI`, outside an Attended session, or when the Routing block's Self-improvement mode is Off,
-and says why. The repo is the current checkout's origin. It has no `--json`.
+and says why, as it does for a Signal the log already holds (the same fingerprint and evidence). The repo is the
+current checkout's origin. `--by` is parsed as on every other command. It has no `--json`.
 
 ## Functions
 
