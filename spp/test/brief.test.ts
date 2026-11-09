@@ -71,6 +71,17 @@ describe("happy path", () => {
     assert.match(brief, /## Report/);
   });
 
+  test("the first step takes the ticket's pushed branch when origin has one (an open pull request), and cuts from the base otherwise", async () => {
+    const { dir, out } = scratch({ extra: ["--out", "OUT"] });
+    await runCase("brief", dir);
+    const brief = readFileSync(out, "utf8");
+    assert.ok(brief.includes("if git fetch origin sdd/12-add-the-invoice-endpoint 2>/dev/null; then\n"));
+    assert.ok(brief.includes("git switch -c sdd/12-add-the-invoice-endpoint origin/sdd/12-add-the-invoice-endpoint\n"));
+    assert.ok(brief.indexOf("origin/sdd/12-add-the-invoice-endpoint\n") < brief.indexOf("else\n"), "the pushed branch is the if arm");
+    assert.ok(brief.indexOf("else\n") < brief.indexOf("git switch -c sdd/12-add-the-invoice-endpoint origin/feat/invoices\n"), "the base cut is the else arm");
+    assert.doesNotMatch(brief, /^First, before anything else, cut your branch/m);
+  });
+
   test("the worker's name is t-<N>, the name the drivers give its session, so the board can match it", async () => {
     const { dir, out } = scratch({ extra: ["--out", "OUT"] });
     await runCase("brief", dir);

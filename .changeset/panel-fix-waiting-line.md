@@ -1,0 +1,5 @@
+---
+"@syn54x/spp": patch
+---
+
+Every question `building` stops on now opens with one line, `#<N> waits on you: <question>`: the first Wave's approval, a lost worker, a red Verify after a merge, a design to settle and an issue it cannot build. `delegating` relays your answer from a parent session to any of them, not only the Wave approval. `/build` on a Sub-issue or a raw issue now stops with the reason before it asks where to run, and starts no sub-session. A resumed build gives a pull request that needs a fix round or a rebase to a fresh worker on its existing branch, since the worker that opened it died with the earlier session, and restarting a lost worker removes its local worktree and branch once you agree. The worker brief from `spp brief` now takes the ticket's pushed `sdd/<N>-<slug>` branch when origin has one, and cuts a new one from the base only when it does not.

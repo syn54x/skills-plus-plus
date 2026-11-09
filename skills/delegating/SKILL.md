@@ -9,6 +9,12 @@ Before step 1, read the reference file for the harness you are on; on Claude Cod
 
 When this session already started a sub-session for `<skill>` #N and that sub-session waits on the user, this is not a new run: go straight to step 5.
 
+## Kind first
+
+When `<skill>` is `building`, run `spp kind <N>` before step 1, since only an Epic or a One-off is built. For `sub-issue` or `raw`, stop here with the reason, in the words `building` uses in its step 1: a Sub-issue is built through its Epic, so ask the user to run `/build <epic>` on its parent; a raw issue lacks the contract, so ask them to run `/triage <N>`. Start no sub-session and ask nothing about where to run. For `epic` or `one-off`, go on.
+
+N's repository is unknown when N is a bare number and this folder is not a git repository. Then, whatever `<skill>` is, ask only for the issue's URL (or its `owner/name`) and end the turn: the kind, step 3's checkout match and step 4's prompt all need it. On the answer, read the kind as above, then go on to step 1.
+
 ## 1. Can this session start sessions?
 
 Test for the capability to start a separate session.
@@ -23,7 +29,7 @@ Settle the recommendation first, from two facts:
 - Has this session already started other sessions? List the sessions it started.
 - Is this session's folder a checkout of N's repository? Compare the folder's git remote with the repository that owns N (the URL's, or the repository you stand in for a bare number). A folder that is not a git repository is not a checkout.
 
-N's repository is unknown when N is a bare number and this folder is not a git repository. Then the recommendation is the sub-session, and the question below also asks for the issue's URL (or its `owner/name`), since step 3 matches checkouts by that repository and step 4's prompt names the issue by URL.
+A folder that is not a git repository never matches, so the recommendation there is the sub-session.
 
 | This session | Recommend |
 | --- | --- |
@@ -57,7 +63,7 @@ Tell the user the session's name and that its questions will reach this session 
 
 ## 5. Relay
 
-A sub-session's turn-end note reaches this session. When one opens with a line naming what it waits on (`#340 waits on you: approve Wave 1`) and the user answers it here, send the user's words to that sub-session, unchanged and quoted as the user's:
+A sub-session's turn-end note reaches this session. When one opens with the waiting line `building` sends, `#<N> waits on you: <question>` (`#340 waits on you: start Wave 1 with these 3 issues? Reply yes, or say what to change.`), and the user answers it here, send the user's words to that sub-session, unchanged and quoted as the user's:
 
 > The user answered in the parent session: "yes"
 

@@ -40,13 +40,17 @@ function render(issue: Issue, base: string, laws: string[], checkout: string): s
   const repo = /github\.com\/([^/]+\/[^/]+)\/issues\//.exec(issue.url)![1];
   return `You are t-${n}, implementing ${issue.url}${issue.parent ? ` of the epic ${issue.parent.url}` : ""}.
 Start in the checkout at ${checkout}; the ticket, its branch and its PR all live in ${repo} and nowhere else.
-First, before anything else, cut your branch from the remote ${issue.parent ? "integration" : "base"} branch, whatever branch this worktree started on, and confirm its base:
+First, before anything else, whatever branch this worktree started on, take your branch: the pushed \`${branch}\` when origin has it (an earlier worker opened its pull request, and you are resumed for a fix round or a rebase), else a new one cut from the remote ${issue.parent ? "integration" : "base"} branch with its base confirmed:
 
     git fetch origin ${base}
-    git switch -c ${branch} origin/${base}
-    test "$(git merge-base HEAD origin/${base})" = "$(git rev-parse origin/${base})"
+    if git fetch origin ${branch} 2>/dev/null; then
+      git switch -c ${branch} origin/${branch}
+    else
+      git switch -c ${branch} origin/${base}
+      test "$(git merge-base HEAD origin/${base})" = "$(git rev-parse origin/${base})"
+    fi
 
-If the \`test\` fails, stop and report BLOCKED; write no code on a branch with any other base.
+If a command fails, stop and report BLOCKED; write no code on a branch with any other base.
 Then run the implement-issue skill for ${issue.url} and follow it. This brief is the context that skill assumes.
 
 ## Ticket (verbatim)
@@ -60,7 +64,7 @@ ${laws.map((l) => `- ${l}`).join("\n")}
 ${issue.parent ? `- the epic ${issue.parent.url}: the Implementation Decisions that bind this slice, and the plan comment's Constraints line\n` : ""}
 ## Mechanics
 
-- Branch \`${branch}\`, cut from \`origin/${base}\` by the first step above; open the PR into \`${base}\` with \`Closes #${n}\` on its first line. Do not merge.
+- Branch \`${branch}\`, taken from origin or cut from \`origin/${base}\` by the first step above; open the PR into \`${base}\` with \`Closes #${n}\` on its first line. Do not merge.
 - Claim #${n} with \`spp claim ${n}\` and write t-${n} on the Worker line of the progress comment (\`spp progress ${n} --worker t-${n}\`). It is the name the driver gave your session, so the board and \`spp wait\` find you by it.
 - Progress is one comment on #${n}, rewritten in place through \`spp progress\`; never post a second one.
 - Commit as you go with conventional messages. The last commit before the PR is the one Verify ran on.

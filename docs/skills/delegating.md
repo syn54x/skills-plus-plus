@@ -2,7 +2,7 @@
 
 `delegating` decides where one issue's work runs: in this session, or in a sub-session it starts in the issue's checkout. `/build 340` uses it to run [building](building.md) for #340, and triage will use it the same way.
 
-It asks only where the answer can matter. In a terminal, where no session can be started, it asks nothing and runs the skill here. In the desktop app it asks one question, here or sub-session, with one recommendation. Once a sub-session is running, `delegating` hands it the issue and steps aside: the sub-session runs the skill directly and never asks where to run again.
+It asks only where the answer can matter. In a terminal, where no session can be started, it asks nothing and runs the skill here. In the desktop app it asks one question, here or sub-session, with one recommendation. Before either, `/build` reads the issue's kind: a Sub-issue or a raw issue stops right there with the reason (build its Epic, or run `/triage`), so no question is asked and no sub-session starts for an issue that cannot be built. Once a sub-session is running, `delegating` hands it the issue and steps aside: the sub-session runs the skill directly and never asks where to run again.
 
 ## When to reach for it
 
@@ -34,11 +34,12 @@ The sub-session runs in that folder as it is, with no worktree of its own, on th
 ## Common questions
 
 **The build's question arrived in my main session. Can I answer it there?**
-Yes. A sub-session's turn-end note reaches the session that started it, and `building` puts what it waits on first, such as "#340 waits on you: approve Wave 1". Answer it where you are: `delegating` sends your words to the sub-session unchanged, quoted as yours, and adds nothing of its own.
+Yes. A sub-session's turn-end note reaches the session that started it, and every message in which `building` waits on you opens with one line in the same shape, such as "#340 waits on you: start Wave 1 with these 3 issues? Reply yes, or say what to change." Answer it where you are: `delegating` sends your words to the sub-session unchanged, quoted as yours, and adds nothing of its own.
 
 ## It's working if
 
 - In a terminal, `/build <N>` starts building without asking where.
 - In the desktop app, the first thing `/build <N>` asks is here or sub-session, with one recommendation.
+- `/build` on a Sub-issue or a raw issue tells you why it stops, and asks nothing about where to run.
 - A sub-session starts in the issue's checkout, and never in a folder you did not confirm when there was more than one.
 - An answer you give in the parent shows up in the sub-session as your own words.

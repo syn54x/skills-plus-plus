@@ -28,9 +28,9 @@ Run `spp kind <N>`. It prints the kind and the reason.
 | Kind | Meaning | Do |
 | --- | --- | --- |
 | `epic` | N has Sub-issues | The Epic path, [`EPIC.md`](EPIC.md), once steps 2 and 3 are read. |
-| `sub-issue` | N carries the Ticket contract and has a parent Epic | Stop. Print the reason and ask the user to run `/build <epic>` on that parent. A Sub-issue is built through its Epic, never the One-off path. |
+| `sub-issue` | N carries the Ticket contract and has a parent Epic | Stop with a waiting line asking the user to run `/build <epic>` on that parent, then the reason. A Sub-issue is built through its Epic, never the One-off path. |
 | `one-off` | N carries the Ticket contract and has no Epic: a hardened One-off | The One-off path, [`ONE-OFF.md`](ONE-OFF.md), once steps 2 and 3 are read. |
-| `raw` | N lacks the contract | Stop. Print the reason and ask the user to run `/triage <N>`. A raw issue never reaches a worker. |
+| `raw` | N lacks the contract | Stop with a waiting line asking the user to run `/triage <N>`, then the reason. A raw issue never reaches a worker. |
 
 Done when you hold the kind and, for `sub-issue` or `raw`, the user has the reason.
 
@@ -43,7 +43,7 @@ Each worker is one isolated subagent, the `spp:worker` agent, in a worktree of i
 | Write a worker's brief | `spp dispatch <N>` (it refuses an issue that is held); `spp brief <N>` writes the file alone |
 | Start a worker | one `spp:worker` subagent, with the brief's path as the prompt |
 | Wake when work changes | `spp wait <epic>` run in the background; a worker also wakes you when it ends |
-| Resume a worker | message the same worker by name |
+| Resume a worker | message the same worker by name; one this session did not start died with its session, so `EPIC.md` starts a fresh one |
 | Start the fresh reviewer | the `review` skill starts it |
 | Settle a design | the `grilling` skill, then `domain-modeling` |
 
@@ -69,6 +69,10 @@ Read the reference file for the kind from step 1 now and follow it. It calls bac
 ## Checkpoint
 
 A **checkpoint** offers the pending Skill feedback between steps. Run `spp feedback checkpoint` and follow what it prints; when it prints nothing, there is nothing to offer and you go on. Run it only at the points `EPIC.md` and `ONE-OFF.md` name, after one step has ended and before the next begins: never while a gate, a fix round or a merge is under way. A worker never runs it, so never put it in a worker's brief or message.
+
+## Waiting on the user
+
+Every turn that ends waiting on the user opens with one line, before anything else: `#<N> waits on you: <question>`, where N is the issue this run builds. The first Wave's approval, a lost worker, a red `spp verify` after a merge, an unsettled design and a wrong kind all ask this way, and so does any other question. The detail (a table, the findings, the reason) follows the line. A parent session may see only the opening of a child session's turn-end note, and `delegating` relays an answer only to a note that opens with this line, so a question placed anywhere else never reaches the user there.
 
 ## Heartbeat
 

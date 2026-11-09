@@ -10,7 +10,7 @@ Each action has a `kind`, the `tickets` and `pr` it concerns, and a `reason`. Ha
 | `branch` | Create the integration branch. |
 | `dispatch` | Approval of the first Wave, then start the workers. |
 | `gate` | Gate the pull request. |
-| `fix` | One fix round by the same worker, for a slice or a fix pull request. |
+| `fix` | One fix round, for a slice or a fix pull request, by its worker or a fresh one (Fix round). |
 | `hand-back` | The fix round is spent. Hand the issue back; for a fix pull request, see Hand-back. A reason saying `worker lost` goes to the user first, as Hand-back says. |
 | `merge` | Merge the pull request. |
 | `wait` | Wait for the next change. |
@@ -30,7 +30,7 @@ Run `spp branch <epic>`. It cuts `feat/<slug>` from `origin/<base>`, pushes it a
 
 The tickets in the action are one **Wave**: ready, with no two owning the same file, as `spp` checked. Take them as given.
 
-**First Wave only: ask.** It is the first Wave when the Epic's wave comment lists none (`gh issue view <epic> --comments`, looking for `Wave 1:`). End your turn with one message that opens with the approval question, on its first line, before anything else: "Start Wave 1 of #<epic> with these <n> issues? Reply yes, or say what to change." The table follows it, from `spp wave plan <epic>` and each issue's size label: issue, size, Files owned, tier, and the held-back issues with their reasons. The question comes first because a parent session sees only the opening of a child session's turn-end note, so a question placed after the table never reaches it.
+**First Wave only: ask.** It is the first Wave when the Epic's wave comment lists none (`gh issue view <epic> --comments`, looking for `Wave 1:`). End your turn with one message whose first line is the waiting line (`SKILL.md`, Waiting on the user): "#<epic> waits on you: start Wave 1 with these <n> issues? Reply yes, or say what to change." The table follows it, from `spp wave plan <epic>` and each issue's size label: issue, size, Files owned, tier, and the held-back issues with their reasons.
 
 Wait for the user's yes. When the parent session relays an answer, quoted as the user's words, it is the user's answer: act on it as if typed here. Later Waves that follow the plan start on their own; a new blocked-by edge, a re-bundled issue or a changed tier comes back to the user first, asked the same way.
 
@@ -49,7 +49,15 @@ Take the issue number from the action's `tickets` entry, or for a fix from the b
 
 ## Fix round
 
-The action names the issue and its pull request. Send the Critical and Important findings, verbatim, to the same worker (it holds the context) with the instruction to plan and make the fix as its fix round says, push and re-run Verify; then gate the new head. One round per pull request. A second failed head, or CI red after the fix, comes back as `hand-back`.
+The action names the issue and its pull request. Send the Critical and Important findings, verbatim, to the worker that opened the pull request when this session started it (it holds the context), with the instruction to plan and make the fix as its fix round says, push and re-run Verify; then gate the new head. One round per pull request. A second failed head, or CI red after the fix, comes back as `hand-back`.
+
+A worker this session did not start is gone: a subagent worker dies with its Build session, so on a resumed build the `t-<N>` that opened the pull request no longer answers. Never message it. Start a fresh worker on the existing branch instead:
+
+1. Free the branch. The dead worker's worktree still has it checked out, and harness-made worktrees are locked: find it with `git worktree list` (the one on the pull request's branch), then `git worktree unlock <path>`, `git worktree remove --force <path>` and `git branch -D <branch>`. Its pushed commits stay on origin; anything it never pushed was lost with it.
+2. Write the brief with `spp brief <N>` (`spp dispatch` refuses the issue, which is still claimed). Its first step takes the pushed `sdd/<N>-<slug>` from origin when it exists, so the worker lands on the pull request's branch.
+3. Start the worker as step 2 of `SKILL.md` says, under the same name `t-<N>` so the claim reads as its own, with a prompt that names the brief's path and the pull request and carries the instruction and the findings above.
+
+A fix pull request is handled the same way, except that its branch is not the brief's: free the branch its head names, and have the prompt tell the worker to switch to it (`git switch -c <branch> origin/<branch>`) after the brief's first step.
 
 ## Hand-back
 
@@ -59,8 +67,8 @@ A `hand-back` for a fix pull request needs none of this. It is a fix when the ac
 
 Run `spp merge <pr>`. It merges only a pull request that passed its gate, whose blockers merged and whose checks are green, and records it on the Wave comment. Read its exit:
 
-- `0`: merged. Close the Sub-issue if it is still open: `gh issue close <N> --reason completed --comment "Merged in <pr> into <branch>"`, since a merge into a non-default branch closes nothing by itself. Then, from a throwaway worktree of the integration branch's tip, run `spp verify <N>`, never the block's commands by hand: it runs the merged issue's Verify block only while it matches its pin. Red, or a refusal, stops the loop and goes to the user, because a broken base poisons every later Wave.
-- `3`: `rebase needed`. Resume the same worker with "rebase onto the current integration branch and re-run Verify". The new head is gated again. You never resolve the conflict, since silently picking a side discards one issue's intent.
+- `0`: merged. Close the Sub-issue if it is still open: `gh issue close <N> --reason completed --comment "Merged in <pr> into <branch>"`, since a merge into a non-default branch closes nothing by itself. Then, from a throwaway worktree of the integration branch's tip, run `spp verify <N>`, never the block's commands by hand: it runs the merged issue's Verify block only while it matches its pin. Red, or a refusal, stops the loop and goes to the user as a waiting line naming the failed command, because a broken base poisons every later Wave.
+- `3`: `rebase needed`. Resume the same worker with "rebase onto the current integration branch and re-run Verify". When this session did not start that worker, it is gone: start a fresh one on the existing branch as Fix round says, with that instruction in place of the findings. The new head is gated again. You never resolve the conflict, since silently picking a side discards one issue's intent.
 - `1`: print the refusal and stop on that pull request.
 
 An `Interfaces changed:` line in the output is an Interface deviation. Before the next dispatch, rewrite the producer's Produces line and every consumer's Consumes line to the shipped signature (`gh issue edit <N> --body-file <file>`), then record it: `spp plan <epic> --add-deviation "<issue>: <old> -> <new>"`. No approval is needed, since the gate already judged it needed.
@@ -69,13 +77,13 @@ Merges move the frontier: run `spp next` after each one, and the newly unblocked
 
 ## Wait
 
-Run `spp wait <epic>` in the background and do nothing else. It exits with one line per change, a state moving (`#12 claimed -> pr-open`) or a fix pull request's, or with one `heartbeat:` line when nothing changed for its timeout; on exit, print the line and run `spp next`. A worker that ends wakes you itself. On the first `spp next` of a run, `--resume` returns `hand-back` for each claimed issue with no pull request and no assignee, its reason saying `worker lost`. For that one, do not run the Hand-back step: ask the user whether to hand the issue back with `spp hand-back <N> needs-info --reason "worker lost"` or to start a worker on it again, since its claim would otherwise hold it forever. To start one again, run `spp unclaim <N>` first, since `spp dispatch` refuses a held issue; the next `spp next` dispatches it. A new worker cuts its `sdd/<N>-*` branch from the base again and cannot push over one the lost worker pushed, so when that branch exists, name it in the question: the user deletes it (its commits are lost) or hands the issue back. Ask the same when a wait outlasts any sign of life (no note, no report). An issue a person holds by assignment is theirs; it is never a lost worker.
+Run `spp wait <epic>` in the background and do nothing else. It exits with one line per change, a state moving (`#12 claimed -> pr-open`) or a fix pull request's, or with one `heartbeat:` line when nothing changed for its timeout; on exit, print the line and run `spp next`. A worker that ends wakes you itself. On the first `spp next` of a run, `--resume` returns `hand-back` for each claimed issue with no pull request and no assignee, its reason saying `worker lost`. For that one, do not run the Hand-back step: ask the user, as a waiting line, whether to hand the issue back with `spp hand-back <N> needs-info --reason "worker lost"` or to start a worker on it again, since its claim would otherwise hold it forever. Before you ask, find what the lost worker left and name each in the question: its local worktree (`git worktree list`, the one on an `sdd/<N>-*` branch), its local branch (`git branch --list 'sdd/<N>-*'`) and a pushed one (`git ls-remote origin 'refs/heads/sdd/<N>-*'`). A new worker cuts its `sdd/<N>-*` branch from the base again and cannot push over one the lost worker pushed, so a pushed branch is the user's to delete (its commits are lost), or they hand the issue back. To start one again, once the user agrees, remove the local worktree (`git worktree unlock <path>`, since harness-made worktrees are locked, then `git worktree remove --force <path>`) and branch (`git branch -D <branch>`), then run `spp unclaim <N>`, since `spp dispatch` refuses a held issue; the next `spp next` dispatches it. Ask the same when a wait outlasts any sign of life (no note, no report). An issue a person holds by assignment is theirs; it is never a lost worker.
 
 ## Settling an unsettled design
 
-A `NEEDS_CONTEXT` of that kind arrives as a handed-back issue. The decision belongs to the user; you bring the facts from the code and the Epic.
+A `NEEDS_CONTEXT` of that kind arrives as a handed-back issue. The decision belongs to the user; you bring the facts from the code and the Epic, and each question you put to them is a waiting line.
 
-1. Call the Skill tool with "grilling" on the question.
+1. Call the Skill tool with "grilling" on the question, and open each of its rounds with the waiting line, since `grilling` knows nothing of it.
 2. When the answer is hard to reverse, call the Skill tool with "domain-modeling" to record it as an ADR.
 3. Write it into the Epic body as one `## Spec deltas` item: MODIFIED, ADDED, or REMOVED when the user drops the behaviour. Create the section when it is missing. `close-epic` later confirms each one shipped.
 4. Rewrite the What to build, Interfaces and Test scenarios of the stopped issue and of every issue whose Consumes or Produces line the decision changes (`gh issue edit <N> --body-file <file>`). A dropped behaviour closes its issue instead: `gh issue close <N> --reason "not planned"`.
