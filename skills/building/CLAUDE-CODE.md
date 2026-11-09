@@ -6,11 +6,11 @@ Read only when running on Claude Code. Each capability the skill names, and the 
 
 | Worker | Start a worker |
 | --- | --- |
-| Subagent | Run `spp dispatch <N>`; it prints the brief's path. Then one Agent call per issue, every call in one response so the Wave runs together: `subagent_type: "spp:worker"`, `name: "t-<N>"`, `model` set to the tier, `prompt` as below. The `spp:worker` agent already runs in its own worktree, in the background, with `implement-issue` preloaded, and wakes you when it ends. |
+| Subagent | Run `spp dispatch <N>`; it prints the brief's path. Then one Agent call per issue, every call in one response so the Wave runs together: `subagent_type: "spp:worker"`, `description` starting with `t-<N>` (`t-12 implement #12`), `model` set to the tier, `prompt` as below. The `spp:worker` agent already runs in its own worktree, in the background, with `implement-issue` preloaded, and wakes you when it ends. |
 
 The prompt: `Your full brief is the file <path>. Read it completely before anything else, then run the implement-issue skill for <issue URL> and follow it.`
 
-A worker's name is `t-<N>`, the same name `spp brief` tells the worker to write on its Worker line. Wave comments take those names as `--workers`.
+A worker's name is `t-<N>`, the same name `spp brief` tells the worker to write on its Worker line. The Agent tool takes no name, so the description carries it, first: the Epic board links a worker to its row by the whole `t-<N>` token in the description. Wave comments take those names as `--workers`.
 
 ## Capabilities
 

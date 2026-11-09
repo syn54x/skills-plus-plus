@@ -139,6 +139,7 @@ type Host = {
   ghDelayMs?: number // gh answers this long after it is asked, on the mocked clock
   notes?: { ticket: number; text: string; at: string }[] // the local notes log of the Epic's repo
   agents?: { id: string; description: string }[]
+  agentsError?: string // the agent list read fails with this message
   branch?: string // the checkout's current branch
   toplevel?: string // the checkout's folder, as git rev-parse --show-toplevel prints it
   parent?: string // the parent URL `gh issue view` answers for a worker branch's issue
@@ -187,7 +188,7 @@ function host(on: On, h: Host) {
     }
     return { value: { exitCode: 127, stdout: '', stderr: `unexpected ${e.argv.join(' ')}`, isStdoutTruncated: false, isStderrTruncated: false } }
   })
-  on('agent.list', () => ({ value: (h.agents ?? []).map(a => ({ ...a, type: 'general-purpose', status: 'running' })) }))
+  on('agent.list', () => (h.agentsError ? { deny: h.agentsError } : { value: (h.agents ?? []).map(a => ({ ...a, type: 'general-purpose', status: 'running' })) }))
   on('ui.status', (_, e) => {
     seen.status.push(e.text)
     return { value: undefined }
@@ -303,6 +304,37 @@ test('a subagent in the agent list shows as the row worker, with no claude agent
   await ui.unmount()
   expect(seen.viewed).toEqual(['a9'])
   expect(seen.argv.filter(a => a[0] === 'claude')).toEqual([])
+})
+
+// Coherence on #430: building's Agent call starts each description with t-<N>, the only place the Agent tool carries it.
+test('a description in building\'s form, t-<N> first, links the worker; one without t-<N> links none', async ($, on) => {
+  const seen = host(on, {
+    gh: { exitCode: 0, stdout: snapshot([{ n: 213, labels: ['claimed'], worker: 't-213' }, { n: 214, labels: ['claimed'], worker: 't-214' }]) },
+    agents: [
+      { id: 'a13', description: 't-213 implement #213' },
+      { id: 'a14', description: 'Implement issue #214' },
+    ],
+  })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await ui.find({ key: 'worker-214' })).toBeUndefined()
+  await ui.press({ key: 'worker-213' })
+  await ui.unmount()
+  expect(seen.viewed).toEqual(['a13'])
+})
+
+// F11 on #430: a failing agent list read keeps the ticket rows and names its source on the error row.
+test('a failing agent list read draws "agent list: <message>" and keeps the ticket rows', async ($, on) => {
+  host(on, { gh: { exitCode: 0, stdout: snapshot([{ n: 201 }]) }, agentsError: 'agent list unavailable' })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  const all = await texts(ui)
+  // The engine adds its own call name inside the message; the board's prefix comes first.
+  expect(all.find(t => t.startsWith('agent list: '))).toMatch(/agent list unavailable$/)
+  expect(all.filter(t => /^#201 /.test(t))).toHaveLength(1)
+  await ui.unmount()
 })
 
 test('the status line after a refresh shows merged of total and the newest note', async ($, on) => {
