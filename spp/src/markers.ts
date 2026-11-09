@@ -67,8 +67,11 @@ export function parseIssue(arg: string | undefined): Issue {
   return { arg, repo: m[1], number: m[2], label: `${m[1]}#${m[2]}`, repoFlag: ["-R", m[1]] };
 }
 
-/** The issue's real `owner/repo`: its URL's, or for a bare number the current checkout's origin (throws without one). */
-export const issueRepo = (issue: Issue): string => (issue.repo === "{owner}/{repo}" ? currentRepo() : issue.repo);
+/**
+ * The issue's real `owner/repo`: its URL's, or for a bare number the current checkout's, `own` when the caller has
+ * already resolved it, else its origin (throws without one).
+ */
+export const issueRepo = (issue: Issue, own?: string): string => (issue.repo === "{owner}/{repo}" ? (own ?? currentRepo()) : issue.repo);
 
 // Runs a command body; a UsageError prints `spp <name>: <reason>` and the usage text, and exits 2.
 export async function guarded(name: () => string, usage: string, body: () => Promise<number | void>): Promise<number> {
@@ -188,8 +191,8 @@ export async function updateMarker(
 async function countRun(issue: Issue, marker: string, before: Maker | null, data: Data): Promise<void> {
   const after = readMaker(data);
   if (!after || (before?.skill === after.skill && before.step === after.step)) return;
-  await recordRun(() => {
-    const about = issueRepo(issue);
+  await recordRun((own) => {
+    const about = issueRepo(issue, own);
     return { about, skill: after.skill, step: after.step ?? "", artifact: `${about}#${issue.number} ${marker}` };
   });
 }

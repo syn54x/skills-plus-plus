@@ -126,3 +126,4 @@ The Signals of one skill step and category, grouped: an entry of the `spp feedba
 | <a id="property-count"></a> `count` | `number` | How many Signals the log holds for this fingerprint. |
 | <a id="property-versions"></a> `versions` | `Record`\<`string`, `number`\> | The same count by the plugin version each Signal was charged to. |
 | <a id="property-evidence"></a> `evidence` | `string`[] | Each Signal's evidence, oldest first. |
+| <a id="property-mode"></a> `mode?` | [`SelfImprovementMode`](preflight.md#selfimprovementmode) | The lowest mode the group's Signals carry, present only when one about another repo's issue carries one. |

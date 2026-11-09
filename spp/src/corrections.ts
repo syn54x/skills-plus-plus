@@ -47,12 +47,12 @@ function resolve(ref: string, base?: string): Issue {
  * progress trailer. Everything that can fail, the reference included, is resolved in the builder, after the gate.
  */
 async function record(command: string, c: Correction, trailer?: Data | null): Promise<void> {
-  const r = await recordSignal(async () => {
+  const r = await recordSignal(async (own) => {
     const issue = resolve(c.ref, c.base);
     if (c.allow && !(await c.allow(issue))) return null;
     const data = trailer !== undefined ? trailer : readTrailer((await find(issue, PROGRESS_MARKER))?.body ?? "");
     const maker = readMaker(data, c.field);
-    const about = issueRepo(issue);
+    const about = issueRepo(issue, own);
     const evidence = c.evidence(data, `${about}#${issue.number}`);
     return { about, category: c.category, skill: maker?.skill ?? c.fallback, step: maker?.step ?? "", evidence, ...(maker && { version: maker.version }) };
   });

@@ -8,6 +8,12 @@ import { currentRepo } from "./notes.ts";
 /** The Self-improvement mode: the most a skill-feedback issue may say about the repo's work; under Off nothing is recorded or filed. */
 export type SelfImprovementMode = "Off" | "Anonymous" | "Full Detail";
 
+// The modes from least to most a report may say.
+const MODE_ORDER: SelfImprovementMode[] = ["Off", "Anonymous", "Full Detail"];
+
+/** The lower of two Self-improvement modes: the one that lets a report say less. */
+export const lowerMode = (a: SelfImprovementMode, b: SelfImprovementMode): SelfImprovementMode => (MODE_ORDER.indexOf(a) <= MODE_ORDER.indexOf(b) ? a : b);
+
 /** A repo's Routing block, parsed: the `--json` shape of `spp preflight`. */
 export type Routing = {
   /** The `Mode:` line. */
@@ -84,13 +90,16 @@ export const readSelfImprovementMode = (dir: string): SelfImprovementMode => rea
 /**
  * Any repo's Self-improvement mode: the checkout's own Routing block when `repo` is the checkout in `dir`, otherwise
  * the first of the same files on `repo`'s default branch, read over gh, that carries a Routing block. Neither file,
- * or no block, is Off; a gh error other than a failing read (a missing file) is thrown.
+ * or no block, is Off; a gh error other than a failing read (a missing file) is thrown. A caller that already
+ * resolved the checkout's repo passes it as `own`, so git is not asked again.
  */
-export async function selfImprovementModeOf(repo: string, dir: string = process.cwd()): Promise<SelfImprovementMode> {
-  let own: string | null = null;
-  try {
-    own = currentRepo(dir);
-  } catch {} // no GitHub origin: every repo is another repo
+export async function selfImprovementModeOf(repo: string, dir: string = process.cwd(), own?: string | null): Promise<SelfImprovementMode> {
+  if (own === undefined) {
+    own = null;
+    try {
+      own = currentRepo(dir);
+    } catch {} // no GitHub origin: every repo is another repo
+  }
   if (own?.toLowerCase() === repo.toLowerCase()) return readSelfImprovementMode(dir);
   for (const file of ROUTING_FILES) {
     let text: string;
