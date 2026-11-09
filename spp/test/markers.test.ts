@@ -271,31 +271,24 @@ describe("edge cases", () => {
     assert.deepEqual(readTrailer(body((r.writes as Write[])[0])), { ...PROGRESS, worker: "w", branch: "", ...BY });
   });
 
-  test("spp plan --driver desktop stores the driver, renders its line and keeps the other fields", async () => {
-    const plan = { id: 601, body: `<!-- sdd-plan -->\n${trailer({ goal: "G", constraints: "C", branch: "feat/x" })}` };
-    const r = await runCase("plan", scratchCase(["197", "--driver", "desktop"], [plan], "197"));
-    assert.equal(r.code, 0, r.stderr);
-    const b = body((r.writes as Write[])[0]);
-    assert.deepEqual(
-      (({ driver, goal, constraints, branch }) => ({ driver, goal, constraints, branch }))(readTrailer(b) ?? {}),
-      { driver: "desktop", goal: "G", constraints: "C", branch: "feat/x" },
-    );
-    assert.match(b, /\*\*Driver:\*\* desktop\n/);
-  });
-
-  test("spp plan --driver cloud exits 2 naming the unknown driver", async () => {
-    const r = await runCase("plan", scratchCase(["197", "--driver", "cloud"], [], "197"));
+  test("spp plan 197 --driver desktop exits 2 naming --driver, with no write", async () => {
+    const r = await runCase("plan", scratchCase(["197", "--driver", "desktop"], [], "197"));
     assert.equal(r.code, 2);
-    assert.match(r.stderr, /unknown driver cloud/);
+    assert.match(r.stderr, /unknown flag --driver/);
     assert.match(r.stderr, /usage: spp plan/);
     assert.deepEqual(r.writes, []);
   });
 
-  test("spp plan --goal on a plan comment with no driver renders no Driver line", async () => {
-    const plan = { id: 601, body: `<!-- sdd-plan -->\n${trailer({ goal: "G" })}` };
-    const r = await runCase("plan", scratchCase(["197", "--goal", "X"], [plan], "197"));
+  test("spp plan 197 --goal G renders no Driver line, even over a trailer that still records one", async () => {
+    const plan = { id: 601, body: `<!-- sdd-plan -->\n**Driver:** desktop\n${trailer({ goal: "old", constraints: "C", branch: "feat/x", driver: "desktop" })}` };
+    const r = await runCase("plan", scratchCase(["197", "--goal", "G"], [plan], "197"));
     assert.equal(r.code, 0, r.stderr);
-    assert.doesNotMatch(body((r.writes as Write[])[0]), /\*\*Driver:\*\*/);
+    const b = body((r.writes as Write[])[0]);
+    assert.doesNotMatch(b, /Driver/);
+    assert.deepEqual(
+      (({ goal, constraints, branch }) => ({ goal, constraints, branch }))(readTrailer(b) ?? {}),
+      { goal: "G", constraints: "C", branch: "feat/x" },
+    );
   });
 
   test("spp plan --narrowed none empties the narrowing list", async () => {
