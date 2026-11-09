@@ -6,7 +6,8 @@
  * key; from round 3 a FIX FIRST is written HUMAN DECISION. With `--json` it prints {@link PanelFindings}.
  * `--fix-diff` names the patch of the fixes the round reviewed: each merged finding on a line that patch added or
  * changed, and not merged with a `recheck-` file's finding, records a `fix-regression` Signal (the Signal gates apply),
- * and a line on stderr says whether it was recorded. stdout, the `--json` shape and the exit code do not change.
+ * and a line on stderr says whether it was recorded. Each merge with `--fix-diff` also records one run of
+ * `implement-issue` step `fix round`, named for the patch, which is what the fix-regression rate is counted over. stdout, the `--json` shape and the exit code do not change.
  *
  * @module
  */
@@ -14,7 +15,8 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { changedLines, mergeFindings, panelVerdict, parsePersonaFindings, type MergeResult, type Merged, type PanelVerdict, type Readings } from "../findings.ts";
 import { guarded, UsageError } from "../markers.ts";
-import { recordSignal } from "../signals.ts";
+import { currentRepo } from "../notes.ts";
+import { recordRun, recordSignal } from "../signals.ts";
 
 export type { Finding, Merged, PanelVerdict, PersonaFindings, Severity } from "../findings.ts";
 
@@ -93,9 +95,20 @@ function render(r: MergeResult): string {
   );
 }
 
+// Each merge with --fix-diff is one fix round the panel looked at, so it is one run of `implement-issue` step `fix round`,
+// the denominator of the fix-regression rate, whether or not a finding regressed. Silent; the Signal gates apply.
+function recordFixRound(name: string): void {
+  try {
+    recordRun({ repo: currentRepo(process.cwd()), skill: "implement-issue", step: "fix round", artifact: name });
+  } catch {
+    // no resolvable repo: nothing to count against
+  }
+}
+
 // One fix-regression Signal per merged finding on a changed line that no recheck finding was merged into, and one
 // stderr line each. Nothing here changes the exit code.
 function recordRegressions(result: MergeResult, patch: string, name: string): void {
+  recordFixRound(name);
   const changed = changedLines(patch);
   const regressed = result.findings.filter((f) => !result.recheck.includes(f.id) && changed.get(f.file)?.has(f.line));
   if (!regressed.length) return;
