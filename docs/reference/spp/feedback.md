@@ -59,7 +59,7 @@ For `check`, one `rule <rule> <name>, line <n>: <text>` line per hit on stdout, 
   For `skip`, `skipped <fingerprint>` and exit 0; 1 on an unknown fingerprint. For `submission`, `Submission mode:
   <mode>` and exit 0.
 
-  For `checkpoint`, always exit 0. It prints nothing under `CI`, outside an Attended session, under Self-improvement
+  For `checkpoint` with no other argument, exit 0 whatever happens. It prints nothing under `CI`, outside an Attended session, under Self-improvement
   mode Off, on a worker's `sdd/` branch or with nothing pending. Otherwise it prints `spp: <n> Skill feedback
   candidates pending for <owner/repo>:`, the candidates exactly as `pending` prints them, a blank line, then
   [CHECKPOINT\_STEPS](#checkpoint_steps). An error (a checkout with no origin remote) writes one `spp feedback checkpoint:
