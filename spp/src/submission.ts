@@ -1,5 +1,5 @@
 // The Submission mode: whether a person's Skill feedback is filed unattended (Auto) or shown to them first (Review).
-// It belongs to the person, not the repo (ADR 0012), so it lives in spp's config directory, outside every checkout.
+// It belongs to the person, for each repo (ADR 0012), so it lives in spp's config directory, outside every checkout.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname } from "node:path";
@@ -22,14 +22,21 @@ function readConfig(file: string): Record<string, unknown> {
   }
 }
 
-/** The person's Submission mode: Review when the file is missing or unreadable or holds anything but `"Auto"`. */
-export function readSubmissionMode(env: NodeJS.ProcessEnv = process.env): SubmissionMode {
-  return readConfig(fileOf(env)).submissionMode === "Auto" ? "Auto" : "Review";
+// The per-repo entries of `submissionMode`; {} when it is absent or not an object (the old one-value string reads as none).
+function entries(config: Record<string, unknown>): Record<string, unknown> {
+  const m = config.submissionMode;
+  return m && typeof m === "object" && !Array.isArray(m) ? (m as Record<string, unknown>) : {};
 }
 
-/** Writes the person's Submission mode, keeping every other key in the file and creating its directory. */
-export function writeSubmissionMode(mode: SubmissionMode, env: NodeJS.ProcessEnv = process.env): void {
+/** The person's Submission mode for `repo` (`owner/repo`): Review unless the file holds exactly `"Auto"` for it. */
+export function readSubmissionMode(repo: string, env: NodeJS.ProcessEnv = process.env): SubmissionMode {
+  return entries(readConfig(fileOf(env)))[repo] === "Auto" ? "Auto" : "Review";
+}
+
+/** Sets the person's Submission mode for `repo`, keeping every other repo's entry and every other key, and creating the directory. */
+export function writeSubmissionMode(repo: string, mode: SubmissionMode, env: NodeJS.ProcessEnv = process.env): void {
   const file = fileOf(env);
+  const config = readConfig(file);
   mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, JSON.stringify({ ...readConfig(file), submissionMode: mode }, null, 2) + "\n");
+  writeFileSync(file, JSON.stringify({ ...config, submissionMode: { ...entries(config), [repo]: mode } }, null, 2) + "\n");
 }

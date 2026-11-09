@@ -6,9 +6,9 @@ steps an agent follows to file, skip or keep each one, and prints nothing on a w
 
 It also acts on a pending candidate. `spp feedback file <fingerprint>` files it on the one grouped Skill feedback
 issue for that skill step and category on syn54x/skills-plus-plus, and rewrites the person's own tally comment
-there; under the person's Submission mode Review it first prints what it would post and files only when run again
+there; under the person's Submission mode Review for this repo it first prints what it would post and files only when run again
 with that text's `--confirm` hash. `spp feedback skip <fingerprint>` drops a candidate for good, and
-`spp feedback submission [Auto|Review]` reads or sets the person's Submission mode.
+`spp feedback submission [Auto|Review]` reads or sets the person's Submission mode for this repo.
 
 The check and the list:
 
@@ -35,7 +35,7 @@ or sets the Submission mode.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `args` | `string`[] | `check`, the draft's body file, then `--title-file <file>` for the titles and repo names it must not leak; `pending`, then `--json` for the [FeedbackCandidate](#feedbackcandidate) list; `file <fingerprint>` with `--epic <epic>` (whose repos' modes also bind), `--change <change>` (the Proposed change, default `unclear`), `--note <text>` and `--confirm <hash>`; `skip <fingerprint>`; `submission`, then `Auto` or `Review` in any case to set it; or `checkpoint`, alone. |
+| `args` | `string`[] | `check`, the draft's body file, then `--title-file <file>` for the titles and repo names it must not leak; `pending`, then `--json` for the [FeedbackCandidate](#feedbackcandidate) list; `file <fingerprint>` with `--epic <epic>` (whose repos' modes also bind), `--change <change>` (the Proposed change, default `unclear`), `--note <text>` and `--confirm <hash>`; `skip <fingerprint>`; `submission`, then `Auto` or `Review` in any case to set it for this repo; or `checkpoint`, alone. |
 
 #### Returns
 
