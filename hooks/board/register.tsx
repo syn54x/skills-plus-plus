@@ -1,6 +1,6 @@
 // The epic board: a view-only pane opened by /epic-board, plus a status line entry. It runs the spp core (the
 // snapshot query, readSnapshot and derive) on gh's answer, reads notes from the local notes log `spp note` writes and
-// workers from `claude agents --json` and $.agent.list(). The pipeline runs the same without it; `spp status` is the
+// workers from its own session's $.agent.list(), never from a session list. The pipeline runs the same without it; `spp status` is the
 // fallback view.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
@@ -14,7 +14,7 @@ const PANE = 'epic-board'
 const TITLE = 'Epic board'
 const EMPTY: Board = { epic: null, title: null, merged: 0, tickets: [], fixes: [], workers: [], error: null }
 // Change the tag when Board changes shape: it declines what an earlier version stored, which outlives a reload.
-const board = atom({ plugin: 'spp', key: 'board' } as const, EMPTY, { shape: 'board-2' })
+const board = atom({ plugin: 'spp', key: 'board' } as const, EMPTY, { shape: 'board-3' })
 
 // Each TicketState's chip: a distinct label and a color.
 const CHIPS: Record<TicketState, { label: string; color: string }> = {
@@ -69,12 +69,7 @@ async function notesOf($: EngineInterface, state: EpicState): Promise<Map<string
 }
 
 async function workersOf($: EngineInterface): Promise<BoardWorker[]> {
-  const sessions = JSON.parse(await run($, 'claude agents', ['claude', 'agents', '--json'])) as { name?: string; kind?: string }[]
-  const agents = await $.agent.list()
-  return [
-    ...sessions.flatMap(s => (s.name ? [{ name: s.name, kind: s.kind === 'background' ? 'background' : 'interactive' } as const] : [])),
-    ...agents.map(a => ({ name: a.description, kind: 'subagent' as const, agentId: a.id })),
-  ]
+  return (await $.agent.list()).map(a => ({ name: a.description, kind: 'subagent' as const, agentId: a.id }))
 }
 
 // The snapshot with the pull requests into the integration branch, one request per repo spp names, as `spp status`
@@ -92,7 +87,7 @@ async function withBranchPullRequests($: EngineInterface, snapshot: Snapshot, er
 }
 
 // One refresh: the snapshot through gh, then the pull requests, notes and workers. A failing gh call leaves no ticket
-// rows; a failing pull-request read, notes read or claude call keeps them and shows its error.
+// rows; a failing pull-request read, notes read or agent list read keeps them and shows its error.
 async function load($: EngineInterface, epic: string): Promise<Board> {
   const args = snapshotArgs(epic)
   if (!args) return { ...EMPTY, epic, error: `not an issue number or URL: ${epic}` }
@@ -272,7 +267,7 @@ export const register: Register = on => {
     // shortcut: rows are keyed by issue number, so a multi-repo Epic with two equal numbers shares a key; key by URL then.
     const row = (t: BoardTicket) => {
       const chip = CHIPS[t.state as TicketState]
-      // The worker's name as a whole token of a session's name or a subagent's description, punctuation aside, so
+      // The worker's name as a whole token of a subagent's description, punctuation aside, so
       // `t-12: implement` names t-12 and t-1 never matches t-12.
       const named = (w: BoardWorker) => w.name.split(/[^\w-]+/).includes(t.worker!)
       const w = t.worker ? b.workers.find(named) : undefined
@@ -292,10 +287,7 @@ export const register: Register = on => {
             {t.worker && <Text dimColor>{t.worker}</Text>}
             <Button key={`issue-${t.number}`} label="issue" onPress={press => $.ui.copy({ text: t.url, surface: press.surface })} />
             {pr && <Button key={`pr-${t.number}`} label="PR" onPress={press => $.ui.copy({ text: pr, surface: press.surface })} />}
-            {w?.kind === 'background' && (
-              <Button key={`worker-${t.number}`} label="attach" onPress={() => $.prompt.fill({ text: `claude attach ${w.name}` })} />
-            )}
-            {w?.kind === 'subagent' && (
+            {w && (
               <Button key={`worker-${t.number}`} label="transcript" onPress={() => $.ui.view({ agentId: w.agentId })} />
             )}
           </Box>
