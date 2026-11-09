@@ -30,7 +30,7 @@ import { derive, type EpicState, type Ticket } from "../derive.ts";
 import { fetchSnapshot } from "../fetch-snapshot.ts";
 import { runGh } from "../gh.ts";
 import { type Data, flagPairs, guarded, parseBy, parseIssue, print, updateMarker, UsageError } from "../markers.ts";
-import { DEFAULT_WAVE_MAX, inFlight, liveWorker, type Session } from "../plan-next.ts";
+import { DEFAULT_WAVE_MAX, inFlight } from "../plan-next.ts";
 import { parseTicket } from "../ticket.ts";
 
 /** The usage text `spp wave --help` prints. */
@@ -224,12 +224,12 @@ function planWave(tickets: PlanInput[], max: number, running: PlanInput[]): Wave
 }
 
 /**
- * The wave over the state's ready tickets that no live session works on, held against every in-flight ticket (see
- * `inFlight` in plan-next.ts), reading each one's body for its Files owned and Interfaces.
+ * The wave over the state's ready tickets, held against every in-flight ticket (see `inFlight` in plan-next.ts),
+ * reading each one's body for its Files owned and Interfaces.
  *
  * @internal
  */
-export async function wavePlan(state: EpicState, max: number, sessions: Session[] = []): Promise<WavePlan> {
+export async function wavePlan(state: EpicState, max: number): Promise<WavePlan> {
   const input = async (t: Ticket): Promise<PlanInput> => ({
     id: t.repo === state.epic.repo ? String(t.number) : `${t.repo}#${t.number}`,
     number: t.number,
@@ -238,8 +238,8 @@ export async function wavePlan(state: EpicState, max: number, sessions: Session[
     body: (JSON.parse(await runGh(["issue", "view", t.url, "--json", "body"])) as { body: string }).body ?? "",
   });
   const [ready, running] = await Promise.all([
-    Promise.all(state.tickets.filter((t) => t.state === "ready" && !liveWorker(t, sessions)).map(input)),
-    Promise.all(state.tickets.filter((t) => inFlight(t, sessions)).map(input)),
+    Promise.all(state.tickets.filter((t) => t.state === "ready").map(input)),
+    Promise.all(state.tickets.filter(inFlight).map(input)),
   ]);
   return planWave(ready, max, running);
 }

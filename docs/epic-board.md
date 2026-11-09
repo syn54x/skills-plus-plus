@@ -39,11 +39,12 @@ Under the title sits the latest Note and its age (`first red test, 5m ago`), the
 | issue | copies the issue's link |
 | PR | copies the pull request's link, when there is one |
 | transcript | shows the worker's transcript in the main view, when the worker is a subagent of this session |
-| attach | puts `claude attach <worker>` in the prompt, when the worker is a background session |
+
+Every worker is a subagent, so the board finds workers in its own session's agent list. Open it in the Build session to see them.
 
 After the Waves, a `Fixes` group lists the Epic's fix pull requests: trusted pull requests into its integration branch that close no Sub-issue, open or merged. Each row has a chip (`fix open` or `fix merged`), the pull request number, the Sub-issue its `Refs` line names (or `unattributed`) and a `PR` button that copies its link. While the Epic has any fix, the header and the status line end with the open count, as in `12/12 merged · 3 fixes open` (`1 fix open` for one, `0 fixes open` once all are merged), the same as `spp status`. With no fixes, the group and the count are absent.
 
-The board refreshes every 2 minutes, after every turn and whenever a message reaches the session. Each refresh makes one `gh` call for the Epic's state, one more per repo of the Epic for its fix pull requests, and reads the notes from the local log that `spp note` writes. When a `gh` or `claude` call or the fix pull request read fails, one red line under the title says which call and why. A failing `gh` call leaves no ticket rows, since the board has nothing to draw them from; a repo whose fix pull requests cannot be read loses only its fixes, and the red line names the repo; a failing `claude` call keeps the rows and drops only the worker buttons.
+The board refreshes every 2 minutes, after every turn and whenever a message reaches the session. Each refresh makes one `gh` call for the Epic's state, one more per repo of the Epic for its fix pull requests, and reads the notes from the local log that `spp note` writes. When a `gh` call, the agent list read or the fix pull request read fails, one red line under the title says which call and why. A failing `gh` call leaves no ticket rows, since the board has nothing to draw them from; a repo whose fix pull requests cannot be read loses only its fixes, and the red line names the repo; a failing agent list read keeps the rows and drops only the worker buttons.
 
 ## Common questions
 

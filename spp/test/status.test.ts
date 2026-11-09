@@ -305,11 +305,13 @@ describe("harness", () => {
     assert.match(r.stderr, /no answer for: issue view 6/);
   });
 
-  test("the claude stub answers from agents.json", () => {
+  // #408: spp reads no session list, so a `claude agents` call is logged like any other claude call and fails a case.
+  test("the claude stub answers from agents.json and logs the call, claude agents included", () => {
     const writes = join(mkdtempSync(join(tmpdir(), "spp-harness-")), "writes.jsonl");
     const r = stub("claude", ["agents", "--json"], writes);
     assert.equal(r.status, 0, r.stderr);
     assert.deepEqual(JSON.parse(r.stdout), [{ name: "worker-5" }]);
+    assert.deepEqual(JSON.parse(readFileSync(writes, "utf8")), { cmd: "claude", argv: ["agents", "--json"] });
   });
 });
 
