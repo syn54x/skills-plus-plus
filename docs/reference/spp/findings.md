@@ -6,7 +6,9 @@ key; from round 3 a FIX FIRST is written HUMAN DECISION. With `--json` it prints
 `--fix-diff` names the patch of the fixes the round reviewed: each merged finding on a line that patch added or
 changed, and not merged with a `recheck-` file's finding, records a `fix-regression` Signal (the Signal gates apply),
 and a line on stderr says whether it was recorded. Each merge with `--fix-diff` also records one run of
-`implement-issue` step `fix round`, named for the patch, which is what the fix-regression rate is counted over. stdout, the `--json` shape and the exit code do not change.
+`implement-issue` step `fix round`, which is what the fix-regression rate is counted over. The run is named for the
+patch's folder and file, `spp-panel-<PR>/fix-<round>.patch` as the panel writes it, and a merge of a round already
+recorded records no second run. stdout, the `--json` shape and the exit code do not change.
 
 ## Functions
 
