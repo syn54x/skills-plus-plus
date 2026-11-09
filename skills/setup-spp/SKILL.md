@@ -19,7 +19,7 @@ Change nothing yet. Read [`GITHUB.md`](GITHUB.md) and run its preflight. Then ga
 
 - the `gh` and Node versions against the table's minimums, and the owner type, which decides Mode;
 - the instructions file: `CLAUDE.md`, else `AGENTS.md`, else neither. When both exist, the one that holds a Routing block wins, and otherwise `CLAUDE.md`;
-- whether that file already has a Routing block, a domain docs section, and the answers inside the block, among them its `Self-improvement mode:` line or, failing that, its old `Upstream feedback:` line;
+- whether that file already has a Routing block, a domain docs section, and the answers inside the block, among them its `Self-improvement mode:` line or, failing that, the old profile line that the migration in `BLOCKS.md` covers;
 - whether the repo is private (`gh repo view --json isPrivate --jq .isPrivate`);
 - the person's current Submission mode (`spp feedback submission`, which prints `Submission mode: <mode>`);
 - the repo's labels (`gh label list --limit 200`) and, in `org` mode, the organization's issue types;
