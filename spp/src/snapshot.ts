@@ -138,6 +138,17 @@ export function readTrailer(body: string): Record<string, unknown> | null {
   }
 }
 
+/**
+ * The data trailer line {@link readTrailer} reads: `<!-- sdd-data: <base64 of the JSON> -->`. The one encoder, so a
+ * writer and its reader never drift; it uses no Node API, like the reader.
+ */
+export function encodeTrailer(data: unknown): string {
+  const bytes = new TextEncoder().encode(JSON.stringify(data));
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return `<!-- sdd-data: ${btoa(binary)} -->`;
+}
+
 /** The comment authors GitHub marks as holding a role on the repository; spp trusts their Marker comments (ADR 0009). */
 export const TRUSTED_ASSOCIATIONS = ["OWNER", "MEMBER", "COLLABORATOR"];
 

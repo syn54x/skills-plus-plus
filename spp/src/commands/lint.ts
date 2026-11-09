@@ -1,10 +1,12 @@
 /**
- * `spp lint ticket <issue> [--pin <body-file>] [--json]` is the mechanical half of hardening. It checks the required
+ * `spp lint ticket <issue> [--pin <body-file> [--by "<skill> <step>"]] [--json]` is the mechanical half of hardening. It checks the required
  * sections, a fenced Verify block, Files owned lines starting `Create`, `Modify` or `Test`, Test scenarios shaped
  * `<category>: ... → ...`, exactly one `size:` label, and no placeholder text. It prints `ok`, or one
  * `<rule>: <detail>` line per failure; with `--json` it prints {@link LintResult}. With `--pin <body-file>`, the file
  * the agent just wrote to the issue, a passing ticket's Verify block is pinned: the sha256 of the file's block goes
  * into the progress comment's trailer, and `spp verify` refuses to run a block that no longer matches it (ADR 0009).
+ * The trailer's `verifyPinBy` and `by` record the pin's maker: harden, or the skill and step `--by "<skill> <step>"`
+ * names (triage passes `--by "triage re-pin"`); later progress writes keep `verifyPinBy`.
  * The pin is taken from the file and not from the issue, so an edit made after the agent wrote the body is never
  * approved by it: when the issue's block differs from the file's, nothing is pinned and the lint fails with
  * `pin-match`. Hardening's last step is this run. Without `--pin`, as the ready gate and the worker's readiness check
@@ -12,10 +14,18 @@
  * `pin-present`, and must still match that pin, or it fails with `pin-match`. So a ticket never hardened, or edited
  * after hardening, never reaches `ready-for-agent`, and a worker stops before running its block by hand.
  *
+ * A `pin-match` without `--pin` also records a `contract-edited` Signal, charged to the maker of the Verify pin
+ * (harden when it names none), when the issue body's last editor is trusted (ADR 0009); with `--pin` it records none.
+ * It records nothing under `CI`, outside an Attended session, or when the Self-improvement mode of this checkout, or of
+ * another repo whose issue it is about, is Off. A Signal goes to this checkout's log, and a failure
+ * while recording is one `signal not recorded:` line on stderr that leaves the exit code as it was.
+ *
  * @module
  */
 import { readFileSync } from "node:fs";
+import { pinCorrection } from "../corrections.ts";
 import { runGh } from "../gh.ts";
+import { type By, parseBy, UsageError } from "../markers.ts";
 import { checkPin } from "../pin.ts";
 import { savePin } from "./progress.ts";
 import { type Failure, isIssueRef, lintTicket, parseTicket } from "../ticket.ts";
@@ -31,13 +41,16 @@ export type LintResult = {
 };
 
 /** The usage text `spp lint --help` prints. */
-export const USAGE = "usage: spp lint ticket <issue number | issue URL> [--pin <body-file>] [--json]\n";
+export const USAGE = `usage: spp lint ticket <issue number | issue URL> [--pin <body-file> [--by "<skill> <step>"]] [--json]
+--by records the pin as that skill's (default harden), the rest of the value as its step; it goes only with --pin.
+`;
 
 /**
  * Lints one ticket.
  *
  * @param args - `ticket`, the issue (a number in the current repo or a GitHub issue URL), `--pin <body-file>` to pin
- *   a passing ticket's Verify block as the file holds it, and `--json` for the {@link LintResult} shape.
+ *   a passing ticket's Verify block as the file holds it, with `--by "<skill> <step>"` to name the pin's maker, and
+ *   `--json` for the {@link LintResult} shape.
  * @returns 0 when the ticket passes (and, with `--pin`, its pin is written); 1 when it breaks a rule, including
  *   `pin-match` when the issue's Verify block differs from the file's (which pins nothing) or, without `--pin`, from
  *   the pin already written, and `pin-present` when, without `--pin`, a Verify block has no pin; 2 on a usage error,
@@ -49,9 +62,19 @@ export const USAGE = "usage: spp lint ticket <issue number | issue URL> [--pin <
  */
 export async function run(args: string[]): Promise<number> {
   const at = args.indexOf("--pin");
+  const byAt = args.indexOf("--by");
   const file = at < 0 ? undefined : args[at + 1];
-  const rest = args.filter((a, i) => a !== "--json" && (at < 0 || (i !== at && i !== at + 1)));
-  if (rest.length !== 2 || rest[0] !== "ticket" || !isIssueRef(rest[1]) || (at >= 0 && (!file || file.startsWith("--")))) {
+  const taken = [at, byAt].filter((i) => i >= 0).flatMap((i) => [i, i + 1]);
+  const rest = args.filter((a, i) => a !== "--json" && !taken.includes(i));
+  let by: By | undefined;
+  try {
+    // --by names the pin's maker, so it goes only with --pin.
+    if (byAt >= 0) by = file === undefined ? undefined : parseBy(args[byAt + 1] ?? "");
+  } catch (e) {
+    if (!(e instanceof UsageError)) throw e;
+  }
+  const badBy = byAt >= 0 && by === undefined;
+  if (rest.length !== 2 || rest[0] !== "ticket" || !isIssueRef(rest[1]) || (at >= 0 && (!file || file.startsWith("--"))) || badBy) {
     process.stderr.write(USAGE);
     return 2;
   }
@@ -68,10 +91,12 @@ export async function run(args: string[]): Promise<number> {
     if (refusal) failures.push(refusal);
   }
   const ok = failures.length === 0;
-  if (ok && written) await savePin(rest[1], written);
+  if (ok && written) await savePin(rest[1], written, by);
   const result: LintResult = { ok, failures };
   process.stdout.write(
     args.includes("--json") ? JSON.stringify(result, null, 2) + "\n" : ok ? "ok\n" : failures.map((f) => `${f.rule}: ${f.detail}`).join("\n") + "\n",
   );
+  // Only the ready gate's pin-match is a correction: with --pin it is the hardener's own write racing an edit.
+  if (file === undefined && failures.some((f) => f.rule === "pin-match")) await pinCorrection(rest[1]);
   return ok ? 0 : 1;
 }

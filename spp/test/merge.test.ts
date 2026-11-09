@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { describe, test } from "node:test";
+import { isAttended, passDecision } from "../src/attended.ts";
 import type { EpicState, Ticket } from "../src/derive.ts";
 import { readTrailer } from "../src/markers.ts";
 import { planNext } from "../src/plan-next.ts";
@@ -180,6 +182,28 @@ describe("happy path", () => {
   test("a Routing block Merge line picks the merge method", async () => {
     const r = await merge({ routing: "- Mode: org\n- Merge: rebase" });
     assert.deepEqual(r.writes[0].argv, ["pr", "merge", `${REPO}/pull/40`, "--rebase", "--match-head-commit", HEAD[40]]);
+  });
+});
+
+describe("the passed attended decision", () => {
+  // R2-F8: the merged slice's worker is resumed for the Epic's fix round while #30 stays open, so its decision stays.
+  test("spp merge 40 keeps ticket 30's passed decision: the worker in sdd/30-x still counts as attended", async () => {
+    const env = { XDG_STATE_HOME: mkdtempSync(join(tmpdir(), "spp-merge-state-")), HOME: "" };
+    passDecision(env, "acme/app", 30, true);
+    const saved = { ...process.env };
+    process.env.XDG_STATE_HOME = env.XDG_STATE_HOME;
+    try {
+      await merge({}, 0);
+      const dir = mkdtempSync(join(tmpdir(), "spp-merge-worker-"));
+      spawnSync("git", ["init", "-q", "-b", "sdd/30-x"], { cwd: dir });
+      const bin = mkdtempSync(join(tmpdir(), "spp-merge-gh-"));
+      writeFileSync(join(bin, "gh"), `#!/bin/sh\necho '{"state":"OPEN"}'\n`, { mode: 0o755 });
+      process.env.PATH = `${bin}${delimiter}${saved.PATH}`;
+      delete process.env.CI;
+      assert.equal(isAttended({ ...env, CLAUDE_CODE_SESSION_ATTENDED: "0" }, { repo: "acme/app", dir }), true);
+    } finally {
+      process.env = saved;
+    }
   });
 });
 

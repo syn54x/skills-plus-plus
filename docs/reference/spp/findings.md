@@ -1,8 +1,14 @@
-`spp findings merge <file...> [--json] [--verdict <round> ...]` merges the review panel's Persona findings. Each
+`spp findings merge <file...> [--json] [--verdict <round> ...] [--fix-diff <file>]` merges the review panel's Persona findings. Each
 file is one [PersonaFindings](#personafindings). Findings under 80 confidence are dropped, and findings on the same file,
 less than 5 lines apart and with the same normalised title become one that keeps the highest severity and every Persona.
 `--verdict` adds the panel's verdict over the merged list, as a last `Verdict:` line or, with `--json`, a `verdict`
 key; from round 3 a FIX FIRST is written HUMAN DECISION. With `--json` it prints [PanelFindings](#panelfindings).
+`--fix-diff` names the patch of the fixes the round reviewed: each merged finding on a line that patch added or
+changed, and not merged with a `recheck-` file's finding, records a `fix-regression` Signal (the Signal gates apply),
+and a line on stderr says whether it was recorded. Each merge with `--fix-diff` also records one run of
+`implement-issue` step `fix round`, which is what the fix-regression rate is counted over. The run is named by the
+patch's content, `fix diff <hash>` (the first 12 hex characters of its SHA-256), after `pull request <N>` when the
+patch sits in the panel's `spp-panel-<N>` folder, so merging the same round again records no second run. stdout, the `--json` shape and the exit code do not change.
 
 ## Functions
 
@@ -18,20 +24,21 @@ Merges Persona findings files and, with `--verdict`, gives the panel's verdict.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `args` | `string`[] | `merge`, one or more findings files, `--json` for the [PanelFindings](#panelfindings) shape, and for a verdict `--verdict <round>` with `--spec pass\|fail`, `--coherence pass\|fail`, `--verify pass\|fail`, `--checks pass\|fail\|pending\|none` and optionally `--missing name,name` (Personas that never reported). |
+| `args` | `string`[] | `merge`, one or more findings files, `--json` for the [PanelFindings](#panelfindings) shape, and for a verdict `--verdict <round>` with `--spec pass\|fail`, `--coherence pass\|fail`, `--verify pass\|fail`, `--checks pass\|fail\|pending\|none` and optionally `--missing name,name` (Personas that never reported). Apart from those, `--fix-diff <file>` records fix regressions as described above. |
 
 #### Returns
 
 `Promise`\<`number`\>
 
 0 when it printed the merged list; 2 on a usage error, with the usage on stderr; 1 when a file cannot be
-  read or does not hold Persona findings, with the reason on stderr.
+  read (the `--fix-diff` patch included) or does not hold Persona findings, with the reason on stderr.
 
 #### Example
 
 ```bash
 spp findings merge correctness.json security.json --json
 spp findings merge *.json --verdict 1 --spec pass --coherence pass --verify pass --checks pass
+spp findings merge "$ROUND_DIR"/*.json --fix-diff "$PANEL_DIR/fix-2.patch"
 ```
 
 ## Variables
@@ -45,7 +52,7 @@ const USAGE: string;
 The usage text `spp findings --help` prints.
 
 ```text
-usage: spp findings merge <file...> [--json]
+usage: spp findings merge <file...> [--json] [--fix-diff <file>]
          [--verdict <round> --spec pass|fail --coherence pass|fail --verify pass|fail
           --checks pass|fail|pending|none [--missing name,name]]
 Each file is { "persona": NAME, "findings": [{ file, line, title, severity, confidence, law?, body }] }.
@@ -55,6 +62,9 @@ title merge into one that keeps the highest severity and every persona. --json p
 --verdict adds the panel's verdict (MERGE, FIX FIRST or HUMAN DECISION) as a last "Verdict:" line, or a "verdict"
 key with --json. <round> is 1 for the first panel; from round 3 a FIX FIRST is written HUMAN DECISION. The other
 flags are the readings the verdict also depends on; --missing names Personas that never reported.
+--fix-diff <file> is the patch of the fixes made since the previous round. A merged finding on a line it added or
+changed, and not merged with a finding from a recheck-* file, records a fix-regression Signal; stderr gets one
+"fix-regression <id> recorded" or "fix-regression <id> not recorded: <reason>" line per such finding.
 ```
 
 ## Type Aliases

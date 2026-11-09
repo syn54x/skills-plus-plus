@@ -2,9 +2,18 @@
 // AGENTS.md. `parseRouting` is pure (text in, Routing out); `readRouting` is the one place that touches the filesystem.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { GhError, runGh } from "./gh.ts";
+import { currentRepo } from "./notes.ts";
 
-/** The upstream feedback profile, which sets what a skill-feedback issue may say; under `off` nothing may be filed. */
-export type UpstreamFeedback = "off" | "counts" | "detailed" | "attributed";
+/** The Self-improvement mode: the most a skill-feedback issue may say about the repo's work; under Off nothing is recorded or filed. */
+export type SelfImprovementMode = "Off" | "Anonymous" | "Full Detail";
+
+/** Every Self-improvement mode, from least to most a report may say: the one list of them. */
+export const SELF_IMPROVEMENT_MODES: readonly SelfImprovementMode[] = ["Off", "Anonymous", "Full Detail"];
+
+/** The lower of two Self-improvement modes: the one that lets a report say less. */
+export const lowerMode = (a: SelfImprovementMode, b: SelfImprovementMode): SelfImprovementMode =>
+  SELF_IMPROVEMENT_MODES.indexOf(a) <= SELF_IMPROVEMENT_MODES.indexOf(b) ? a : b;
 
 /** A repo's Routing block, parsed: the `--json` shape of `spp preflight`. */
 export type Routing = {
@@ -16,14 +25,16 @@ export type Routing = {
   laws: string[];
   /** When the main gate runs the review panel: at `tickets` Sub-issues or more, on any size L ticket when `sizeL`, or at `lines` changed lines or more. */
   panel: { tickets: number; sizeL: boolean; lines: number };
-  /** How much a skill-feedback issue may say; a missing or unknown value is off. */
-  upstreamFeedback: UpstreamFeedback;
+  /** The `Self-improvement mode:` line, else an old `Upstream feedback:` line migrated; a missing or unknown value is Off. */
+  selfImprovement: SelfImprovementMode;
   /** How `spp merge` merges a slice; absent means squash. */
   merge?: "squash" | "merge" | "rebase";
 };
 
 const MERGE_METHODS = ["squash", "merge", "rebase"];
-const FEEDBACK_PROFILES = ["counts", "detailed", "attributed"];
+const MODES = new Map(SELF_IMPROVEMENT_MODES.map((m) => [m.toLowerCase(), m]));
+// The old `Upstream feedback:` profiles, each mapped to the mode that keeps its outbound rules.
+const UPSTREAM = new Map<string, SelfImprovementMode>([["off", "Off"], ["counts", "Anonymous"], ["detailed", "Anonymous"], ["attributed", "Full Detail"]]);
 
 const ROUTING_FILES = ["CLAUDE.md", "AGENTS.md"];
 const PANEL_DEFAULT = { tickets: 4, sizeL: true, lines: 1000 };
@@ -51,13 +62,14 @@ export function parseRouting(text: string): Routing {
   if (mode !== "org" && mode !== "labels-only") throw new Error(`Routing block: Mode must be org or labels-only, got ${mode === undefined ? "nothing" : `"${mode}"`}`);
   const merge = field("Merge");
   if (merge !== undefined && !MERGE_METHODS.includes(merge)) throw new Error(`Routing block: Merge must be squash, merge or rebase, got "${merge}"`);
-  const feedback = field("Upstream feedback") ?? "";
+  const improve = field("Self-improvement mode");
+  const selfImprovement = improve !== undefined ? MODES.get(improve.toLowerCase()) : UPSTREAM.get(field("Upstream feedback") ?? "");
   return {
     mode,
     sizes: field("Sizes") ?? "",
     laws: (field("Laws") ?? "").split(",").map((l) => l.trim()).filter(Boolean),
     panel: parsePanel(field("Panel") ?? ""),
-    upstreamFeedback: FEEDBACK_PROFILES.includes(feedback) ? (feedback as UpstreamFeedback) : "off",
+    selfImprovement: selfImprovement ?? "Off",
     ...(merge && { merge: merge as Routing["merge"] }),
   };
 }
@@ -71,4 +83,34 @@ export function readRouting(dir: string): { file: string; routing: Routing } | n
     if (text.includes("<!-- sdd-routing -->")) return { file, routing: parseRouting(text) };
   }
   return null;
+}
+
+// The repo's Self-improvement mode; Off when `dir` has no Routing block.
+export const readSelfImprovementMode = (dir: string): SelfImprovementMode => readRouting(dir)?.routing.selfImprovement ?? "Off";
+
+/**
+ * Any repo's Self-improvement mode: the checkout's own Routing block when `repo` is the checkout in `dir`, otherwise
+ * the first of the same files on `repo`'s default branch, read over gh, that carries a Routing block. Neither file,
+ * or no block, is Off; a gh error other than a failing read (a missing file) is thrown. A caller that already
+ * resolved the checkout's repo passes it as `own`, so git is not asked again.
+ */
+export async function selfImprovementModeOf(repo: string, dir: string = process.cwd(), own?: string | null): Promise<SelfImprovementMode> {
+  if (own === undefined) {
+    own = null;
+    try {
+      own = currentRepo(dir);
+    } catch {} // no GitHub origin: every repo is another repo
+  }
+  if (own?.toLowerCase() === repo.toLowerCase()) return readSelfImprovementMode(dir);
+  for (const file of ROUTING_FILES) {
+    let text: string;
+    try {
+      text = await runGh(["api", `repos/${repo}/contents/${file}`, "-H", "Accept: application/vnd.github.raw"]);
+    } catch (e) {
+      if (e instanceof GhError) continue;
+      throw e;
+    }
+    if (text.includes("<!-- sdd-routing -->")) return parseRouting(text).selfImprovement;
+  }
+  return "Off";
 }

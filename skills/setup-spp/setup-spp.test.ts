@@ -24,7 +24,7 @@ function fill(values: Record<string, string>): string {
   return text;
 }
 
-const answers = { mode: "org", sizes: "`size:S/M/L` labels", feedback: "off", laws: "CLAUDE.md, GLOSSARY.md, docs/adr/" };
+const answers = { mode: "org", sizes: "`size:S/M/L` labels", selfImprovement: "Off", laws: "CLAUDE.md, GLOSSARY.md, docs/adr/" };
 
 // What a run does to an optional line: drop it when there is nothing to put in it.
 const without = (text: string, field: string) => text.replace(new RegExp(`^- ${field}:.*\\n`, "m"), "");
@@ -41,8 +41,20 @@ describe("the Routing block template", () => {
       sizes: "`size:S/M/L` labels",
       laws: ["CLAUDE.md", "GLOSSARY.md", "docs/adr/"],
       panel: { tickets: 4, sizeL: true, lines: 1000 },
-      upstreamFeedback: "off",
+      selfImprovement: "Off",
     });
+  });
+
+  test("reads back each Self-improvement mode the template is filled with", () => {
+    for (const selfImprovement of ["Full Detail", "Off", "Anonymous"] as const) {
+      const text = without(without(fill({ ...answers, selfImprovement, panel: "", merge: "" }), "Panel"), "Merge");
+      assert.equal(parseRouting(text).selfImprovement, selfImprovement);
+    }
+  });
+
+  test("a slot the test map lacks, such as the old feedback, fails the fill naming the slot", () => {
+    const { selfImprovement, ...old } = answers;
+    assert.throws(() => fill({ ...old, feedback: "off", panel: "", merge: "" }), /\{\{selfImprovement\}\} has no value/);
   });
 
   test("with a Panel line parses the override", () => {
@@ -66,7 +78,33 @@ describe("a block that already holds a Merge line", () => {
   test("every field parseRouting reads has a line in the template", () => {
     const source = readFileSync(join(here, "../../spp/src/routing.ts"), "utf8");
     const fields = [...source.matchAll(/field\("([\w ]+)"\)/g)].map((m) => m[1]);
-    assert.deepEqual(fields.filter((f) => !new RegExp(`^- ${f}:`, "m").test(template)), []);
+    // parseRouting reads `Upstream feedback` only to migrate it, so the template no longer carries it.
+    assert.deepEqual(fields.filter((f) => f !== "Upstream feedback" && !new RegExp(`^- ${f}:`, "m").test(template)), []);
+    assert.ok(fields.includes("Upstream feedback"));
+    assert.doesNotMatch(template, /Upstream feedback:/);
+  });
+
+  test("the migration table in BLOCKS.md agrees with parseRouting row by row", () => {
+    const rows = [...read("BLOCKS.md").matchAll(/^\| `(\w+)` \| (Off|Anonymous|Full Detail) \|$/gm)];
+    assert.deepEqual(rows.map((m) => m[1]), ["off", "counts", "detailed", "attributed"]);
+    for (const [, old, mode] of rows) {
+      const text = without(without(without(fill({ ...answers, panel: "", merge: "" }), "Panel"), "Merge"), "Self-improvement mode").replace("- Laws:", `- Upstream feedback: ${old}\n- Laws:`);
+      assert.equal(parseRouting(text).selfImprovement, mode, `Upstream feedback: ${old}`);
+    }
+  });
+
+  test("this repo's own CLAUDE.md is set to Full Detail", () => {
+    assert.equal(parseRouting(readFileSync(join(here, "../../CLAUDE.md"), "utf8")).selfImprovement, "Full Detail");
+  });
+});
+
+describe("the docs page", () => {
+  test("keeps the Domain docs row pointing at the instructions file, with the Submission mode row after it", () => {
+    const rows = readFileSync(join(here, "../../docs/skills/setup-spp.md"), "utf8").split("\n").filter((l) => l.startsWith("|"));
+    const domain = rows.findIndex((l) => l.includes("## Domain docs"));
+    assert.match(rows[domain], /^\| the same file \|/);
+    assert.match(rows[domain - 1], /CLAUDE\.md/);
+    assert.match(rows[domain + 1], /Submission mode/);
   });
 });
 

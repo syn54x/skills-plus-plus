@@ -167,7 +167,22 @@ A skill another plugin ships that spp may call when it is installed, listed in `
 The per-**Epic** counts `close-epic` computes from GitHub state alone with `spp retro`, including findings by **Law tag**. It names the weak step and stays in the user's repo.
 
 **Skill feedback**:
-An issue on `syn54x/skills-plus-plus` that `close-epic` may propose for a skill defect: allowlisted fields only, shown to a person and approved one by one, never from a non-interactive run.
+An issue on `syn54x/skills-plus-plus` that spp files for a skill defect, built from **Signals** and filed under the person's GitHub account as the **Self-improvement mode** and **Submission mode** allow.
+
+**Signal**:
+A record that something a skill step made was later corrected, by another step or by a person, charged to that step and its plugin version. A wish the person states about spp is a Signal too.
+_Avoid_: event, telemetry, candidate
+
+**Self-improvement mode**:
+How much a repo lets spp say about its work in **Skill feedback**: Off, Anonymous (no names, paths, titles or code from the project) or Full Detail (project details allowed where they define the problem). A repo that sets none is Off.
+_Avoid_: upstream feedback profile
+
+**Submission mode**:
+Whether a person's **Skill feedback** from one repo is filed unreviewed (Auto) or shown to them for approval first (Review). Each person chooses their own for each repo, kept outside the repo; a repo they never chose for reads as Review, and Auto never applies in a private repo.
+
+**Attended session**:
+A session a person started on purpose in an AI tool, together with every worker and subagent it starts. A CI run never is one, and spp collects **Signals** only in attended sessions.
+_Avoid_: interactive session
 
 ## Relationships
 

@@ -1,6 +1,6 @@
 ## What it does
 
-`close-epic` finishes an Epic after you merge its integration branch. It checks that the work is really done, posts two comments on the Epic (a retro of the numbers and a summary of what shipped and what was learned), confirms the Spec deltas landed, offers to report skill defects upstream, and closes the Epic if the merge has not already done so.
+`close-epic` finishes an Epic after you merge its integration branch. It checks that the work is really done, posts two comments on the Epic (a retro of the numbers and a summary of what shipped and what was learned), confirms the Spec deltas landed, offers you the pending Skill feedback (or files it, if your Submission mode is Auto), and closes the Epic if the merge has not already done so.
 
 Its numbers are computed by the `spp` tool from GitHub alone: the gate's verdicts on each Sub-issue's pull request, the Hand-back label events, the panel rounds recorded on the Epic, and ponytail's findings when it ran. Nothing depends on the session that built the Epic, so you can run it days later, on another machine. Where an input is missing, the retro says **not found** rather than 0, because a missing input that reads as zero looks like a clean Epic.
 
@@ -34,18 +34,20 @@ A zero claims the thing did not happen; "not found" says the record that would s
 Each finding in a failed gate verdict is tagged with the Law it cites, and `spp retro` totals them per tag. The skill then splits those totals in two. Findings citing a Law the worker was given (the Epic, the Sub-issue, a cited document, a skill rule, or a file on your Laws line) mean the worker was given the rule but still broke it. Findings citing a repo file outside the Laws line mean no one told the worker to read it, and the fix is one line in the Routing block.
 
 **What leaves my repo?**
-Only issues you approve one by one, and only when your Routing block sets an `Upstream feedback:` profile other than `off`.
+Only Skill feedback issues on `syn54x/skills-plus-plus`, one per skill step and category, each with a tally comment from you for every repo you file from. spp adds your tally only to an issue a maintainer or you opened, never to a stranger's. Two settings decide what they say and who files them. Your repo's Self-improvement mode (the `Self-improvement mode:` line of the Routing block) sets what an issue may contain:
 
-| Profile | What an issue may contain |
+| Self-improvement mode | What an issue may contain |
 | --- | --- |
-| `counts` | which skill step failed, one category from a fixed set, totals from the retro, tool versions, and a sentence of yours |
-| `detailed` | the same, plus a few sentences on how the step failed |
-| `attributed` | everything in `detailed`, along with the name of your repo and links to this Epic, its Sub-issues and their pull requests |
+| Off (or no line) | nothing: no Signal is collected and nothing is filed |
+| Anonymous | which skill step failed, one category from a fixed set, Signal and run counts per plugin version, and a sentence of yours with no project detail |
+| Full Detail | the same, plus your repo's name and the evidence behind each Signal |
 
-No profile lets out file paths, code, titles or error text. Before it files or drafts anything, the skill runs `spp feedback check` on each body, which applies those rules in code and prints one line per hit (rule, rule name, line number) instead of relying on the agent's reading. It refuses everything when the profile is `off`, and it never rewrites a body. Every issue also asks for an eval case that reproduces the defect, to land with the fix.
+Your own Submission mode, set for each repo with `spp feedback submission`, decides who files. Under Review you see each preview whole and answer file, skip or later. Under Auto spp files without asking and the issue says so, except in a private repo, where Auto falls back to Review.
+
+spp builds each body itself and checks it before anything is posted. A token, key or private key blocks it in every mode, and the check prints it as `[REDACTED]`. Under Anonymous six more rules block file paths, code, repo names, titles, URLs and error text; under Full Detail those rules print as warnings and let the body through. It never rewrites a body. Every issue also asks for an eval case that reproduces the defect, to land with the fix.
 
 **What happens in an unattended run?**
-It files nothing. Each would-be issue goes into one drafts comment on the Epic, for you to read and file yourself later.
+Nothing is collected outside an Attended session (CI, a `claude -p` script, a scheduled task), so there is nothing to offer or draft, and nothing is filed. `spp feedback file` refuses there, and in a worker, with one line saying why.
 
 ## It's working if
 
@@ -53,4 +55,4 @@ It files nothing. Each would-be issue goes into one drafts comment on the Epic, 
 - Every number in the retro is a count or **not found**, and none of them is an unexplained 0.
 - Each `[skill]` learning cites a number from the retro.
 - Every Spec delta is marked shipped with its pull request, or named as not shipped with a reason.
-- No issue appeared on `syn54x/skills-plus-plus` that you did not approve in that run.
+- Under Submission mode Review, no issue or tally appeared on `syn54x/skills-plus-plus` that you did not say file to.

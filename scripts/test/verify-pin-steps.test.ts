@@ -16,7 +16,8 @@ describe("Verify pin steps", () => {
     for (const name of ["harden", "triage"]) {
       const pins = lintCalls(skill(name)).filter((c) => c.includes("--pin"));
       assert.ok(pins.length > 0, `${name} never pins`);
-      for (const c of pins) assert.equal(c, "`spp lint ticket <N> --pin <file>`", `${name}: ${c}`);
+      // `--by "<skill> <step>"` only names the pin's maker; the pinned block still comes from <file>.
+      for (const c of pins) assert.match(c, /^`spp lint ticket <N> --pin <file>( --by "[a-z][a-z-]*( [^"`]+)?")?`$/, `${name}: ${c}`);
     }
   });
 
@@ -28,7 +29,8 @@ describe("Verify pin steps", () => {
   test("triage pins only in step 2, where it rewrote the body from its own file", () => {
     const steps = skill("triage").split("### `ready-for-agent`")[1];
     const step2 = /^2\. (.*)$/m.exec(steps)?.[1] ?? "";
-    assert.match(step2, /--body-file <file>`.*`spp lint ticket <N> --pin <file>`/);
+    // The re-pin is recorded as triage's, so a Signal against the block is charged to triage, not harden (#341).
+    assert.match(step2, /--body-file <file>`.*`spp lint ticket <N> --pin <file> --by "triage re-pin"`/);
   });
 });
 

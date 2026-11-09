@@ -3,8 +3,7 @@
  * on the current head, its blockers' pull requests have merged, its base is the integration branch and its checks
  * pass. The gate's verdict counts only from a trusted author (the gh user, or an OWNER, MEMBER or COLLABORATOR), and
  * `spp merge` re-reads the verdict comment to check that before it merges (ADR 0009). It merges with the Routing
- * block's merge method (squash by default) pinned to the head the gate passed, then records the pull request on the
- * wave comment. A Fix pull request (it closes no Sub-issue of its Epic; its body `Refs` a Sub-issue) merges the same way when a
+ * block's merge method (squash by default) pinned to the head the gate passed, then records the pull request on the wave comment. A Fix pull request (it closes no Sub-issue of its Epic; its body `Refs` a Sub-issue) merges the same way when a
  * trusted author's verdict passes on its head, its base is the Epic's integration branch and its checks pass, and
  * writes nothing to the wave comment. A closed issue that is missing, Epic-less, or not this pull request's own
  * Sub-issue sends the pull request down the fix path, which demands the same verdict, base and checks, so that
@@ -84,7 +83,16 @@ async function epicOf(ticketUrl: string): Promise<{ url: string; state: EpicStat
 
 // The pull request's verdict, re-read from its comment: the trust boundary (ADR 0009), checked on the comment itself.
 async function verdictOn(url: string) {
-  return readVerdict(readTrailer((await find(parseIssue(url.replace("/pull/", "/issues/")), VERDICT_MARKER))?.body ?? "")) ?? undefined;
+  return readVerdict(await verdictTrailer(url)) ?? undefined;
+}
+
+/**
+ * The decoded trailer of the pull request's trusted verdict comment, empty when there is none.
+ *
+ * @internal
+ */
+export async function verdictTrailer(url: string): Promise<Record<string, unknown> | null> {
+  return readTrailer((await find(parseIssue(url.replace("/pull/", "/issues/")), VERDICT_MARKER))?.body ?? "");
 }
 
 // A pull request that closes no Sub-issue of an Epic merges only as a Fix pull request: its body `Refs` a Sub-issue of an

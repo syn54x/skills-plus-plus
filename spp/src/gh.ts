@@ -1,5 +1,5 @@
 // The one place spp shells out to gh.
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 // A non-zero gh exit. The message is gh's stderr; stdout is kept because gh still prints a GraphQL response
 // when the response carries errors.
@@ -11,6 +11,14 @@ export class GhError extends Error {
     this.code = code;
     this.stdout = stdout;
   }
+}
+
+// runGh for a synchronous caller (the Attended check); it throws the same GhError.
+export function runGhSync(args: string[]): string {
+  const r = spawnSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  if (r.error) throw new GhError(`gh: ${r.error.message}`, null, "");
+  if (r.status !== 0) throw new GhError(r.stderr.trim() || `gh exited ${r.status}`, r.status, r.stdout);
+  return r.stdout;
 }
 
 export function runGh(args: string[], input?: string): Promise<string> {

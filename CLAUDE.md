@@ -88,5 +88,6 @@ Every skill is written in this project's own voice. A skill may copy an incumben
 - Progress is one comment per issue under `<!-- sdd-progress -->`, rewritten in place. Never post a second one.
 - Mode: org
 - Sizes: `size:S/M/L` labels
+- Self-improvement mode: Full Detail
 - Laws: CLAUDE.md, GLOSSARY.md, .agents/adr/, .agents/invocation.md, .agents/writing-docs.md, .agents/install-block.md
 <!-- /sdd-routing -->

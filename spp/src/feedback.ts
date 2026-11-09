@@ -1,20 +1,57 @@
-// The outbound check on a skill-feedback body: the six rules in skills/close-epic/FEEDBACK.md. Pure (text and the facts
-// about the repo in, hits out), so the rules are tested without gh or git; spp/src/commands/feedback.ts gathers the facts.
+// The outbound check on a skill-feedback body: the secrets scan (rule 0) and the six rules in
+// skills/close-epic/FEEDBACK.md. Pure (text and the facts about the repo in, hits out), so the rules are tested without
+// gh or git; spp/src/commands/feedback.ts gathers the facts.
 //
-// The check errs toward blocking: a hit on an innocent line costs a rebuilt body, a miss costs a leak.
-import type { UpstreamFeedback } from "./routing.ts";
+// The check errs toward blocking: a hit on an innocent line costs a rebuilt body, a miss costs a leak. Rule 0 blocks in
+// every mode; rules 1 to 6 block under Anonymous and only warn under Full Detail.
+//
+// Rule 0's patterns come from gitleaks v8.30.1, config/gitleaks.toml (MIT License, Copyright (c) 2019 Zachary Rice), each
+// under its gitleaks id, translated to JavaScript (an inline (?i) becomes the i flag, and a trailing delimiter group
+// becomes a lookahead so redaction keeps the delimiter). Only the regexes are taken: the per-rule entropy thresholds and
+// allowlists are dropped, which errs toward blocking and is why AWS's documented example key blocks here.
+import type { SelfImprovementMode } from "./routing.ts";
 
 export type FeedbackContext = {
-  profile: UpstreamFeedback;
-  ownRepo: string; // owner/repo of the person's checkout; under attributed its URLs, owner/repo and bare repo name pass
+  profile: SelfImprovementMode;
+  ownRepo: string; // owner/repo of the person's checkout; under Full Detail its URLs, owner/repo and bare repo name pass
   names: string[]; // owner/repo strings from the Epic and its Sub-issues; the own repo counts without being listed
   titles: string[]; // Sub-issue and pull request titles
   paths: string[]; // what `git ls-files` lists
 };
 
-export type Hit = { rule: number; name: string; line: number; text: string };
+export type Hit = { rule: number; name: string; line: number; text: string; level: "block" | "warn" };
 
 export const RULE_NAMES = ["URLs", "Names", "Paths", "Code", "Titles", "Error text"];
+
+// shortcut: entropy-only rules such as generic-api-key are left out, since their regexes alone would block plain prose.
+const SECRETS: [string, RegExp][] = [
+  ["github-pat", /ghp_[0-9a-zA-Z]{36}/g],
+  ["github-fine-grained-pat", /github_pat_\w{82}/g],
+  ["github-oauth", /gho_[0-9a-zA-Z]{36}/g],
+  ["github-app-token", /(?:ghu|ghs)_[0-9a-zA-Z]{36}/g],
+  ["github-refresh-token", /ghr_[0-9a-zA-Z]{36}/g],
+  ["gitlab-pat", /glpat-[\w-]{20}/g],
+  ["aws-access-token", /\b((?:A3T[A-Z0-9]|AKIA|ASIA|ABIA|ACCA)[A-Z2-7]{16})\b/g],
+  ["gcp-api-key", /\b(AIza[\w-]{35})(?=[\x60'"\s;]|\\[nr]|$)/g],
+  // The check reads one line at a time, so the header line alone matches, where gitleaks wants the whole block.
+  ["private-key", /-----BEGIN[ A-Z0-9_-]{0,100}PRIVATE KEY(?: BLOCK)?-----/gi],
+  ["slack-bot-token", /xoxb-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*/g],
+  ["slack-user-token", /xox[pe](?:-[0-9]{10,13}){3}-[a-zA-Z0-9-]{28,34}/g],
+  ["anthropic-api-key", /\b(sk-ant-api03-[a-zA-Z0-9_\-]{93}AA)(?=[\x60'"\s;]|\\[nr]|$)/g],
+  ["anthropic-admin-api-key", /\b(sk-ant-admin01-[a-zA-Z0-9_\-]{93}AA)(?=[\x60'"\s;]|\\[nr]|$)/g],
+  [
+    "openai-api-key",
+    /\b(sk-(?:proj|svcacct|admin)-(?:[A-Za-z0-9_-]{74}|[A-Za-z0-9_-]{58})T3BlbkFJ(?:[A-Za-z0-9_-]{74}|[A-Za-z0-9_-]{58})\b|sk-[a-zA-Z0-9]{20}T3BlbkFJ[a-zA-Z0-9]{20})(?=[\x60'"\s;]|\\[nr]|$)/g,
+  ],
+  ["npm-access-token", /\b(npm_[a-z0-9]{36})(?=[\x60'"\s;]|\\[nr]|$)/gi],
+  ["stripe-access-token", /\b((?:sk|rk)_(?:test|live|prod)_[a-zA-Z0-9]{10,99})(?=[\x60'"\s;]|\\[nr]|$)/g],
+  ["jwt", /\b(ey[a-zA-Z0-9]{17,}\.ey[a-zA-Z0-9\/\\_-]{17,}\.(?:[a-zA-Z0-9\/\\_-]{10,}={0,2})?)(?=[\x60'"\s;]|\\[nr]|$)/g],
+];
+
+/** One printed line of the check: `rule <rule> <name>, line <n>: <text>`, with `warning: ` in front of a warning. */
+export function formatHit(hit: Hit): string {
+  return `${hit.level === "warn" ? "warning: " : ""}rule ${hit.rule} ${hit.name}, line ${hit.line}: ${hit.text}`;
+}
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const words = (s: string) => s.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
@@ -58,7 +95,7 @@ function containsPath(line: string, needle: string, slashAfter: boolean): boolea
 }
 
 export function checkFeedback(body: string, ctx: FeedbackContext): Hit[] {
-  const attributed = ctx.profile === "attributed";
+  const attributed = ctx.profile === "Full Detail"; // the old attributed profile's exceptions
   const own = ctx.ownRepo;
   const ownName = own.split("/").pop() ?? "";
 
@@ -104,10 +141,21 @@ export function checkFeedback(body: string, ctx: FeedbackContext): Hit[] {
     }),
   );
 
+  const level = attributed ? "warn" : "block";
   const hits: Hit[] = [];
   body.replace(/\r/g, "").split("\n").forEach((raw, i) => {
-    const text = raw.trim();
-    const add = (rule: number) => hits.push({ rule, name: RULE_NAMES[rule - 1], line: i + 1, text });
+    // Each secret on the line is redacted in every hit's text, so the check never prints what it found.
+    // Matches are found on the raw line and their union redacted, so a secret holding another pattern's match goes whole.
+    const ranges = SECRETS.flatMap(([, re]) => [...raw.matchAll(re)].map((m) => [m.index, m.index + m[0].length])).sort((a, b) => a[0] - b[0]);
+    const merged: number[][] = [];
+    for (const [start, end] of ranges) {
+      const last = merged.at(-1);
+      if (last && start <= last[1]) last[1] = Math.max(last[1], end);
+      else merged.push([start, end]);
+    }
+    const text = merged.reduceRight((t, [start, end]) => t.slice(0, start) + "[REDACTED]" + t.slice(end), raw).trim();
+    for (const [id, re] of SECRETS) if (raw.search(re) >= 0) hits.push({ rule: 0, name: `Secrets (${id})`, line: i + 1, text, level: "block" });
+    const add = (rule: number) => hits.push({ rule, name: RULE_NAMES[rule - 1], line: i + 1, text, level });
     const seen = scan(raw);
     if (URL_LIKE.test(seen) || BARE_HOST.test(seen)) add(1);
     if (nameTokens.some((re) => re.test(seen))) add(2);

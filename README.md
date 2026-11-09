@@ -75,6 +75,7 @@ You can type these too, but the agent starts them when a task fits, and other sk
 | Ship | [pr](./skills/pr/SKILL.md) | Writes the pull request body |
 | Write and talk | [writing-for-humans](./skills/writing-for-humans/SKILL.md) | The prose rules for anything a person reads |
 | Write and talk | [writing-for-agents](./skills/writing-for-agents/SKILL.md) | How to write a document an agent reads and acts on |
+| Meta | [feedback](./skills/feedback/SKILL.md) | Records a wish or complaint about spp or one of its skills as a Signal |
 
 ## Docs
 
@@ -90,6 +91,7 @@ spp carries concepts from these projects. Each skill that drew on one lists its 
 - [ECC](https://github.com/affaan-m/ECC): hooks that enforce a gate instead of trusting the model to remember it.
 - [OpenSpec](https://github.com/Fission-AI/OpenSpec): the spec as the source of truth, with changes recorded as deltas against it.
 - [GSD](https://github.com/gsd-build/get-shit-done): keeping each worker's context small and fresh, and state that survives an interrupted session.
+- [gitleaks](https://github.com/gitleaks/gitleaks): the secret-detection rules behind the outbound check on Skill feedback, translated from its rule set.
 
 ## License
 

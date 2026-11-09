@@ -24,4 +24,4 @@ On a fail, send the Critical and Important findings to the same worker for one f
 
 ## 4. Hand over
 
-The pull request is the user's to merge. Give them its link, the two verdicts, the concerns from the report, and any `Interfaces changed:` line. The pull request targets the default branch, so its `Closes #<N>` closes the issue on merge. Do not merge, and do not close the issue yourself. Remove the worker's worktree once the user has merged (see `CLAUDE-CODE.md`).
+The pull request is the user's to merge. Give them its link, the two verdicts, the concerns from the report, and any `Interfaces changed:` line. The pull request targets the default branch, so its `Closes #<N>` closes the issue on merge. Do not merge, and do not close the issue yourself. Once the user has the pull request, run the checkpoint (`SKILL.md`, Checkpoint); this is the end of the run. Remove the worker's worktree once the user has merged (see `CLAUDE-CODE.md`).

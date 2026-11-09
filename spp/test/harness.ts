@@ -17,9 +17,9 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdtempSync, readFileSync, readSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -57,13 +57,32 @@ export async function assertCase(command: string, caseDir: string, code = 0): Pr
   if (json !== undefined) assert.deepEqual(r.json, JSON.parse(json));
   const text = read(caseDir, "expected.txt");
   if (text !== undefined) assert.equal(r.stdout, text);
-  assert.deepEqual(r.writes, jsonl(read(caseDir, "expected-writes.jsonl")));
+  assert.deepEqual(versionless(r.writes), jsonl(read(caseDir, "expected-writes.jsonl")));
   return r;
+}
+
+// The writes with the plugin version in each trailer's makers (`by`, `verifyPinBy`) replaced by `<version>`, so a
+// release that bumps package.json leaves expected-writes.jsonl as it is.
+export function versionless(writes: unknown[]): unknown[] {
+  const trailer = (b64: string) => {
+    let data: Record<string, { version?: unknown } | null | undefined>;
+    try {
+      data = JSON.parse(Buffer.from(b64, "base64").toString("utf8"));
+    } catch {
+      return b64; // a trailer spp did not write (an upsert's verbatim body) is compared as it is
+    }
+    const makers = ["by", "verifyPinBy"].filter((k) => typeof data?.[k]?.version === "string");
+    if (!makers.length) return b64;
+    for (const k of makers) data[k]!.version = "<version>";
+    return Buffer.from(JSON.stringify(data)).toString("base64");
+  };
+  const arg = (a: unknown) => (typeof a === "string" ? a.replace(/(<!-- sdd-data: )([A-Za-z0-9+/=]+)( -->)/g, (_, open, b64, close) => open + trailer(b64) + close) : a);
+  return (writes as { argv?: unknown[] }[]).map((w) => (w.argv ? { ...w, argv: w.argv.map(arg) } : w));
 }
 
 // Inlines file arguments so keys and the write log never carry a temp path.
 function stableArgs(argv: string[], cwd: string): string[] {
-  const file = (p: string) => readFileSync(join(cwd, p), "utf8");
+  const file = (p: string) => readFileSync(resolve(cwd, p), "utf8"); // an absolute path (a temp file) is read as it is
   return argv.map((arg, i) => {
     if (argv[i - 1] === "--body-file" || (argv[i - 1] === "--input" && arg !== "-")) return file(arg);
     const at = /^([\w.-]+)=@(.+)$/.exec(arg);
@@ -93,6 +112,25 @@ function sequence(name: string, key: string, answer: Answer | Answer[] | undefin
   return answer[Math.min(readFileSync(counter).length, answer.length) - 1];
 }
 
+// Everything on stdin up to EOF. The parent may end the pipe only after the stub starts, and an empty non-blocking
+// pipe throws EAGAIN, so that waits a moment and reads again instead of failing.
+export function readStdin(): string {
+  const chunks: Buffer[] = [];
+  const buf = Buffer.alloc(1 << 16);
+  for (;;) {
+    let n: number;
+    try {
+      n = readSync(0, buf, 0, buf.length, null);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "EAGAIN") throw e;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5);
+      continue;
+    }
+    if (n === 0) return Buffer.concat(chunks).toString("utf8");
+    chunks.push(Buffer.from(buf.subarray(0, n)));
+  }
+}
+
 // The body of spp/test/stubs/gh and spp/test/stubs/claude.
 export function stub(name: "gh" | "claude"): void {
   const dir = process.env.SPP_CASE;
@@ -100,7 +138,7 @@ export function stub(name: "gh" | "claude"): void {
   const argv = stableArgs(process.argv.slice(2), process.cwd());
   const keyArgs = argv.map((a) => a.replace(/^query=\s*(?:query|mutation)\s+(\w+)[\s\S]*$/, "query=$1"));
   const key = keyArgs.join(" ");
-  const input = process.stdin.isTTY ? "" : readFileSync(0, "utf8");
+  const input = process.stdin.isTTY ? "" : readStdin();
   const write = name === "gh" ? isGhWrite(argv) : argv[0] !== "agents";
   if (write) appendFileSync(process.env.SPP_WRITES ?? "/dev/null", JSON.stringify({ cmd: name, argv: keyArgs, ...(input && { input }) }) + "\n");
   const answers = JSON.parse(read(dir, name === "gh" ? "gh.json" : "agents.json") ?? "{}") as Record<string, Answer | Answer[]>;

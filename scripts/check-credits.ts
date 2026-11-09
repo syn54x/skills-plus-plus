@@ -3,8 +3,10 @@
 // 1. Every `metadata.credits` entry in a SKILL.md gives `skill`, `author` and a `url`
 //    in double quotes that starts with https://.
 // 2. A skill with credits has a CREDITS.md beside its SKILL.md, and one without has none.
+// 3. A copyright line named in a source under spp/src, scripts or skills (a copied MIT text's
+//    credit) also stands in LICENSE, beside the others (ADR 0010 rule 1).
 // Exits 1 with one line per violation.
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 function frontmatter(text: string): string {
@@ -63,6 +65,26 @@ for (const dir of skillsRoot.map((name) => join("skills", name))) {
   const hasCreditsMd = existsSync(join(dir, "CREDITS.md"));
   if (entries && !hasCreditsMd) errors.push(`${dir}: has credits but no CREDITS.md`);
   if (!entries && hasCreditsMd) errors.push(`${dir}: has a CREDITS.md but no metadata.credits`);
+}
+
+// Tests and fixtures quote copyright lines on purpose, so they are not sources.
+function sources(dir: string): string[] {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).sort().flatMap((name) => {
+    const path = join(dir, name);
+    if (name === "node_modules" || name === "test" || name === "fixtures") return [];
+    return statSync(path).isDirectory() ? sources(path) : [path];
+  });
+}
+
+const COPYRIGHT = /Copyright \(c\) (\d{4}) ([^),.]+)/gi;
+const license = existsSync("LICENSE") ? readFileSync("LICENSE", "utf8") : "";
+for (const file of ["spp/src", "scripts", "skills"].flatMap(sources)) {
+  if (!/\.(ts|js|md|sh)$/.test(file) || file === join("scripts", "check-credits.ts")) continue;
+  for (const m of readFileSync(file, "utf8").matchAll(COPYRIGHT)) {
+    const line = `Copyright (c) ${m[1]} ${m[2].trim()}`;
+    if (!license.includes(line)) errors.push(`${file}: names '${line}' but LICENSE has no such line`);
+  }
 }
 
 if (errors.length) {
