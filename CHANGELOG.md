@@ -1,5 +1,20 @@
 # @syn54x/spp
 
+## 2.5.0
+
+### Minor Changes
+
+- c415a22: `spp lint pr <pr>` checks a pull request body for the review gate's sections: the `Closes` or `Refs` line, `## Ticket` and `## Laws`, a Verify line on the head commit, `Verify block corrected:` and `Interfaces changed:`. The `implement-issue` worker runs it at step 8 and fixes the body before it reports, so a missing section no longer costs a fix round.
+
+### Patch Changes
+
+- c2cb705: `spp status`, `spp next`, `spp retro`, the epic board and `spp merge` now count a closing reference only when a line of the pull request body opens with a closing keyword (spaces or tabs may come before it), such as `Closes #2` or `Fixes: acme/app#2`. A sentence that says "this also fixes #1's edge case" no longer links the pull request to #1, and a reference followed by an apostrophe is never a closing reference, even at the start of a line. Before this, a Fix pull request that mentioned another ticket in prose could be listed as that ticket's pull request with its verdict, and `spp merge` could refuse it with `gate not passed` for the wrong ticket.
+- 54a8c7d: `spp findings merge` counts one defect once when review-panel Personas title it differently: findings on one file within five lines merge whatever their titles, the body lists each other title as an `Also reported as:` line, and a `ticket-mandated:`, `Candidate ADR:`, `Check after deploy:` or `Terminology` title merges only with its own tag. With `--fix-diff`, a merged finding counts as on a changed line when any finding it absorbed was.
+- ae19d85: `spp retro` no longer undercounts review rounds. `spp wave <epic> panel` takes a new `--pr <pull request URL>` and keeps each pull request's rounds apart, so a Multi-repo epic's second pull request no longer overwrites the first's round 1; the wave comment lists each round as `Panel round 1 on owner/repo#N`, and `spp retro` adds up every pull request's rounds and findings. The review-panel skill now passes `--pr`. A call with no `--pr` writes what it wrote before.
+  
+  `spp retro` also counts the failing gates on Fix pull requests, found as `spp status` finds them. They show as a new `fixPrRounds` tally beside `rounds`, which still counts the Sub-issues' pull requests, and their findings count in `byCause` and under the Sub-issue each fix refs. With no integration branch on the plan comment, `fixPrRounds` reads `"not found"`.
+- 9435c98: The review skill now starts its fresh reviewer with the pull request and nothing else, so an orchestrator no longer adds its own criteria, round histories or setup notes to the reviewer's prompt.
+
 ## 2.4.0
 
 ### Minor Changes
