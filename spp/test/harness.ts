@@ -19,7 +19,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -82,7 +82,7 @@ export function versionless(writes: unknown[]): unknown[] {
 
 // Inlines file arguments so keys and the write log never carry a temp path.
 function stableArgs(argv: string[], cwd: string): string[] {
-  const file = (p: string) => readFileSync(join(cwd, p), "utf8");
+  const file = (p: string) => readFileSync(resolve(cwd, p), "utf8"); // an absolute path (a temp file) is read as it is
   return argv.map((arg, i) => {
     if (argv[i - 1] === "--body-file" || (argv[i - 1] === "--input" && arg !== "-")) return file(arg);
     const at = /^([\w.-]+)=@(.+)$/.exec(arg);
