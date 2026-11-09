@@ -3,9 +3,10 @@ Epic's one `<!-- sdd-wave -->` comment.
 
 Its forms:
 
-- `spp wave plan <epic> [--max N] [--json]` runs the parallel safety check over the ready Sub-issues: Files owned
-  that overlap in one repo, and Consumes and Produces pairs across repos. Work in flight (claimed, assigned or with
-  its pull request open, until it merges) takes part too, so a ready ticket that overlaps it stays held. It prints
+- `spp wave plan <epic> [--max N] [--started T,...] [--json]` runs the parallel safety check over the ready
+  Sub-issues: Files owned that overlap in one repo, and Consumes and Produces pairs across repos. Work in flight
+  (claimed, assigned or with its pull request open, until it merges, and a ready ticket `--started` names) takes
+  part too, so a ready ticket that overlaps it stays held. It prints
   the tickets that can run together (at most `--max`, default 4) and the held ones with why; with `--json` it
   prints [WavePlan](#waveplan). It writes nothing.
 - `spp wave <epic> add --n N --tickets ... --workers ... --started ISO8601 --edges ...` records a Wave, replacing
@@ -66,7 +67,7 @@ const USAGE: string;
 The usage text `spp wave --help` prints.
 
 ```text
-usage: spp wave plan <epic> [--max N] [--json]
+usage: spp wave plan <epic> [--max N] [--started 101,owner/repo#7] [--json]
        spp wave <epic> add  --n N --tickets 101,owner/repo#7 --workers w1,w2 --started ISO8601
                              --edges "104<103,owner/repo#7<101" | --edges none
        spp wave <epic> pr    --ticket 101|owner/repo#7 --pr URL|#n
@@ -74,7 +75,8 @@ usage: spp wave plan <epic> [--max N] [--json]
                              --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE [--report URL]
                              [--severity critical=1,important=2,minor=3] [--persona name=count,...] [--dropped D]
 wave plan prints the ready tickets that can run together (at most --max, default 4) and the held ones with why;
-a ready ticket that overlaps work in flight (claimed, assigned or with its PR open) is held until that merges.
+a ready ticket that overlaps work in flight (claimed, assigned or with its PR open) is held until that merges;
+--started names ready tickets whose workers were started and have not claimed yet, which count as in flight.
 wave add replaces every wave with the same --n; wave panel replaces the entry with the same --pr and --round, so each
 pull request of a Multi-repo epic keeps its own rounds (--pr takes the pull request URL, never a bare number, and
 without it a round is keyed among the rounds with no PR; a round shown but never posted has no --report and renders unposted);

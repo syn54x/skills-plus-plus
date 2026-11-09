@@ -99,7 +99,6 @@ One Sub-issue of the Epic.
 | <a id="property-assignees"></a> `assignees` | `string`[] | Assignee logins. |
 | <a id="property-labels"></a> `labels` | `string`[] | Label names. |
 | <a id="property-pr"></a> `pr` | [`Pr`](#pr) \| `null` | The pull request it shows (an open one first, then a merged one, newest first), or null. Only its own count: in one of the Epic's repositories, opened by a trusted author and, while open, into the integration branch. |
-| <a id="property-dispatched"></a> `dispatched` | `boolean` | Whether a worker was started on it and has not claimed it yet: it is listed on the current (latest) Wave of the wave comment and is unheld, with no pull request, and has not landed. Such a ticket is in flight, never dispatched again. |
 | <a id="property-worker"></a> `worker` | `string` \| `null` | The progress comment's Worker line, or null. |
 | <a id="property-note"></a> `note` | \| \{ `text`: `string`; `at`: `string`; \} \| `null` | The latest local note (`spp note`) with its ISO time, or null. |
 

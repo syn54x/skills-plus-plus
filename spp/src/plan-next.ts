@@ -27,6 +27,7 @@ export type NextInput = {
   state: EpicState;
   panel: Routing["panel"];
   resume: boolean; // the first spp next of a run: report each lost worker
+  started?: Set<string>; // URLs of ready tickets whose workers this session started and that have not claimed yet (--started)
   wave: { wave: string[]; held: { ticket: string; reason: string }[] }; // over the dispatchable ready tickets
   checks: Record<string, { result: string; failing: string[] }>; // by pull request URL: pass, fail, pending or none, and the failing runs
   failedHeads: Record<string, number>; // by pull request URL: the heads a verdict or CI failed on, from GitHub
@@ -43,10 +44,10 @@ export const lostWorker = (t: Ticket) => !t.landed && t.state === "claimed" && t
 const done = (t: Ticket) => t.landed;
 
 /**
- * Whether a worker holds or works on the ticket until it merges: dispatched on the current Wave and not claimed yet,
- * claimed or assigned, or its pull request open. The parallel safety check holds a ready ticket against these on every call.
+ * Whether a worker holds or works on the ticket until it merges: claimed or assigned, or its pull request open. The
+ * parallel safety check holds a ready ticket against these on every call.
  */
-export const inFlight = (t: Ticket) => !done(t) && (t.dispatched || t.claimed || t.assignees.length > 0 || t.pr?.state === "OPEN");
+export const inFlight = (t: Ticket) => !done(t) && (t.claimed || t.assignees.length > 0 || t.pr?.state === "OPEN");
 
 export function planNext(input: NextInput): Action[] {
   const { state, panel, resume, checks, failedHeads, mainPr } = input;
@@ -122,7 +123,7 @@ export function planNext(input: NextInput): Action[] {
     const one = { tickets: [id(t)], pr };
     const c = checks[pr] ?? { result: "pending", failing: [] };
     if (t.state === "ready") {
-      if (t.dispatched) waitingOn.push(`${ref(t.url)} dispatched, not claimed yet`);
+      if (input.started?.has(t.url)) waitingOn.push(`${ref(t.url)} started, not claimed yet`);
       continue; // dispatched above, or held by the wave
     }
     if (resume && lostWorker(t)) {

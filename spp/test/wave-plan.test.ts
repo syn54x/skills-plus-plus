@@ -28,11 +28,6 @@ const body = (t: Spec) =>
 
 // A case directory for Epic 197 (acme/app) whose Sub-issues are `tickets`, in the order given.
 function scratch(tickets: Spec[], ...args: string[]): string {
-  return scratchWith(tickets, null, ...args);
-}
-
-// The same, with the Epic's wave comment recording `waves` (each Wave as its tickets, Wave 1 first).
-function scratchWith(tickets: Spec[], waves: (string | number)[][] | null, ...args: string[]): string {
   const dir = mkdtempSync(join(tmpdir(), "spp-wave-"));
   const node = (t: Spec) => ({
     number: t.n,
@@ -48,7 +43,7 @@ function scratchWith(tickets: Spec[], waves: (string | number)[][] | null, ...ar
   });
   const answers: Record<string, unknown> = {
     "api graphql -f query=Snapshot -F owner={owner} -F repo={repo} -F number=197": {
-      stdout: { data: { repository: { issue: { number: 197, url: "https://github.com/acme/app/issues/197", title: "Epic", repository: { nameWithOwner: "acme/app" }, comments: { nodes: waves ? [waveComment(waves)] : [] }, subIssues: { nodes: tickets.map(node) } } } } },
+      stdout: { data: { repository: { issue: { number: 197, url: "https://github.com/acme/app/issues/197", title: "Epic", repository: { nameWithOwner: "acme/app" }, subIssues: { nodes: tickets.map(node) } } } } },
     },
   };
   for (const t of tickets) answers[`issue view ${url(t)} --json body`] = { stdout: { body: body(t) } };
@@ -56,9 +51,6 @@ function scratchWith(tickets: Spec[], waves: (string | number)[][] | null, ...ar
   writeFileSync(join(dir, "args"), ["plan", "197", ...args].join("\n") + "\n");
   return dir;
 }
-
-const waveData = (waves: (string | number)[][]) => Buffer.from(JSON.stringify({ waves: waves.map((tickets, i) => ({ n: i + 1, tickets })), panel: [] })).toString("base64");
-const waveComment = (waves: (string | number)[][]) => ({ body: `<!-- sdd-wave -->\nrendered\n<!-- sdd-data: ${waveData(waves)} -->`, author: { login: "maint" }, authorAssociation: "OWNER" });
 
 async function plan(tickets: Spec[], ...args: string[]): Promise<Plan> {
   const r = await runCase("wave", scratch(tickets, "--json", ...args));
@@ -83,10 +75,9 @@ describe("happy path", () => {
 });
 
 describe("edge cases", () => {
-  test("a ticket on the current Wave with no claim is in flight: left out, and an overlapping ready ticket held", async () => {
-    const r = await runCase("wave", scratchWith([{ n: 301, modify: ["src/a.ts"] }, { n: 302, modify: ["src/a.ts"] }, { n: 303, modify: ["src/c.ts"] }], [[301]], "--json"));
-    assert.equal(r.code, 0, r.stderr);
-    assert.deepEqual(r.json, { wave: ["303"], held: [{ ticket: "302", reason: "shares src/a.ts with 301" }] });
+  test("--started 301: 301 is in flight, left out, and 302 sharing its file is held", async () => {
+    const p = await plan([{ n: 301, modify: ["src/a.ts"] }, { n: 302, modify: ["src/a.ts"] }, { n: 303, modify: ["src/c.ts"] }], "--started", "301");
+    assert.deepEqual(p, { wave: ["303"], held: [{ ticket: "302", reason: "shares src/a.ts with 301" }] });
   });
 
   test("A and B both Modify the same file: only A in wave, B held with 'shares <path> with A'", async () => {

@@ -1,14 +1,18 @@
 /**
- * `spp next <epic> [--json] [--resume]` prints the build's next actions, one per line. The build loop is: run
+ * `spp next <epic> [--json] [--resume] [--started <tickets>]` prints the build's next actions, one per line. The build loop is: run
  * `spp next`, do what it says, run it again. It reads the Epic's preconditions, its state, CI on open pull requests,
  * the gate's verdict history and the pull request to the base branch, all from GitHub, never from local state or a
  * session list. With `--json` it prints {@link NextActions}.
  *
+ * With `--started`, the comma-separated tickets (numbers in the Epic's repo, `owner/repo#N` or issue URLs) whose
+ * workers this session started and that have not reported back count as in flight while they are still ready: none
+ * is dispatched again, and a ready ticket that overlaps one is held. Without it nothing is held that way, so a new
+ * session, or a restart after `spp unclaim`, dispatches them.
+ *
  * With `--resume`, for the first call of a run, a Sub-issue that is claimed, has no open or merged pull request and
  * no assignee comes back as a `hand-back` action with the reason `worker lost`: the session that started its worker
  * is gone, so the user decides whether to hand it back or start a worker again. Without it such a Sub-issue is in
- * flight. A Sub-issue on the current Wave that no worker has claimed yet is in flight too, so it is not dispatched
- * again; with `--resume` its worker is gone with the session, and it is dispatched again.
+ * flight.
  *
  * @module
  */
@@ -20,7 +24,7 @@ import { readVerdict, VERDICT_MARKER } from "../verdict.ts";
 import { culprits, readChecks } from "./checks.ts";
 import { Failure, preflight } from "./preflight.ts";
 import { fetchState } from "./status.ts";
-import { wavePlan } from "./wave.ts";
+import { startedOf, wavePlan } from "./wave.ts";
 
 export type { Action, ActionKind } from "../plan-next.ts";
 
@@ -31,9 +35,11 @@ export type NextActions = {
 };
 
 /** The usage text `spp next --help` prints. */
-export const USAGE = `usage: spp next <epic number | issue URL> [--json] [--resume]
+export const USAGE = `usage: spp next <epic number | issue URL> [--json] [--resume] [--started 101,owner/repo#7]
 Prints the next actions: preflight, branch, dispatch, gate, fix, hand-back, merge, wait, main-gate, close or stuck.
 --resume, on a run's first call, hands back each claimed Sub-issue with no pull request and no assignee as "worker lost".
+--started names the tickets whose workers this session started and that have not reported back; while still ready,
+they are in flight: not dispatched again, and a ready ticket that overlaps one is held.
 `;
 
 const PULL_URL = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)$/;
@@ -77,7 +83,7 @@ async function failedHeads(pr: string): Promise<number> {
   return heads.size;
 }
 
-async function actions(arg: string, resume: boolean): Promise<Action[]> {
+async function actions(arg: string, resume: boolean, startedList: string | undefined): Promise<Action[]> {
   const epic = parseIssue(arg);
   let panel;
   try {
@@ -86,9 +92,8 @@ async function actions(arg: string, resume: boolean): Promise<Action[]> {
     if (!(e instanceof Failure)) throw e;
     return [{ kind: "preflight", reason: `${e.message}; fix: ${e.fix}` }];
   }
-  const fetched = (await fetchState(epic.arg))!;
-  // A resumed build lost the workers its Wave started, so a ticket none of them claimed is ready again.
-  const state = resume ? { ...fetched, tickets: fetched.tickets.map((t) => ({ ...t, dispatched: false })) } : fetched;
+  const state = (await fetchState(epic.arg))!;
+  const started = startedList === undefined ? undefined : startedOf(state, startedList);
   const branch = state.epic.branch;
   if (!branch) return [{ kind: "branch", reason: `epic ${epic.label} has no integration branch; run spp branch ${epic.arg}` }];
 
@@ -96,7 +101,7 @@ async function actions(arg: string, resume: boolean): Promise<Action[]> {
   const attributed = openFixes.filter((f) => f.ticket); // an unattributed fix is never gated, so its checks are not read
   const prs = (st: string) => state.tickets.flatMap((t) => (t.pr && t.state === st ? [t.pr.url] : []));
   const [wave, checks, list] = await Promise.all([
-    wavePlan(state, DEFAULT_WAVE_MAX),
+    wavePlan(state, DEFAULT_WAVE_MAX, started),
     Promise.all([...prs("pr-open"), ...attributed.map((f) => f.url)].map(async (pr) => [pr, await readChecks(pr)] as const)),
     runGh(["pr", "list", "-R", state.epic.repo, "--head", branch, "--state", "all", "--json", "number,url,state,additions,deletions"]),
   ]);
@@ -108,6 +113,7 @@ async function actions(arg: string, resume: boolean): Promise<Action[]> {
     state,
     panel,
     resume,
+    started,
     wave,
     checks: Object.fromEntries(checks.map(([pr, c]) => [pr, { result: c.result, failing: culprits(c) }])),
     failedHeads: Object.fromEntries(heads),
@@ -119,20 +125,24 @@ async function actions(arg: string, resume: boolean): Promise<Action[]> {
  * Prints the build's next actions.
  *
  * @param args - The Epic (an issue number in the current repo or an issue URL), `--json` for the
- *   {@link NextActions} shape, and `--resume` to report each lost worker as a `hand-back`.
+ *   {@link NextActions} shape, `--resume` to report each lost worker as a `hand-back`, and `--started` with the
+ *   tickets whose workers this session started and that have not reported back.
  * @returns 0 when it printed the actions, a failed precondition included (as a `preflight` action); 2 on a usage
  *   error, with the usage on stderr. A `gh` error exits 1 with the reason on stderr.
  * @example
  * ```bash
  * spp next 197
  * spp next 197 --resume --json
+ * spp next 197 --json --started 201,202
  * ```
  */
 export function run(args: string[]): Promise<number> {
   return guarded(() => "next", USAGE, async () => {
-    const rest = args.filter((a) => a !== "--json" && a !== "--resume");
+    const st = args.indexOf("--started");
+    if (st >= 0 && args[st + 1] === undefined) throw new UsageError("--started needs a list of tickets");
+    const rest = args.filter((a, i) => a !== "--json" && a !== "--resume" && (st < 0 || (i !== st && i !== st + 1)));
     if (rest.length !== 1) throw new UsageError("");
-    const list: NextActions = { actions: await actions(rest[0], args.includes("--resume")) };
+    const list: NextActions = { actions: await actions(rest[0], args.includes("--resume"), st < 0 ? undefined : args[st + 1]) };
     process.stdout.write(
       args.includes("--json")
         ? JSON.stringify(list, null, 2) + "\n"
