@@ -1,6 +1,9 @@
 `spp feedback` works on Skill feedback: it checks a draft before anyone files it, and lists the Signals waiting to
 become one.
 
+`spp feedback checkpoint` offers the pending candidates between steps of an Attended session, printing them with the
+steps an agent follows to file, skip or keep each one, and prints nothing on a worker's `sdd/` branch.
+
 It also acts on a pending candidate. `spp feedback file <fingerprint>` files it on the one grouped Skill feedback
 issue for that skill step and category on syn54x/skills-plus-plus, and rewrites the person's own tally comment
 there; under the person's Submission mode Review it first prints what it would post and files only when run again
@@ -25,13 +28,14 @@ The check and the list:
 function run(args): Promise<number>;
 ```
 
-Checks a skill-feedback draft, lists, files or skips the pending candidates, or reads or sets the Submission mode.
+Checks a skill-feedback draft, lists, files or skips the pending candidates, offers them at a checkpoint, or reads
+or sets the Submission mode.
 
 #### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `args` | `string`[] | `check`, the draft's body file, then `--title-file <file>` for the titles and repo names it must not leak; `pending`, then `--json` for the [FeedbackCandidate](#feedbackcandidate) list; `file <fingerprint>` with `--epic <epic>` (whose repos' modes also bind), `--change <change>` (the Proposed change, default `unclear`), `--note <text>` and `--confirm <hash>`; `skip <fingerprint>`; or `submission`, then `Auto` or `Review` in any case to set it. |
+| `args` | `string`[] | `check`, the draft's body file, then `--title-file <file>` for the titles and repo names it must not leak; `pending`, then `--json` for the [FeedbackCandidate](#feedbackcandidate) list; `file <fingerprint>` with `--epic <epic>` (whose repos' modes also bind), `--change <change>` (the Proposed change, default `unclear`), `--note <text>` and `--confirm <hash>`; `skip <fingerprint>`; `submission`, then `Auto` or `Review` in any case to set it; or `checkpoint`, alone. |
 
 #### Returns
 
@@ -53,7 +57,15 @@ For `check`, one `rule <rule> <name>, line <n>: <text>` line per hit on stdout, 
   or a failing `gh` call, with the reason on stderr and no decision recorded.
 
   For `skip`, `skipped <fingerprint>` and exit 0; 1 on an unknown fingerprint. For `submission`, `Submission mode:
-  <mode>` and exit 0. Every form exits 1 on a usage error, with the usage on stderr.
+  <mode>` and exit 0.
+
+  For `checkpoint` with no other argument, exit 0 whatever happens. It prints nothing under `CI`, outside an Attended session, under Self-improvement
+  mode Off, on a worker's `sdd/` branch or with nothing pending. Otherwise it prints `spp: <n> Skill feedback
+  candidates pending for <owner/repo>:`, the candidates exactly as `pending` prints them, a blank line, then
+  [CHECKPOINT\_STEPS](#checkpoint_steps). An error (a checkout with no origin remote) writes one `spp feedback checkpoint:
+  <message>` line to stderr and still exits 0, so the `SessionStart` hook that runs it never fails.
+
+  Every form exits 1 on a usage error, with the usage on stderr.
 
 #### Example
 
@@ -64,6 +76,7 @@ spp feedback file 3f2a9c1b7e4d --change "add a check"
 spp feedback file 3f2a9c1b7e4d --change "add a check" --confirm 9b1c0d2e3f4a
 spp feedback skip 3f2a9c1b7e4d
 spp feedback submission auto
+spp feedback checkpoint
 ```
 
 ## Variables
@@ -75,6 +88,16 @@ const USAGE: string;
 ```
 
 The usage text `spp feedback --help` prints.
+
+***
+
+### CHECKPOINT\_STEPS
+
+```ts
+const CHECKPOINT_STEPS: "This is a checkpoint. For each candidate, run `spp feedback file <fingerprint>`, adding `--epic <epic>` when the work belongs to an Epic, and `--change <change>` and `--note <text>` when the evidence supports them. Its exit says what to do next:\n- 0: filed. Tell the person its last line.\n- 3: a preview. Show it whole and ask: file, skip or later. File: run the same command again with `--confirm <hash>`. Skip: run `spp feedback skip <fingerprint>`. Later: do nothing; it is offered at the next checkpoint.\n- 2: the outbound check blocked it. Redraft `--note` without the flagged text and run it once more; if it blocks again, leave it for later.\n- 1: tell the person the reason it printed and go on.\nDraft `--note` and `--change` from evidence only: a count, or the moment a step was followed and was wrong. The charge may move to an earlier step than the one named only with that evidence; the note names that step and the evidence.\nRun this between steps, never in the middle of one, and never from a worker.\n";
+```
+
+The steps `spp feedback checkpoint` prints after the pending candidates, for the agent at the checkpoint.
 
 ## Type Aliases
 

@@ -1,6 +1,6 @@
 ---
 name: close-epic
-description: Finish a merged Epic. Checks that all Sub-issues are closed and the integration branch has merged, posts the summary and the retro, confirms the Spec deltas shipped, offers skill feedback with your consent, and closes the Epic.
+description: Finish a merged Epic. Checks that all Sub-issues are closed and the integration branch has merged, posts the summary and the retro, confirms the Spec deltas shipped, offers the pending Skill feedback, or files it under Submission mode Auto, and closes the Epic.
 disable-model-invocation: true
 metadata:
   credits:
@@ -95,12 +95,18 @@ spp upsert "$EPIC" '<!-- sdd-summary -->' "$SUMMARY_FILE"
 
 ## 5. Skill feedback
 
-Any `[skill]` learning can be proposed upstream as **Skill feedback**, filed against `syn54x/skills-plus-plus`. Read [FEEDBACK.md](FEEDBACK.md) now and follow it for every one. It holds the profile, the allowlist, the outbound check and the drafts comment. Two rules hold whatever it says:
+This step is a checkpoint: the pending **Skill feedback** candidates are offered here, or filed under Submission mode Auto, against `syn54x/skills-plus-plus`. Read [FEEDBACK.md](FEEDBACK.md) now; it holds the modes, the categories, blame and the outbound check.
 
-- Nothing is filed without a person approving that exact body in this run. A run where no person can answer (CI, a scheduled task, an unattended worker) files nothing and writes drafts instead.
-- Every proposed issue asks for an eval case that reproduces the defect to land with its fix.
+First, record each `[skill]` learning from step 4 that no pending candidate already covers (same skill, step and category, as `spp feedback pending` lists them). Write each value in single quotes, with each `'` inside it as `'\''`:
 
-With no `[skill]` learning, or a profile of `off` or none, skip this step and note the skip in the report.
+```bash
+spp signal <category> --by '<skill> <step>' --evidence '<the retro number behind it>'
+```
+
+Then run `spp feedback checkpoint` and follow what it prints, adding `--epic "$EPIC"` to each `spp feedback file`. When it prints nothing (no candidate, Self-improvement mode Off, or not an Attended session), skip the step and note why in the report. Two rules hold whatever it says:
+
+- Under Submission mode Review, nothing is filed without the person's yes on that exact preview in this run; the `--confirm` hash enforces it.
+- Every issue asks for an eval case that reproduces the defect to land with its fix; spp's body carries that line.
 
 ## 6. Close
 
@@ -113,4 +119,4 @@ Only an Epic the merge left open reaches the close: the repo turned auto-close o
 
 ## 7. Report
 
-Tell the person, in one line: whether this run or the merge closed the Epic, the counts of Sub-issues and pull requests, the summary comment's link, and the count of feedback issues filed, drafted and skipped.
+Tell the person, in one line: whether this run or the merge closed the Epic, the counts of Sub-issues and pull requests, the summary comment's link, and the counts of Skill feedback filed, skipped and left for later.
