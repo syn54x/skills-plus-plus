@@ -1,6 +1,6 @@
 // The next actions of a build, from the EpicState and what the command read around it (CI, verdict history, the pull
 // request to the base branch, the session list, the wave). Pure: no network, filesystem or environment.
-import { type Driver, type EpicState, refIn, type Ticket } from "./derive.ts";
+import { type EpicState, refIn, type Ticket } from "./derive.ts";
 import type { Routing } from "./routing.ts";
 import type { PrState } from "./snapshot.ts";
 
@@ -14,8 +14,6 @@ export type Action = {
   tickets?: string[];
   /** The pull request URL it is about. */
   pr?: string;
-  /** How to start the workers, on `dispatch`. */
-  driver?: Driver;
   /** On `main-gate`: whether the Epic is large enough for the review panel. */
   panel?: boolean;
   /** Why, in a sentence. */
@@ -31,7 +29,6 @@ export type Session = { name?: string; state?: string; status?: string };
 export type NextInput = {
   state: EpicState;
   panel: Routing["panel"];
-  driver: Driver; // the plan comment's recorded Driver, else bg or subagent from the messaging socket
   sessions: Session[];
   wave: { wave: string[]; held: { ticket: string; reason: string }[] }; // over the dispatchable ready tickets
   checks: Record<string, { result: string; failing: string[] }>; // by pull request URL: pass, fail, pending or none, and the failing runs
@@ -101,7 +98,7 @@ export function planNext(input: NextInput): Action[] {
 
   const ready = new Map(state.tickets.map((t) => [t.repo === state.epic.repo ? String(t.number) : `${t.repo}#${t.number}`, t]));
   const wave = input.wave.wave.map((w) => ready.get(w)!);
-  if (wave.length) actions.push({ kind: "dispatch", tickets: wave.map(id), driver: input.driver, reason: `${wave.length} ready ticket(s) can run together` });
+  if (wave.length) actions.push({ kind: "dispatch", tickets: wave.map(id), reason: `${wave.length} ready ticket(s) can run together` });
   for (const h of input.wave.held) idle.push(`${ref(ready.get(h.ticket)!.url)} held: ${h.reason}`);
 
   // The routing a slice and a fix share for an open pull request that has no verdict or a failed one: gate, fix, hand back or wait.

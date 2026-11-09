@@ -2,7 +2,7 @@
 
 Read only when `spp kind` says `epic`. `<epic>` is the Epic's number or URL. The loop is one rule: run `spp next <epic> --json`, do every action in its `actions` array, run it again. It ends at `close` or `stuck`.
 
-Each action has a `kind`, the `tickets` and `pr` it concerns, a `reason`, and on `dispatch` the `driver`: the one the plan comment records (`desktop`, `bg` or `subagent`), or else `bg` or `subagent` as `spp` detected from the messaging socket. Step 2 of `SKILL.md` uses it. Handle by `kind`:
+Each action has a `kind`, the `tickets` and `pr` it concerns, and a `reason`. Handle by `kind`:
 
 | Action | Do |
 | --- | --- |
@@ -30,19 +30,13 @@ Run `spp branch <epic>`. It cuts `feat/<slug>` from `origin/<base>`, pushes it a
 
 The tickets in the action are one **Wave**: ready, with no two owning the same file, as `spp` checked. Take them as given.
 
-**First Wave only: ask.** It is the first Wave when the Epic's wave comment lists none (`gh issue view <epic> --comments`, looking for `Wave 1:`). Show one table from `spp wave plan <epic>` and each issue's size label: issue, size, Files owned, tier, and the held-back issues with their reasons. When the session can start desktop linked sessions, ask in the same message which Driver to use, with one row per Driver available here:
+**First Wave only: ask.** It is the first Wave when the Epic's wave comment lists none (`gh issue view <epic> --comments`, looking for `Wave 1:`). End your turn with one message that opens with the approval question, on its first line, before anything else: "Start Wave 1 of #<epic> with these <n> issues? Reply yes, or say what to change." The table follows it, from `spp wave plan <epic>` and each issue's size label: issue, size, Files owned, tier, and the held-back issues with their reasons. The question comes first because a parent session sees only the opening of a child session's turn-end note, so a question placed after the table never reaches it.
 
-| Driver | Waves start | You see | Cost |
-| --- | --- | --- | --- |
-| Desktop linked sessions | Only on a user message: one per Wave after the first, because the app refuses to start a session on a turn an automated wake-up started | A sidebar row per worker, which you can open and steer | The run waits on you at every Wave boundary |
-| Background sessions (when the messaging socket is present) | On their own | `claude agents` and `claude attach t-<N>` | Workers take no tier and inherit the orchestrator's model |
-| Subagents | On their own, including on wake-ups | Only what the orchestrator reports | No direct steering of a worker |
-
-Wait for the user's yes, with their Driver when you asked. Record it before starting any worker: `spp plan <epic> --driver desktop|bg|subagent`; from then on `spp next` reports it on `dispatch`. A resumed run uses the recorded Driver and does not ask again. When that Driver is not available in this session (`desktop` recorded, now running in a terminal), take the best Driver step 2 of `SKILL.md` detects for this run, tell the user so, and leave the record unchanged. Later Waves that follow the plan start on their own; a new blocked-by edge, a re-bundled issue or a changed tier comes back to the user first.
+Wait for the user's yes. When the parent session relays an answer, quoted as the user's words, it is the user's answer: act on it as if typed here. Later Waves that follow the plan start on their own; a new blocked-by edge, a re-bundled issue or a changed tier comes back to the user first, asked the same way.
 
 Then, for each issue in the action:
 
-1. Write its brief and start its worker on the driver from step 2 of `SKILL.md`. A worker's first commands cut `sdd/<N>-<slug>` from the integration branch, so the checkout it starts on does not matter.
+1. Write its brief and start its worker as step 2 of `SKILL.md` says. A worker's first commands cut `sdd/<N>-<slug>` from the integration branch, so the checkout it starts on does not matter.
 2. Record the Wave once: `spp wave <epic> add --n <wave> --tickets <issues> --workers <names> --started <ISO8601> --edges none`. `<wave>` is one more than the Waves already listed. List an edge as `consumer<producer` only for a blocked-by edge you added yourself.
 
 Done when every issue in the action has a worker and the Wave is recorded.
@@ -86,7 +80,7 @@ A `NEEDS_CONTEXT` of that kind arrives as a handed-back issue. The decision belo
 3. Write it into the Epic body as one `## Spec deltas` item: MODIFIED, ADDED, or REMOVED when the user drops the behaviour. Create the section when it is missing. `close-epic` later confirms each one shipped.
 4. Rewrite the What to build, Interfaces and Test scenarios of the stopped issue and of every issue whose Consumes or Produces line the decision changes (`gh issue edit <N> --body-file <file>`). A dropped behaviour closes its issue instead: `gh issue close <N> --reason "not planned"`.
 5. Record it: `spp plan <epic> --add-deviation "<issue>: <decision in one line>"`.
-6. Restore `ready-for-agent` on the stopped issue and remove its `needs-info` label. Resume its worker with the rewritten issue if the session still answers to its name; otherwise `spp next` dispatches a fresh one.
+6. Restore `ready-for-agent` on the stopped issue and remove its `needs-info` label. Resume its worker with the rewritten issue if it still answers to its name; otherwise `spp next` dispatches a fresh one.
 
 ## Main gate
 

@@ -142,13 +142,12 @@ An Epic and its Sub-issues as one snapshot derives them: the `--json` shape of `
 
 | Property | Type | Description |
 | ------ | ------ | ------ |
-| <a id="property-epic"></a> `epic` | `object` | The Epic; `branch` is the integration branch and `driver` the Driver the user chose, as its plan comment records them, or null. |
+| <a id="property-epic"></a> `epic` | `object` | The Epic; `branch` is the integration branch its plan comment records, or null. |
 | `epic.number` | `number` | - |
 | `epic.url` | `string` | - |
 | `epic.repo` | `string` | - |
 | `epic.title` | `string` | - |
 | `epic.branch` | `string` \| `null` | - |
-| `epic.driver` | [`Driver`](next.md#driver) \| `null` | - |
 | <a id="property-tickets"></a> `tickets` | [`Ticket`](#ticket)[] | Every Sub-issue. |
 | <a id="property-layers"></a> `layers` | `string`[][] | Issue URLs by Layer, Layer 0 first. |
 | <a id="property-cycle"></a> `cycle` | `string`[] | Issue URLs caught in a blocking cycle. |

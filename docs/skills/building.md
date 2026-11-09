@@ -37,24 +37,11 @@ For work too small to file, skip spp and edit directly. `ask-spp` routes between
 
 When the Epic gets stuck, `spp next` says so (`stuck`) and `building` reports why. A dependency cycle or a missing label needs a person, not a retry.
 
-## Drivers
+## Workers
 
-A worker runs in the best session mechanism the session offers. `building` checks for each by capability, in this order, and uses the first that is present, unless you chose one:
+Every worker is a subagent, one per issue, each in its own worktree cut from the session's checkout. `building` asks nothing about how workers run, so each Wave after the first starts on its own, even on a wake-up. A worker keeps one contract: an issue number goes in, a pull request comes out, and all state lives in GitHub.
 
-| Driver | Chosen when | What you see |
-| --- | --- | --- |
-| Desktop linked sessions | The desktop app's session tool is available | A sidebar row per worker that you can open and steer |
-| Background sessions | The cross-session messaging socket is present | Workers listed by `claude agents`; `claude attach t-<N>` opens one |
-| Isolated subagents | Neither of the above | Workers inside the session, each in its own worktree |
-
-In the Claude desktop app, `building` asks you which driver to use when you approve the first Wave, because the choice changes how the run moves:
-
-- **Desktop linked sessions** start a Wave only on a message from you. The app refuses to start a session on a turn an automated wake-up started, so after the first Wave, each Wave waits for you to reply.
-- **Background sessions** and **subagents** start each Wave on their own. Background workers inherit the orchestrator's model; subagents cannot be steered directly.
-
-`building` records your choice on the Epic's plan comment (`spp plan <epic> --driver desktop|bg|subagent`), and a resumed `/build` reuses it without asking. If the recorded driver is not available where you resume (say, `desktop` from a terminal), `building` takes the best one it detects, tells you so, and leaves the record alone.
-
-All three keep one contract: an issue number goes in, a pull request comes out, and all state lives in GitHub. That is why you can change driver between runs.
+When you approve the first Wave, the question is the first line of `building`'s message and the Wave's table follows it. A parent session sees only the opening of a sub-session's message, so you can answer from the parent, and the answer it passes on counts as yours.
 
 While workers run, `building` prints one line per worker from `spp status` and the workers' notes. It never reads a worker's transcript. A worker with no note shows as "no update since dispatch".
 
@@ -80,6 +67,9 @@ The first Wave is where the plan meets the code. Later Waves that follow the pla
 
 **Why does it ask me about Skill feedback between Waves?**
 When a step spp made had to be corrected (a failed verdict, a hand-back), spp records a Signal against that step. At the end of each Wave, and when the run ends, `building` runs `spp feedback checkpoint`, which lists what is pending and lets you file, skip or keep each one for later. It asks only between steps, because a question in the middle of a gate or fix round would interrupt work that is still running. Under Submission mode Auto it files them and tells you the issue links instead.
+
+**My Epic's plan comment records a `desktop` or `bg` driver. Does it still build?**
+Yes. `spp` reads the old record without error and ignores it, so the Epic carries on with subagent workers and nothing asks you to choose.
 
 **Can it build an issue from another repo?**
 Give `/build` the issue's URL. Each Sub-issue is built in the repo it lives in, and a cross-repo blocker has to have merged before its consumer is ready.

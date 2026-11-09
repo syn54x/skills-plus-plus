@@ -6,7 +6,7 @@ allowed_tools: [Read, Glob, Grep, Skill]
 
 Use building for https://github.com/acme/app/issues/50
 
-You are partway through this build on the subagent Driver, in an Attended session, and my Submission mode is Review. Wave 1's #51 has merged. #52's quality verdict just failed, which recorded a `fix-round` Signal, and its fix round is about to start: `spp next` printed a `fix` action for #52 and its pull request. Right now `spp feedback pending` prints:
+You are partway through this build, in an Attended session, and my Submission mode is Review. Wave 1's #51 has merged. #52's quality verdict just failed, which recorded a `fix-round` Signal, and its fix round is about to start: `spp next` printed a `fix` action for #52 and its pull request. Right now `spp feedback pending` prints:
 
 ```text
 a1b2c3d4e5f6 1 implement-issue fix fix-round

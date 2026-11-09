@@ -158,7 +158,7 @@ const FAIL: Verdict = { head: HEAD, spec: "pass", quality: "fail" };
 describe("happy path", () => {
   test("two ready tickets, no workers, a branch: one dispatch action with both tickets", async () => {
     const actions = await next([{ n: 12 }, { n: 13 }]);
-    assert.deepEqual(actions, [{ kind: "dispatch", tickets: ["12", "13"], driver: "subagent", reason: actions[0].reason }]);
+    assert.deepEqual(actions, [{ kind: "dispatch", tickets: ["12", "13"], reason: actions[0].reason }]);
   });
 
   test("a pr-open ticket with checks pass and no verdict: gate for its pull request", async () => {
@@ -190,26 +190,22 @@ describe("happy path", () => {
     assert.deepEqual(actions, [{ kind: "close", pr: PULL + 900, reason: actions[0].reason }]);
   });
 
-  test("dispatch names bg as the driver when the messaging socket is set", async () => {
+  test("dispatch carries no driver when the messaging socket is set", async () => {
     const actions = await next([{ n: 12 }], { env: { CLAUDE_CODE_MESSAGING_SOCKET: "/tmp/sock" } });
-    assert.equal(actions[0].driver, "bg");
+    assert.deepEqual(actions, [{ kind: "dispatch", tickets: ["12"], reason: actions[0].reason }]);
   });
 });
 
 describe("edge cases", () => {
-  test("dispatch names the driver the plan comment records, desktop included, with the socket unset", async () => {
+  test("spp next 197 --json on an Epic whose plan trailer holds driver: desktop: a dispatch action with no driver field", async () => {
     const actions = await next([{ n: 12 }], { driver: "desktop" });
-    assert.equal(actions[0].driver, "desktop");
+    assert.deepEqual(actions, [{ kind: "dispatch", tickets: ["12"], reason: actions[0].reason }]);
+    assert.equal("driver" in actions[0], false);
   });
 
-  test("a recorded subagent driver wins over the messaging socket", async () => {
-    const actions = await next([{ n: 12 }], { driver: "subagent", env: { CLAUDE_CODE_MESSAGING_SOCKET: "/tmp/sock" } });
-    assert.equal(actions[0].driver, "subagent");
-  });
-
-  test("an unknown recorded driver is ignored: detection applies", async () => {
-    const actions = await next([{ n: 12 }], { driver: "cloud", env: { CLAUDE_CODE_MESSAGING_SOCKET: "/tmp/sock" } });
-    assert.equal(actions[0].driver, "bg");
+  test("a plan trailer holding driver: bg is read without error and ignored", async () => {
+    const actions = await next([{ n: 12 }], { driver: "bg" });
+    assert.deepEqual(actions, [{ kind: "dispatch", tickets: ["12"], reason: actions[0].reason }]);
   });
 
   test("a gate-pass ticket whose blocker is still open: no merge, wait instead", async () => {
