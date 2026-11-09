@@ -84,7 +84,16 @@ async function epicOf(ticketUrl: string): Promise<{ url: string; state: EpicStat
 
 // The pull request's verdict, re-read from its comment: the trust boundary (ADR 0009), checked on the comment itself.
 async function verdictOn(url: string) {
-  return readVerdict(readTrailer((await find(parseIssue(url.replace("/pull/", "/issues/")), VERDICT_MARKER))?.body ?? "")) ?? undefined;
+  return readVerdict(await verdictTrailer(url)) ?? undefined;
+}
+
+/**
+ * The decoded trailer of the pull request's trusted verdict comment, empty when there is none.
+ *
+ * @internal
+ */
+export async function verdictTrailer(url: string): Promise<Record<string, unknown> | null> {
+  return readTrailer((await find(parseIssue(url.replace("/pull/", "/issues/")), VERDICT_MARKER))?.body ?? "");
 }
 
 // A pull request that closes no Sub-issue of an Epic merges only as a Fix pull request: its body `Refs` a Sub-issue of an

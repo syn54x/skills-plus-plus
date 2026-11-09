@@ -84,6 +84,7 @@ nav = [
     { "spp progress" = "reference/spp/progress.md" },
     { "spp retro" = "reference/spp/retro.md" },
     { "spp signal" = "reference/spp/signal.md" },
+    { "spp gate" = "reference/spp/gate.md" },
     { "spp status" = "reference/spp/status.md" },
     { "spp unclaim" = "reference/spp/unclaim.md" },
     { "spp upsert" = "reference/spp/upsert.md" },
