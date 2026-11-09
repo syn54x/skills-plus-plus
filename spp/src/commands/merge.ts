@@ -3,8 +3,8 @@
  * on the current head, its blockers' pull requests have merged, its base is the integration branch and its checks
  * pass. The gate's verdict counts only from a trusted author (the gh user, or an OWNER, MEMBER or COLLABORATOR), and
  * `spp merge` re-reads the verdict comment to check that before it merges (ADR 0009). It merges with the Routing
- * block's merge method (squash by default) pinned to the head the gate passed, then records the pull request on the
- * wave comment. A Fix pull request (it closes no Sub-issue of its Epic; its body `Refs` a Sub-issue) merges the same way when a
+ * block's merge method (squash by default) pinned to the head the gate passed, deletes the attended decision
+ * `spp dispatch` passed down for the Sub-issue, then records the pull request on the wave comment. A Fix pull request (it closes no Sub-issue of its Epic; its body `Refs` a Sub-issue) merges the same way when a
  * trusted author's verdict passes on its head, its base is the Epic's integration branch and its checks pass, and
  * writes nothing to the wave comment. A closed issue that is missing, Epic-less, or not this pull request's own
  * Sub-issue sends the pull request down the fix path, which demands the same verdict, base and checks, so that
@@ -14,6 +14,7 @@
  * @module
  */
 import { spawnSync } from "node:child_process";
+import { forgetDecision } from "../attended.ts";
 import { derive, type EpicState, gateOf, refIn } from "../derive.ts";
 import { GhError, runGh } from "../gh.ts";
 import { find, parseIssue, readTrailer } from "../markers.ts";
@@ -140,6 +141,8 @@ async function decide(pr: string): Promise<{ result: MergeResult; code: number; 
   if (branch && view.baseRefName !== branch) return refuse(`base is ${view.baseRefName}, not the integration branch ${branch}`);
   const refused = await land(view, ticket.pr.headSha);
   if (refused) return refused;
+  // The slice's worker is done, so its passed attended decision goes with it (ADR 0012).
+  forgetDecision(process.env, `${owner}/${name}`, Number(/\d+$/.exec(ticketUrl)![0]));
 
   // wave pr matches a ticket in any of its forms, whichever one the wave stored, so the issue URL does.
   const spp = process.argv[1]; // the running bin/spp: its path from here differs between spp/src and the compiled dist/

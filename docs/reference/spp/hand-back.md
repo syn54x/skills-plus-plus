@@ -12,6 +12,9 @@ the progress comment before this write (implement-issue when it names none). A r
 records none. It records nothing under `CI`, outside an Attended session, or when the Self-improvement mode is Off, and a failure
 while recording is one `signal not recorded:` line on stderr that leaves the exit code as it was.
 
+Last, it deletes the attended decision `spp dispatch` passed down for this ticket, so no later run in the worker's
+checkout inherits it.
+
 ## Functions
 
 ### run()

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, test } from "node:test";
+import { attendedFile, passDecision } from "../src/attended.ts";
 import type { EpicState, Ticket } from "../src/derive.ts";
 import { readTrailer } from "../src/markers.ts";
 import { planNext } from "../src/plan-next.ts";
@@ -180,6 +181,31 @@ describe("happy path", () => {
   test("a Routing block Merge line picks the merge method", async () => {
     const r = await merge({ routing: "- Mode: org\n- Merge: rebase" });
     assert.deepEqual(r.writes[0].argv, ["pr", "merge", `${REPO}/pull/40`, "--rebase", "--match-head-commit", HEAD[40]]);
+  });
+});
+
+describe("the passed attended decision", () => {
+  // F5: a merged slice's worker is done, so its decision goes; a refused merge keeps it for the rebase.
+  async function withDecision(o: Opts, code: number) {
+    const env = { XDG_STATE_HOME: mkdtempSync(join(tmpdir(), "spp-merge-state-")), HOME: "" };
+    passDecision(env, "acme/app", 30, true);
+    const saved = process.env.XDG_STATE_HOME;
+    process.env.XDG_STATE_HOME = env.XDG_STATE_HOME;
+    try {
+      await merge(o, code);
+    } finally {
+      if (saved === undefined) delete process.env.XDG_STATE_HOME;
+      else process.env.XDG_STATE_HOME = saved;
+    }
+    return existsSync(attendedFile(env, "acme/app", 30));
+  }
+
+  test("spp merge 40 deletes ticket 30's passed decision", async () => {
+    assert.equal(await withDecision({}, 0), false);
+  });
+
+  test("a refused spp merge 40 (checks failing) keeps it", async () => {
+    assert.equal(await withDecision({ checks: [{ name: "ci", bucket: "fail" }] }, 1), true);
   });
 });
 
