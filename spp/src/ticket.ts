@@ -129,5 +129,9 @@ export function lintTicket(body: string, labels: string[]): Failure[] {
   return failures;
 }
 
+export function lintPr(body: string, head: string): Failure[] {
+  return [];
+}
+
 // An issue number or a GitHub issue URL, the two forms `gh issue view` takes.
 export const isIssueRef = (s: string) => /^\d+$/.test(s) || /^https:\/\/github\.com\/[^/]+\/[^/]+\/issues\/\d+\/?$/.test(s);

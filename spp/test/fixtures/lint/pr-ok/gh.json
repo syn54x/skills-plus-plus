@@ -1,0 +1,8 @@
+{
+  "pr view 40 --json body,headRefOid": {
+    "stdout": {
+      "body": "Closes #12\n\n`greet` now prints a greeting.\n\n## Verify\n\nRan the Verify block on `abc1234`: passed.\nTDD: red `node --test test/greet.test.ts` (greet missing); green the same (4/4).\nVerify block corrected: no\n\n## Ticket\n\n- AC1: `test/greet.test.ts::prints hello`\n- Scenario, Happy path: `test/greet.test.ts::prints hello`\n\n## Interfaces\n\nInterfaces changed: none\n\n## Laws\n\n- CLAUDE.md: no em-dashes in the diff.\n- GLOSSARY.md: n/a: no new terms.\n",
+      "headRefOid": "abc12340123456789abcdef0123456789abcdef0"
+    }
+  }
+}
