@@ -53,5 +53,5 @@ Watching a run, you see:
 - the agent reread the issue body after harden and confirm the reproduction is still the first Verify line;
 - the issue's label list change by one swap, ending with a single state label, and a comment starting with the disclaimer beside it;
 - no question put to you that the code, the issue thread or `.out-of-scope/` could have answered;
-- for a rejection, a new or extended file in `.out-of-scope/` shown to you before the issue is closed as not planned.
+- for a rejection, a new or extended file in `.out-of-scope/` shown to you before the issue is closed as not planned;
 - for a reproduced bug whose lines came from a pull request the review gate passed, the output of `spp signal` for the escaped defect, naming that pull request.
