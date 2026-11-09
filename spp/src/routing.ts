@@ -8,11 +8,12 @@ import { currentRepo } from "./notes.ts";
 /** The Self-improvement mode: the most a skill-feedback issue may say about the repo's work; under Off nothing is recorded or filed. */
 export type SelfImprovementMode = "Off" | "Anonymous" | "Full Detail";
 
-// The modes from least to most a report may say.
-const MODE_ORDER: SelfImprovementMode[] = ["Off", "Anonymous", "Full Detail"];
+/** Every Self-improvement mode, from least to most a report may say: the one list of them. */
+export const SELF_IMPROVEMENT_MODES: readonly SelfImprovementMode[] = ["Off", "Anonymous", "Full Detail"];
 
 /** The lower of two Self-improvement modes: the one that lets a report say less. */
-export const lowerMode = (a: SelfImprovementMode, b: SelfImprovementMode): SelfImprovementMode => (MODE_ORDER.indexOf(a) <= MODE_ORDER.indexOf(b) ? a : b);
+export const lowerMode = (a: SelfImprovementMode, b: SelfImprovementMode): SelfImprovementMode =>
+  SELF_IMPROVEMENT_MODES.indexOf(a) <= SELF_IMPROVEMENT_MODES.indexOf(b) ? a : b;
 
 /** A repo's Routing block, parsed: the `--json` shape of `spp preflight`. */
 export type Routing = {
@@ -31,7 +32,7 @@ export type Routing = {
 };
 
 const MERGE_METHODS = ["squash", "merge", "rebase"];
-const MODES = new Map<string, SelfImprovementMode>([["off", "Off"], ["anonymous", "Anonymous"], ["full detail", "Full Detail"]]);
+const MODES = new Map(SELF_IMPROVEMENT_MODES.map((m) => [m.toLowerCase(), m]));
 // The old `Upstream feedback:` profiles, each mapped to the mode that keeps its outbound rules.
 const UPSTREAM = new Map<string, SelfImprovementMode>([["off", "Off"], ["counts", "Anonymous"], ["detailed", "Anonymous"], ["attributed", "Full Detail"]]);
 

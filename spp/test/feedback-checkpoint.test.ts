@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, test } from "node:test";
+import { attendedFile, passDecision } from "../src/attended.ts";
 import { CHECKPOINT_STEPS } from "../src/commands/feedback.ts";
 import { fingerprint, signalsFile, type Signal } from "../src/signals.ts";
 import { runCase } from "./harness.ts";
@@ -101,6 +102,25 @@ describe("edge cases: nothing printed, exit 0", () => {
     silent(await feedback(c, ["checkpoint"]));
   });
   test("an empty Signal log", async () => silent(await feedback(checkout(), ["checkpoint"])));
+  // R2-F19: the gate ran first, so a worker's checkpoint asked gh for its issue (and acted on the answer) for nothing.
+  test("a worker returns before the gate: its passed decision is never checked against gh", async () => {
+    const c = seeded();
+    spawnSync("git", ["checkout", "-q", "-b", "sdd/12-add-export"], { cwd: c.dir });
+    const env = { XDG_STATE_HOME: c.state, HOME: c.dir };
+    passDecision(env, "acme/app", 12, true);
+    writeFileSync(join(c.dir, "args"), "checkpoint\n");
+    const saved = { ...process.env };
+    Object.assign(process.env, { XDG_STATE_HOME: c.state, XDG_CONFIG_HOME: c.config, CLAUDE_CODE_SESSION_ATTENDED: "1" });
+    delete process.env.CI;
+    // A closed issue makes the gate delete the decision, so the file is left only when gh is never asked.
+    writeFileSync(join(c.dir, "gh.json"), JSON.stringify({ "issue view 12 -R acme/app --json state": { stdout: { state: "CLOSED" } } }));
+    try {
+      silent(await runCase("feedback", c.dir));
+    } finally {
+      process.env = saved;
+    }
+    assert.ok(existsSync(attendedFile(env, "acme/app", 12)));
+  });
 });
 
 describe("error paths", () => {

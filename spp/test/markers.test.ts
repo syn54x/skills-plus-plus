@@ -389,7 +389,8 @@ describe("writeOwnMarker", () => {
     const saved = { ...process.env };
     Object.assign(process.env, { PATH: `${STUBS}${delimiter}${process.env.PATH}`, SPP_CASE: dir, SPP_WRITES: join(dir, "writes.jsonl") });
     try {
-      await writeOwnMarker(ISSUE, "<!-- own -->", key, "rendered", data, { skill: "feedback" });
+      // R2-F14: the write takes the prebuilt body a preview shows, plus the key and value it matches on.
+      await writeOwnMarker(ISSUE, "<!-- own -->", ownMarkerBody("<!-- own -->", "rendered", data, { skill: "feedback" }), key, data[key]);
     } finally {
       process.env = saved;
     }

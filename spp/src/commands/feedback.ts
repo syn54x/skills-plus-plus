@@ -3,7 +3,8 @@
  * become one.
  *
  * `spp feedback checkpoint` offers the pending candidates between steps of an Attended session, printing them with the
- * steps an agent follows to file, skip or keep each one, and prints nothing on a worker's `sdd/` branch.
+ * steps an agent follows to file, skip or keep each one, and prints nothing in a worker's checkout (an `sdd/<N>-` or
+ * `sdd-<N>` branch, or an `sdd-<N>` worktree folder).
  *
  * It also acts on a pending candidate. `spp feedback file <fingerprint>` files it on the one grouped Skill feedback
  * issue for that skill step and category on syn54x/skills-plus-plus, and rewrites the person's own tally comment
@@ -35,7 +36,7 @@ import { find, flagPairs, ownMarkerBody, parseIssue, readTrailer, UsageError, vi
 import { currentRepo } from "../notes.ts";
 import { lowerMode, readSelfImprovementMode, type SelfImprovementMode, selfImprovementModeOf } from "../routing.ts";
 import { TRUSTED_ASSOCIATIONS, trustedAuthor } from "../snapshot.ts";
-import { candidate, collecting, type FeedbackCandidate, pendingCandidates, readDecisions, recordDecision, runCounts } from "../signals.ts";
+import { candidate, type FeedbackCandidate, notCollecting, pendingCandidates, readDecisions, recordDecision, runCounts } from "../signals.ts";
 import { readSubmissionMode, type SubmissionMode, tallySecret, writeSubmissionMode } from "../submission.ts";
 
 export type { FeedbackCandidate } from "../signals.ts";
@@ -94,7 +95,8 @@ function outboundContext(ctx: Omit<FeedbackContext, "paths">): FeedbackContext {
  *   out skipped fingerprints and filed ones with no later Signal.
  *
  *   For `file`, stdout starts with one such line per hit on the issue body (when one would be created) and the tally
- *   comment, checked under the lowest Self-improvement mode of the checkout and the Epic's repos. Exit 0 when filed,
+ *   comment, checked under the lowest Self-improvement mode of the checkout, the Epic's repos and the other repos the
+ *   candidate's Signals are about, whose names the check also guards. Exit 0 when filed,
  *   last line `filed <fingerprint> <issue URL> created|existing`. Exit 3 under Review with nothing written: `title:
  *   <title>` and the issue body (or `issue: <issue URL> (by <author>)` when the group exists), a blank line, the tally
  *   comment, then `confirm: <hash>`; the same command with `--confirm <hash>` files that text, and a stale hash shows
@@ -111,8 +113,9 @@ function outboundContext(ctx: Omit<FeedbackContext, "paths">): FeedbackContext {
  *   For `skip`, `skipped <fingerprint>` and exit 0; 1 on an unknown fingerprint. It posts nothing, so it runs
  *   anywhere. For `submission`, `Submission mode: <mode>` and exit 0.
  *
- *   For `checkpoint` with no other argument, exit 0 whatever happens. It prints nothing under `CI`, outside an Attended session, under Self-improvement
- *   mode Off, on a worker's `sdd/` branch or with nothing pending. Otherwise it prints `spp: <n> Skill feedback
+ *   For `checkpoint` with no other argument, exit 0 whatever happens. It prints nothing in a worker's checkout (an
+ *   `sdd/<N>-` or `sdd-<N>` branch, or an `sdd-<N>` worktree folder), under `CI`, outside an Attended session, under
+ *   Self-improvement mode Off or with nothing pending. Otherwise it prints `spp: <n> Skill feedback
  *   candidates pending for <owner/repo>:`, the candidates exactly as `pending` prints them, a blank line, then
  *   {@link CHECKPOINT_STEPS}. An error (a checkout with no origin remote) writes one `spp feedback checkpoint:
  *   <message>` line to stderr and still exits 0, so the `SessionStart` hook that runs it never fails.
@@ -163,8 +166,8 @@ export async function run(args: string[]): Promise<number> {
 // Never fails: a session start runs it, so an error is one stderr line and exit 0.
 function checkpoint(): number {
   try {
-    if (!collecting()) return 0;
-    if (workerTicket(process.cwd()) !== null) return 0; // a worker never offers or files
+    if (workerTicket(process.cwd()) !== null) return 0; // a worker never offers or files, so the gate is not asked
+    if (notCollecting()) return 0;
     const repo = currentRepo();
     const candidates = pendingCandidates(repo);
     if (!candidates.length) return 0;
@@ -191,13 +194,13 @@ function submission(value: string | undefined): number {
   return 0;
 }
 
-// Filing needs what recording needs (CI unset, an Attended session, a mode other than Off) and never runs in a
-// worker: the reason it may not, or null when it may. Skipping posts nothing, so it is not gated.
+// Filing never runs in a worker and needs what recording needs: the reason it may not, or null when it may. The
+// recording gate's reason is mapped, never worked out again. Skipping posts nothing, so it is not gated.
+const NOT_FILED = { CI: "not filed: CI", "Self-improvement mode is Off": OFF, "not an attended session": "not filed: not an Attended session" } as const;
 function notFiling(): string | null {
-  if (process.env.CI) return "not filed: CI";
   if (workerTicket(process.cwd()) !== null) return "not filed: a worker never files";
-  if (!collecting()) return readSelfImprovementMode(process.cwd()) === "Off" ? OFF : "not filed: not an Attended session";
-  return null;
+  const why = notCollecting();
+  return why && NOT_FILED[why];
 }
 
 function skip(fp: string): number {
@@ -290,8 +293,10 @@ async function file(args: string[]): Promise<number> {
     // A run takes the lowest mode of every repo it touches: the checkout, the candidate's Signals and the Epic's repos.
     let profile = lowerMode(readSelfImprovementMode(process.cwd()), c.mode ?? "Full Detail");
     // The Epic reference is parsed here, past the gates, so a malformed one cannot change a CI or Off exit.
-    const names = profile !== "Off" && opts["--epic"] !== undefined ? await epicRepos(opts["--epic"]) : [];
-    for (const r of names) profile = lowerMode(profile, await selfImprovementModeOf(r));
+    const epic = profile !== "Off" && opts["--epic"] !== undefined ? await epicRepos(opts["--epic"]) : [];
+    for (const r of epic) profile = lowerMode(profile, await selfImprovementModeOf(r));
+    // The repos the Signals are about count as the Epic's do; their modes are already in c.mode.
+    const names = [...new Set([...(c.about ?? []), ...epic])];
     if (profile === "Off") return fail("file", OFF);
 
     let auto = readSubmissionMode(repo) === "Auto";
@@ -329,7 +334,7 @@ async function file(args: string[]): Promise<number> {
       // The public issue exists from here on, so it is remembered before the tally, which may still fail.
       recordDecision(repo, { fingerprint: fp, decision: "created", issue: target.number });
     }
-    await writeOwnMarker(target.url, TALLY_MARKER, "repoKey", t.render, t.data, TALLY_BY);
+    await writeOwnMarker(target.url, TALLY_MARKER, tally, "repoKey", key);
     recordDecision(repo, { fingerprint: fp, decision: "filed", issue: target.number });
     process.stdout.write(`filed ${fp} ${target.url} ${group ? "existing" : "created"}\n`);
     return 0;

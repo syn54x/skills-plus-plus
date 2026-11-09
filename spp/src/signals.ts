@@ -11,7 +11,7 @@ import { dirname } from "node:path";
 import { isAttended } from "./attended.ts";
 import { notesFile } from "./notes-log.ts";
 import { currentRepo } from "./notes.ts";
-import { lowerMode, readSelfImprovementMode, type SelfImprovementMode, selfImprovementModeOf } from "./routing.ts";
+import { lowerMode, readSelfImprovementMode, SELF_IMPROVEMENT_MODES, type SelfImprovementMode, selfImprovementModeOf } from "./routing.ts";
 
 /** The categories a Signal may carry: the 15 of `skills/close-epic/FEEDBACK.md`, then the four the Signal sources add. */
 export const SIGNAL_CATEGORIES = [
@@ -23,8 +23,11 @@ export const SIGNAL_CATEGORIES = [
 /** What a Signal says was corrected: one of the categories `spp signal --help` lists. */
 export type SignalCategory = (typeof SIGNAL_CATEGORIES)[number];
 
-/** A line of the Signal log; `mode` only on a Signal about another repo's issue: the lower of that repo's mode and the checkout's. */
-export type Signal = { at: string; repo: string; category: SignalCategory; skill: string; step: string; version: string; evidence: string; fingerprint: string; mode?: SelfImprovementMode };
+/**
+ * A line of the Signal log. Only a Signal about another repo's issue carries `about`, that repo's `owner/repo`, and
+ * `mode`, the lower of that repo's mode and the checkout's.
+ */
+export type Signal = { at: string; repo: string; category: SignalCategory; skill: string; step: string; version: string; evidence: string; fingerprint: string; about?: string; mode?: SelfImprovementMode };
 
 /** The Signals of one skill step and category, grouped: an entry of the `spp feedback pending --json` list. */
 export type FeedbackCandidate = {
@@ -44,12 +47,17 @@ export type FeedbackCandidate = {
   evidence: string[];
   /** The lowest mode the group's Signals carry, present only when one about another repo's issue carries one. */
   mode?: SelfImprovementMode;
+  /** The other repos the group's Signals are about, present only when there are any: filing treats them as an Epic's repos. */
+  about?: string[];
 };
 
 /** One artifact a skill step made or took over: a line of the runs log. */
 export type Run = { at: string; repo: string; skill: string; step: string; version: string; artifact: string };
 
-type Skipped = { skipped: "CI" | "not an attended session" | "Self-improvement mode is Off" | "already in the Signal log" | "nothing to record" };
+// Why the gate says no: the reasons `notCollecting` gives.
+type GateReason = "CI" | "Self-improvement mode is Off" | "not an attended session";
+
+type Skipped = { skipped: GateReason | "already in the Signal log" | "already in the runs log" | "nothing to record" };
 
 // owner__repo.signals.jsonl in the notes log's directory.
 export const signalsFile = (env: { XDG_STATE_HOME?: string; HOME: string }, repo: string): string => notesFile(env, repo).replace(/\.jsonl$/, ".signals.jsonl");
@@ -71,7 +79,7 @@ const stateEnv = (env: NodeJS.ProcessEnv) => ({ XDG_STATE_HOME: env.XDG_STATE_HO
 // The gate, evaluated once: why nothing would be recorded, in the order CI, Self-improvement mode, Attended session,
 // or else the checkout's repo (null with no GitHub origin, where the Attended check falls back to the harness
 // signal) and mode. The mode is read first, so an Off repo spawns no process.
-function gate(env: NodeJS.ProcessEnv, dir: string): Skipped | { repo: string | null; mode: SelfImprovementMode } {
+function gate(env: NodeJS.ProcessEnv, dir: string): { skipped: GateReason } | { repo: string | null; mode: SelfImprovementMode } {
   if (env.CI) return { skipped: "CI" };
   const mode = readSelfImprovementMode(dir);
   if (mode === "Off") return { skipped: "Self-improvement mode is Off" };
@@ -83,11 +91,13 @@ function gate(env: NodeJS.ProcessEnv, dir: string): Skipped | { repo: string | n
 }
 
 /**
- * True when `recordSignal` and `recordRun` would record: never under `CI`, not when the Routing block in `dir` sets
- * the Self-improvement mode to Off, and only in an Attended session. The writers check it themselves.
+ * Why `recordSignal` and `recordRun` would record nothing, checked in this order: `CI` is set, the Routing block in
+ * `dir` sets the Self-improvement mode to Off, or the session is not Attended. Null when they would record. The
+ * writers check it themselves; a caller reads it to say why.
  */
-export function collecting(env: NodeJS.ProcessEnv = process.env, dir: string = process.cwd()): boolean {
-  return !("skipped" in gate(env, dir));
+export function notCollecting(env: NodeJS.ProcessEnv = process.env, dir: string = process.cwd()): GateReason | null {
+  const g = gate(env, dir);
+  return "skipped" in g ? g.skipped : null;
 }
 
 // What a writer takes: its input, or a builder called only once the gate says yes with the checkout's repo (so it
@@ -96,8 +106,9 @@ export function collecting(env: NodeJS.ProcessEnv = process.env, dir: string = p
 type Lazy<T> = T | ((own: string) => T | null | Promise<T | null>);
 
 // Runs the gate, then builds the input; the checkout's repo is the log's. A record about another repo takes the
-// lower of the two modes: skipped when that is Off, else returned as `mode`, which a Signal keeps for filing.
-async function open<T extends { about?: string }>(input: Lazy<T>, env: NodeJS.ProcessEnv, dir: string): Promise<Skipped | { repo: string; value: T; mode?: SelfImprovementMode }> {
+// lower of the two modes: skipped when that is Off, else returned as `mode`, which a Signal keeps for filing with
+// `about`, the other repo's name.
+async function open<T extends { about?: string }>(input: Lazy<T>, env: NodeJS.ProcessEnv, dir: string): Promise<Skipped | { repo: string; value: T; about?: string; mode?: SelfImprovementMode }> {
   const g = gate(env, dir);
   if ("skipped" in g) return g;
   const repo = g.repo ?? currentRepo(dir); // throws the origin message
@@ -105,7 +116,7 @@ async function open<T extends { about?: string }>(input: Lazy<T>, env: NodeJS.Pr
   if (!value) return { skipped: "nothing to record" };
   if (!value.about || value.about.toLowerCase() === repo.toLowerCase()) return { repo, value };
   const mode = lowerMode(g.mode, await selfImprovementModeOf(value.about, dir, repo));
-  return mode === "Off" ? { skipped: "Self-improvement mode is Off" } : { repo, value, mode };
+  return mode === "Off" ? { skipped: "Self-improvement mode is Off" } : { repo, value, about: value.about, mode };
 }
 
 const failed = (e: unknown) => ({ failed: e instanceof Error ? e.message : String(e) });
@@ -130,12 +141,12 @@ export async function recordSignal(
   try {
     const o = await open(input, env, dir);
     if ("skipped" in o) return o;
-    const { repo, value: v, mode } = o;
+    const { repo, value: v, about, mode } = o;
     const step = v.step ?? "";
     const fp = fingerprint(v.skill, step, v.category);
     const file = signalsFile(stateEnv(env), repo);
     if (logLines<Signal>(file).some((s) => s.fingerprint === fp && s.evidence === v.evidence)) return { skipped: "already in the Signal log" };
-    const signal: Signal = { at: new Date().toISOString(), repo, category: v.category, skill: v.skill, step, version: v.version ?? pluginVersion(), evidence: v.evidence, fingerprint: fp, ...(mode && { mode }) };
+    const signal: Signal = { at: new Date().toISOString(), repo, category: v.category, skill: v.skill, step, version: v.version ?? pluginVersion(), evidence: v.evidence, fingerprint: fp, ...(about && { about }), ...(mode && { mode }) };
     append(file, signal);
     return { signal };
   } catch (e) {
@@ -143,7 +154,10 @@ export async function recordSignal(
   }
 }
 
-/** Appends one run of a skill step to the checkout's runs log behind the same gate as `recordSignal`; it never throws. */
+/**
+ * Appends one run of a skill step to the checkout's runs log behind the same gate as `recordSignal`, unless the log
+ * already holds a run with the same skill, step and artifact; it never throws.
+ */
 export async function recordRun(
   input: Lazy<{ about?: string; skill: string; step?: string; artifact: string }>,
   env: NodeJS.ProcessEnv = process.env,
@@ -153,8 +167,11 @@ export async function recordRun(
     const o = await open(input, env, dir);
     if ("skipped" in o) return o;
     const { repo, value: v } = o;
-    const run: Run = { at: new Date().toISOString(), repo, skill: v.skill, step: v.step ?? "", version: pluginVersion(), artifact: v.artifact };
-    append(runsFile(stateEnv(env), repo), run);
+    const step = v.step ?? "";
+    const file = runsFile(stateEnv(env), repo);
+    if (logLines<Run>(file).some((r) => r.skill === v.skill && r.step === step && r.artifact === v.artifact)) return { skipped: "already in the runs log" };
+    const run: Run = { at: new Date().toISOString(), repo, skill: v.skill, step, version: pluginVersion(), artifact: v.artifact };
+    append(file, run);
     return { run };
   } catch (e) {
     return failed(e);
@@ -203,10 +220,8 @@ export function recordDecision(repo: string, d: Omit<Decision, "at">): Decision 
 /** The repo's decisions, oldest first; a torn or blank line is skipped. */
 export const readDecisions = (repo: string): Partial<Decision>[] => logLines<Decision>(decisionsFile(stateEnv(process.env), repo));
 
-// The modes a log line may carry; any other value is ignored.
-const MODES: (SelfImprovementMode | undefined)[] = ["Off", "Anonymous", "Full Detail"];
-
-// The log's Signals grouped by fingerprint, with each group's latest `at` and the lowest mode they carry.
+// The log's Signals grouped by fingerprint, with each group's latest `at`, the lowest mode they carry (a value that is
+// no mode is ignored) and the other repos they are about.
 function groups(repo: string): Map<string, { c: FeedbackCandidate; latest: number }> {
   const out = new Map<string, { c: FeedbackCandidate; latest: number }>();
   for (const s of logLines<Signal>(signalsFile(stateEnv(process.env), repo)) as Signal[]) {
@@ -215,7 +230,8 @@ function groups(repo: string): Map<string, { c: FeedbackCandidate; latest: numbe
     g.c.count++;
     g.c.versions[s.version] = (g.c.versions[s.version] ?? 0) + 1;
     g.c.evidence.push(s.evidence);
-    if (MODES.includes(s.mode!)) g.c.mode = lowerMode(g.c.mode ?? "Full Detail", s.mode!);
+    if (SELF_IMPROVEMENT_MODES.includes(s.mode!)) g.c.mode = lowerMode(g.c.mode ?? "Full Detail", s.mode!);
+    if (typeof s.about === "string" && !g.c.about?.includes(s.about)) g.c.about = [...(g.c.about ?? []), s.about];
     g.latest = Math.max(g.latest, Date.parse(s.at));
     out.set(s.fingerprint, g);
   }

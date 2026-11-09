@@ -7,12 +7,14 @@
  * `--fix-diff` names the patch of the fixes the round reviewed: each merged finding on a line that patch added or
  * changed, and not merged with a `recheck-` file's finding, records a `fix-regression` Signal (the Signal gates apply),
  * and a line on stderr says whether it was recorded. Each merge with `--fix-diff` also records one run of
- * `implement-issue` step `fix round`, named for the patch, which is what the fix-regression rate is counted over. stdout, the `--json` shape and the exit code do not change.
+ * `implement-issue` step `fix round`, which is what the fix-regression rate is counted over. The run is named for the
+ * patch's folder and file, `spp-panel-<PR>/fix-<round>.patch` as the panel writes it, and a merge of a round already
+ * recorded records no second run. stdout, the `--json` shape and the exit code do not change.
  *
  * @module
  */
 import { readFileSync } from "node:fs";
-import { basename } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { changedLines, mergeFindings, panelVerdict, parsePersonaFindings, type MergeResult, type Merged, type PanelVerdict, type Readings } from "../findings.ts";
 import { guarded, UsageError } from "../markers.ts";
 import { recordRun, recordSignal } from "../signals.ts";
@@ -94,12 +96,13 @@ function render(r: MergeResult): string {
   );
 }
 
-// Each merge with --fix-diff is one fix round the panel looked at, so it counts one run of `implement-issue` step
-// `fix round`, silently: the denominator of the fix-regression rate, whether or not a finding regressed. Then one
+// Each fix round the panel looked at counts one run of `implement-issue` step `fix round`, silently: the denominator
+// of the fix-regression rate, whether or not a finding regressed. `run` names the round by the patch's folder and
+// file (the panel's spp-panel-<PR>/fix-<round>.patch), so merging the same round again adds no run. Then one
 // fix-regression Signal per merged finding on a changed line that no recheck finding was merged into, and one stderr
 // line each. recordRun and recordSignal apply the gates and never throw, so nothing here changes the exit code.
-async function recordRegressions(result: MergeResult, patch: string, name: string): Promise<void> {
-  await recordRun({ skill: "implement-issue", step: "fix round", artifact: name });
+async function recordRegressions(result: MergeResult, patch: string, name: string, run: string): Promise<void> {
+  await recordRun({ skill: "implement-issue", step: "fix round", artifact: run });
   const changed = changedLines(patch);
   const regressed = result.findings.filter((f) => !result.recheck.includes(f.id) && changed.get(f.file)?.has(f.line));
   if (!regressed.length) return;
@@ -163,6 +166,6 @@ export function run(args: string[]): Promise<number> {
     const out: PanelFindings = { findings: result.findings, counts: result.counts, ...(verdict && { verdict }) };
     if (json) process.stdout.write(JSON.stringify(out, null, 2) + "\n");
     else process.stdout.write(render(result) + (verdict ? `Verdict: ${verdict}\n` : ""));
-    if (patch !== undefined && fixDiff !== undefined) await recordRegressions(result, patch, basename(fixDiff));
+    if (patch !== undefined && fixDiff !== undefined) await recordRegressions(result, patch, basename(fixDiff), `${basename(dirname(resolve(fixDiff)))}/${basename(fixDiff)}`);
   });
 }

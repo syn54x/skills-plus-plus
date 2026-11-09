@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { mergeFindings, panelVerdict, parsePersonaFindings, type Readings } from "../src/findings.ts";
@@ -218,16 +218,22 @@ describe("--fix-diff", () => {
     assert.equal(s.evidence, "F1 src/a.ts:11 is on a line fix-2.patch changed: problem at 11");
   });
 
-  test("each merge with --fix-diff records one fix round run, regressed or not; CI and Off record none", () => {
+  // R2-F5: a second merge of the same round counted the run again while its regressions were deduped.
+  test("a fix round's run is named for the patch's folder and file, and recorded once however often it is merged; CI and Off record none", () => {
     const c = setup({ "persona-correctness.json": [finding("src/other.ts", 1)] });
     const runs = () => signals(runsFile({ XDG_STATE_HOME: c.state, HOME: c.dir }, "acme/app"));
+    const artifact = `${basename(c.dir)}/fix-2.patch`; // the panel's spp-panel-<PR>/fix-<R>.patch
     merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
-    assert.deepEqual(runs().map((r) => [r.skill, r.step, r.artifact]), [["implement-issue", "fix round", "fix-2.patch"]]);
-    merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
-    assert.equal(runs().length, 2);
+    assert.deepEqual(runs().map((r) => [r.skill, r.step, r.artifact]), [["implement-issue", "fix round", artifact]]);
+    merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch", "--json"]);
+    assert.equal(runs().length, 1);
+    writeFileSync(join(c.dir, "fix-3.patch"), PATCH);
+    merge(c, ["persona-correctness.json", "--fix-diff", "fix-3.patch"]);
+    assert.deepEqual(runs().map((r) => r.artifact), [artifact, `${basename(c.dir)}/fix-3.patch`]);
     merge(c, ["persona-correctness.json"]);
     assert.equal(runs().length, 2);
-    merge(c, ["persona-correctness.json", "--fix-diff", "fix-2.patch"], { CLAUDE_CODE_SESSION_ATTENDED: "1", CI: "true" });
+    writeFileSync(join(c.dir, "fix-4.patch"), PATCH);
+    merge(c, ["persona-correctness.json", "--fix-diff", "fix-4.patch"], { CLAUDE_CODE_SESSION_ATTENDED: "1", CI: "true" });
     assert.equal(runs().length, 2);
     const off = setup({ "persona-correctness.json": [] }, "Off");
     merge(off, ["persona-correctness.json", "--fix-diff", "fix-2.patch"]);
