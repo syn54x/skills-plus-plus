@@ -75,9 +75,21 @@ describe("happy path", () => {
 });
 
 describe("edge cases", () => {
-  test("--started 301: 301 is in flight, left out, and 302 sharing its file is held", async () => {
-    const p = await plan([{ n: 301, modify: ["src/a.ts"] }, { n: 302, modify: ["src/a.ts"] }, { n: 303, modify: ["src/c.ts"] }], "--started", "301");
-    assert.deepEqual(p, { wave: ["303"], held: [{ ticket: "302", reason: "shares src/a.ts with 301" }] });
+  test("--running 301: 301 is held as running, and 302 sharing its file is held", async () => {
+    const p = await plan([{ n: 301, modify: ["src/a.ts"] }, { n: 302, modify: ["src/a.ts"] }, { n: 303, modify: ["src/c.ts"] }], "--running", "301");
+    assert.deepEqual(p, {
+      wave: ["303"],
+      held: [
+        { ticket: "301", reason: "running, not claimed yet" },
+        { ticket: "302", reason: "shares src/a.ts with 301" },
+      ],
+    });
+  });
+
+  test("--running with no value is a usage error, the same one spp next gives", async () => {
+    const r = await runCase("wave", scratch([{ n: 301, modify: ["src/a.ts"] }], "--running"));
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /--running takes 101,owner\/repo#7/);
   });
 
   test("A and B both Modify the same file: only A in wave, B held with 'shares <path> with A'", async () => {
