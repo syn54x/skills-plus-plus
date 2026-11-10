@@ -6,20 +6,20 @@ Read only when running on Claude Code. Each capability the skill names, and the 
 
 | Worker | Start a worker |
 | --- | --- |
-| Subagent | Run `spp dispatch <N>`; it prints the brief's path. Then one Agent call per issue, every call in one response so the Wave runs together: `subagent_type: "spp:worker"`, `description` starting with `t-<N>` (`t-12 implement #12`), `model` set to the tier, `prompt` as below. The `spp:worker` agent already runs in its own worktree, in the background, with `implement-issue` preloaded, and wakes you when it ends. |
+| Subagent | Run `spp dispatch <N>`; it prints the brief's path. Then one Agent call per issue, every call in one response so the Wave runs together: `subagent_type: "spp:worker"`, `description` starting with `t-<N>` (`t-12 implement #12`), `model` set to the tier, `prompt` as below. The `spp:worker` agent already runs in its own worktree, in the background, with `implement-issue` preloaded, and wakes you when it ends. Each call returns the worker's agent id: keep it beside the issue, with the running list. |
 
 The prompt: `Your full brief is the file <path>. Read it completely before anything else, then run the implement-issue skill for <issue URL> and follow it.`
 
-A worker's name is `t-<N>`, the same name `spp brief` tells the worker to write on its Worker line. The Agent tool takes no name, so the description carries it. The Epic board links a worker to its row when the description holds `t-<N>` as a whole word, wherever it stands (`t-1` never matches `t-12`); put it first so a person reading the agent list sees it too. Wave comments take those names as `--workers`.
+A worker's name is `t-<N>`, the same name `spp brief` tells the worker to write on its Worker line. The Agent tool takes no name, so the description carries it for the board, and the agent id the call returns is the worker's address. The Epic board links a worker to its row when the description holds `t-<N>` as a whole word, wherever it stands (`t-1` never matches `t-12`); put it first so a person reading the agent list sees it too. Wave comments take those names as `--workers`.
 
-The started list (`EPIC.md`) gains an issue when its Agent call returns. An Agent call that returns an error started no worker, so its issue leaves the list; so does an issue whose worker's report wakes you.
+The running list (`EPIC.md`) gains an issue and its agent id when its Agent call returns. An Agent call that returns an error started no worker, so its issue leaves the list; so does an issue whose worker's report wakes you, though you keep its agent id while its pull request is open, for a fix round or a rebase.
 
 ## Capabilities
 
 | Capability | On Claude Code |
 | --- | --- |
 | Wake when work changes | Bash with `run_in_background: true` and `spp wait <epic>`; its exit arrives as a notification |
-| Resume a worker, send it findings | SendMessage with `to` set to the worker's name. A name keeps working after the worker finishes; a send resumes it from its transcript. |
+| Resume a worker, send it findings | SendMessage with `to` set to the agent id its Agent call returned. The id keeps working after the worker finishes; a send resumes it from its transcript. A worker with no id in this session was started by an earlier one and died with it. |
 | Start the fresh reviewer | Call the Skill tool with "review"; its own `CLAUDE-CODE.md` starts `spp:reviewer` |
 | Read the review panel's steps | `review-panel`'s files sit beside this skill's folder: `<this skill's base directory>/../review-panel/` holds its `SKILL.md`, `PERSONAS.md`, `ROUNDS.md`, `VERDICT.md` and its own `CLAUDE-CODE.md` |
 | Fan out the panel's Personas | The first row of `review-panel`'s `CLAUDE-CODE.md`: the Workflow tool with `spp:review-panel` and the args `{ "pr": <number>, "personas": [...] }`, only when the session offers it and the user has opted into workflows. Otherwise its second row, one `spp:reviewer` Agent call per Persona. |
@@ -28,7 +28,7 @@ The started list (`EPIC.md`) gains an issue when its Agent call returns. An Agen
 
 ## Quirks
 
-- The worker's starting branch is not guaranteed: workers have started on the default branch with the orchestrator on the integration branch. The brief's first commands cut the right branch from `origin/<base>`, which is the mechanism; do not rely on switching your own checkout.
+- The worker's starting branch is not guaranteed: workers have started on the default branch with the orchestrator on the integration branch. The brief's first commands take the pushed `sdd/<N>-<slug>` or cut a new one from `origin/<base>`, and confirm the base either way, which is the mechanism; do not rely on switching your own checkout.
 - `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` must be unset. Worktree Waves and agent teams exclude each other in one session; if the flag is set, stop and tell the user.
 - A worker needs the session folder to be the checkout of the repository that owns the issue, because the `spp:worker` agent cuts its worktree from that folder. From a folder that is not a git repository (a parent folder that holds several checkouts, say), every start fails with `Cannot create agent worktree: not in a git repository`, and `spp dispatch <N>` refuses. Check with `git rev-parse --git-dir` before the first Wave. When it fails, start no worker, of any agent type: stop and tell the user to run `/build` from inside that checkout.
 - Subagent worktrees land under `.claude/worktrees/`; check it is gitignored before the first Wave.
@@ -47,3 +47,11 @@ git branch -d sdd/<N>-<slug>      # -d refuses an unmerged branch, which is the 
 ```
 
 A handed-back pull request keeps its branch: skip the last line. Remove only the worktree of a worker that has ended, which its report or its wake-up tells you.
+
+A dead worker (one an earlier session started, before a fresh worker takes its branch or a lost worker restarts) is removed with `--force`, since its tree may be dirty, and `-D`, since its branch is unmerged. Find its worktree with `git worktree list`, the one on its `sdd/<N>-*` branch:
+
+```bash
+git worktree unlock <path>
+git worktree remove --force <path>
+git branch -D sdd/<N>-<slug>      # its pushed commits stay on origin
+```

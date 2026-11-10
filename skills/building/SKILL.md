@@ -43,7 +43,7 @@ Each worker is one isolated subagent, the `spp:worker` agent, in a worktree of i
 | Write a worker's brief | `spp dispatch <N>` (it refuses an issue that is held); `spp brief <N>` writes the file alone |
 | Start a worker | one `spp:worker` subagent, with the brief's path as the prompt |
 | Wake when work changes | `spp wait <epic>` run in the background; a worker also wakes you when it ends |
-| Resume a worker | message the same worker by name; one this session did not start died with its session, so `EPIC.md` starts a fresh one |
+| Resume a worker | message the same worker at the address its start returned; one this session did not start died with its session, so `EPIC.md` starts a fresh one |
 | Start the fresh reviewer | the `review` skill starts it |
 | Settle a design | the `grilling` skill, then `domain-modeling` |
 
