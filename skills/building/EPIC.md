@@ -2,6 +2,8 @@
 
 Read only when `spp kind` says `epic`. `<epic>` is the Epic's number or URL. The loop is one rule: run `spp next <epic> --json`, do every action in its `actions` array, run it again. It ends at `close` or `stuck`. The first `spp next` of each run is `spp next <epic> --json --resume`, and every later one drops `--resume`: a run that starts on an Epic already under way may follow a session that died with its workers, and `--resume` returns each issue they left claimed with no pull request and no assignee as a `hand-back` saying `worker lost`.
 
+Keep a started list: the issues whose workers this session started and that have not reported back. Every `spp next` passes it as `--started <N>,<N>` (leave the flag off while the list is empty), so an issue between its worker's start and its claim is neither dispatched again nor run beside an issue that shares its files. Add an issue when its worker starts; take it off when the worker reports back or its start fails. A new session starts with an empty list.
+
 Each action has a `kind`, the `tickets` and `pr` it concerns, and a `reason`. Handle by `kind`:
 
 | Action | Do |
@@ -36,7 +38,7 @@ Wait for the user's yes. When the parent session relays an answer, quoted as the
 
 Then, for each issue in the action:
 
-1. Write its brief and start its worker as step 2 of `SKILL.md` says. A worker's first commands cut `sdd/<N>-<slug>` from the integration branch, so the checkout it starts on does not matter.
+1. Write its brief and start its worker as step 2 of `SKILL.md` says, and add the issue to the started list. A worker's first commands cut `sdd/<N>-<slug>` from the integration branch, so the checkout it starts on does not matter.
 2. Record the Wave once: `spp wave <epic> add --n <wave> --tickets <issues> --workers <names> --started <ISO8601> --edges none`. `<wave>` is one more than the Waves already listed. List an edge as `consumer<producer` only for a blocked-by edge you added yourself.
 
 Done when every issue in the action has a worker and the Wave is recorded.

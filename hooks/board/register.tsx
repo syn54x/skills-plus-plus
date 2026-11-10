@@ -69,7 +69,7 @@ async function notesOf($: EngineInterface, state: EpicState): Promise<Map<string
 }
 
 async function workersOf($: EngineInterface): Promise<BoardWorker[]> {
-  return (await $.agent.list()).map(a => ({ name: a.description, kind: 'subagent' as const, agentId: a.id }))
+  return (await $.agent.list()).map(a => ({ name: a.description, agentId: a.id }))
 }
 
 // The snapshot with the pull requests into the integration branch, one request per repo spp names, as `spp status`
@@ -102,7 +102,7 @@ async function load($: EngineInterface, epic: string): Promise<Board> {
     return { ...EMPTY, epic, error: `gh: ${firstLine((e as Error).message)}` }
   }
   const notes = await notesOf($, state).catch((e: Error) => (errors.push(`notes: ${firstLine(e.message)}`), new Map()))
-  const workers = await workersOf($).catch((e: Error) => (errors.push(e.message), []))
+  const workers = await workersOf($).catch((e: Error) => (errors.push(`agent list: ${firstLine(e.message)}`), []))
   const waves = wavesOf(snapshot.wave, state)
   const tickets: BoardTicket[] = state.tickets.map(t => ({
     number: t.number,

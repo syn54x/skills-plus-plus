@@ -75,6 +75,11 @@ describe("happy path", () => {
 });
 
 describe("edge cases", () => {
+  test("--started 301: 301 is in flight, left out, and 302 sharing its file is held", async () => {
+    const p = await plan([{ n: 301, modify: ["src/a.ts"] }, { n: 302, modify: ["src/a.ts"] }, { n: 303, modify: ["src/c.ts"] }], "--started", "301");
+    assert.deepEqual(p, { wave: ["303"], held: [{ ticket: "302", reason: "shares src/a.ts with 301" }] });
+  });
+
   test("A and B both Modify the same file: only A in wave, B held with 'shares <path> with A'", async () => {
     const p = await plan([{ n: 301, modify: ["src/a.ts"] }, { n: 302, modify: ["src/a.ts"] }]);
     assert.deepEqual(p, { wave: ["301"], held: [{ ticket: "302", reason: "shares src/a.ts with 301" }] });

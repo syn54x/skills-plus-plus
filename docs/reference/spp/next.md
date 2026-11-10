@@ -1,7 +1,12 @@
-`spp next <epic> [--json] [--resume]` prints the build's next actions, one per line. The build loop is: run
+`spp next <epic> [--json] [--resume] [--started <tickets>]` prints the build's next actions, one per line. The build loop is: run
 `spp next`, do what it says, run it again. It reads the Epic's preconditions, its state, CI on open pull requests,
 the gate's verdict history and the pull request to the base branch, all from GitHub, never from local state or a
 session list. With `--json` it prints [NextActions](#nextactions).
+
+With `--started`, the comma-separated tickets (numbers in the Epic's repo, `owner/repo#N` or issue URLs) whose
+workers this session started and that have not reported back count as in flight while they are still ready: none
+is dispatched again, and a ready ticket that overlaps one is held. Without it nothing is held that way, so a new
+session, or a restart after `spp unclaim`, dispatches them.
 
 With `--resume`, for the first call of a run, a Sub-issue that is claimed, has no open or merged pull request and
 no assignee comes back as a `hand-back` action with the reason `worker lost`: the session that started its worker
@@ -22,7 +27,7 @@ Prints the build's next actions.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `args` | `string`[] | The Epic (an issue number in the current repo or an issue URL), `--json` for the [NextActions](#nextactions) shape, and `--resume` to report each lost worker as a `hand-back`. |
+| `args` | `string`[] | The Epic (an issue number in the current repo or an issue URL), `--json` for the [NextActions](#nextactions) shape, `--resume` to report each lost worker as a `hand-back`, and `--started` with the tickets whose workers this session started and that have not reported back. |
 
 #### Returns
 
@@ -36,6 +41,7 @@ Prints the build's next actions.
 ```bash
 spp next 197
 spp next 197 --resume --json
+spp next 197 --json --started 201,202
 ```
 
 ## Variables
@@ -49,9 +55,11 @@ const USAGE: string;
 The usage text `spp next --help` prints.
 
 ```text
-usage: spp next <epic number | issue URL> [--json] [--resume]
+usage: spp next <epic number | issue URL> [--json] [--resume] [--started 101,owner/repo#7]
 Prints the next actions: preflight, branch, dispatch, gate, fix, hand-back, merge, wait, main-gate, close or stuck.
 --resume, on a run's first call, hands back each claimed Sub-issue with no pull request and no assignee as "worker lost".
+--started names the tickets whose workers this session started and that have not reported back; while still ready,
+they are in flight: not dispatched again, and a ready ticket that overlaps one is held.
 ```
 
 ## Type Aliases

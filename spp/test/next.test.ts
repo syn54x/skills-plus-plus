@@ -20,6 +20,7 @@ type Opts = {
   epicState?: string;
   driver?: string;
   fixes?: PrSpec[]; // open or merged pull requests into the integration branch that close no Sub-issue
+  started?: string; // pass --started with these tickets
 };
 type Action = { kind: string; tickets?: string[]; pr?: string; driver?: string; panel?: boolean; reason: string };
 
@@ -130,7 +131,7 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
   const routing = ["<!-- sdd-routing -->", "- Mode: org", "- Laws: CLAUDE.md", ...(o.panel ? [`- Panel: ${o.panel}`] : []), "<!-- /sdd-routing -->"];
   writeFileSync(join(dir, "CLAUDE.md"), routing.join("\n") + "\n");
-  writeFileSync(join(dir, "args"), `197\n--json\n${o.resume ? "--resume\n" : ""}`);
+  writeFileSync(join(dir, "args"), `197\n--json\n${o.resume ? "--resume\n" : ""}${o.started !== undefined ? `--started\n${o.started}\n` : ""}`);
   return dir;
 }
 
@@ -394,6 +395,37 @@ describe("in-flight work holds an overlapping ready ticket until it merges", () 
   test("an in-flight ticket that touches other files holds nothing", async () => {
     const actions = await next([{ n: 12, labels: [...READY, "claimed"], files: ["src/y.ts"] }, C]);
     assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["13"]]]);
+  });
+});
+
+// F5 on #430: the build names the tickets whose workers it started and that have not reported back, so a ticket
+// between spp dispatch and its worker's claim is never dispatched twice.
+describe("--started holds the tickets this session's workers have not claimed yet", () => {
+  test("#12 started, no claim, no pull request: wait, not dispatched again", async () => {
+    const actions = await next([{ n: 12 }], { started: "12" });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#12 started, not claimed yet/);
+  });
+
+  test("#12 started holds #13, which shares its file", async () => {
+    const actions = await next([{ n: 12, files: ["src/x.ts"] }, { n: 13, files: ["src/x.ts"] }], { started: ISSUE + 12 });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#13 held: shares src\/x\.ts with 12/);
+  });
+
+  test("a restart after spp unclaim 12, with no --started, dispatches #12", async () => {
+    const actions = await next([{ n: 12 }]);
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["12"]]]);
+  });
+
+  test("#12 started and handed back holds nothing: #13 sharing its file is dispatched", async () => {
+    const actions = await next([{ n: 12, labels: ["size:S", "needs-info"], files: ["src/x.ts"] }, { n: 13, files: ["src/x.ts"] }], { started: "12" });
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["13"]]]);
+  });
+
+  test("--started takes a malformed ticket as a usage error", async () => {
+    const r = await runCase("next", scratch([{ n: 12 }], { started: "twelve" }));
+    assert.equal(r.code, 2);
   });
 });
 

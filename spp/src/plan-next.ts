@@ -27,6 +27,7 @@ export type NextInput = {
   state: EpicState;
   panel: Routing["panel"];
   resume: boolean; // the first spp next of a run: report each lost worker
+  started?: Set<string>; // URLs of ready tickets whose workers this session started and that have not claimed yet (--started)
   wave: { wave: string[]; held: { ticket: string; reason: string }[] }; // over the dispatchable ready tickets
   checks: Record<string, { result: string; failing: string[] }>; // by pull request URL: pass, fail, pending or none, and the failing runs
   failedHeads: Record<string, number>; // by pull request URL: the heads a verdict or CI failed on, from GitHub
@@ -121,7 +122,10 @@ export function planNext(input: NextInput): Action[] {
     const pr = t.pr?.url ?? "";
     const one = { tickets: [id(t)], pr };
     const c = checks[pr] ?? { result: "pending", failing: [] };
-    if (t.state === "ready") continue; // dispatched above, or held by the wave
+    if (t.state === "ready") {
+      if (input.started?.has(t.url)) waitingOn.push(`${ref(t.url)} started, not claimed yet`);
+      continue; // dispatched above, or held by the wave
+    }
     if (resume && lostWorker(t)) {
       // A resumed build lost its workers with its session: a claim with no pull request is work nobody is doing.
       const reason = `${ref(t.url)} is claimed with no pull request and no assignee${t.worker ? `, by ${t.worker}` : ""}: worker lost; ask the user before handing it back`;

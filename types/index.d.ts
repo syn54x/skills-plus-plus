@@ -4,7 +4,7 @@
 
 // A live worker the board can act on: a subagent of this session from $.agent.list(), named by its Agent call's
 // description. Every worker is a subagent, so opened in the Build session the board lists them all.
-export type BoardWorker = { name: string; kind: 'subagent'; agentId: string }
+export type BoardWorker = { name: string; agentId: string }
 
 // One Sub-issue's row.
 export type BoardTicket = {
