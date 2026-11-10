@@ -23,12 +23,14 @@ export type Action = {
 // How many ready tickets one Wave starts at most, unless `spp wave plan --max` says otherwise.
 export const DEFAULT_WAVE_MAX = 4;
 
+// The reason `spp wave plan` holds a ready ticket that `--running` names: the build started its worker, which has not claimed yet.
+export const RUNNING = "running, not claimed yet";
+
 export type NextInput = {
   state: EpicState;
   panel: Routing["panel"];
   resume: boolean; // the first spp next of a run: report each lost worker
-  started?: Set<string>; // URLs of ready tickets whose workers this session started and that have not claimed yet (--started)
-  wave: { wave: string[]; held: { ticket: string; reason: string }[] }; // over the dispatchable ready tickets
+  wave: { wave: string[]; held: { ticket: string; reason: string }[] }; // over the ready tickets, a running one held with the reason RUNNING
   checks: Record<string, { result: string; failing: string[] }>; // by pull request URL: pass, fail, pending or none, and the failing runs
   failedHeads: Record<string, number>; // by pull request URL: the heads a verdict or CI failed on, from GitHub
   mainPr: { url: string; state: PrState; lines: number } | null; // the pull request from the integration branch
@@ -84,7 +86,11 @@ export function planNext(input: NextInput): Action[] {
   const ready = new Map(state.tickets.map((t) => [t.repo === state.epic.repo ? String(t.number) : `${t.repo}#${t.number}`, t]));
   const wave = input.wave.wave.map((w) => ready.get(w)!);
   if (wave.length) actions.push({ kind: "dispatch", tickets: wave.map(id), reason: `${wave.length} ready ticket(s) can run together` });
-  for (const h of input.wave.held) idle.push(`${ref(ready.get(h.ticket)!.url)} held: ${h.reason}`);
+  // A running ticket is in flight, so it makes the build wait; any other held ticket only idles.
+  for (const h of input.wave.held) {
+    if (h.reason === RUNNING) waitingOn.push(`${ref(ready.get(h.ticket)!.url)} ${RUNNING}`);
+    else idle.push(`${ref(ready.get(h.ticket)!.url)} held: ${h.reason}`);
+  }
 
   // The routing a slice and a fix share for an open pull request that has no verdict or a failed one: gate, fix, hand back or wait.
   const route = (st: string, pr: string, one: Action, c: { result: string; failing: string[] }, handBack: string): Action | string => {
@@ -122,10 +128,7 @@ export function planNext(input: NextInput): Action[] {
     const pr = t.pr?.url ?? "";
     const one = { tickets: [id(t)], pr };
     const c = checks[pr] ?? { result: "pending", failing: [] };
-    if (t.state === "ready") {
-      if (input.started?.has(t.url)) waitingOn.push(`${ref(t.url)} started, not claimed yet`);
-      continue; // dispatched above, or held by the wave
-    }
+    if (t.state === "ready") continue; // dispatched above, or held by the wave
     if (resume && lostWorker(t)) {
       // A resumed build lost its workers with its session: a claim with no pull request is work nobody is doing.
       const reason = `${ref(t.url)} is claimed with no pull request and no assignee${t.worker ? `, by ${t.worker}` : ""}: worker lost; ask the user before handing it back`;

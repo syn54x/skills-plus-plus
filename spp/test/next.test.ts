@@ -20,7 +20,8 @@ type Opts = {
   epicState?: string;
   driver?: string;
   fixes?: PrSpec[]; // open or merged pull requests into the integration branch that close no Sub-issue
-  started?: string; // pass --started with these tickets
+  running?: string; // pass --running with these tickets
+  waves?: string[]; // tickets listed on the Epic's wave comment as Wave 1, by t-<N> workers
 };
 type Action = { kind: string; tickets?: string[]; pr?: string; driver?: string; panel?: boolean; reason: string };
 
@@ -83,7 +84,7 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
               url: ISSUE + 197,
               title: "Epic",
               repository: { nameWithOwner: "acme/app" },
-              comments: { nodes: [by(plan)] },
+              comments: { nodes: [by(plan), ...(o.waves ? [by(trailer("<!-- sdd-wave -->", { waves: [{ n: 1, tickets: o.waves, workers: o.waves.map((t) => `t-${t}`), started: "2026-11-02T00:00:00Z", edges: [], prs: {} }], panel: [] }))] : [])] },
               subIssues: { nodes: tickets.map(node) },
             },
           },
@@ -131,7 +132,7 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
   const routing = ["<!-- sdd-routing -->", "- Mode: org", "- Laws: CLAUDE.md", ...(o.panel ? [`- Panel: ${o.panel}`] : []), "<!-- /sdd-routing -->"];
   writeFileSync(join(dir, "CLAUDE.md"), routing.join("\n") + "\n");
-  writeFileSync(join(dir, "args"), `197\n--json\n${o.resume ? "--resume\n" : ""}${o.started !== undefined ? `--started\n${o.started}\n` : ""}`);
+  writeFileSync(join(dir, "args"), `197\n--json\n${o.resume ? "--resume\n" : ""}${o.running !== undefined ? `--running\n${o.running}\n` : ""}`);
   return dir;
 }
 
@@ -398,34 +399,50 @@ describe("in-flight work holds an overlapping ready ticket until it merges", () 
   });
 });
 
-// F5 on #430: the build names the tickets whose workers it started and that have not reported back, so a ticket
-// between spp dispatch and its worker's claim is never dispatched twice.
-describe("--started holds the tickets this session's workers have not claimed yet", () => {
-  test("#12 started, no claim, no pull request: wait, not dispatched again", async () => {
-    const actions = await next([{ n: 12 }], { started: "12" });
+// F5 on #430 and R2-F4, R2-F10, R2-F16: the build names each ticket from its worker's start until the worker reports
+// back; spp counts only those still ready, so a ticket between spp dispatch and its worker's claim is never dispatched twice.
+describe("--running holds the tickets this session's workers have not claimed yet", () => {
+  test("#12 running, no claim, no pull request: wait, not dispatched again", async () => {
+    const actions = await next([{ n: 12 }], { running: "12" });
     assert.deepEqual(kinds(actions), ["wait"]);
-    assert.match(actions[0].reason, /#12 started, not claimed yet/);
+    assert.match(actions[0].reason, /in flight: #12 running, not claimed yet/);
   });
 
-  test("#12 started holds #13, which shares its file", async () => {
-    const actions = await next([{ n: 12, files: ["src/x.ts"] }, { n: 13, files: ["src/x.ts"] }], { started: ISSUE + 12 });
+  test("#12 running holds #13, which shares its file", async () => {
+    const actions = await next([{ n: 12, files: ["src/x.ts"] }, { n: 13, files: ["src/x.ts"] }], { running: ISSUE + 12 });
     assert.deepEqual(kinds(actions), ["wait"]);
     assert.match(actions[0].reason, /#13 held: shares src\/x\.ts with 12/);
   });
 
-  test("a restart after spp unclaim 12, with no --started, dispatches #12", async () => {
-    const actions = await next([{ n: 12 }]);
-    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["12"]]]);
-  });
-
-  test("#12 started and handed back holds nothing: #13 sharing its file is dispatched", async () => {
-    const actions = await next([{ n: 12, labels: ["size:S", "needs-info"], files: ["src/x.ts"] }, { n: 13, files: ["src/x.ts"] }], { started: "12" });
+  test("a ticket named as owner/repo#N: --running acme/app#12 holds #12", async () => {
+    const actions = await next([{ n: 12 }, { n: 13 }], { running: "acme/app#12" });
     assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["13"]]]);
   });
 
-  test("--started takes a malformed ticket as a usage error", async () => {
-    const r = await runCase("next", scratch([{ n: 12 }], { started: "twelve" }));
+  test("a restart after spp unclaim 12: GitHub still shows t-12 on the Worker line and in Wave 1, yet only --running holds it", async () => {
+    const residue: Spec[] = [{ n: 12, worker: "t-12" }];
+    assert.deepEqual(kinds(await next(residue, { waves: ["12"], running: "12" })), ["wait"], "the session that started t-12 holds it");
+    const restarted = await next(residue, { waves: ["12"] });
+    assert.deepEqual(restarted.map((a) => [a.kind, a.tickets]), [["dispatch", ["12"]]], "a new session, with no --running, dispatches it");
+  });
+
+  test("#12 running and handed back holds nothing: #13 sharing its file is dispatched", async () => {
+    const actions = await next([{ n: 12, labels: ["size:S", "needs-info"], files: ["src/x.ts"] }, { n: 13, files: ["src/x.ts"] }], { running: "12" });
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["13"]]]);
+  });
+
+  test("--running takes a malformed ticket as a usage error", async () => {
+    const r = await runCase("next", scratch([{ n: 12 }], { running: "twelve" }));
     assert.equal(r.code, 2);
+    assert.match(r.stderr, /--running takes 101,owner\/repo#7/);
+  });
+
+  test("--running with no value is a usage error, the same one spp wave plan gives", async () => {
+    const dir = scratch([{ n: 12 }]);
+    writeFileSync(join(dir, "args"), "197\n--json\n--running\n");
+    const r = await runCase("next", dir);
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /--running takes 101,owner\/repo#7/);
   });
 });
 
