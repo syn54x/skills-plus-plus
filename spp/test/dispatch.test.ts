@@ -37,8 +37,8 @@ function scratch(args: string[] = [], labels: string[] = ["ready-for-agent"], as
     "issue view 12 --json url,labels,assignees": {
       stdout: { url: ISSUE + 12, labels: labels.map((name) => ({ name })), assignees: assignees.map((login) => ({ login })) },
     },
-    "issue view 12 --json number,title,url,body,parent": {
-      stdout: { number: 12, title: "Invoice endpoint", url: ISSUE + 12, body: "## What to build\n\nAn endpoint.\n", parent: { url: ISSUE + 197 } },
+    "issue view 12 --json number,title,url,body,parent,state": {
+      stdout: { number: 12, title: "Invoice endpoint", url: ISSUE + 12, body: "## What to build\n\nAn endpoint.\n", state: "OPEN", parent: { url: ISSUE + 197 } },
     },
     [`api repos/acme/app/issues/197/comments --paginate --jq ${JQ}`]: { stdout: JSON.stringify([1, PLAN, "maint", "OWNER"]) + "\n" },
     [`api repos/{owner}/{repo}/issues/12/comments --paginate --jq ${JQ}`]: { stdout: "" },

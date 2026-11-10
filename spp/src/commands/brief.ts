@@ -21,7 +21,7 @@ Writes the worker brief for the ticket (its body verbatim, the Laws sources, the
 and prints the file's path. Without --out the file is a new one in the temp directory.
 `;
 
-type Issue = { number: number; title: string; url: string; body: string; parent: { url: string } | null };
+type Issue = { number: number; title: string; url: string; body: string; state: string; parent: { url: string } | null };
 
 // The branch the ticket's PR targets: its Epic's integration branch, else the repo's default branch (a One-off).
 async function baseBranch(issue: Issue): Promise<string> {
@@ -39,18 +39,23 @@ function render(issue: Issue, base: string, laws: string[], checkout: string): s
   const n = issue.number;
   const branch = `sdd/${n}-${slug(issue.title)}`;
   const repo = /github\.com\/([^/]+\/[^/]+)\/issues\//.exec(issue.url)![1];
+  // A closed ticket's own branch has merged (squashed, so a rebase would replay it): a fix worker never takes it.
+  const closed = issue.state === "CLOSED";
+  const ask = closed
+    ? `pushed=2  # #${n} is closed: its own branch merged, so never take it`
+    : `pushed=0; git ls-remote --exit-code --heads origin ${branch} >/dev/null || pushed=$?`;
   return `You are t-${n}, implementing ${issue.url}${issue.parent ? ` of the epic ${issue.parent.url}` : ""}.
 Start in the checkout at ${checkout}; the ticket, its branch and its PR all live in ${repo} and nowhere else.
-First, before anything else, whatever branch this worktree started on, take your branch: the pushed \`${branch}\` when origin has it (an earlier worker on this ticket pushed it, so you continue its work), rebased onto the remote ${issue.parent ? "integration" : "base"} branch when it is behind; else a new one cut from that branch. Either way its base is confirmed. Run it as one command:
+First, before anything else, whatever branch this worktree started on, take your branch: ${closed ? "" : `the pushed \`${branch}\` when origin has it (an earlier worker on this ticket pushed it, so you continue its work), rebased onto the remote ${issue.parent ? "integration" : "base"} branch when it is behind; else `}a new one cut from ${closed ? `the remote ${issue.parent ? "integration" : "base"} branch, since #${n} is closed and its own branch has merged` : "that branch"}. Either way its base is confirmed. Run it as one command:
 
     (
       set -e
       git fetch origin ${base}
-      pushed=0; git ls-remote --exit-code --heads origin ${branch} >/dev/null || pushed=$?
+      ${ask}
       if [ "$pushed" = 0 ]; then
         git fetch origin ${branch}
         git switch -c ${branch} origin/${branch}
-        git merge-base --is-ancestor origin/${base} HEAD || git rebase origin/${base}
+        git merge-base --is-ancestor origin/${base} HEAD || git rebase origin/${base} || { git rebase --abort; exit 1; }
       elif [ "$pushed" = 2 ]; then
         git switch -c ${branch} origin/${base}
       else
@@ -111,7 +116,7 @@ export function run(args: string[]): Promise<number> {
     const out = flagPairs(rest, ["--out"]).find(([f]) => f === "--out")?.[1];
     const found = readRouting(process.cwd());
     if (!found) throw new Error("no Routing block in CLAUDE.md or AGENTS.md; run /setup-spp");
-    const issue = JSON.parse(await runGh(["issue", "view", target.arg, "--json", "number,title,url,body,parent"])) as Issue;
+    const issue = JSON.parse(await runGh(["issue", "view", target.arg, "--json", "number,title,url,body,parent,state"])) as Issue;
     const file = out ?? join(mkdtempSync(join(tmpdir(), "spp-brief-")), `brief-${issue.number}.md`);
     writeFileSync(file, render(issue, await baseBranch(issue), found.routing.laws, process.cwd()));
     process.stdout.write(file + "\n");

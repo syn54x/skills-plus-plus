@@ -59,7 +59,7 @@ A worker this session did not start is gone: a subagent worker dies with its Bui
 2. Write the brief with `spp brief <N>` (`spp dispatch` refuses the issue, which is still claimed). Its first step takes the pushed `sdd/<N>-<slug>` from origin and brings it onto the integration branch.
 3. Start the worker as step 2 of `SKILL.md` says, its description starting `t-<N>` so the claim reads as its own, and add the issue to the running list. Its prompt sends it past `implement-issue`'s readiness check, which would stop on a closed Sub-issue, straight to the fix round: `Your full brief is the file <path>. Read it and run its first step. Then go straight to implement-issue's fix round (FIX-ROUND.md) for <issue URL> on that branch: the claim and the branch are already yours, so skip readiness and the claim. Pull request: <URL>. Findings, verbatim: <findings>.`
 
-A fix pull request is handled the same way: its Sub-issue is already closed, so only that prompt can reach the fix round. Its branch is not the brief's, so free the branch its head names, and the prompt also tells the worker to switch to it (`git switch -c <branch> origin/<branch>`) after the brief's first step.
+A fix pull request is handled the same way: its Sub-issue is already closed, so only that prompt can reach the fix round. Its branch is not the brief's (for a closed issue the brief's first step leaves the merged `sdd/<N>-<slug>` alone and cuts a new one from the integration branch), so free the branch its head names, and the prompt also tells the worker to switch to it (`git switch -c <branch> origin/<branch>`) after the brief's first step.
 
 ## Hand-back
 
