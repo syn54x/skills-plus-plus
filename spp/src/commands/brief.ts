@@ -44,12 +44,18 @@ First, before anything else, cut your branch from the remote ${issue.parent ? "i
 
     (
       set -e
+      rc=0; git ls-remote --exit-code --heads origin ${branch} >/dev/null || rc=$?
+      case $rc in
+        2) ;;
+        0) echo "BLOCKED: origin already has ${branch}; delete it or hand the issue back" >&2; exit 1 ;;
+        *) echo "BLOCKED: origin is unreachable (git ls-remote exited $rc)" >&2; exit 1 ;;
+      esac
       git fetch origin ${base}
       git switch -c ${branch} origin/${base}
       test "$(git merge-base HEAD origin/${base})" = "$(git rev-parse origin/${base})"
     )
 
-If it fails (a fetch or a switch that fails, or the base check), stop and report BLOCKED; write no code on a branch with any other base.
+If it fails (origin already has the branch or cannot be reached, a fetch or a switch that fails, or the base check), stop and report BLOCKED with what it printed; write no code on a branch with any other base.
 Then run the implement-issue skill for ${issue.url} and follow it. This brief is the context that skill assumes.
 
 ## Ticket (verbatim)
@@ -66,6 +72,7 @@ ${issue.parent ? `- the epic ${issue.parent.url}: the Implementation Decisions t
 - Branch \`${branch}\`, cut from \`origin/${base}\` by the first step above; open the PR into \`${base}\` with \`Closes #${n}\` on its first line. Do not merge.
 - Claim #${n} with \`spp claim ${n}\` and write t-${n} on the Worker line of the progress comment (\`spp progress ${n} --worker t-${n}\`). The build starts you with an Agent description that begins t-${n}, and the Epic board finds you by it.
 - Progress is one comment on #${n}, rewritten in place through \`spp progress\`; never post a second one.
+- Never force-push: a push that origin rejects is a stop, reported BLOCKED, never a reason to overwrite what is there.
 - Commit as you go with conventional messages. The last commit before the PR is the one Verify ran on.
 - Write the PR body to a file unique to this ticket (for example \`$(mktemp -t pr-${n})\`), never a shared path.
 
