@@ -471,6 +471,25 @@ describe("--running holds the tickets this session's workers have not reported b
     assert.match(actions[0].reason, /#13 held: shares src\/x\.ts with 12/);
   });
 
+  // R4-F1 on #430: each answer to the dead-worker question leaves a mark spp next reads, so the action does not return.
+  test("taken over: #12 running at gate-fail, a dead worker's pull request: wait, not fix", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, verdict: FAIL } }], { running: "12" });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#12 running/);
+  });
+
+  test("handed back, a slice: #12 ready-for-human with its gate-fail pull request open is neither routed nor waited on", async () => {
+    const actions = await next([{ n: 12, labels: ["size:S", "ready-for-human"], pr: { n: 40, verdict: FAIL } }]);
+    assert.deepEqual(kinds(actions), ["stuck"]);
+    assert.match(actions[0].reason, /#12 is handed back/);
+  });
+
+  test("handed back, a main-gate fix: closed at gate-fail, it no longer holds main-gate", async () => {
+    const actions = await next([merged(12)], { fixes: [{ n: 77, body: "Refs #12", verdict: FAIL, state: "CLOSED" }], mainPr: { state: "OPEN", lines: 50 } });
+    assert.deepEqual(kinds(actions), ["main-gate"]);
+    assert.ok(actions[0].pr);
+  });
+
   test("--running takes a malformed ticket as a usage error", async () => {
     const r = await runCase("next", scratch([{ n: 12 }], { running: "twelve" }));
     assert.equal(r.code, 2);
