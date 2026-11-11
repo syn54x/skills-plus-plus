@@ -1,8 +1,7 @@
 `spp brief <issue> [--out FILE]` writes the worker brief for one Sub-issue and prints the file's path. The brief
-holds the ticket body verbatim, the Laws sources from the Routing block, the branch mechanics (the ticket's pushed
-branch brought onto the base, or a new one cut from the Epic's integration branch, or from the default branch for a
-One-off), the worker's name `t-<N>` and the report format (one fenced JSON object). Without `--out` the file goes in
-a new temporary directory. It has no `--json`.
+holds the ticket body verbatim, the Laws sources from the Routing block, the branch mechanics (cut from the Epic's
+integration branch, or from the default branch for a One-off), the worker's name `t-<N>` and the report format (one
+fenced JSON object). Without `--out` the file goes in a new temporary directory. It has no `--json`.
 
 ## Functions
 

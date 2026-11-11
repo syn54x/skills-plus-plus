@@ -29,18 +29,18 @@ const BODY = [
   "- #201",
 ].join("\n");
 
-type Opts = { claude?: string | null; parent?: boolean; planData?: unknown; extra?: string[]; title?: string; closed?: boolean };
+type Opts = { claude?: string | null; parent?: boolean; planData?: unknown; extra?: string[]; title?: string };
 
 // A case directory for ticket 12 in acme/app whose Epic 197 plan comment carries `planData`.
-function scratch({ claude = ROUTING, parent = true, planData = { branch: "feat/invoices" }, extra = [], title = "Add the invoice endpoint!", closed = false }: Opts = {}) {
+function scratch({ claude = ROUTING, parent = true, planData = { branch: "feat/invoices" }, extra = [], title = "Add the invoice endpoint!" }: Opts = {}) {
   const dir = mkdtempSync(join(tmpdir(), "spp-brief-"));
   const out = join(dir, "brief-12.md");
   if (claude !== null) writeFileSync(join(dir, "CLAUDE.md"), claude);
-  const issue = { number: 12, title, url: "https://github.com/acme/app/issues/12", body: BODY, state: closed ? "CLOSED" : "OPEN", parent: parent ? { number: 197, url: "https://github.com/acme/app/issues/197" } : null };
+  const issue = { number: 12, title, url: "https://github.com/acme/app/issues/12", body: BODY, parent: parent ? { number: 197, url: "https://github.com/acme/app/issues/197" } : null };
   writeFileSync(
     join(dir, "gh.json"),
     JSON.stringify({
-      "issue view 12 --json number,title,url,body,parent,state": { stdout: issue },
+      "issue view 12 --json number,title,url,body,parent": { stdout: issue },
       [`api repos/acme/app/issues/197/comments --paginate --jq ${JQ}`]: { stdout: plan(planData) },
       "repo view acme/app --json defaultBranchRef --jq .defaultBranchRef.name": { stdout: "main\n" },
     }),
@@ -70,16 +70,6 @@ describe("happy path", () => {
     assert.ok(brief.includes('test "$(git merge-base HEAD origin/feat/invoices)" = "$(git rev-parse origin/feat/invoices)"'));
     assert.match(brief, /PR into `feat\/invoices` with `Closes #12`/);
     assert.match(brief, /## Report/);
-  });
-
-  test("the first step asks origin whether the ticket's branch exists, and confirms the base after either arm", async () => {
-    const { dir, out } = scratch({ extra: ["--out", "OUT"] });
-    await runCase("brief", dir);
-    const brief = readFileSync(out, "utf8");
-    assert.ok(brief.includes("git ls-remote --exit-code --heads origin sdd/12-add-the-invoice-endpoint"));
-    assert.ok(brief.includes("git switch -c sdd/12-add-the-invoice-endpoint origin/sdd/12-add-the-invoice-endpoint\n"));
-    assert.ok(brief.indexOf("fi\n") < brief.indexOf('test "$(git merge-base HEAD origin/feat/invoices)"'), "the base check runs after both arms");
-    assert.doesNotMatch(brief, /an earlier worker opened its pull request/);
   });
 
   test("the worker's name is t-<N>, the one its Agent description starts with, so the board can match it", async () => {
@@ -155,8 +145,8 @@ describe("error path", () => {
   });
 });
 
-// R2-F8 on #430: the brief's first step, run for real against an origin. The pushed branch is brought onto the base,
-// and an origin that cannot be reached stops the worker instead of reading as "no pushed branch".
+// The ruling after round 3 on #430: a worker never takes an existing branch, so the first step has one behaviour. Run
+// for real against an origin whose ticket branch is already pushed: the step still cuts a new branch from the base.
 describe("the first step, run", () => {
   const BRANCH = "sdd/12-add-the-invoice-endpoint";
   const BASE = "feat/invoices";
@@ -173,8 +163,7 @@ describe("the first step, run", () => {
     return git(cwd, "rev-parse", "HEAD");
   };
 
-  // An origin whose base has moved on since `pushed` (when given) was cut from it, and a fresh clone to run the step in.
-  async function setup(pushed?: { file: string; text: string }, closed = false) {
+  test("it cuts sdd/<N>-<slug> from the base, ignoring a pushed one, and confirms the base", async () => {
     const root = mkdtempSync(join(tmpdir(), "spp-brief-git-"));
     const origin = join(root, "origin.git");
     const seed = join(root, "seed");
@@ -182,63 +171,26 @@ describe("the first step, run", () => {
     git(root, "clone", "-q", origin, seed);
     commit(seed, "a.txt", "a\n");
     git(seed, "push", "-q", "origin", `HEAD:${BASE}`, "HEAD:main");
-    let work: string | undefined;
-    if (pushed) {
-      git(seed, "switch", "-qc", BRANCH);
-      work = commit(seed, pushed.file, pushed.text);
-      git(seed, "push", "-q", "origin", BRANCH);
-      git(seed, "switch", "-q", "--detach", `origin/${BASE}`);
-    }
+    git(seed, "switch", "-qc", BRANCH);
+    commit(seed, "c.txt", "c\n");
+    git(seed, "push", "-q", "origin", BRANCH);
+    git(seed, "switch", "-q", "--detach", `origin/${BASE}`);
     const base = commit(seed, "b.txt", "b\n");
     git(seed, "push", "-q", "origin", `HEAD:${BASE}`);
     const checkout = join(root, "checkout");
     git(root, "clone", "-q", origin, checkout);
-    const { dir, out } = scratch({ extra: ["--out", "OUT"], closed });
+    const { dir, out } = scratch({ extra: ["--out", "OUT"] });
     await runCase("brief", dir);
     const step = /\n\n((?: {4}.*\n)+)\n/.exec(readFileSync(out, "utf8"))![1].replace(/^ {4}/gm, "");
-    const run = () => spawnSync("bash", ["-c", step], { cwd: checkout, env, encoding: "utf8" });
-    return { checkout, origin, base, work, run };
-  }
-
-  test("a pushed branch cut from an older base is rebased onto the base, its commit kept", async () => {
-    const { checkout, base, run } = await setup({ file: "c.txt", text: "c\n" });
-    const r = run();
-    assert.equal(r.status, 0, r.stderr);
-    assert.equal(git(checkout, "branch", "--show-current"), BRANCH);
-    assert.equal(git(checkout, "merge-base", "HEAD", `origin/${BASE}`), base);
-    assert.equal(readFileSync(join(checkout, "c.txt"), "utf8"), "c\n");
-  });
-
-  test("no pushed branch: a new one is cut from the base", async () => {
-    const { checkout, base, run } = await setup();
-    const r = run();
+    assert.doesNotMatch(step, /ls-remote|rebase/, "no arm asks origin for a pushed branch");
+    assert.match(step, /test "\$\(git merge-base HEAD origin\/feat\/invoices\)" = "\$\(git rev-parse origin\/feat\/invoices\)"/);
+    const r = spawnSync("bash", ["-c", step], { cwd: checkout, env, encoding: "utf8" });
     assert.equal(r.status, 0, r.stderr);
     assert.equal(git(checkout, "branch", "--show-current"), BRANCH);
     assert.equal(git(checkout, "rev-parse", "HEAD"), base);
-  });
 
-  test("an origin that cannot be reached stops the step, and no branch is cut", async () => {
-    const { checkout, run } = await setup({ file: "c.txt", text: "c\n" });
-    git(checkout, "remote", "set-url", "origin", join(checkout, "nowhere.git"));
-    const r = run();
-    assert.notEqual(r.status, 0);
-    assert.equal(spawnSync("git", ["rev-parse", "--verify", "-q", BRANCH], { cwd: checkout, env }).status, 1);
-  });
-
-  test("a pushed branch whose rebase conflicts with the base stops the step, with no rebase left in progress", async () => {
-    const { checkout, run } = await setup({ file: "b.txt", text: "not b\n" });
-    assert.notEqual(run().status, 0);
-    assert.equal(git(checkout, "status", "--porcelain"), "");
-    assert.equal(existsSync(join(checkout, ".git", "rebase-merge")) || existsSync(join(checkout, ".git", "rebase-apply")), false);
-  });
-
-  // The quality gate on #433: a closed ticket's own branch merged (squashed, so not an ancestor of the base) and may
-  // still be on origin; a fresh worker for a fix pull request must not rebase it.
-  test("a closed ticket ignores its own pushed branch and cuts a new one from the base", async () => {
-    const { checkout, base, run } = await setup({ file: "b.txt", text: "not b\n" }, true);
-    const r = run();
-    assert.equal(r.status, 0, r.stderr);
-    assert.equal(git(checkout, "branch", "--show-current"), BRANCH);
-    assert.equal(git(checkout, "rev-parse", "HEAD"), base);
+    // A switch that fails (the branch already exists here) stops the step, though the base check alone would pass.
+    git(checkout, "switch", "-q", "--detach", `origin/${BASE}`);
+    assert.notEqual(spawnSync("bash", ["-c", step], { cwd: checkout, env, encoding: "utf8" }).status, 0, "a failed switch stops the step");
   });
 });

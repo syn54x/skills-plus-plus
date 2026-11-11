@@ -5,8 +5,9 @@
  * input that comes from the caller is `--running`. With `--json` it prints {@link NextActions}.
  *
  * `--running` takes the comma-separated tickets (numbers in the Epic's repo, `owner/repo#N` or issue URLs) the build
- * started a worker on, until that worker reports back. spp counts only those still ready: each is in flight, never
- * dispatched again, and a ready ticket that overlaps one is held. Without it nothing is held that way, so a new
+ * started a worker on, until that worker reports back. Each is in flight in any state, landed included: never
+ * dispatched, gated or sent to a fix round again, nor any fix pull request of its, `main-gate` waits for it, and a
+ * ready ticket that overlaps one that has not landed is held. Without it nothing is held that way, so a new
  * session, or a restart after `spp unclaim`, dispatches them.
  *
  * With `--resume`, for the first call of a run, a Sub-issue that is claimed, has no open or merged pull request and
@@ -24,7 +25,7 @@ import { readVerdict, VERDICT_MARKER } from "../verdict.ts";
 import { culprits, readChecks } from "./checks.ts";
 import { Failure, preflight } from "./preflight.ts";
 import { fetchState } from "./status.ts";
-import { runningFlag, runningOf, wavePlan } from "./wave.ts";
+import { runningFlag, runningTickets, wavePlan } from "./wave.ts";
 
 export type { Action, ActionKind } from "../plan-next.ts";
 
@@ -38,8 +39,9 @@ export type NextActions = {
 export const USAGE = `usage: spp next <epic number | issue URL> [--json] [--resume] [--running 101,owner/repo#7]
 Prints the next actions: preflight, branch, dispatch, gate, fix, hand-back, merge, wait, main-gate, close or stuck.
 --resume, on a run's first call, hands back each claimed Sub-issue with no pull request and no assignee as "worker lost".
---running names the tickets the build started a worker on, until that worker reports back; spp counts only those still
-ready, as in flight: not dispatched again, and a ready ticket that overlaps one is held.
+--running names the tickets the build started a worker on, until that worker reports back; each is in flight in any
+state: neither it nor its fixes are dispatched, gated or fixed again, main-gate waits, and a ready ticket that overlaps
+one is held.
 `;
 
 const PULL_URL = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)$/;
@@ -96,11 +98,12 @@ async function actions(arg: string, resume: boolean, running: string | undefined
   const branch = state.epic.branch;
   if (!branch) return [{ kind: "branch", reason: `epic ${epic.label} has no integration branch; run spp branch ${epic.arg}` }];
 
-  const openFixes = state.fixes.filter((f) => f.state === "OPEN");
-  const attributed = openFixes.filter((f) => f.ticket); // an unattributed fix is never gated, so its checks are not read
-  const prs = (st: string) => state.tickets.flatMap((t) => (t.pr && t.state === st ? [t.pr.url] : []));
+  const held = runningTickets(state, running);
+  // An unattributed fix is never gated, and nothing routes a running ticket or its fixes, so their checks are not read.
+  const attributed = state.fixes.filter((f) => f.state === "OPEN" && f.ticket && !held.has(f.ticket));
+  const prs = (st: string) => state.tickets.flatMap((t) => (t.pr && t.state === st && !held.has(t.url) ? [t.pr.url] : []));
   const [wave, checks, list] = await Promise.all([
-    wavePlan(state, DEFAULT_WAVE_MAX, runningOf(state, running)),
+    wavePlan(state, DEFAULT_WAVE_MAX, held),
     Promise.all([...prs("pr-open"), ...attributed.map((f) => f.url)].map(async (pr) => [pr, await readChecks(pr)] as const)),
     runGh(["pr", "list", "-R", state.epic.repo, "--head", branch, "--state", "all", "--json", "number,url,state,additions,deletions"]),
   ]);
@@ -110,6 +113,7 @@ async function actions(arg: string, resume: boolean, running: string | undefined
   const main = (JSON.parse(list) as MainPr[]).sort((a, b) => Number(b.state === "MERGED") - Number(a.state === "MERGED") || Number(b.state === "OPEN") - Number(a.state === "OPEN"))[0];
   return planNext({
     state,
+    running: held,
     panel,
     resume,
     wave,
