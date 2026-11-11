@@ -23,14 +23,14 @@ export type Action = {
 // How many ready tickets one Wave starts at most, unless `spp wave plan --max` says otherwise.
 export const DEFAULT_WAVE_MAX = 4;
 
-// The reason `spp wave plan` holds a ready ticket that `--running` names: the build started its worker, which has not claimed yet.
-export const RUNNING = "running, not claimed yet";
+// The reason `spp wave plan` holds a ticket that `--running` names: the build started its worker, which has not reported back.
+export const RUNNING = "running, its worker has not reported back";
 
 export type NextInput = {
   state: EpicState;
   panel: Routing["panel"];
   resume: boolean; // the first spp next of a run: report each lost worker
-  wave: { wave: string[]; held: { ticket: string; reason: string }[] }; // over the ready tickets, a running one held with the reason RUNNING
+  wave: { wave: string[]; held: { ticket: string; reason: string; running?: true }[] }; // over the ready tickets, plus each running one, in any state
   checks: Record<string, { result: string; failing: string[] }>; // by pull request URL: pass, fail, pending or none, and the failing runs
   failedHeads: Record<string, number>; // by pull request URL: the heads a verdict or CI failed on, from GitHub
   mainPr: { url: string; state: PrState; lines: number } | null; // the pull request from the integration branch
@@ -86,10 +86,15 @@ export function planNext(input: NextInput): Action[] {
   const ready = new Map(state.tickets.map((t) => [t.repo === state.epic.repo ? String(t.number) : `${t.repo}#${t.number}`, t]));
   const wave = input.wave.wave.map((w) => ready.get(w)!);
   if (wave.length) actions.push({ kind: "dispatch", tickets: wave.map(id), reason: `${wave.length} ready ticket(s) can run together` });
-  // A running ticket is in flight, so it makes the build wait; any other held ticket only idles.
+  // A running ticket is in flight whatever its state, so it makes the build wait and is routed no further; any other
+  // held ticket only idles.
+  const running = new Set<Ticket>();
   for (const h of input.wave.held) {
-    if (h.reason === RUNNING) waitingOn.push(`${ref(ready.get(h.ticket)!.url)} ${RUNNING}`);
-    else idle.push(`${ref(ready.get(h.ticket)!.url)} held: ${h.reason}`);
+    const t = ready.get(h.ticket)!;
+    if (h.running) {
+      running.add(t);
+      waitingOn.push(`${ref(t.url)} ${h.reason}`);
+    } else idle.push(`${ref(t.url)} held: ${h.reason}`);
   }
 
   // The routing a slice and a fix share for an open pull request that has no verdict or a failed one: gate, fix, hand back or wait.
@@ -124,7 +129,7 @@ export function planNext(input: NextInput): Action[] {
   }
 
   for (const t of order) {
-    if (done(t)) continue;
+    if (done(t) || running.has(t)) continue;
     const pr = t.pr?.url ?? "";
     const one = { tickets: [id(t)], pr };
     const c = checks[pr] ?? { result: "pending", failing: [] };

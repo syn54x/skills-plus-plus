@@ -399,13 +399,29 @@ describe("in-flight work holds an overlapping ready ticket until it merges", () 
   });
 });
 
-// F5 on #430 and R2-F4, R2-F10, R2-F16: the build names each ticket from its worker's start until the worker reports
-// back; spp counts only those still ready, so a ticket between spp dispatch and its worker's claim is never dispatched twice.
-describe("--running holds the tickets this session's workers have not claimed yet", () => {
+// F5 on #430, R2-F4, R2-F10, R2-F16 and the round 3 Spec finding: the build names each ticket from its worker's start
+// until the worker reports back, and spp holds it in any state until it lands, so no ticket gets a second worker.
+describe("--running holds the tickets this session's workers have not reported back on", () => {
   test("#12 running, no claim, no pull request: wait, not dispatched again", async () => {
     const actions = await next([{ n: 12 }], { running: "12" });
     assert.deepEqual(kinds(actions), ["wait"]);
-    assert.match(actions[0].reason, /in flight: #12 running, not claimed yet/);
+    assert.match(actions[0].reason, /in flight: #12 running, its worker has not reported back/);
+  });
+
+  test("#12 running at gate-fail, its fix round under way: wait, not fix", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, verdict: FAIL } }], { running: "12" });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#12 running/);
+  });
+
+  test("#12 running at pr-open with checks passing: wait, not gate", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40 } }], { running: "12" });
+    assert.deepEqual(kinds(actions), ["wait"]);
+  });
+
+  test("#12 running and landed holds nothing: #13 sharing its file is dispatched", async () => {
+    const actions = await next([{ ...merged(12), files: ["src/x.ts"] }, { n: 13, files: ["src/x.ts"] }], { running: "12" });
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["13"]]]);
   });
 
   test("#12 running holds #13, which shares its file", async () => {
@@ -426,9 +442,10 @@ describe("--running holds the tickets this session's workers have not claimed ye
     assert.deepEqual(restarted.map((a) => [a.kind, a.tickets]), [["dispatch", ["12"]]], "a new session, with no --running, dispatches it");
   });
 
-  test("#12 running and handed back holds nothing: #13 sharing its file is dispatched", async () => {
+  test("#12 running and handed back is still held until it lands: #13 sharing its file waits", async () => {
     const actions = await next([{ n: 12, labels: ["size:S", "needs-info"], files: ["src/x.ts"] }, { n: 13, files: ["src/x.ts"] }], { running: "12" });
-    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["13"]]]);
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#13 held: shares src\/x\.ts with 12/);
   });
 
   test("--running takes a malformed ticket as a usage error", async () => {
