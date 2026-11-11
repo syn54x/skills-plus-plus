@@ -4,8 +4,8 @@ the gate's verdict history and the pull request to the base branch from GitHub, 
 input that comes from the caller is `--running`. With `--json` it prints [NextActions](#nextactions).
 
 `--running` takes the comma-separated tickets (numbers in the Epic's repo, `owner/repo#N` or issue URLs) the build
-started a worker on, until that worker reports back. spp counts only those still ready: each is in flight, never
-dispatched again, and a ready ticket that overlaps one is held. Without it nothing is held that way, so a new
+started a worker on, until that worker reports back. Each is in flight, in any state until it lands: never
+dispatched, gated or sent to a fix round again, and a ready ticket that overlaps one is held. Without it nothing is held that way, so a new
 session, or a restart after `spp unclaim`, dispatches them.
 
 With `--resume`, for the first call of a run, a Sub-issue that is claimed, has no open or merged pull request and
@@ -58,8 +58,8 @@ The usage text `spp next --help` prints.
 usage: spp next <epic number | issue URL> [--json] [--resume] [--running 101,owner/repo#7]
 Prints the next actions: preflight, branch, dispatch, gate, fix, hand-back, merge, wait, main-gate, close or stuck.
 --resume, on a run's first call, hands back each claimed Sub-issue with no pull request and no assignee as "worker lost".
---running names the tickets the build started a worker on, until that worker reports back; spp counts only those still
-ready, as in flight: not dispatched again, and a ready ticket that overlaps one is held.
+--running names the tickets the build started a worker on, until that worker reports back; each is in flight until it
+lands: not dispatched, gated or fixed again, and a ready ticket that overlaps one is held.
 ```
 
 ## Type Aliases

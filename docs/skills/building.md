@@ -29,9 +29,9 @@ For work too small to file, skip spp and edit directly. `ask-spp` routes between
 | `branch` | The integration branch is cut from the base and recorded on the plan comment. |
 | `dispatch` | A Wave of ready, non-overlapping Sub-issues starts, one worker each. You approve the first Wave only. |
 | `gate` | A fresh reviewer reads the pull request and returns the spec and quality verdicts. |
-| `fix` | A failed gate, on a slice or a fix pull request, goes back to the worker that opened it for one fix round, or to a fresh worker on the same branch when that worker died with an earlier session. |
-| `hand-back` | The fix round is spent, so the issue returns to you with the open findings; or its worker stopped before opening a pull request (`worker lost`), and you are asked whether to hand it back or start a worker again (its local worktree and branch are removed first, then `spp unclaim`). A branch the lost worker pushed is continued, brought onto the integration branch, unless you delete it to start from the base. |
-| `merge` | A passing pull request merges once its blockers have. A conflict sends the worker back to rebase, or a fresh worker on its branch when that worker is gone. |
+| `fix` | A failed gate, on a slice or a fix pull request, goes back to the worker that opened it for one fix round. When that worker died with an earlier session, you are asked whether to hand the issue back or take the pull request over. |
+| `hand-back` | The fix round is spent, so the issue returns to you with the open findings; or its worker stopped before opening a pull request (`worker lost`), and you are asked whether to hand it back or start a worker again (its local worktree and branch are removed first, then `spp unclaim`). A new worker starts on a fresh branch from the integration branch, so a branch the lost worker pushed is yours to delete (its commits lost), or you hand the issue back. |
+| `merge` | A passing pull request merges once its blockers have. A conflict sends the worker back to rebase; when that worker is gone, you are asked as for a fix round. |
 | `main-gate` | Every Sub-issue merged. `building` opens the Epic's pull request and gates it. |
 | `close` | The pull request merged. `building` points you to `/close-epic`. |
 
@@ -57,7 +57,7 @@ The worker opens it into the integration branch with `Refs #<Sub-issue>`. `build
 If a second head still fails, one round of fixing has not settled it, and more rounds mostly burn tokens. The issue goes back to you with its open findings, and the rest of the Epic keeps moving.
 
 **I closed the terminal in the middle of a Wave. Is anything lost?**
-The workers are. Every worker is a subagent of the session you closed, so it stopped with it, and any work it had not pushed is gone. What GitHub holds survives: the claims, the pushed branches and the open pull requests. Run `/build <N>` again and `building` picks up from that state. Open pull requests carry on as before; one that needs a fix round or a rebase gets a fresh worker on its existing branch. For each issue still claimed with no pull request, you are asked whether to hand it back or start a worker on it again, with its leftover worktree and branches named.
+The workers are. Every worker is a subagent of the session you closed, so it stopped with it, and any work it had not pushed is gone. What GitHub holds survives: the claims, the pushed branches and the open pull requests. Run `/build <N>` again and `building` picks up from that state. Open pull requests are gated and merged as before; for one that needs a fix round or a rebase, you are asked whether to hand its issue back or take the pull request over, since no worker is started on a branch another worker left. For each issue still claimed with no pull request, you are asked whether to hand it back or start a worker on it again, with its leftover worktree and branches named.
 
 **Why am I asked to approve only the first Wave?**
 The first Wave is where the plan meets the code. Later Waves that follow the plan start by themselves, and `building` comes back to you only when the plan changes, such as a new blocked-by edge or a re-bundled issue.

@@ -7,7 +7,8 @@ Its forms:
   Sub-issues: Files owned that overlap in one repo, and Consumes and Produces pairs across repos. Work in flight
   (claimed, assigned or with its pull request open, until it merges) takes part too, so a ready ticket that overlaps
   it stays held. `--running` names the tickets the build started a worker on, until that worker reports back; spp
-  counts only those still ready, holds each with the reason `running, not claimed yet`, and holds what overlaps it.
+  holds each, in any state until it lands, as `running: true` with the reason `running, its worker has not reported
+  back`, and holds a ready ticket that overlaps one.
   It prints the tickets that can run together (at most `--max`, default 4) and the held ones with why; with `--json`
   it prints [WavePlan](#waveplan). It writes nothing.
 - `spp wave <epic> add --n N --tickets ... --workers ... --started ISO8601 --edges ...` records a Wave, replacing
@@ -77,8 +78,8 @@ usage: spp wave plan <epic> [--max N] [--running 101,owner/repo#7] [--json]
                              [--severity critical=1,important=2,minor=3] [--persona name=count,...] [--dropped D]
 wave plan prints the ready tickets that can run together (at most --max, default 4) and the held ones with why;
 a ready ticket that overlaps work in flight (claimed, assigned or with its PR open) is held until that merges;
---running names the tickets the build started a worker on, until that worker reports back; spp counts only those still
-ready, holds each as "running, not claimed yet", and holds a ready ticket that overlaps one.
+--running names the tickets the build started a worker on, until that worker reports back; spp holds each, in any
+state until it lands, as "running, its worker has not reported back", and holds a ready ticket that overlaps one.
 wave add replaces every wave with the same --n; wave panel replaces the entry with the same --pr and --round, so each
 pull request of a Multi-repo epic keeps its own rounds (--pr takes the pull request URL, never a bare number, and
 without it a round is keyed among the rounds with no PR; a round shown but never posted has no --report and renders unposted);
@@ -102,4 +103,4 @@ The next Wave: the `--json` shape of `spp wave plan`. A ticket is its number, or
 | Property | Type | Description |
 | ------ | ------ | ------ |
 | <a id="property-wave"></a> `wave` | `string`[] | The ready tickets that can run together, lower Layer and lower number first. |
-| <a id="property-held"></a> `held` | `object`[] | The ready tickets left out, each with why: a shared path, a Consumes and Produces pair, no Files owned, or a full wave. |
+| <a id="property-held"></a> `held` | `object`[] | The tickets left out, each with why. A ready ticket: a shared path, a Consumes and Produces pair, no Files owned, or a full wave. A ticket `--running` names, in any state until it lands: `running, its worker has not reported back`, with `running: true`, the field to test rather than the reason's words. |
