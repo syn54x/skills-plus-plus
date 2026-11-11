@@ -7,8 +7,8 @@ Its forms:
   Sub-issues: Files owned that overlap in one repo, and Consumes and Produces pairs across repos. Work in flight
   (claimed, assigned or with its pull request open, until it merges) takes part too, so a ready ticket that overlaps
   it stays held. `--running` names the tickets the build started a worker on, until that worker reports back; spp
-  holds each, in any state until it lands, as `running: true` with the reason `running, its worker has not reported
-  back`, and holds a ready ticket that overlaps one.
+  holds each, in any state until it lands, with the reason `running, its worker has not reported back`, and holds a
+  ready ticket that overlaps one.
   It prints the tickets that can run together (at most `--max`, default 4) and the held ones with why; with `--json`
   it prints [WavePlan](#waveplan). It writes nothing.
 - `spp wave <epic> add --n N --tickets ... --workers ... --started ISO8601 --edges ...` records a Wave, replacing
@@ -103,4 +103,4 @@ The next Wave: the `--json` shape of `spp wave plan`. A ticket is its number, or
 | Property | Type | Description |
 | ------ | ------ | ------ |
 | <a id="property-wave"></a> `wave` | `string`[] | The ready tickets that can run together, lower Layer and lower number first. |
-| <a id="property-held"></a> `held` | `object`[] | The tickets left out, each with why. A ready ticket: a shared path, a Consumes and Produces pair, no Files owned, or a full wave. A ticket `--running` names, in any state until it lands: `running, its worker has not reported back`, with `running: true`, the field to test rather than the reason's words. |
+| <a id="property-held"></a> `held` | `object`[] | The tickets left out, each with why. A ready ticket: a shared path, a Consumes and Produces pair, no Files owned, or a full wave. A ticket `--running` names, in any state until it lands: `running, its worker has not reported back`. |

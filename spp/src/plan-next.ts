@@ -30,7 +30,8 @@ export type NextInput = {
   state: EpicState;
   panel: Routing["panel"];
   resume: boolean; // the first spp next of a run: report each lost worker
-  wave: { wave: string[]; held: { ticket: string; reason: string; running?: true }[] }; // over the ready tickets, plus each running one, in any state
+  wave: { wave: string[]; held: { ticket: string; reason: string }[] }; // over the ready tickets, plus each running one that has not landed
+  running?: Set<string>; // the URLs of the tickets --running names, in any state: each waits, and nothing routes it or its fixes
   checks: Record<string, { result: string; failing: string[] }>; // by pull request URL: pass, fail, pending or none, and the failing runs
   failedHeads: Record<string, number>; // by pull request URL: the heads a verdict or CI failed on, from GitHub
   mainPr: { url: string; state: PrState; lines: number } | null; // the pull request from the integration branch
@@ -52,7 +53,7 @@ const done = (t: Ticket) => t.landed;
 export const inFlight = (t: Ticket) => !done(t) && (t.claimed || t.assignees.length > 0 || t.pr?.state === "OPEN");
 
 export function planNext(input: NextInput): Action[] {
-  const { state, panel, resume, checks, failedHeads, mainPr } = input;
+  const { state, panel, resume, checks, failedHeads, mainPr, running = new Set<string>() } = input;
   const ref = refIn(state.epic.repo);
   // A ticket as spp dispatch and the other commands take it: its number in the Epic's repo, else its URL.
   const id = (t: Ticket) => (t.repo === state.epic.repo ? String(t.number) : t.url);
@@ -61,7 +62,10 @@ export function planNext(input: NextInput): Action[] {
   if (state.tickets.every(done)) {
     if (mainPr?.state === "MERGED") return [{ kind: "close", pr: mainPr.url, reason: `${ref(mainPr.url)} merged into the base branch` }];
   }
-  // An open fix holds main-gate: it is routed below like a slice.
+  // A ticket whose worker has not reported back (a main-gate fix under way, say) is in flight in any state.
+  const inFlightRunning = state.tickets.filter((t) => running.has(t.url)).map((t) => `${ref(t.url)} ${RUNNING}`);
+  // An open fix holds main-gate: it is routed below like a slice. So does a running ticket, about to open one.
+  if (state.tickets.every(done) && !openFixes.length && inFlightRunning.length) return [{ kind: "wait", reason: `in flight: ${inFlightRunning.join("; ")}` }];
   if (state.tickets.every(done) && !openFixes.length) {
     // The panel is decided only once the pull request exists, since its changed lines are one of the thresholds.
     if (mainPr?.state !== "OPEN") {
@@ -79,22 +83,17 @@ export function planNext(input: NextInput): Action[] {
   const byUrl = new Map(state.tickets.map((t) => [t.url, t]));
   const order = [...state.layers.flat(), ...state.cycle].map((u) => byUrl.get(u)!);
   const actions: Action[] = [];
-  const waitingOn: string[] = [];
+  const waitingOn: string[] = [...inFlightRunning];
   const unattributed: string[] = [];
   const idle: string[] = [];
 
   const ready = new Map(state.tickets.map((t) => [t.repo === state.epic.repo ? String(t.number) : `${t.repo}#${t.number}`, t]));
   const wave = input.wave.wave.map((w) => ready.get(w)!);
   if (wave.length) actions.push({ kind: "dispatch", tickets: wave.map(id), reason: `${wave.length} ready ticket(s) can run together` });
-  // A running ticket is in flight whatever its state, so it makes the build wait and is routed no further; any other
-  // held ticket only idles.
-  const running = new Set<Ticket>();
+  // A running ticket already waits; any other held ticket only idles.
   for (const h of input.wave.held) {
     const t = ready.get(h.ticket)!;
-    if (h.running) {
-      running.add(t);
-      waitingOn.push(`${ref(t.url)} ${h.reason}`);
-    } else idle.push(`${ref(t.url)} held: ${h.reason}`);
+    if (!running.has(t.url)) idle.push(`${ref(t.url)} held: ${h.reason}`);
   }
 
   // The routing a slice and a fix share for an open pull request that has no verdict or a failed one: gate, fix, hand back or wait.
@@ -112,6 +111,7 @@ export function planNext(input: NextInput): Action[] {
 
   for (const f of openFixes) {
     const t = f.ticket ? byUrl.get(f.ticket) : undefined;
+    if (t && running.has(t.url)) continue; // its worker is on this fix, and the ticket already waits
     if (!t) {
       unattributed.push(`${ref(f.url)} is an unattributed fix: add Refs #<Sub-issue> to its body, or close it`);
       continue;
@@ -129,7 +129,7 @@ export function planNext(input: NextInput): Action[] {
   }
 
   for (const t of order) {
-    if (done(t) || running.has(t)) continue;
+    if (done(t) || running.has(t.url)) continue;
     const pr = t.pr?.url ?? "";
     const one = { tickets: [id(t)], pr };
     const c = checks[pr] ?? { result: "pending", failing: [] };

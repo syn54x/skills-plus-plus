@@ -40,13 +40,16 @@ function render(issue: Issue, base: string, laws: string[], checkout: string): s
   const repo = /github\.com\/([^/]+\/[^/]+)\/issues\//.exec(issue.url)![1];
   return `You are t-${n}, implementing ${issue.url}${issue.parent ? ` of the epic ${issue.parent.url}` : ""}.
 Start in the checkout at ${checkout}; the ticket, its branch and its PR all live in ${repo} and nowhere else.
-First, before anything else, cut your branch from the remote ${issue.parent ? "integration" : "base"} branch, whatever branch this worktree started on, and confirm its base:
+First, before anything else, cut your branch from the remote ${issue.parent ? "integration" : "base"} branch, whatever branch this worktree started on, and confirm its base. Run it as one command:
 
-    git fetch origin ${base}
-    git switch -c ${branch} origin/${base}
-    test "$(git merge-base HEAD origin/${base})" = "$(git rev-parse origin/${base})"
+    (
+      set -e
+      git fetch origin ${base}
+      git switch -c ${branch} origin/${base}
+      test "$(git merge-base HEAD origin/${base})" = "$(git rev-parse origin/${base})"
+    )
 
-If the \`test\` fails, stop and report BLOCKED; write no code on a branch with any other base.
+If it fails (a fetch or a switch that fails, or the base check), stop and report BLOCKED; write no code on a branch with any other base.
 Then run the implement-issue skill for ${issue.url} and follow it. This brief is the context that skill assumes.
 
 ## Ticket (verbatim)

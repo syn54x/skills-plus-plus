@@ -184,9 +184,13 @@ describe("the first step, run", () => {
     const step = /\n\n((?: {4}.*\n)+)\n/.exec(readFileSync(out, "utf8"))![1].replace(/^ {4}/gm, "");
     assert.doesNotMatch(step, /ls-remote|rebase/, "no arm asks origin for a pushed branch");
     assert.match(step, /test "\$\(git merge-base HEAD origin\/feat\/invoices\)" = "\$\(git rev-parse origin\/feat\/invoices\)"/);
-    const r = spawnSync("bash", ["-ec", step], { cwd: checkout, env, encoding: "utf8" });
+    const r = spawnSync("bash", ["-c", step], { cwd: checkout, env, encoding: "utf8" });
     assert.equal(r.status, 0, r.stderr);
     assert.equal(git(checkout, "branch", "--show-current"), BRANCH);
     assert.equal(git(checkout, "rev-parse", "HEAD"), base);
+
+    // A switch that fails (the branch already exists here) stops the step, though the base check alone would pass.
+    git(checkout, "switch", "-q", "--detach", `origin/${BASE}`);
+    assert.notEqual(spawnSync("bash", ["-c", step], { cwd: checkout, env, encoding: "utf8" }).status, 0, "a failed switch stops the step");
   });
 });

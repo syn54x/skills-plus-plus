@@ -6,7 +6,7 @@ import { describe, test } from "node:test";
 import { runCase } from "./harness.ts";
 
 type Spec = { n: number; repo?: string; labels?: string[]; create?: string[]; modify?: string[]; test?: string[]; consumes?: string; produces?: string };
-type Plan = { wave: string[]; held: { ticket: string; reason: string; running?: true }[] };
+type Plan = { wave: string[]; held: { ticket: string; reason: string }[] };
 
 const READY = ["ready-for-agent", "size:S"];
 const url = (t: Spec) => `https://github.com/${t.repo ?? "acme/app"}/issues/${t.n}`;
@@ -75,12 +75,12 @@ describe("happy path", () => {
 });
 
 describe("edge cases", () => {
-  test("--running 301: 301 is held, marked running, and 302 sharing its file is held", async () => {
+  test("--running 301: 301 is held as running, and 302 sharing its file is held", async () => {
     const p = await plan([{ n: 301, modify: ["src/a.ts"] }, { n: 302, modify: ["src/a.ts"] }, { n: 303, modify: ["src/c.ts"] }], "--running", "301");
     assert.deepEqual(p, {
       wave: ["303"],
       held: [
-        { ticket: "301", reason: "running, its worker has not reported back", running: true },
+        { ticket: "301", reason: "running, its worker has not reported back" },
         { ticket: "302", reason: "shares src/a.ts with 301" },
       ],
     });
@@ -88,7 +88,7 @@ describe("edge cases", () => {
 
   test("--running 301 holds it once it has claimed, not only while it is ready", async () => {
     const p = await plan([{ n: 301, labels: [...READY, "claimed"], modify: ["src/a.ts"] }, { n: 302, modify: ["src/b.ts"] }], "--running", "301");
-    assert.deepEqual(p, { wave: ["302"], held: [{ ticket: "301", reason: "running, its worker has not reported back", running: true }] });
+    assert.deepEqual(p, { wave: ["302"], held: [{ ticket: "301", reason: "running, its worker has not reported back" }] });
   });
 
   test("--running with no value is a usage error, the same one spp next gives", async () => {

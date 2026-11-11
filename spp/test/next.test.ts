@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, test } from "node:test";
@@ -416,6 +416,29 @@ describe("--running holds the tickets this session's workers have not reported b
 
   test("#12 running at pr-open with checks passing: wait, not gate", async () => {
     const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40 } }], { running: "12" });
+    assert.deepEqual(kinds(actions), ["wait"]);
+  });
+
+  test("a running pr-open ticket's checks and verdict history are never read", async () => {
+    const dir = scratch([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, verdict: FAIL } }], { running: "12" });
+    const gh = JSON.parse(readFileSync(join(dir, "gh.json"), "utf8"));
+    delete gh[`pr checks ${PULL}40 --json name,bucket`];
+    delete gh["api graphql -f query=VerdictHistory -f owner=acme -f repo=app -F number=40"];
+    writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
+    const r = await runCase("next", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(kinds((r.json as { actions: Action[] }).actions), ["wait"]);
+  });
+
+  // The quality gate on #434: a main-gate fix resumes a worker whose Sub-issue has landed.
+  test("#12 landed and running, its open fix at gate-fail: wait, not fix", async () => {
+    const actions = await next([merged(12)], { fixes: [{ n: 77, body: "Refs #12", verdict: FAIL }], running: "12" });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#12 running/);
+  });
+
+  test("every ticket landed and #12 running, no fix open yet: wait, not main-gate", async () => {
+    const actions = await next([merged(12), merged(13)], { mainPr: { state: "OPEN", lines: 50 }, running: "12" });
     assert.deepEqual(kinds(actions), ["wait"]);
   });
 
