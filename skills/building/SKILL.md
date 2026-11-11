@@ -58,7 +58,7 @@ Read it before you gate and act on it. Never ignore an escalation, and never re-
 - `DONE`: gate the pull request.
 - `DONE_WITH_CONCERNS`: a doubt about correctness or scope is answered, or the worker is sent back, before the gate. An observation is noted and the gate proceeds. An `Interfaces changed:` line is an **Interface deviation**, recorded at the merge.
 - `NEEDS_CONTEXT`: the report opens with its kind. A **missing fact** (a path, a value, a name the code or the user knows) is supplied and the worker resumed. An **unsettled design** (several valid approaches and the Epic does not choose, or its decision contradicts the code) leaves the worker stopped while you settle it, as the path's reference file says.
-- `BLOCKED`: decide what changes. More context: resume. More capability: dispatch again on a higher tier. A smaller issue: split it into Sub-issues with blocked-by edges. A wrong plan: fix the issue body and record the ruling.
+- `BLOCKED`: decide what changes. More context: resume. More capability: dispatch again on a higher tier. A smaller issue: split it into Sub-issues with blocked-by edges. A wrong plan: fix the issue body and record the ruling. A report saying `origin already has <branch>` no new worker can pass, since none pushes over a branch another left: ask the user, as a waiting line naming the branch, whether to delete it (`git push origin --delete <branch>`, its commits lost) and dispatch again, or hand the issue back.
 
 Done when each report has a named next action.
 

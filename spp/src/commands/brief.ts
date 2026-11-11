@@ -44,7 +44,7 @@ First, before anything else, cut your branch from the remote ${issue.parent ? "i
 
     (
       set -e
-      rc=0; git ls-remote --exit-code --heads origin ${branch} >/dev/null || rc=$?
+      rc=0; git ls-remote --exit-code --heads origin refs/heads/${branch} >/dev/null || rc=$?
       case $rc in
         2) ;;
         0) echo "BLOCKED: origin already has ${branch}; delete it or hand the issue back" >&2; exit 1 ;;

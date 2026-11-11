@@ -190,7 +190,7 @@ describe("the first step, run", () => {
   test("ls-remote exit 2, no such branch on origin: it cuts sdd/<N>-<slug> from the base and confirms the base", async () => {
     const { checkout, base } = setup(false);
     const s = await step();
-    assert.match(s, /git ls-remote --exit-code --heads origin sdd\/12-add-the-invoice-endpoint/);
+    assert.match(s, /git ls-remote --exit-code --heads origin refs\/heads\/sdd\/12-add-the-invoice-endpoint/);
     assert.match(s, /test "\$\(git merge-base HEAD origin\/feat\/invoices\)" = "\$\(git rev-parse origin\/feat\/invoices\)"/);
     const r = run(s, checkout);
     assert.equal(r.status, 0, r.stderr);
@@ -200,6 +200,17 @@ describe("the first step, run", () => {
     // A switch that fails (the branch already exists here) stops the step, though the base check alone would pass.
     git(checkout, "switch", "-q", "--detach", `origin/${BASE}`);
     assert.notEqual(run(s, checkout).status, 0, "a failed switch stops the step");
+  });
+
+  test("a branch on origin that only ends with the ticket branch's name (backup/sdd/...) is not the ticket branch: it cuts", async () => {
+    const { root, origin, checkout, base } = setup(false);
+    const other = join(root, "other");
+    git(root, "clone", "-q", origin, other);
+    git(other, "push", "-q", "origin", `HEAD:backup/${BRANCH}`);
+    const r = run(await step(), checkout);
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(git(checkout, "branch", "--show-current"), BRANCH);
+    assert.equal(git(checkout, "rev-parse", "HEAD"), base);
   });
 
   test("ls-remote exit 0, origin already has the branch: BLOCKED, no branch cut, the pushed commits untouched", async () => {
