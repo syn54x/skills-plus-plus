@@ -145,8 +145,8 @@ describe("error path", () => {
   });
 });
 
-// The ruling after round 3 on #430: a worker never takes an existing branch, so the first step has one behaviour. Run
-// for real against an origin whose ticket branch is already pushed: the step still cuts a new branch from the base.
+// R4-F5 on #430: a worker never takes an existing branch, and never pushes over one. Run for real against a bare
+// origin: git ls-remote --exit-code decides, exit 2 (no such branch) cuts it, exit 0 (pushed) or any other stops.
 describe("the first step, run", () => {
   const BRANCH = "sdd/12-add-the-invoice-endpoint";
   const BASE = "feat/invoices";
@@ -162,35 +162,79 @@ describe("the first step, run", () => {
     git(cwd, "commit", "-qm", file);
     return git(cwd, "rev-parse", "HEAD");
   };
-
-  test("it cuts sdd/<N>-<slug> from the base, ignoring a pushed one, and confirms the base", async () => {
+  // An origin with the base branch, optionally the ticket branch already pushed, and a fresh clone of it.
+  const setup = (pushed: boolean) => {
     const root = mkdtempSync(join(tmpdir(), "spp-brief-git-"));
     const origin = join(root, "origin.git");
     const seed = join(root, "seed");
     git(root, "init", "-q", "--bare", "-b", "main", origin);
     git(root, "clone", "-q", origin, seed);
-    commit(seed, "a.txt", "a\n");
+    const base = commit(seed, "a.txt", "a\n");
     git(seed, "push", "-q", "origin", `HEAD:${BASE}`, "HEAD:main");
-    git(seed, "switch", "-qc", BRANCH);
-    commit(seed, "c.txt", "c\n");
-    git(seed, "push", "-q", "origin", BRANCH);
-    git(seed, "switch", "-q", "--detach", `origin/${BASE}`);
-    const base = commit(seed, "b.txt", "b\n");
-    git(seed, "push", "-q", "origin", `HEAD:${BASE}`);
+    if (pushed) {
+      git(seed, "switch", "-qc", BRANCH);
+      commit(seed, "c.txt", "c\n");
+      git(seed, "push", "-q", "origin", BRANCH);
+    }
     const checkout = join(root, "checkout");
     git(root, "clone", "-q", origin, checkout);
+    return { root, origin, checkout, base };
+  };
+  const step = async () => {
     const { dir, out } = scratch({ extra: ["--out", "OUT"] });
     await runCase("brief", dir);
-    const step = /\n\n((?: {4}.*\n)+)\n/.exec(readFileSync(out, "utf8"))![1].replace(/^ {4}/gm, "");
-    assert.doesNotMatch(step, /ls-remote|rebase/, "no arm asks origin for a pushed branch");
-    assert.match(step, /test "\$\(git merge-base HEAD origin\/feat\/invoices\)" = "\$\(git rev-parse origin\/feat\/invoices\)"/);
-    const r = spawnSync("bash", ["-c", step], { cwd: checkout, env, encoding: "utf8" });
+    return /\n\n((?: {4}.*\n)+)\n/.exec(readFileSync(out, "utf8"))![1].replace(/^ {4}/gm, "");
+  };
+  const run = (s: string, cwd: string) => spawnSync("bash", ["-c", s], { cwd, env, encoding: "utf8" });
+
+  test("ls-remote exit 2, no such branch on origin: it cuts sdd/<N>-<slug> from the base and confirms the base", async () => {
+    const { checkout, base } = setup(false);
+    const s = await step();
+    assert.match(s, /git ls-remote --exit-code --heads origin refs\/heads\/sdd\/12-add-the-invoice-endpoint/);
+    assert.match(s, /test "\$\(git merge-base HEAD origin\/feat\/invoices\)" = "\$\(git rev-parse origin\/feat\/invoices\)"/);
+    const r = run(s, checkout);
     assert.equal(r.status, 0, r.stderr);
     assert.equal(git(checkout, "branch", "--show-current"), BRANCH);
     assert.equal(git(checkout, "rev-parse", "HEAD"), base);
 
     // A switch that fails (the branch already exists here) stops the step, though the base check alone would pass.
     git(checkout, "switch", "-q", "--detach", `origin/${BASE}`);
-    assert.notEqual(spawnSync("bash", ["-c", step], { cwd: checkout, env, encoding: "utf8" }).status, 0, "a failed switch stops the step");
+    assert.notEqual(run(s, checkout).status, 0, "a failed switch stops the step");
+  });
+
+  test("a branch on origin that only ends with the ticket branch's name (backup/sdd/...) is not the ticket branch: it cuts", async () => {
+    const { root, origin, checkout, base } = setup(false);
+    const other = join(root, "other");
+    git(root, "clone", "-q", origin, other);
+    git(other, "push", "-q", "origin", `HEAD:backup/${BRANCH}`);
+    const r = run(await step(), checkout);
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(git(checkout, "branch", "--show-current"), BRANCH);
+    assert.equal(git(checkout, "rev-parse", "HEAD"), base);
+  });
+
+  test("ls-remote exit 0, origin already has the branch: BLOCKED, no branch cut, the pushed commits untouched", async () => {
+    const { origin, checkout } = setup(true);
+    const before = git(origin, "rev-parse", BRANCH);
+    const r = run(await step(), checkout);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /BLOCKED: origin already has sdd\/12-add-the-invoice-endpoint; delete it or hand the issue back/);
+    assert.notEqual(git(checkout, "branch", "--show-current"), BRANCH);
+    assert.equal(git(origin, "rev-parse", BRANCH), before);
+  });
+
+  test("ls-remote any other exit, origin unreachable: BLOCKED as an unreachable origin, no branch cut", async () => {
+    const { root, checkout } = setup(false);
+    git(checkout, "remote", "set-url", "origin", join(root, "gone.git"));
+    const r = run(await step(), checkout);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /BLOCKED: origin is unreachable/);
+    assert.notEqual(git(checkout, "branch", "--show-current"), BRANCH);
+  });
+
+  test("the brief says a worker never force-pushes", async () => {
+    const { dir, out } = scratch({ extra: ["--out", "OUT"] });
+    await runCase("brief", dir);
+    assert.match(readFileSync(out, "utf8"), /Never force-push/);
   });
 });
