@@ -55,7 +55,8 @@ The person can type any of these. Model-invoked skills also start on their own w
 | `/wayfinder` | Plan | person | path 3 |
 | `/to-spec` | Plan | person | a grilled plan becomes an Epic |
 | `/to-tickets` | Plan | person | an Epic becomes Sub-issues |
-| `/triage` | Plan | person | path 2 starts, or the incoming queue needs sorting |
+| `/triage` | Plan | person | path 2 starts, or the incoming queue needs sorting; it asks `/delegating` whether `/triaging` runs here or in a sub-session |
+| `/triaging` | Plan | either | a session, such as a Chief of Staff, is told to triage a specific issue number |
 | `/harden` | Plan | either | one issue needs its Ticket contract written or repaired, as when `spp lint ticket` fails |
 | `/build` | Build | person | an Epic or a hardened One-off is ready; it asks `/delegating` whether `/building` runs here or in a sub-session |
 | `/building` | Build | either | a session, such as a Chief of Staff, is told to build a specific Epic or issue number |
