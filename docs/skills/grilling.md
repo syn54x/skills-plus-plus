@@ -23,12 +23,12 @@ Here is the shape of a second Round:
 Settled 3 · asking 2 · held back: tipping.
 
 **1. When is a ride's fare fixed?**
-A (recommended): when the rider books.
+A: when the rider books. (recommended)
 B: when the car drops them off.
 Rests on: riders wanting to accept a price before a car is sent.
 
 **2. May a driver decline after accepting?**
-A (recommended): yes, until they set off, with the ride offered to the next driver.
+A: yes, until they set off, with the ride offered to the next driver. (recommended)
 B: no, once accepted the ride is theirs.
 Rests on: a decline before setting off costing the rider no waiting time.
 

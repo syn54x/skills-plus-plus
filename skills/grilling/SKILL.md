@@ -29,12 +29,12 @@ A **Round** is one pass over the Frontier:
 
      ```markdown
      **2. Who owns a booking after the rider cancels it?**
-     A (recommended): support takes it over.
+     A: support takes it over. (recommended)
      B: the rider's account keeps it until the refund clears.
      Rests on: refunds already running through support.
      ```
 
-     Each option sits on its own line under a capital letter, the recommended one first and marked. The `Rests on:` line names the assumption the recommendation depends on, so a person who rejects that assumption can say so in a word.
+     Each option sits on its own line as `A:`, `B:` and so on, the recommended one first and marked. The `Rests on:` line names the assumption the recommendation depends on, so a person who rejects that assumption can say so in a word.
    - **Settled from the record**: each fact the Check step settled since the last Round, with its source (a file, a doc, an issue, a command), so the person can object to one.
    - **How to answer**: one closing line saying the Round can be answered with letters, such as `1A 2B`, or with `all` to take every recommendation, and that a caveat may follow any letter.
 4. **Wait.** Stop until the person replies. Never fill in a choice on their behalf, including when another skill opened this interview to clear its own path.
