@@ -46,7 +46,7 @@ The interview finishes when both hold: the Frontier is empty, and the person agr
 
 Give the restatement as a list, one line of the plan per item, each ending with its source:
 
-- **You (R.I)**: the person decided it, in Round R, item I.
+- **You, R.I**: the person decided it, in Round R, item I.
 - **Record**: the record settles or requires it, with its pointer (a law, an ADR, a file).
 - **Inferred**: you concluded it and nobody was asked.
 
