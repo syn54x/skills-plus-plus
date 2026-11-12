@@ -31,6 +31,7 @@ nav = [
       { "to-spec" = "skills/to-spec.md" },
       { "to-tickets" = "skills/to-tickets.md" },
       { "triage" = "skills/triage.md" },
+      { "triaging" = "skills/triaging.md" },
       { "harden" = "skills/harden.md" },
     ] },
     { "Build" = [

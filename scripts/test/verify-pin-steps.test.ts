@@ -1,5 +1,5 @@
 // ADR 0009: a Verify block is pinned only from the file the agent wrote to the issue, never from the issue as fetched.
-// These pin the harden and triage steps that call `spp lint ticket`, since a step that pins the fetched body would
+// These pin the harden and triaging steps that call `spp lint ticket`, since a step that pins the fetched body would
 // approve whatever anyone edited into it after the agent's write.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -12,8 +12,8 @@ const skill = (name: string) => readFileSync(join(root, "skills", name, "SKILL.m
 const lintCalls = (text: string) => [...text.matchAll(/`spp lint ticket <N>[^`]*`/g)].map((m) => m[0]);
 
 describe("Verify pin steps", () => {
-  test("every --pin harden and triage run passes the body file the agent wrote", () => {
-    for (const name of ["harden", "triage"]) {
+  test("every --pin harden and triaging run passes the body file the agent wrote", () => {
+    for (const name of ["harden", "triaging"]) {
       const pins = lintCalls(skill(name)).filter((c) => c.includes("--pin"));
       assert.ok(pins.length > 0, `${name} never pins`);
       // `--by "<skill> <step>"` only names the pin's maker; the pinned block still comes from <file>.
@@ -21,16 +21,16 @@ describe("Verify pin steps", () => {
     }
   });
 
-  test("triage does not re-pin an untouched body: its step 3 lint runs without --pin", () => {
-    const step3 = /^3\. (.*)$/m.exec(skill("triage").split("### `ready-for-agent`")[1])?.[1] ?? "";
+  test("triaging does not re-pin an untouched body: its step 3 lint runs without --pin", () => {
+    const step3 = /^3\. (.*)$/m.exec(skill("triaging").split("### `ready-for-agent`")[1])?.[1] ?? "";
     assert.deepEqual(lintCalls(step3), ["`spp lint ticket <N>`"]);
   });
 
-  test("triage pins only in step 2, where it rewrote the body from its own file", () => {
-    const steps = skill("triage").split("### `ready-for-agent`")[1];
+  test("triaging pins only in step 2, where it rewrote the body from its own file", () => {
+    const steps = skill("triaging").split("### `ready-for-agent`")[1];
     const step2 = /^2\. (.*)$/m.exec(steps)?.[1] ?? "";
-    // The re-pin is recorded as triage's, so a Signal against the block is charged to triage, not harden (#341).
-    assert.match(step2, /--body-file <file>`.*`spp lint ticket <N> --pin <file> --by "triage re-pin"`/);
+    // The re-pin is recorded as triaging's, so a Signal against the block is charged to triaging, not harden (#341, #409).
+    assert.match(step2, /--body-file <file>`.*`spp lint ticket <N> --pin <file> --by "triaging re-pin"`/);
   });
 });
 

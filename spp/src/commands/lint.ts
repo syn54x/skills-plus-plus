@@ -9,7 +9,7 @@
  * the agent just wrote to the issue, a passing ticket's Verify block is pinned: the sha256 of the file's block goes
  * into the progress comment's trailer, and `spp verify` refuses to run a block that no longer matches it (ADR 0009).
  * The trailer's `verifyPinBy` and `by` record the pin's maker: harden, or the skill and step `--by "<skill> <step>"`
- * names (triage passes `--by "triage re-pin"`); later progress writes keep `verifyPinBy`.
+ * names (triaging passes `--by "triaging re-pin"`); later progress writes keep `verifyPinBy`.
  * The pin is taken from the file and not from the issue, so an edit made after the agent wrote the body is never
  * approved by it: when the issue's block differs from the file's, nothing is pinned and the lint fails with
  * `pin-match`. Hardening's last step is this run. Without `--pin`, as the ready gate and the worker's readiness check

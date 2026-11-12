@@ -1,12 +1,12 @@
 ## What it does
 
-`delegating` decides where one issue's work runs: in this session, or in a sub-session it starts in the issue's checkout. `/build 340` uses it to run [building](building.md) for #340, and triage will use it the same way.
+`delegating` decides where one issue's work runs: in this session, or in a sub-session it starts in the issue's checkout. `/build 340` uses it to run [building](building.md) for #340, and `/triage 409` uses it the same way to run [triaging](triaging.md) for #409.
 
 It asks only where the answer can matter. In a terminal, where no session can be started, it asks nothing and runs the skill here. In the desktop app it asks one question, here or sub-session, with one recommendation. Before either, `/build` reads the issue's kind: a Sub-issue or a raw issue stops right there with the reason (build its Epic, or run `/triage`), so no question is asked and no sub-session starts for an issue that cannot be built. Once a sub-session is running, `delegating` hands it the issue and steps aside: the sub-session runs the skill directly and never asks where to run again.
 
 ## When to reach for it
 
-Type `/delegating`, or the agent starts it when an entry skill hands off an issue; in practice `/build` starts it for you. It belongs to the build step of the Epic path and the single-issue path. [ask-spp](ask-spp.md) routes between every skill when the right one is unclear.
+Type `/delegating`, or the agent starts it when an entry skill hands off an issue; in practice `/build` and `/triage` start it for you. It belongs to the build step of the Epic path and the single-issue path, and to the triage step of the single-issue path. [ask-spp](ask-spp.md) routes between every skill when the right one is unclear.
 
 ## Here or sub-session
 
