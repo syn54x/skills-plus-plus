@@ -48,7 +48,7 @@ When the Round produced neither an Escalation nor a Challenge, begin the next Ro
 
 1. **Escalations**, numbered as `grilling` numbers its questions, with `Best fit:` and its basis where the recommendation would go. When the Best fit departs from what comparable products do, one more line says what they do; when research changed your drafted recommendation, one more line says why.
 2. **Challenges**: the prior decision and the answer it pins, then `Supersede or uphold?` with the stronger alternative and the price of keeping the decision.
-3. **Veto list**: one line per auto-answer since the previous stop, under its Round: the question, the answer, the pointer, and for a departure from practice, the common approach beside the cited reason for leaving it.
+3. **Veto list**: one line per auto-answer since the previous stop, under its Round: the question, the answer, the pointer, and for a departure from practice, the common approach beside the cited reason for leaving it. The veto list stands in for the list of what the record settled that `grilling` puts under its questions, so a stop never shows both.
 
 Draw each Escalation and Challenge as **Draw the choice** says. Then wait. The Principal answers the Escalations, rules on each Challenge, and can strike any veto line.
 
