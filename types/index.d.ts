@@ -2,9 +2,9 @@
 // from the EpicState that spp's derive computes; the contract stays self-contained, so it restates only what the
 // pane draws.
 
-// A live worker the board can act on: a background or interactive session from `claude agents --json`, or a
-// subagent of this session from $.agent.list(), named by its Agent call's description.
-export type BoardWorker = { name: string; kind: 'background' | 'interactive' | 'subagent'; agentId?: string }
+// A live worker the board can act on: a subagent of this session from $.agent.list(), named by its Agent call's
+// description. Every worker is a subagent, so opened in the Build session the board lists them all.
+export type BoardWorker = { name: string; agentId: string }
 
 // One Sub-issue's row.
 export type BoardTicket = {
@@ -33,7 +33,7 @@ export type Board = {
   tickets: BoardTicket[] // none until the first good refresh, or after the gh call failed
   fixes: BoardFix[] // none until the first good refresh, or when the Epic has no Fix pull requests
   workers: BoardWorker[]
-  error: string | null // one line: the last failing gh, spp or claude call, or the pull-request read
+  error: string | null // one line: the last failing gh or spp call, agent list read, or the pull-request read
 }
 
 declare module 'claude-code' {

@@ -1,19 +1,12 @@
-`spp dispatch <issue> --driver bg|desktop|subagent` starts one worker on a Sub-issue that nobody holds, and refuses
-one held by the `claimed` label or an assignee. It has no `--json`.
+`spp dispatch <issue>` readies one worker on a Sub-issue that nobody holds: it writes the brief and prints its path,
+for the skill to start the `spp:worker` subagent on. It refuses a Sub-issue held by the `claimed` label or an
+assignee. It takes no flags and has no `--json`.
 
-Before it writes the brief or starts a worker, it records in spp's state directory whether this session is attended,
-and the worker's `spp signal` trusts that decision over its own environment; a refused dispatch records nothing.
+Before it writes the brief, it records in spp's state directory whether this session is attended, and the worker's
+`spp signal` trusts that decision over its own environment; a refused dispatch records nothing.
 
-What it does depends on the driver:
-
-- `bg` writes the brief, starts a background session named `t-<N>` on it
-  (`claude --bg --worktree sdd-<N> --name t-<N>`), records `t-<N>` as the Worker on the progress comment and prints
-  `started t-<N>`.
-- `desktop` and `subagent` write the brief and print its path, since those drivers are harness tools the skill
-  starts itself.
-
-`subagent` refuses a folder that is not inside a git repository, before it reads GitHub. The `spp:worker` agent
-cuts its worktree from the session's folder, so every worker started from such a folder would fail.
+It refuses a folder that is not inside a git repository, before it reads GitHub. The `spp:worker` agent cuts its
+worktree from the session's folder, so every worker started from such a folder would fail.
 
 ## Functions
 
@@ -23,26 +16,25 @@ cuts its worktree from the session's folder, so every worker started from such a
 function run(args): Promise<number>;
 ```
 
-Starts a worker on one Sub-issue, or writes the brief for the skill to start one.
+Writes the brief for one Sub-issue, for the skill to start its worker on.
 
 #### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `args` | `string`[] | The Sub-issue (an issue number in the current repo or an issue URL) and `--driver bg\|desktop\|subagent`. |
+| `args` | `string`[] | The Sub-issue: an issue number in the current repo or an issue URL. Any flag is a usage error. |
 
 #### Returns
 
 `Promise`\<`number`\>
 
-0 when the worker started or the brief is written; 2 on a usage error, with the usage on stderr; 1 when
-  the ticket is held, `--driver subagent` runs outside a git repository, `claude --bg` fails or `gh` fails, with
-  the reason on stderr.
+0 when the brief is written; 2 on a usage error, with the usage on stderr; 1 when the ticket is held, the
+  folder is outside a git repository or `gh` fails, with the reason on stderr.
 
 #### Example
 
 ```bash
-spp dispatch 265 --driver bg
+spp dispatch 265
 ```
 
 ## Variables
@@ -56,9 +48,8 @@ const USAGE: string;
 The usage text `spp dispatch --help` prints.
 
 ```text
-usage: spp dispatch <issue number | issue URL> --driver bg|desktop|subagent
-Refuses a ticket that is held (the claimed label or an assignee). bg writes the brief, starts
-claude --bg --worktree sdd-<N> --name t-<N> on it and records t-<N> as the worker; desktop and subagent
-write the brief and print its path, because those drivers are harness tools the skill calls itself.
-subagent refuses a folder outside a git repository, because the spp:worker agent cuts its worktree from it.
+usage: spp dispatch <issue number | issue URL>
+Refuses a ticket that is held (the claimed label or an assignee); otherwise writes the brief and prints
+its path, for the skill to start the spp:worker subagent on. Refuses a folder outside a git repository,
+because the spp:worker agent cuts its worktree from it.
 ```

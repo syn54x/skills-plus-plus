@@ -4,11 +4,14 @@
  *
  * Its forms:
  *
- * - `spp wave plan <epic> [--max N] [--json]` runs the parallel safety check over the ready Sub-issues: Files owned
- *   that overlap in one repo, and Consumes and Produces pairs across repos. Work in flight (claimed, assigned or with
- *   its pull request open, until it merges) takes part too, so a ready ticket that overlaps it stays held. It prints
- *   the tickets that can run together (at most `--max`, default 4) and the held ones with why; with `--json` it
- *   prints {@link WavePlan}. It writes nothing.
+ * - `spp wave plan <epic> [--max N] [--running T,...] [--json]` runs the parallel safety check over the ready
+ *   Sub-issues: Files owned that overlap in one repo, and Consumes and Produces pairs across repos. Work in flight
+ *   (claimed, assigned or with its pull request open, until it merges) takes part too, so a ready ticket that overlaps
+ *   it stays held. `--running` names the tickets the build started a worker on, until that worker reports back; spp
+ *   holds each, in any state until it lands, with the reason `running, its worker has not reported back`, and holds a
+ *   ready ticket that overlaps one.
+ *   It prints the tickets that can run together (at most `--max`, default 4) and the held ones with why; with `--json`
+ *   it prints {@link WavePlan}. It writes nothing.
  * - `spp wave <epic> add --n N --tickets ... --workers ... --started ISO8601 --edges ...` records a Wave, replacing
  *   any wave with the same `--n`.
  * - `spp wave <epic> pr --ticket T --pr URL|#n` records a pull request on the last wave holding `--ticket`, in any
@@ -30,11 +33,11 @@ import { derive, type EpicState, type Ticket } from "../derive.ts";
 import { fetchSnapshot } from "../fetch-snapshot.ts";
 import { runGh } from "../gh.ts";
 import { type Data, flagPairs, guarded, parseBy, parseIssue, print, updateMarker, UsageError } from "../markers.ts";
-import { DEFAULT_WAVE_MAX, inFlight, liveWorker, type Session } from "../plan-next.ts";
+import { DEFAULT_WAVE_MAX, inFlight, RUNNING } from "../plan-next.ts";
 import { parseTicket } from "../ticket.ts";
 
 /** The usage text `spp wave --help` prints. */
-export const USAGE = `usage: spp wave plan <epic> [--max N] [--json]
+export const USAGE = `usage: spp wave plan <epic> [--max N] [--running 101,owner/repo#7] [--json]
        spp wave <epic> add  --n N --tickets 101,owner/repo#7 --workers w1,w2 --started ISO8601
                              --edges "104<103,owner/repo#7<101" | --edges none
        spp wave <epic> pr    --ticket 101|owner/repo#7 --pr URL|#n
@@ -42,7 +45,9 @@ export const USAGE = `usage: spp wave plan <epic> [--max N] [--json]
                              --verdict "FIX FIRST"|"HUMAN DECISION"|MERGE [--report URL]
                              [--severity critical=1,important=2,minor=3] [--persona name=count,...] [--dropped D]
 wave plan prints the ready tickets that can run together (at most --max, default ${DEFAULT_WAVE_MAX}) and the held ones with why;
-a ready ticket that overlaps work in flight (claimed, assigned or with its PR open) is held until that merges.
+a ready ticket that overlaps work in flight (claimed, assigned or with its PR open) is held until that merges;
+--running names the tickets the build started a worker on, until that worker reports back; spp holds each, in any
+state until it lands, as "running, its worker has not reported back", and holds a ready ticket that overlaps one.
 wave add replaces every wave with the same --n; wave panel replaces the entry with the same --pr and --round, so each
 pull request of a Multi-repo epic keeps its own rounds (--pr takes the pull request URL, never a bare number, and
 without it a round is keyed among the rounds with no PR; a round shown but never posted has no --report and renders unposted);
@@ -155,7 +160,11 @@ function merger(op: string, f: Record<string, string>, epicRepo: string | null):
 export type WavePlan = {
   /** The ready tickets that can run together, lower Layer and lower number first. */
   wave: string[];
-  /** The ready tickets left out, each with why: a shared path, a Consumes and Produces pair, no Files owned, or a full wave. */
+  /**
+   * The tickets left out, each with why. A ready ticket: a shared path, a Consumes and Produces pair, no Files owned,
+   * or a full wave. A ticket `--running` names, in any state until it lands: `running, its worker has not reported
+   * back`.
+   */
   held: { ticket: string; reason: string }[];
 };
 type PlanInput = { id: string; number: number; repo: string; layer: number | null; body: string };
@@ -224,35 +233,67 @@ function planWave(tickets: PlanInput[], max: number, running: PlanInput[]): Wave
 }
 
 /**
- * The wave over the state's ready tickets that no live session works on, held against every in-flight ticket (see
- * `inFlight` in plan-next.ts), reading each one's body for its Files owned and Interfaces.
+ * Takes `--running <tickets>` out of a command's arguments, for `spp next` and `spp wave plan` alike: the list, or
+ * undefined without the flag, and the other arguments. A missing or malformed list is one usage error.
  *
  * @internal
  */
-export async function wavePlan(state: EpicState, max: number, sessions: Session[] = []): Promise<WavePlan> {
+export function runningFlag(args: string[]): { list: string | undefined; rest: string[] } {
+  const at = args.indexOf("--running");
+  if (at < 0) return { list: undefined, rest: args };
+  const list = args[at + 1];
+  if (list === undefined || !TICKETS.test(list)) throw new UsageError("--running takes 101,owner/repo#7,... or issue URLs");
+  return { list, rest: args.filter((_, i) => i !== at && i !== at + 1) };
+}
+
+/**
+ * The URLs of the tickets a `--running` list names (a number in the Epic's repo, `owner/repo#N` or the issue URL), in
+ * any state, landed ones included, since a worker resumed for a main-gate fix works on a landed ticket. `spp next`
+ * passes the set to both `wavePlan` and `planNext`. A name that matches no ticket is ignored.
+ *
+ * @internal
+ */
+export function runningTickets(state: EpicState, list: string | undefined): Set<string> {
+  const same = sameTicket(state.epic.repo);
+  return new Set(state.tickets.filter((t) => list?.split(",").some((s) => same(s, t.url))).map((t) => t.url));
+}
+
+/**
+ * The wave over the state's ready tickets, held against every in-flight ticket (see `inFlight` in plan-next.ts) and
+ * every running ticket that has not landed, reading each one's body for its Files owned and Interfaces. Such a running
+ * ticket is held itself, with the reason `RUNNING`.
+ *
+ * @internal
+ */
+export async function wavePlan(state: EpicState, max: number, all: Set<string> = new Set()): Promise<WavePlan> {
+  const running = new Set(state.tickets.filter((t) => !t.landed && all.has(t.url)).map((t) => t.url));
+  const id = (t: Ticket) => (t.repo === state.epic.repo ? String(t.number) : `${t.repo}#${t.number}`);
   const input = async (t: Ticket): Promise<PlanInput> => ({
-    id: t.repo === state.epic.repo ? String(t.number) : `${t.repo}#${t.number}`,
+    id: id(t),
     number: t.number,
     repo: t.repo,
     layer: t.layer,
     body: (JSON.parse(await runGh(["issue", "view", t.url, "--json", "body"])) as { body: string }).body ?? "",
   });
-  const [ready, running] = await Promise.all([
-    Promise.all(state.tickets.filter((t) => t.state === "ready" && !liveWorker(t, sessions)).map(input)),
-    Promise.all(state.tickets.filter((t) => inFlight(t, sessions)).map(input)),
+  const [ready, flight] = await Promise.all([
+    Promise.all(state.tickets.filter((t) => t.state === "ready" && !running.has(t.url)).map(input)),
+    Promise.all(state.tickets.filter((t) => inFlight(t) || running.has(t.url)).map(input)),
   ]);
-  return planWave(ready, max, running);
+  const plan = planWave(ready, max, flight);
+  const held = state.tickets.filter((t) => running.has(t.url)).map((t) => ({ ticket: id(t), reason: RUNNING }));
+  return { wave: plan.wave, held: [...held, ...plan.held] };
 }
 
 async function runPlan(args: string[]): Promise<number> {
-  const at = args.indexOf("--max");
-  const max = at < 0 ? DEFAULT_WAVE_MAX : Number(args[at + 1]);
-  const epic = args.filter((a, i) => a !== "--json" && (at < 0 || (i !== at && i !== at + 1)));
+  const { list, rest } = runningFlag(args);
+  const at = rest.indexOf("--max");
+  const max = at < 0 ? DEFAULT_WAVE_MAX : Number(rest[at + 1]);
+  const epic = rest.filter((a, i) => a !== "--json" && (at < 0 || (i !== at && i !== at + 1)));
   if (epic.length !== 1 || !Number.isInteger(max) || max < 1) throw new UsageError("");
   const state = derive((await fetchSnapshot(parseIssue(epic[0]).arg))!);
-  const plan = await wavePlan(state, max);
+  const plan = await wavePlan(state, max, runningTickets(state, list));
   process.stdout.write(
-    args.includes("--json")
+    rest.includes("--json")
       ? JSON.stringify(plan, null, 2) + "\n"
       : `wave: ${plan.wave.join(", ") || "none"}\n` + plan.held.map((h) => `held: ${h.ticket} (${h.reason})\n`).join(""),
   );
@@ -262,7 +303,8 @@ async function runPlan(args: string[]): Promise<number> {
 /**
  * Plans the next Wave, or records a wave, a pull request or a panel round on the wave comment.
  *
- * @param args - `plan <epic>` with `--max N` and `--json` for the {@link WavePlan} shape; or the Epic (an issue
+ * @param args - `plan <epic>` with `--max N`, `--running` with the tickets whose workers the build started and that
+ *   have not reported back, and `--json` for the {@link WavePlan} shape; or the Epic (an issue
  *   number in the current repo or an issue URL), then `add`, `pr` or `panel` and that form's flags.
  * @returns 0 when the plan is printed or the comment written; 2 on a usage error (a `pr` for a ticket no wave holds
  *   included), with the usage on stderr; 1 when `gh` fails or the stored trailer does not decode, with the reason on

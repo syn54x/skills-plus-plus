@@ -17,7 +17,7 @@ The `spp` plugin puts `spp` on the Bash tool's PATH. Each capability the skill n
 | Hand back | `spp hand-back <N> needs-info\|ready-for-human\|blocked --reason "<why>"`, adding `--blocked-by <issue>` on the `blocked` route when you know the blocker |
 | Record a blocked stop | `git notes --ref=sdd-verify add -f -m blocked HEAD` |
 
-Your name on the Worker line is the one your brief gives you, `t-<N>`, which every driver also gives your session; a person writes their login.
+Your name on the Worker line is the one your brief gives you, `t-<N>`, which is also the name your subagent was started with; a person writes their login.
 
 ## Pushing the notes ref
 
@@ -44,6 +44,6 @@ The plugin's hooks run on their own; never call them by hand.
 | Stop: `spp note --auto` | Posts `stopped`. |
 | PreToolUse on Bash: `spp guard worktree` | Refuses a command that would write into the main checkout from a worktree session. Run every command from your own worktree. |
 
-## Driver notes
+## Worker notes
 
-Under the subagent driver you run as the `spp:worker` agent, in a worktree of your own with this skill preloaded. Under a desktop or background session the brief is your first message. In every driver the brief's first commands cut the branch; step 3 then only confirms it.
+You run as the `spp:worker` subagent, in a worktree of your own with this skill preloaded, and the brief is your first message. Its first commands cut the branch; step 3 then only confirms it.

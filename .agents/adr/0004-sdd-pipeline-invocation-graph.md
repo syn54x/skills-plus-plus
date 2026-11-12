@@ -7,7 +7,7 @@ We give each step a person takes exactly one user-invoked entry, and make every 
 | Flow | User-invoked entries | Model-invoked skills underneath |
 | --- | --- | --- |
 | Plan | `grill`, `auto-grill`, `discuss` (also model-invoked), `wayfinder`, `to-spec`, `to-tickets`, `triage` | `grilling`, `domain-modeling`, `codebase-design`, `research`, `prototype`, `harden` |
-| Build | `build` | `implement-issue`, `tdd`, `diagnosing-bugs` |
+| Build | `build` | `building`, `delegating`, `implement-issue`, `tdd`, `diagnosing-bugs` |
 | Review | `review` (also model-invoked), `review-panel`, `improve-architecture` | `review` |
 | Ship | `prepare-release-notes`, `close-epic`, `retro` | `pr` |
 | Write and talk | `eli5` | `writing-for-humans`, `writing-for-agents` |
@@ -20,8 +20,8 @@ We give each step a person takes exactly one user-invoked entry, and make every 
 - `discuss` writes nothing on its own, and files an issue only when the person says yes to its offer.
 - The rest read or write prose and post nothing on their own.
 
-## How `build` reaches the panel
+## How `building` reaches the panel
 
-`build` is user-invoked and so is `review-panel`, so `build` cannot call it as a skill. When the Epic crosses the size thresholds, `build` walks `review-panel`'s own steps at the main gate, reading them from its files: the panel folder, the Personas, the `spp:review-panel` workflow started with the pull request number, then `spp findings merge --verdict`. The workflow is a pure fan-out of the Persona reviewers and holds no panel logic. Reading another skill's steps this way is the one exception [invocation.md](../invocation.md) records, ruled in Epic #197's Spec deltas (F4). A person can still type `/review-panel` on any pull request to main.
+`build` hands off to `delegating`, which runs `building` here or in a sub-session. `building` is model-invoked and `review-panel` is user-invoked, so `building` cannot call it as a skill. When the Epic crosses the size thresholds, `building` walks `review-panel`'s own steps at the main gate, reading them from its files: the panel folder, the Personas, the `spp:review-panel` workflow started with the pull request number, then `spp findings merge --verdict`. The workflow is a pure fan-out of the Persona reviewers and holds no panel logic. Reading another skill's steps this way is the one exception [invocation.md](../invocation.md) records, ruled in Epic #197's Spec deltas (F4). A person can still type `/review-panel` on any pull request to main.
 
 `scripts/check-invocation.ts` enforces the rule: any `Call the Skill tool with "x"` or agent `skills:` preload naming a user-invoked skill fails CI.

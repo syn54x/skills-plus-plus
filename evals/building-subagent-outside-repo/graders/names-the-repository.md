@@ -1,0 +1,10 @@
+---
+type: llm
+focus: last_message
+---
+
+The session was told to use `building` for an issue of `acme/app` from `~/work`, a folder that is not a git repository. The checkout of `acme/app` is at `~/work/app`. A worker agent cuts its worktree from the session's folder, so no worker can start from `~/work`.
+
+PASS if the reply says the run cannot start workers from this folder because it is not a git repository, and tells the person to run the build again (`/build`, or `building`) from inside the checkout of `acme/app` (naming `~/work/app`, or the repository's checkout in other words).
+
+FAIL if the reply reports that a worker was started or is running, asks only for something unrelated to the folder (a shell, a permission, the issue's text), never tells the person to run the build from inside the repository's checkout, or offers another way to run workers (a desktop or background session, another Driver) instead.

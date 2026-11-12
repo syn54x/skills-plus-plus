@@ -1,10 +1,10 @@
 `spp plan <epic> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d] [--narrowed TEXT]... |
-[--narrowed none] [--add-deviation TEXT] [--table-file FILE] [--driver desktop|bg|subagent] [--by "<skill> <step>"]` writes the Epic's `<!-- sdd-plan -->` comment,
+[--narrowed none] [--add-deviation TEXT] [--table-file FILE] [--by "<skill> <step>"]` writes the Epic's `<!-- sdd-plan -->` comment,
 rewriting it in place, and prints its URL. A field you do not pass keeps its stored value. `--narrowed` replaces the
 stored list with every `--narrowed` of the call, `--narrowed none` clears it, and a call without it keeps it;
-`--add-deviation` appends to the Deviated list. `--driver` records the Driver the user chose for the run, which
-`spp next` then reports on `dispatch`. The table file is copied in verbatim. The trailer's `by` records the
-write's maker: to-tickets, or the skill and step `--by` names. It has no `--json`.
+`--add-deviation` appends to the Deviated list. The table file is copied in verbatim. The trailer's `by` records
+the write's maker: to-tickets, or the skill and step `--by` names. It has no `--json`. A trailer that still holds
+the `driver` an older spp recorded is read without error, and no line renders it.
 
 Each `--add-deviation` also records a `contract-edited` Signal. When the text starts with an issue (`#N`, `N`,
 `owner/repo#N` or an issue URL, a trailing `:` allowed) it is charged to the maker of that issue's Verify pin (harden
@@ -40,7 +40,6 @@ Merges the given fields into the Epic's plan comment.
 
 ```bash
 spp plan 197 --branch feat/rebuild --add-deviation "#202: an unreadable trailer stops the write"
-spp plan 197 --driver subagent
 ```
 
 ## Variables
@@ -56,8 +55,8 @@ The usage text `spp plan --help` prints.
 ```text
 usage: spp plan <epic> [--goal TEXT] [--constraints TEXT] [--branch NAME] [--repos a/b,c/d]
                        [--narrowed TEXT]... | [--narrowed none] [--add-deviation TEXT] [--table-file FILE]
-                       [--driver desktop|bg|subagent] [--by "<skill> <step>"]
+                       [--by "<skill> <step>"]
 --narrowed replaces the stored list with every --narrowed of the call, --narrowed none clears it, and a
-call without --narrowed keeps it; --add-deviation appends. --driver records the run's Driver.
+call without --narrowed keeps it; --add-deviation appends.
 --by records the write as that skill's (default to-tickets), the rest of the value as its step.
 ```

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, test } from "node:test";
@@ -15,11 +15,13 @@ type Opts = {
   branch?: string | null;
   panel?: string;
   mainPr?: { state: "OPEN" | "MERGED" | "CLOSED"; lines: number } | null;
-  agents?: unknown[];
+  resume?: boolean; // pass --resume
   env?: Record<string, string>;
   epicState?: string;
   driver?: string;
   fixes?: PrSpec[]; // open or merged pull requests into the integration branch that close no Sub-issue
+  running?: string; // pass --running with these tickets
+  waves?: string[]; // tickets listed on the Epic's wave comment as Wave 1, by t-<N> workers
 };
 type Action = { kind: string; tickets?: string[]; pr?: string; driver?: string; panel?: boolean; reason: string };
 
@@ -37,7 +39,8 @@ const by = (body: string, outsider = false) => ({ body, author: { login: outside
 const ticketBody = (t: Spec) => `## Files owned\n\n- Modify: ${(t.files ?? [`src/f${t.n}.ts`]).map((f) => `\`${f}\``).join(", ")}\n\n## Interfaces\n\n- Consumes: none\n- Produces: none\n`;
 
 // A case directory for Epic 197 in acme/app: its Sub-issues, their pull requests, CI and verdict history,
-// the pull request to the base branch, the Routing block and the claude session list.
+// the pull request to the base branch and the Routing block. The claude stub logs every call it gets, so a case that
+// reads the claude session list shows that call among its writes.
 function scratch(tickets: Spec[], o: Opts = {}): string {
   const dir = mkdtempSync(join(tmpdir(), "spp-next-"));
   const branch = o.branch === undefined ? "feat/epic" : o.branch;
@@ -81,7 +84,7 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
               url: ISSUE + 197,
               title: "Epic",
               repository: { nameWithOwner: "acme/app" },
-              comments: { nodes: [by(plan)] },
+              comments: { nodes: [by(plan), ...(o.waves ? [by(trailer("<!-- sdd-wave -->", { waves: [{ n: 1, tickets: o.waves, workers: o.waves.map((t) => `t-${t}`), started: "2026-11-02T00:00:00Z", edges: [], prs: {} }], panel: [] }))] : [])] },
               subIssues: { nodes: tickets.map(node) },
             },
           },
@@ -127,10 +130,9 @@ function scratch(tickets: Spec[], o: Opts = {}): string {
   }
   gh["api graphql -f query=PullRequests *"] = { stdout: { data: { viewer: { login: "maint" }, repository: { pullRequests: { nodes: (o.fixes ?? []).map(pr) } } } } };
   writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
-  if (o.agents) writeFileSync(join(dir, "agents.json"), JSON.stringify({ "agents --json --all": { stdout: o.agents } }));
   const routing = ["<!-- sdd-routing -->", "- Mode: org", "- Laws: CLAUDE.md", ...(o.panel ? [`- Panel: ${o.panel}`] : []), "<!-- /sdd-routing -->"];
   writeFileSync(join(dir, "CLAUDE.md"), routing.join("\n") + "\n");
-  writeFileSync(join(dir, "args"), "197\n--json\n");
+  writeFileSync(join(dir, "args"), `197\n--json\n${o.resume ? "--resume\n" : ""}${o.running !== undefined ? `--running\n${o.running}\n` : ""}`);
   return dir;
 }
 
@@ -142,7 +144,7 @@ async function next(tickets: Spec[], o: Opts = {}): Promise<Action[]> {
   try {
     const r = await runCase("next", dir);
     assert.equal(r.code, 0, r.stderr);
-    assert.deepEqual(r.writes, [], "spp next writes nothing");
+    assert.deepEqual(r.writes, [], "spp next writes nothing and makes no claude call");
     return (r.json as { actions: Action[] }).actions;
   } finally {
     if (socket === undefined) delete process.env.CLAUDE_CODE_MESSAGING_SOCKET;
@@ -158,7 +160,7 @@ const FAIL: Verdict = { head: HEAD, spec: "pass", quality: "fail" };
 describe("happy path", () => {
   test("two ready tickets, no workers, a branch: one dispatch action with both tickets", async () => {
     const actions = await next([{ n: 12 }, { n: 13 }]);
-    assert.deepEqual(actions, [{ kind: "dispatch", tickets: ["12", "13"], driver: "subagent", reason: actions[0].reason }]);
+    assert.deepEqual(actions, [{ kind: "dispatch", tickets: ["12", "13"], reason: actions[0].reason }]);
   });
 
   test("a pr-open ticket with checks pass and no verdict: gate for its pull request", async () => {
@@ -190,26 +192,22 @@ describe("happy path", () => {
     assert.deepEqual(actions, [{ kind: "close", pr: PULL + 900, reason: actions[0].reason }]);
   });
 
-  test("dispatch names bg as the driver when the messaging socket is set", async () => {
+  test("dispatch carries no driver when the messaging socket is set", async () => {
     const actions = await next([{ n: 12 }], { env: { CLAUDE_CODE_MESSAGING_SOCKET: "/tmp/sock" } });
-    assert.equal(actions[0].driver, "bg");
+    assert.deepEqual(actions, [{ kind: "dispatch", tickets: ["12"], reason: actions[0].reason }]);
   });
 });
 
 describe("edge cases", () => {
-  test("dispatch names the driver the plan comment records, desktop included, with the socket unset", async () => {
+  test("spp next 197 --json on an Epic whose plan trailer holds driver: desktop: a dispatch action with no driver field", async () => {
     const actions = await next([{ n: 12 }], { driver: "desktop" });
-    assert.equal(actions[0].driver, "desktop");
+    assert.deepEqual(actions, [{ kind: "dispatch", tickets: ["12"], reason: actions[0].reason }]);
+    assert.equal("driver" in actions[0], false);
   });
 
-  test("a recorded subagent driver wins over the messaging socket", async () => {
-    const actions = await next([{ n: 12 }], { driver: "subagent", env: { CLAUDE_CODE_MESSAGING_SOCKET: "/tmp/sock" } });
-    assert.equal(actions[0].driver, "subagent");
-  });
-
-  test("an unknown recorded driver is ignored: detection applies", async () => {
-    const actions = await next([{ n: 12 }], { driver: "cloud", env: { CLAUDE_CODE_MESSAGING_SOCKET: "/tmp/sock" } });
-    assert.equal(actions[0].driver, "bg");
+  test("a plan trailer holding driver: bg is read without error and ignored", async () => {
+    const actions = await next([{ n: 12 }], { driver: "bg" });
+    assert.deepEqual(actions, [{ kind: "dispatch", tickets: ["12"], reason: actions[0].reason }]);
   });
 
   test("a gate-pass ticket whose blocker is still open: no merge, wait instead", async () => {
@@ -238,14 +236,6 @@ describe("edge cases", () => {
 
   test("a pr-open ticket with pending checks stays in flight: wait", async () => {
     assert.deepEqual(kinds(await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, checks: "pending" } }])), ["wait"]);
-  });
-
-  test("a gate-fail ticket whose worker is still running its fix round: wait, not fix again", async () => {
-    const actions = await next([{ n: 12, labels: [...READY, "claimed"], worker: "t-12", pr: { n: 40, verdict: FAIL } }], {
-      agents: [{ name: "t-12", kind: "background", state: "working" }],
-    });
-    assert.deepEqual(kinds(actions), ["wait"]);
-    assert.match(actions[0].reason, /t-12 working/);
   });
 
   test("a gate-fail ticket in its first fix round: fix", async () => {
@@ -321,37 +311,60 @@ describe("edge cases", () => {
     assert.equal(actions[0].panel, false);
   });
 
-  // Review of #271: a claimed worker that died before its pull request must end the wait loop, not feed it.
-  test("a claimed ticket with no pull request whose worker session stopped: one hand-back naming the lost worker, on every call", async () => {
-    const tickets: Spec[] = [{ n: 12, labels: [...READY, "claimed"], worker: "t-12" }];
-    const agents = [{ name: "t-12", kind: "background", state: "done" }];
-    for (let call = 0; call < 2; call++) {
-      const actions = await next(tickets, { agents });
-      assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["hand-back", ["12"]]]);
-      assert.match(actions[0].reason, /#12 .*t-12 done.*worker lost/);
-    }
-  });
-
-  test("once that lost worker's ticket is handed back, next is stuck on it, not waiting", async () => {
-    const actions = await next([{ n: 12, labels: ["size:S", "needs-info"], worker: "t-12" }], { agents: [{ name: "t-12", kind: "background", state: "done" }] });
+  test("once a lost worker's ticket is handed back, next is stuck on it, not waiting", async () => {
+    const actions = await next([{ n: 12, labels: ["size:S", "needs-info"], worker: "t-12" }], { resume: true });
     assert.deepEqual(kinds(actions), ["stuck"]);
     assert.match(actions[0].reason, /#12 is handed back/);
   });
 
-  test("a ticket a person holds by assignment, with a stale t-<N> session listed, is a live hold: wait", async () => {
-    const actions = await next([{ n: 12, assignees: ["alice"] }], { agents: [{ name: "t-12", kind: "background", state: "done" }] });
+  test("a ticket a person holds by assignment is a live hold: wait", async () => {
+    const actions = await next([{ n: 12, assignees: ["alice"] }]);
     assert.deepEqual(kinds(actions), ["wait"]);
-  });
-
-  test("a ready ticket whose dispatched worker session is still working is waited on, not dispatched again", async () => {
-    const actions = await next([{ n: 12, worker: "t-12" }], { agents: [{ name: "t-12", kind: "background", state: "working" }] });
-    assert.deepEqual(kinds(actions), ["wait"]);
-    assert.match(actions[0].reason, /t-12/);
   });
 
   test("a pull request merged into the integration branch counts as merged while its issue is still open", async () => {
     const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, state: "MERGED" } }], { mainPr: null });
     assert.deepEqual(kinds(actions), ["main-gate"]);
+  });
+});
+
+// #408: a build resumed after its session died asks about each Sub-issue its lost workers left claimed.
+describe("--resume reports lost workers", () => {
+  const claimed: Spec = { n: 12, labels: [...READY, "claimed"], worker: "t-12" };
+
+  test("spp next 197 --resume --json with #12 claimed, no pull request, no assignee: a hand-back for #12, worker lost", async () => {
+    const actions = await next([claimed], { resume: true });
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["hand-back", ["12"]]]);
+    assert.match(actions[0].reason, /#12 .*worker lost/);
+  });
+
+  test("spp next 197 --json with the same state: no hand-back for #12", async () => {
+    const actions = await next([claimed]);
+    assert.deepEqual(kinds(actions), ["wait"]);
+  });
+
+  test("spp next 197 --resume --json with #12 claimed and assigned to alice: no hand-back for #12", async () => {
+    const actions = await next([{ ...claimed, assignees: ["alice"] }], { resume: true });
+    assert.deepEqual(kinds(actions), ["wait"]);
+  });
+
+  test("spp next 197 --resume --json with #12 claimed and an open pull request: no hand-back for #12", async () => {
+    const actions = await next([{ ...claimed, pr: { n: 40, checks: "pending" } }], { resume: true });
+    assert.deepEqual(kinds(actions), ["wait"]);
+  });
+
+  test("spp next 197, spp wait 197 --timeout 1 and spp wave plan 197: the stubbed claude records no agents call", async () => {
+    const dir = scratch([claimed, { n: 13 }]);
+    for (const [command, args] of [
+      ["next", "197\n"],
+      ["wait", "197\n--interval\n1\n--timeout\n1\n"],
+      ["wave", "plan\n197\n"],
+    ]) {
+      writeFileSync(join(dir, "args"), args);
+      const r = await runCase(command, dir);
+      assert.equal(r.code, 0, `${command}: ${r.stderr}`);
+      assert.deepEqual(r.writes, [], `spp ${command} makes no claude call`);
+    }
   });
 });
 
@@ -369,12 +382,6 @@ describe("in-flight work holds an overlapping ready ticket until it merges", () 
     }
   });
 
-  test("A dispatched with its session live but not yet claimed: C held", async () => {
-    const actions = await next([{ n: 12, files: ["src/x.ts"] }, C], { agents: [{ name: "t-12", kind: "background", state: "working" }] });
-    assert.deepEqual(kinds(actions), ["wait"]);
-    assert.match(actions[0].reason, /#13 held: shares src\/x\.ts with 12/);
-  });
-
   test("A with its pull request open: C held", async () => {
     const actions = await next([{ n: 12, labels: [...READY, "claimed"], files: ["src/x.ts"], pr: { n: 40, checks: "pending" } }, C]);
     assert.deepEqual(kinds(actions), ["wait"]);
@@ -389,6 +396,112 @@ describe("in-flight work holds an overlapping ready ticket until it merges", () 
   test("an in-flight ticket that touches other files holds nothing", async () => {
     const actions = await next([{ n: 12, labels: [...READY, "claimed"], files: ["src/y.ts"] }, C]);
     assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["13"]]]);
+  });
+});
+
+// F5 on #430, R2-F4, R2-F10, R2-F16 and the round 3 Spec finding: the build names each ticket from its worker's start
+// until the worker reports back, and spp holds it in any state until it lands, so no ticket gets a second worker.
+describe("--running holds the tickets this session's workers have not reported back on", () => {
+  test("#12 running, no claim, no pull request: wait, not dispatched again", async () => {
+    const actions = await next([{ n: 12 }], { running: "12" });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /in flight: #12 running, its worker has not reported back/);
+  });
+
+  test("#12 running at gate-fail, its fix round under way: wait, not fix", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, verdict: FAIL } }], { running: "12" });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#12 running/);
+  });
+
+  test("#12 running at pr-open with checks passing: wait, not gate", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40 } }], { running: "12" });
+    assert.deepEqual(kinds(actions), ["wait"]);
+  });
+
+  test("a running pr-open ticket's checks and verdict history are never read", async () => {
+    const dir = scratch([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, verdict: FAIL } }], { running: "12" });
+    const gh = JSON.parse(readFileSync(join(dir, "gh.json"), "utf8"));
+    delete gh[`pr checks ${PULL}40 --json name,bucket`];
+    delete gh["api graphql -f query=VerdictHistory -f owner=acme -f repo=app -F number=40"];
+    writeFileSync(join(dir, "gh.json"), JSON.stringify(gh));
+    const r = await runCase("next", dir);
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(kinds((r.json as { actions: Action[] }).actions), ["wait"]);
+  });
+
+  // The quality gate on #434: a main-gate fix resumes a worker whose Sub-issue has landed.
+  test("#12 landed and running, its open fix at gate-fail: wait, not fix", async () => {
+    const actions = await next([merged(12)], { fixes: [{ n: 77, body: "Refs #12", verdict: FAIL }], running: "12" });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#12 running/);
+  });
+
+  test("every ticket landed and #12 running, no fix open yet: wait, not main-gate", async () => {
+    const actions = await next([merged(12), merged(13)], { mainPr: { state: "OPEN", lines: 50 }, running: "12" });
+    assert.deepEqual(kinds(actions), ["wait"]);
+  });
+
+  test("#12 running and landed holds nothing: #13 sharing its file is dispatched", async () => {
+    const actions = await next([{ ...merged(12), files: ["src/x.ts"] }, { n: 13, files: ["src/x.ts"] }], { running: "12" });
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["13"]]]);
+  });
+
+  test("#12 running holds #13, which shares its file", async () => {
+    const actions = await next([{ n: 12, files: ["src/x.ts"] }, { n: 13, files: ["src/x.ts"] }], { running: ISSUE + 12 });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#13 held: shares src\/x\.ts with 12/);
+  });
+
+  test("a ticket named as owner/repo#N: --running acme/app#12 holds #12", async () => {
+    const actions = await next([{ n: 12 }, { n: 13 }], { running: "acme/app#12" });
+    assert.deepEqual(actions.map((a) => [a.kind, a.tickets]), [["dispatch", ["13"]]]);
+  });
+
+  test("a restart after spp unclaim 12: GitHub still shows t-12 on the Worker line and in Wave 1, yet only --running holds it", async () => {
+    const residue: Spec[] = [{ n: 12, worker: "t-12" }];
+    assert.deepEqual(kinds(await next(residue, { waves: ["12"], running: "12" })), ["wait"], "the session that started t-12 holds it");
+    const restarted = await next(residue, { waves: ["12"] });
+    assert.deepEqual(restarted.map((a) => [a.kind, a.tickets]), [["dispatch", ["12"]]], "a new session, with no --running, dispatches it");
+  });
+
+  test("#12 running and handed back is still held until it lands: #13 sharing its file waits", async () => {
+    const actions = await next([{ n: 12, labels: ["size:S", "needs-info"], files: ["src/x.ts"] }, { n: 13, files: ["src/x.ts"] }], { running: "12" });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#13 held: shares src\/x\.ts with 12/);
+  });
+
+  // R4-F1 on #430: each answer to the dead-worker question leaves a mark spp next reads, so the action does not return.
+  test("taken over: #12 running at gate-fail, a dead worker's pull request: wait, not fix", async () => {
+    const actions = await next([{ n: 12, labels: [...READY, "claimed"], pr: { n: 40, verdict: FAIL } }], { running: "12" });
+    assert.deepEqual(kinds(actions), ["wait"]);
+    assert.match(actions[0].reason, /#12 running/);
+  });
+
+  test("handed back, a slice: #12 ready-for-human with its gate-fail pull request open is neither routed nor waited on", async () => {
+    const actions = await next([{ n: 12, labels: ["size:S", "ready-for-human"], pr: { n: 40, verdict: FAIL } }]);
+    assert.deepEqual(kinds(actions), ["stuck"]);
+    assert.match(actions[0].reason, /#12 is handed back/);
+  });
+
+  test("handed back, a main-gate fix: closed at gate-fail, it no longer holds main-gate", async () => {
+    const actions = await next([merged(12)], { fixes: [{ n: 77, body: "Refs #12", verdict: FAIL, state: "CLOSED" }], mainPr: { state: "OPEN", lines: 50 } });
+    assert.deepEqual(kinds(actions), ["main-gate"]);
+    assert.ok(actions[0].pr);
+  });
+
+  test("--running takes a malformed ticket as a usage error", async () => {
+    const r = await runCase("next", scratch([{ n: 12 }], { running: "twelve" }));
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /--running takes 101,owner\/repo#7/);
+  });
+
+  test("--running with no value is a usage error, the same one spp wave plan gives", async () => {
+    const dir = scratch([{ n: 12 }]);
+    writeFileSync(join(dir, "args"), "197\n--json\n--running\n");
+    const r = await runCase("next", dir);
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /--running takes 101,owner\/repo#7/);
   });
 });
 
@@ -536,11 +649,6 @@ describe("fix pull requests", () => {
     const actions = await next(landed, { fixes: [FIX(77, { checks: "pending" })] });
     assert.deepEqual(kinds(actions), ["wait"]);
     assert.match(WHY(actions[0]), /#77 checks pending/);
-  });
-
-  test("its Sub-issue's worker still running: wait, not gate", async () => {
-    const agents = [{ name: "t-12", state: "working" }];
-    assert.deepEqual(kinds(await next(landed, { fixes: [FIX(77)], agents })), ["wait"]);
   });
 
   test("an unattributed fix with nothing else in flight: stuck, naming it, Refs and the other way out", async () => {

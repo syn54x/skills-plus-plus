@@ -138,9 +138,8 @@ type Host = {
   ghByEpic?: Record<number, string> // the snapshot gh answers for each Epic number, in place of `gh`
   ghDelayMs?: number // gh answers this long after it is asked, on the mocked clock
   notes?: { ticket: number; text: string; at: string }[] // the local notes log of the Epic's repo
-  sessions?: { name: string; kind: string }[]
-  agentsError?: string // claude agents exits 1 with this on stderr
   agents?: { id: string; description: string }[]
+  agentsError?: string // the agent list read fails with this message
   branch?: string // the checkout's current branch
   toplevel?: string // the checkout's folder, as git rev-parse --show-toplevel prints it
   parent?: string // the parent URL `gh issue view` answers for a worker branch's issue
@@ -155,7 +154,7 @@ const LOG = `/home/t/.local/state/spp/${REPO.replace('/', '__')}.jsonl`
 // Stands for the engine beneath the plugin: the host commands, the notes log, the agent list and the display calls it
 // records.
 function host(on: On, h: Host) {
-  const seen = { opened: [] as number[], status: [] as (string | undefined)[], copied: [] as string[], filled: [] as string[], viewed: [] as string[], argv: [] as string[][] }
+  const seen = { opened: [] as number[], status: [] as (string | undefined)[], copied: [] as string[], viewed: [] as string[], argv: [] as string[][] }
   const clock = mock.clock(on, { now: NOW })
   mock.env(on, { HOME: '/home/t' })
   const log = (h.notes ?? []).map(n => JSON.stringify({ repo: REPO, ticket: n.ticket, text: n.text, at: n.at, milestone: false })).join('\n')
@@ -187,13 +186,9 @@ function host(on: On, h: Host) {
       const gh = h.ghByEpic?.[epic] !== undefined ? { exitCode: 0, stdout: h.ghByEpic[epic] } : h.gh ?? { exitCode: 0, stdout: snapshot([]) }
       return { value: { stderr: '', isStdoutTruncated: false, isStderrTruncated: false, ...gh } }
     }
-    if (cmd === 'claude' && args[0] === 'agents' && h.agentsError) {
-      return { value: { exitCode: 1, stdout: '', stderr: h.agentsError, isStdoutTruncated: false, isStderrTruncated: false } }
-    }
-    if (cmd === 'claude' && args[0] === 'agents') return ok(JSON.stringify(h.sessions ?? []))
     return { value: { exitCode: 127, stdout: '', stderr: `unexpected ${e.argv.join(' ')}`, isStdoutTruncated: false, isStderrTruncated: false } }
   })
-  on('agent.list', () => ({ value: (h.agents ?? []).map(a => ({ ...a, type: 'general-purpose', status: 'running' })) }))
+  on('agent.list', () => (h.agentsError ? { deny: h.agentsError } : { value: (h.agents ?? []).map(a => ({ ...a, type: 'general-purpose', status: 'running' })) }))
   on('ui.status', (_, e) => {
     seen.status.push(e.text)
     return { value: undefined }
@@ -201,10 +196,6 @@ function host(on: On, h: Host) {
   on('ui.copy', (_, e) => {
     seen.copied.push(e.text)
     return { value: { isCopied: true } }
-  })
-  on('prompt.fill', (_, e) => {
-    seen.filled.push(e.text)
-    return { isFilled: true, cursor: e.text.length }
   })
   on('ui.view', (_, e) => {
     seen.viewed.push(e.agentId ?? '')
@@ -286,16 +277,6 @@ test('a failing gh call draws one error row with its message and no ticket rows'
   }
 })
 
-test('a failing claude call draws an error row and keeps the ticket rows', async ($, on) => {
-  host(on, { gh: { exitCode: 0, stdout: snapshot([{ n: 201 }]) }, agentsError: 'agents: no daemon' })
-  await $.command.run(OPEN)
-
-  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  expect((await ui.find({ key: 'error' }))?.text).toBe('claude agents: agents: no daemon')
-  expect((await texts(ui)).filter(t => /^#201 /.test(t))).toHaveLength(1)
-  await ui.unmount()
-})
-
 test('copy on a row puts its pull request URL on the clipboard', async ($, on) => {
   const seen = host(on, { gh: { exitCode: 0, stdout: snapshot([{ n: 201 }, { n: 202, pr: { n: 300 } }]) } })
   await $.command.run(OPEN)
@@ -309,22 +290,8 @@ test('copy on a row puts its pull request URL on the clipboard', async ($, on) =
   expect(seen.copied).toEqual([`${URL}/pull/300`, `${URL}/issues/201`, `${URL}/pull/300`, `${URL}/issues/201`])
 })
 
-test('attach on a background worker row puts claude attach in the prompt', async ($, on) => {
-  const seen = host(on, {
-    gh: { exitCode: 0, stdout: snapshot([{ n: 212, labels: ['claimed'], worker: 't-12' }]) },
-    sessions: [{ name: 't-12', kind: 'background' }],
-  })
-  await $.command.run(OPEN)
-
-  for (const surface of ['terminal', 'desktop'] as const) {
-    const ui = await $.ui.mount({ ...PANE, surface })
-    await ui.press({ key: 'worker-212' })
-    await ui.unmount()
-  }
-  expect(seen.filled).toEqual(['claude attach t-12', 'claude attach t-12'])
-})
-
-test('a subagent worker row shows its transcript', async ($, on) => {
+// #408: the board lists the workers its own session's agent list holds, and reads no claude session list.
+test('a subagent in the agent list shows as the row worker, with no claude agents call', async ($, on) => {
   const seen = host(on, {
     gh: { exitCode: 0, stdout: snapshot([{ n: 213, labels: ['claimed'], worker: 't-213' }]) },
     agents: [{ id: 'a9', description: 't-213 board' }],
@@ -332,9 +299,42 @@ test('a subagent worker row shows its transcript', async ($, on) => {
   await $.command.run(OPEN)
 
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await ui.find({ key: 'error' })).toBeUndefined()
   await ui.press({ key: 'worker-213' })
   await ui.unmount()
   expect(seen.viewed).toEqual(['a9'])
+  expect(seen.argv.filter(a => a[0] === 'claude')).toEqual([])
+})
+
+// Coherence on #430: building's Agent call starts each description with t-<N>, the only place the Agent tool carries it.
+test('a description in building\'s form, t-<N> first, links the worker; one without t-<N> links none', async ($, on) => {
+  const seen = host(on, {
+    gh: { exitCode: 0, stdout: snapshot([{ n: 213, labels: ['claimed'], worker: 't-213' }, { n: 214, labels: ['claimed'], worker: 't-214' }]) },
+    agents: [
+      { id: 'a13', description: 't-213 implement #213' },
+      { id: 'a14', description: 'Implement issue #214' },
+    ],
+  })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await ui.find({ key: 'worker-214' })).toBeUndefined()
+  await ui.press({ key: 'worker-213' })
+  await ui.unmount()
+  expect(seen.viewed).toEqual(['a13'])
+})
+
+// F11 on #430: a failing agent list read keeps the ticket rows and names its source on the error row.
+test('a failing agent list read draws "agent list: <message>" and keeps the ticket rows', async ($, on) => {
+  host(on, { gh: { exitCode: 0, stdout: snapshot([{ n: 201 }]) }, agentsError: 'agent list unavailable' })
+  await $.command.run(OPEN)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  const all = await texts(ui)
+  // The engine adds its own call name inside the message; the board's prefix comes first.
+  expect(all.find(t => t.startsWith('agent list: '))).toMatch(/agent list unavailable$/)
+  expect(all.filter(t => /^#201 /.test(t))).toHaveLength(1)
+  await ui.unmount()
 })
 
 test('the status line after a refresh shows merged of total and the newest note', async ($, on) => {
@@ -438,22 +438,6 @@ test('a subagent whose description carries the name beside punctuation still mat
   await ui.press({ key: 'worker-12' })
   await ui.unmount()
   expect(seen.viewed).toEqual(['a1', 'a12'])
-})
-
-test('with background sessions t-1 and t-12 both live, attach names the row worker', async ($, on) => {
-  const seen = host(on, {
-    gh: { exitCode: 0, stdout: snapshot([{ n: 1, labels: ['claimed'], worker: 't-1' }, { n: 12, labels: ['claimed'], worker: 't-12' }]) },
-    sessions: [
-      { name: 't-12', kind: 'background' },
-      { name: 't-1', kind: 'background' },
-    ],
-  })
-  await $.command.run(OPEN)
-
-  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  await ui.press({ key: 'worker-1' })
-  await ui.unmount()
-  expect(seen.filled).toEqual(['claude attach t-1'])
 })
 
 // The trust boundary (ADR 0009): a wave comment from an outside author is skipped, as spp skips it.

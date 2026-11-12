@@ -7,7 +7,7 @@ Each skill sits at `skills/<name>/SKILL.md`. What separates one skill from anoth
 
 Every skill carries `agents/openai.yaml` next to its `SKILL.md`, holding the Codex picker fields (`interface.display_name`, `interface.short_description`) and, for a user-invoked skill, the policy line. The frontmatter flag and the policy line always agree: a skill is user-invoked on every harness or on none.
 
-A user-invoked skill is out of the model's reach, so no other skill can start it either. A user-invoked skill may start model-invoked skills; nothing may start a user-invoked one except the person. One exception, ruled in Epic #197's Spec deltas (F4): at the main gate, `build` may follow `review-panel`'s written steps by reading its files, since the panel never starts as a skill there.
+A user-invoked skill is out of the model's reach, so no other skill can start it either. A user-invoked skill may start model-invoked skills; nothing may start a user-invoked one except the person. One exception, ruled in Epic #197's Spec deltas (F4): at the main gate, `building` may follow `review-panel`'s written steps by reading its files, since the panel never starts as a skill there.
 
 ## Calling another skill
 

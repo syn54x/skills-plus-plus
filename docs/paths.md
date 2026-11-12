@@ -17,15 +17,15 @@ If you have an idea that is not yet a plan, you can first explore it with [discu
 1. **Grill the plan.** [grill](skills/grill.md) asks until every choice is settled, recording terms and decisions as they land. [auto-grill](skills/auto-grill.md) runs the same interview but settles, with a citation, each question the code, ADRs or docs already answer.
 2. **Write the spec.** [to-spec](skills/to-spec.md) turns the conversation into one Epic issue, asking nothing new.
 3. **Cut the Sub-issues.** [to-tickets](skills/to-tickets.md) splits the Epic into vertical Sub-issues with blocking edges, and calls [harden](skills/harden.md) to give each one its Ticket contract.
-4. **Build.** [build](skills/build.md) dispatches workers in Waves, each running [implement-issue](skills/implement-issue.md) in its own worktree. [review](skills/review.md) gates every slice pull request, and `build` merges the ones that pass in dependency order. Follow it on the [epic board](epic-board.md).
-5. **Gate the pull request to main.** `build` picks the gate by size. A small Epic gets the [review](skills/review.md) spec verdict. One with four or more Sub-issues, any size L Sub-issue, or 1,000 or more changed lines gets [review-panel](skills/review-panel.md).
+4. **Build.** [build](skills/build.md) hands the Epic to [building](skills/building.md), which dispatches workers in Waves, each running [implement-issue](skills/implement-issue.md) in its own worktree. [review](skills/review.md) gates every slice pull request, and `building` merges the ones that pass in dependency order. Follow it on the [epic board](epic-board.md).
+5. **Gate the pull request to main.** `building` picks the gate by size. A small Epic gets the [review](skills/review.md) spec verdict. One with four or more Sub-issues, any size L Sub-issue, or 1,000 or more changed lines gets [review-panel](skills/review-panel.md).
 6. **Merge.** You merge the pull request to main; no skill does.
 7. **Close.** [close-epic](skills/close-epic.md) writes the Epic's summary and retro comments, then records what it taught.
 
 ## 2. Single issue
 
 1. **Triage.** [triage](skills/triage.md) gives the issue a triage role and, when it is ready to build, calls [harden](skills/harden.md) to write its Ticket contract and size it. A bug's reproduction becomes its Verify block, red on main until the fix lands.
-2. **Build.** [build](skills/build.md) runs one worker, which builds the One-off with [implement-issue](skills/implement-issue.md) (and [diagnosing-bugs](skills/diagnosing-bugs.md) for a bug, with the Verify block as its loop), then one [review](skills/review.md) gate.
+2. **Build.** [build](skills/build.md) hands the issue to [building](skills/building.md), which runs one worker, which builds the One-off with [implement-issue](skills/implement-issue.md) (and [diagnosing-bugs](skills/diagnosing-bugs.md) for a bug, with the Verify block as its loop), then one [review](skills/review.md) gate.
 3. **Merge.** You merge the pull request.
 
 ## 3. Unknown territory

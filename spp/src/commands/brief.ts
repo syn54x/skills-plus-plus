@@ -40,13 +40,22 @@ function render(issue: Issue, base: string, laws: string[], checkout: string): s
   const repo = /github\.com\/([^/]+\/[^/]+)\/issues\//.exec(issue.url)![1];
   return `You are t-${n}, implementing ${issue.url}${issue.parent ? ` of the epic ${issue.parent.url}` : ""}.
 Start in the checkout at ${checkout}; the ticket, its branch and its PR all live in ${repo} and nowhere else.
-First, before anything else, cut your branch from the remote ${issue.parent ? "integration" : "base"} branch, whatever branch this worktree started on, and confirm its base:
+First, before anything else, cut your branch from the remote ${issue.parent ? "integration" : "base"} branch, whatever branch this worktree started on, and confirm its base. Run it as one command:
 
-    git fetch origin ${base}
-    git switch -c ${branch} origin/${base}
-    test "$(git merge-base HEAD origin/${base})" = "$(git rev-parse origin/${base})"
+    (
+      set -e
+      rc=0; git ls-remote --exit-code --heads origin refs/heads/${branch} >/dev/null || rc=$?
+      case $rc in
+        2) ;;
+        0) echo "BLOCKED: origin already has ${branch}; delete it or hand the issue back" >&2; exit 1 ;;
+        *) echo "BLOCKED: origin is unreachable (git ls-remote exited $rc)" >&2; exit 1 ;;
+      esac
+      git fetch origin ${base}
+      git switch -c ${branch} origin/${base}
+      test "$(git merge-base HEAD origin/${base})" = "$(git rev-parse origin/${base})"
+    )
 
-If the \`test\` fails, stop and report BLOCKED; write no code on a branch with any other base.
+If it fails (origin already has the branch or cannot be reached, a fetch or a switch that fails, or the base check), stop and report BLOCKED with what it printed; write no code on a branch with any other base.
 Then run the implement-issue skill for ${issue.url} and follow it. This brief is the context that skill assumes.
 
 ## Ticket (verbatim)
@@ -61,14 +70,15 @@ ${issue.parent ? `- the epic ${issue.parent.url}: the Implementation Decisions t
 ## Mechanics
 
 - Branch \`${branch}\`, cut from \`origin/${base}\` by the first step above; open the PR into \`${base}\` with \`Closes #${n}\` on its first line. Do not merge.
-- Claim #${n} with \`spp claim ${n}\` and write t-${n} on the Worker line of the progress comment (\`spp progress ${n} --worker t-${n}\`). It is the name the driver gave your session, so the board and \`spp wait\` find you by it.
+- Claim #${n} with \`spp claim ${n}\` and write t-${n} on the Worker line of the progress comment (\`spp progress ${n} --worker t-${n}\`). The build starts you with an Agent description that begins t-${n}, and the Epic board finds you by it.
 - Progress is one comment on #${n}, rewritten in place through \`spp progress\`; never post a second one.
+- Never force-push: a push that origin rejects is a stop, reported BLOCKED, never a reason to overwrite what is there.
 - Commit as you go with conventional messages. The last commit before the PR is the one Verify ran on.
 - Write the PR body to a file unique to this ticket (for example \`$(mktemp -t pr-${n})\`), never a shared path.
 
 ## Report
 
-End with one fenced JSON object and nothing after it, the report implement-issue's last step defines, because the driver that started you parses it:
+End with one fenced JSON object and nothing after it, the report implement-issue's last step defines, because the build that started you reads it:
 
 \`\`\`json
 { "ticket": ${n}, "pr": "<pull request URL>", "verifySha": "<sha7>", "status": "DONE", "notes": "..." }
