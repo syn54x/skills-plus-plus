@@ -1,0 +1,3 @@
+interface:
+  display_name: "Triaging"
+  short_description: "Move one filed issue to a triage role and ready it to build"
