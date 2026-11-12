@@ -70,7 +70,7 @@ You can type these too, but the agent starts them when a task fits, and other sk
 | Plan | [triaging](./skills/triaging/SKILL.md) | Triages one filed issue to a triage role, with its four questions and harden; what `/triage` runs, and what an agent starts when told to triage an issue |
 | Plan | [harden](./skills/harden/SKILL.md) | Writes the Ticket contract into one issue and gates it with `spp lint ticket` |
 | Build | [building](./skills/building/SKILL.md) | Builds an Epic or a hardened One-off into pull requests, with parallel workers behind a review gate; what `/build` runs, and what an agent starts when told to build an issue |
-| Build | [delegating](./skills/delegating/SKILL.md) | Runs one issue's skill here or in a sub-session in the issue's checkout, and passes your answers on to it; what `/build` uses to choose where the build runs |
+| Build | [delegating](./skills/delegating/SKILL.md) | Runs one issue's skill here or in a sub-session in the issue's checkout, and passes your answers on to it; what `/build` and `/triage` use to choose where the build or triage runs |
 | Build | [implement-issue](./skills/implement-issue/SKILL.md) | The worker's procedure for one hardened issue, from the claim to a verified pull request |
 | Build | [tdd](./skills/tdd/SKILL.md) | Grows code test-first in thin vertical slices |
 | Build | [diagnosing-bugs](./skills/diagnosing-bugs/SKILL.md) | Builds a command that goes red on the bug before forming any theory |
