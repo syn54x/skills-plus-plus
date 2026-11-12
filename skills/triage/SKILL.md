@@ -13,7 +13,7 @@ With an issue named, go to step 2.
 With no issue named, find what is waiting on the person. An open issue waits in two cases, and no other is listed:
 
 - It holds no Triage role or `needs-triage`, its body has no `## Verify` heading, and it has no **Marker comment** (a comment whose first line starts `<!-- sdd-`). Either of those means it is already past triage.
-- It holds `needs-info`, and once Marker comments are set aside, its newest comment is not a triage note (a comment that opens with `> *Posted by an AI during triage.*`). That comment is the reporter's reply, whatever the body holds.
+- It holds `needs-info`, and once Marker comments are set aside, its newest comment is not a triage note (a comment that opens with the disclaimer line [`triaging`](../triaging/SKILL.md) posts, read from that file). That comment is the reporter's reply, whatever the body holds.
 
 Fetch the candidates, then show the person a table of number, title, days waiting and the reason it is there, longest wait first, and let them pick one:
 
