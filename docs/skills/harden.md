@@ -25,7 +25,7 @@ Type `/harden <N>`, or the agent starts it when a task fits. Most runs happen in
 | What am I making? | What to build, Acceptance criteria, size | each criterion being false before the work starts |
 | Which files are mine? | Files owned | output pins, callers of changed signatures, ADR placement |
 | What do my neighbours call things? | Interfaces | codebase-design, when a module is new or reshaped |
-| How do I know I am finished? | Test scenarios, Verify | scenario data exists, Verify resolves and passes on the base branch |
+| How do I know I am finished? | Test scenarios, Verify | the Necessity check, scenario data exists, Verify resolves and passes on the base branch |
 
 ## Common questions
 
@@ -53,3 +53,4 @@ Only one that runs tests the issue will add. Every other command, such as a lint
 - Workers' pull requests never report a corrected Verify block.
 - No pull request edits a file outside its Files owned to make a test or a caller pass.
 - Each Test scenario reads as something done and what it caused.
+- The Necessity check left no Test scenario asking for a test that an existing test already covers: a covered scenario has no line, and its criterion names its **Keeper**.
