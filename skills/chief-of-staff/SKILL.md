@@ -1,6 +1,6 @@
 ---
 name: chief-of-staff
-description: Experimental. Make this session my Proxy for the goals I give it, across repos: it follows work through, settles what the record settles, and brings me only what needs me.
+description: Experimental. Make this session my Proxy for the goals I give it, across repos, so it follows work through, settles what the record settles and brings me only what needs me.
 disable-model-invocation: true
 metadata:
   credits:
