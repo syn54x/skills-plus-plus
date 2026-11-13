@@ -2,7 +2,8 @@
 // Enforces .agents/invocation.md, run from the repo root. Usage: node scripts/check-invocation.ts
 // 1. A skill's `disable-model-invocation: true` and its agents/openai.yaml
 //    `allow_implicit_invocation: false` agree, and every skill has that file.
-// 2. Frontmatter values carry no unquoted ': ' or ' #' (invalid YAML that some hosts drop silently).
+// 2. Frontmatter values carry no unquoted ': ' or ' #' (invalid YAML that some hosts drop silently), in skills,
+//    agents and eval prompts: `claude plugin eval` skips a case whose prompt.md frontmatter does not parse.
 // 3. Every skill another skill or agent calls (`Call the Skill tool with "x"`, or an agent's
 //    `skills:` preload) exists and is model-invoked, unless it is a friend named in
 //    .agents/invocation.md's Friends section (a skill another plugin ships).
@@ -104,6 +105,8 @@ for (const file of [...skillDirs.flatMap((dir) => filesUnder(dir, ".md")), ...ag
   const preload = fm.match(/^skills:\n((?:\s+-\s*.+\n?)+)/m)?.[1] ?? "";
   for (const [, target] of preload.matchAll(/-\s*([\w-]+)/g)) checkTarget(`${file} (skills: preload)`, target);
 }
+
+for (const file of filesUnder("evals", "prompt.md")) errors.push(...yamlColonErrors(file, frontmatter(readFileSync(file, "utf8"))));
 
 if (errors.length) {
   console.error(errors.join("\n"));
