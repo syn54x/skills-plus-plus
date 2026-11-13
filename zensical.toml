@@ -62,6 +62,7 @@ nav = [
       { "setup-spp" = "skills/setup-spp.md" },
       { "ask-spp" = "skills/ask-spp.md" },
       { "feedback" = "skills/feedback.md" },
+      { "chief-of-staff" = "skills/chief-of-staff.md" },
     ] },
   ] },
   { "Epic board" = "epic-board.md" },
