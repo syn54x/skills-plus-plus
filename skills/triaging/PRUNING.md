@@ -11,7 +11,7 @@
    git worktree remove --force "$scratch"
    ```
 
-   Every edit and every test run of this proof happens under `$scratch`. No file in the person's checkout is edited, staged or stashed.
+   `main` stands for the repo's default branch, taken from the remote. Every edit and every test run of this proof happens under `$scratch`. No file in the person's checkout is edited, staged or stashed.
 3. **Run the Keeper alone, before any break**, with the project's own test runner. It has to pass. A Keeper that fails or cannot be run on the default branch proves nothing, so the outcome is `needs-info`.
 4. **Make the break** the `Break` line states, in the owning code, in the scratch copy only. Run the Keeper alone again and keep the command and what it printed.
 5. **Read the result.** Red counts only when the Keeper fails on its own assertion. A syntax error or an import error caused by the break is not a red: repair the break and run again. Green means the Keeper does not catch the break.
@@ -42,7 +42,7 @@
 
    ```
    ✖ add keeps a quote in the text
-     SyntaxError: Unterminated string in JSON at position 11
+     AssertionError: expected "it's late" but the saved note was "it"
    ```
 
    Build it with `/build 42`.
