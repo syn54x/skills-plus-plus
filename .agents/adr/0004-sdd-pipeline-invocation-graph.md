@@ -11,7 +11,7 @@ We give each step a person takes exactly one user-invoked entry, and make every 
 | Review | `review` (also model-invoked), `review-panel`, `improve-architecture` | `review` |
 | Ship | `prepare-release-notes`, `close-epic`, `retro` | `pr` |
 | Write and talk | `eli5` | `writing-for-humans`, `writing-for-agents` |
-| Meta | `setup-spp`, `ask-spp` | |
+| Meta | `setup-spp`, `ask-spp`, `chief-of-staff` | |
 
 ## Why the model-invoked ones are safe to reach unprompted
 

@@ -51,14 +51,14 @@ One batch of questions covering the whole **Frontier**. The next round waits on 
 The open decisions whose prerequisites are settled, so they can be asked now.
 
 **Proxy**:
-The thread that runs an `auto-grill` interview and answers each question for the **Principal** from a citable source.
+The thread that answers for the **Principal** from a citable source: the one running an `auto-grill` interview, or a **Chief of Staff session** working toward its goal.
 _Avoid_: delegate, stand-in
 
 **Principal**:
 The person the **Proxy** answers for, and the only one who settles an **Escalation** or a **Challenge**.
 
 **Escalation**:
-An `auto-grill` question the **Proxy** cannot answer from a citable source, put to the **Principal** with the **Proxy**'s **Best fit**.
+A question the **Proxy** cannot answer from a citable source, put to the **Principal** with the **Proxy**'s **Best fit**.
 
 **Best fit**:
 The answer the **Proxy** reaches by researching an **Escalation**: a recommendation to confirm or overrule, never a citation.
@@ -187,6 +187,16 @@ Whether a person's **Skill feedback** from one repo is filed unreviewed (Auto) o
 A session a person started on purpose in an AI tool, together with every worker and subagent it starts. A CI run never is one, and spp collects **Signals** only in attended sessions.
 _Avoid_: interactive session
 
+### Chief of Staff
+
+**Chief of Staff session**:
+A long-running session a person starts to pursue their goals across one or more repos, as their **Proxy**. It sends work out, follows it through and brings the **Principal** only what needs them.
+_Avoid_: orchestrator (what `building` is inside a **Build session**), manager
+
+**Wiki**:
+The dated record a **Chief of Staff session** keeps across sessions and repos: decisions, recurring problems and the **Principal**'s preferences. It cites what a repo already records and never repeats it.
+_Avoid_: memory, notes
+
 ## Relationships
 
 - An **Epic** holds many **Sub-issues**; a **Sub-issue** may live in another repo than its **Epic**.
@@ -196,6 +206,8 @@ _Avoid_: interactive session
 - A **Law tag** names one **Law**; the **Retro** counts findings by it.
 - A **Depth check** that fires at a gate is a finding; the same check in `improve-architecture` is a **Deepening opportunity**.
 - Only a **Principal** settles an **Escalation** or a **Challenge**.
+- A **Chief of Staff session** starts **Build sessions** and is never one itself.
+- One **Wiki** holds many goals, and a new **Chief of Staff session** in the same folder takes up that **Wiki** and its open goals.
 
 ## Flagged ambiguities
 

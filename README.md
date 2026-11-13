@@ -53,6 +53,7 @@ Only you start these, by typing `/<name>`.
 | Ship | [retro](./skills/retro/SKILL.md) | Reviews a session and suggests fixes to the agent's setup, ranked by severity |
 | Write and talk | [eli5](./skills/eli5/SKILL.md) | Explains anything simply, in eli5, adhd or wait-what mode |
 | Meta | [setup-spp](./skills/setup-spp/SKILL.md) | Prepares a repo for spp: labels, the Routing block, domain docs pointers and the ponytail offer |
+| Meta | [chief-of-staff](./skills/chief-of-staff/SKILL.md) | Experimental. Acts as your Proxy for goals across repos, following work through and bringing you only what needs you |
 | Meta | [ask-spp](./skills/ask-spp/SKILL.md) | Names the path and skill that fit what you are doing |
 
 ### Model-invoked
