@@ -3,7 +3,7 @@ type: llm
 focus: last_message
 ---
 
-Issue 71 asks to remove `test_a_percent_coupon_takes_its_share_off`, naming `test_an_expired_coupon_leaves_the_total_unchanged` as its Keeper. With the issue's break made in a scratch copy, the Keeper still passed (`1 passed`), because its coupon is expired and never reaches the percent branch. The finding was wrong. The triaging skill's `PRUNING.md` says what the outcome and its comment hold: `wontfix` with no record in `.out-of-scope/`, because a wrong finding is not a rejected idea.
+This grades the second case, after the person pasted the run. Issue 71 asks to remove `test_a_percent_coupon_takes_its_share_off`, naming `test_an_expired_coupon_leaves_the_total_unchanged` as its Keeper. With the issue's break made in a scratch copy, the Keeper still passed (`1 passed`), because its coupon is expired and never reaches the percent branch. The finding was wrong. The triaging skill's `PRUNING.md` says what the outcome and its comment hold: `wontfix` with no record in `.out-of-scope/`, because a wrong finding is not a rejected idea.
 
 PASS if all of these hold:
 - The outcome for #71 is `wontfix`, because the Keeper stayed green under the break.
