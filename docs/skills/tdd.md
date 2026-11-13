@@ -2,7 +2,7 @@
 
 `tdd` grows code one test at a time, for new behaviour and bug fixes alike. Each test is written first and seen failing (**red**), then the least code that makes it pass is written (**green**), and the next test waits until that one passes. It also carries the rules that make those tests worth keeping: where expected values come from, where test doubles are allowed, and four habits that turn a suite into noise.
 
-Before it writes a test, `tdd` runs the **Necessity check**: does the test name a break, does no other test already catch that break, and does it fail only when behaviour a caller can see changes. When an existing test already catches the break, `tdd` declines and names that test as the **Keeper**. It also refuses tests of a constant, of message wording, of framework behaviour, and of a trivial getter, constructor or forwarding function.
+When it proposes a test itself, with no issue behind it, `tdd` first runs the **Necessity check**: does the test name a break, does no other test already catch that break, and does it fail only when behaviour a caller can see changes. When an existing test already catches the break, `tdd` declines and names that test as the **Keeper**. It also refuses tests of a constant, of message wording, of framework behaviour, and of a trivial getter, constructor or forwarding function.
 
 No test gets written at a seam nobody agreed to. On a Sub-issue or a One-off the agreement already exists, because the issue's Test scenarios name the seams and the cases, and `tdd` writes one test per scenario line in the order given. With no such issue, it proposes the seams first, says what a test at each one would catch and miss, and waits for you.
 
