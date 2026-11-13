@@ -76,8 +76,8 @@ describe("the pin is checked before any hand run of a Verify block", () => {
   // Review of #275: since F46, a hardened issue whose pin is missing or changed reads raw; the slice gate must still
   // refuse it as step 3.1 does, never review it as an unlinked pull request.
   test("review's sort table stops a raw issue with a pin rule with the step 3.1 refusal, before the quality-only row", () => {
-    const text = skill("review");
-    const table = text.split("## 3. Run the evidence")[0];
+    assert.match(skill("review"), /\[`SORT\.md`\]\(SORT\.md\)/);
+    const table = readFileSync(join(root, "skills", "review", "SORT.md"), "utf8");
     assert.match(table, /`spp kind N --json`/);
     const pinRow = /^\| `#N` \| `raw` with a `rule` \|.*$/m.exec(table)?.[0] ?? "";
     assert.match(pinRow, /`pin-present` or `pin-match`/);

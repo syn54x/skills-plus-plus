@@ -61,7 +61,7 @@ A stated reason ("kept it small on purpose") explains a choice and never lowers 
 
 Slices and fixes only. Judge against the linked issue and its Epic when it has one, setting aside how good the code is. Each gap is **Missing** (asked for and absent, or claimed and not done), **Extra** (built without being asked) or **Misunderstood** (the right thing, built the wrong way).
 
-- Each acceptance criterion holds, backed by a test that goes red if the change is reverted. A criterion carrying harden's already-covered mark is held by its named test instead; one marked `break not run` also needs you to run the deliberate break (you have a shell) and reports the criterion unproven when no test turns red. A criterion that a test no longer exists is proven by Verify.
+- Each acceptance criterion holds, backed by a test that goes red if the change is reverted. A criterion carrying harden's already-covered mark is held by its named test instead. If it also says `break not run`, make the break yourself (call the Skill tool with "tdd" for how), undo it, and pass the criterion only when that named test turned red; any other outcome reports it unproven. A criterion that a test no longer exists is proven by Verify.
 - Each Test scenario line maps to a test of its own.
 - Nothing outside Files owned changed unless the body declares it with a reason that holds.
 - Each Produces line ships under exactly its stated name and signature, and each Consumes line is imported under the name its producer published. A mismatch with no `Interfaces changed:` line is Important. A declared deviation is judged against its new signature and may only touch code inside this repo; when it changes a contract between repos, or a signature the Epic itself fixes, it is Critical.
