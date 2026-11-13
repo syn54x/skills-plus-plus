@@ -1,6 +1,8 @@
 ## What it does
 
-`tdd` grows code one test at a time, for new behaviour and bug fixes alike. Each test is written first and seen failing (**red**), then the least code that makes it pass is written (**green**), and the next test waits until that one passes. It also carries the rules that make those tests worth keeping: where expected values come from, where test doubles are allowed, and three habits that turn a suite into noise.
+`tdd` grows code one test at a time, for new behaviour and bug fixes alike. Each test is written first and seen failing (**red**), then the least code that makes it pass is written (**green**), and the next test waits until that one passes. It also carries the rules that make those tests worth keeping: where expected values come from, where test doubles are allowed, and four habits that turn a suite into noise.
+
+Before it writes a test, `tdd` runs the **Necessity check**: does the test name a break, does no other test already catch that break, and does it fail only when behaviour a caller can see changes. When an existing test already catches the break, `tdd` declines and names that test as the **Keeper**. It also refuses tests of a constant, of message wording, of framework behaviour, and of a trivial getter, constructor or forwarding function.
 
 No test gets written at a seam nobody agreed to. On a Sub-issue or a One-off the agreement already exists, because the issue's Test scenarios name the seams and the cases, and `tdd` writes one test per scenario line in the order given. With no such issue, it proposes the seams first, says what a test at each one would catch and miss, and waits for you.
 
@@ -22,13 +24,20 @@ The loop has four moves: write one test named for a behaviour, watch it fail on 
 
 The opening cycle is a **tracer bullet**: the thinnest path through every layer the behaviour crosses. Every later cycle fills in a skeleton that already runs.
 
-The three habits the skill is written against:
+The four habits the skill is written against:
 
 | Habit | The tell |
 | --- | --- |
 | Implementation-coupled | Renaming a private function breaks the test though behaviour did not change. |
 | Tautological | The expected value repeats the code's own arithmetic, so the two cannot disagree. |
 | Horizontal slicing | Many tests land before any code, or the code lands before any test. |
+| Redundant | An inner test replays a case an outer test already covers, so breaking the inner code turns both red. |
+
+## One owner per behaviour
+
+Each behaviour gets its tests at one interface: the highest one where all its cases are cheap and deterministic to drive. A lower layer gets at most one test that it is wired in, and never the same cases again. A lower test is still worth writing when the cases are many and costly to drive from outside, when the state cannot be reached on demand from outside, when the inner module has several callers of its own, or when the outer test would need a real network or a costly database.
+
+To tell whether a case is already covered, `tdd` breaks the inner code on purpose and watches whether an outer test fails. If one does, that test is the **Keeper** and the inner test is not written. If none does, the outer test's assertion is sharpened first.
 
 Expected values come from somewhere the code does not: a number worked out by hand, an example in the spec, a value you confirmed. Test doubles stand in only for things the project does not own, such as a remote service or the clock.
 
@@ -53,3 +62,4 @@ Rarely. A slow test stretches every cycle, and a test that cannot pass yet is ea
 - Every expected value has a source you can point to in the spec or the issue.
 - Renaming an internal function breaks no test.
 - Doubles appear only around services and clocks the project does not own.
+- No behaviour is tested at two layers with the same cases.

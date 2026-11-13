@@ -73,7 +73,7 @@ The routes work takes through spp, which `ask-spp` routes between:
 1. **Epic path**: grill or auto-grill, `to-spec`, `to-tickets`, `/build`, the panel when the **Epic** is big enough, `close-epic`.
 2. **Single-issue path**: triage, then `/build`. A bug's reproduction becomes its **Verify block**, red on main.
 3. **Unknown territory**: wayfinder, then `to-spec` once the map has a destination.
-4. **Architecture**: `improve-architecture` files issues that enter path 1 or 2.
+4. **Scans**: `improve-architecture` and `test-audit` file issues that enter path 1 or 2.
 5. **Tiny unfiled work**: no spp at all.
 
 **Routing block**:
@@ -160,6 +160,17 @@ Four questions asked of every module a pull request adds or whose interface it c
 **Deepening opportunity**:
 What `improve-architecture` reports when a **Depth check** fires: an idea with a timing and a strength, never a verdict.
 _Avoid_: depth finding (at a gate, a fired check is an ordinary finding)
+
+**Necessity check**:
+Three questions asked of a test before it is written or kept: does it name a break, does no other test already catch that break, and does it fail only when behaviour a caller can see changes. `tdd` owns them.
+_Avoid_: value bar, authoring gate
+
+**Keeper**:
+The test that stays and still catches the break a dropped or removed test would have caught.
+
+**Pruning opportunity**:
+What `test-audit` reports when a test fails the **Necessity check**: a test to remove, its **Keeper** and a strength, never a verdict.
+_Avoid_: removal candidate, redundant-test finding
 
 **Friend**:
 A skill another plugin ships that spp may call when it is installed, listed in `.agents/invocation.md`. Today the only friend is `ponytail-review`.
