@@ -12,8 +12,8 @@
    echo "$scratch"
    ```
 
-   `main` stands for the repo's default branch. A shell variable does not survive from one command to the next, so keep the printed path and use it for every later command, or run steps 2 to 5 in one call. Every edit and every test run of this proof happens under `$scratch`. No file in the person's checkout is edited, staged or stashed.
-3. **Run the Keeper alone, before any break**, with the project's own test runner. It has to pass. A Keeper that fails or cannot be run on the default branch proves nothing, so the outcome is `needs-info`.
+   `main` stands for the repo's default branch. When each command runs in a fresh shell, `$scratch` is gone after the call, so keep the printed path and use it for every later command. Every edit and every test run of this proof happens under `$scratch`. No file in the person's checkout is edited, staged or stashed.
+3. **Run the Keeper alone, before any break**, with the project's own test runner. It has to pass. A Keeper that fails or cannot be run on the default branch proves nothing, so the outcome is `needs-info`, after you remove the scratch copy as step 5 shows.
 4. **Make the break** the `Break` line states, in the owning code, in the scratch copy only. Run the Keeper alone again and keep the command and what it printed.
 5. **Read the result.** Red counts only when the Keeper fails on its own assertion. A syntax error or an import error caused by the break is not a red: repair the break and run again. Green means the Keeper does not catch the break. Once you have the result, remove the scratch copy, with the path from step 2:
 
