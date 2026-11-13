@@ -24,6 +24,12 @@ When one of those sessions stops with `#<N> waits on you: <question>`, the Chief
 
 It starts only skills the agent may run on its own. For `/auto-grill`, `/to-spec`, `/to-tickets`, `/retro` and `/close-epic` it asks you to type the command. In a repo without spp it works with plain subagents and pull requests and mentions `/setup-spp` once. Where it can, it suggests schedules, such as a report or a sweep of stalled work. On Claude Code a session can start only on a turn you began, so on a scheduled wake-up it proposes the build and waits for you.
 
+## The Wiki
+
+The session keeps a **Wiki**: a folder of linked markdown pages that outlives it, sits above your repos and tracks every goal. At the start it looks for one you or other agents already keep. If it finds one it recommends it and uses it only on your yes. If there is none it proposes its own folder, as its own git repository, and agrees the location with you before the first write.
+
+One Wiki holds many goals, each with its own page, listed in `index.md` with its state. A later session in the same folder reads the index and restates the open goals. The Wiki cites what a repo records (glossary, ADRs, issues, code) at a commit and never copies it; a decision for one repo goes into that repo's ADRs, and a decision across repos lives in the Wiki. Claims are dated, a claim about code names its repo and commit, and a changed claim is superseded by a new dated one, not rewritten.
+
 ## The environment duty
 
 Before any piece of work, the session asks how the agents' environment could be better for it: interfaces hard to misuse, lint rules that force correctness, standards a reviewer can enforce, data sources such as logs, a test database or a browser, and no workarounds. It opens a pull request for each improvement, so the next task starts from a better place.
