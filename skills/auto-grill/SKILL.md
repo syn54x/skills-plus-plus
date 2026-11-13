@@ -46,11 +46,11 @@ Batch each pass over the Round, so that one lookup can feed many questions.
 
 When the Round produced neither an Escalation nor a Challenge, begin the next Round at once and hold its veto lines for the next stop. Otherwise present, in order:
 
-1. **Escalations**, numbered as `grilling` numbers its questions, with `Best fit:` and its basis where the recommendation would go. When the Best fit departs from what comparable products do, one more line says what they do; when research changed your drafted recommendation, one more line says why.
+1. **Escalations**, laid out as `grilling` lays out its items, with the Best fit as option `A:`, marked `<- Best fit` on its label in place of `(recommended)`, and its basis on the `Rests on:` line. When the Best fit departs from what comparable products do, one more line says what they do; when research changed your drafted recommendation, one more line says why.
 2. **Challenges**: the prior decision and the answer it pins, then `Supersede or uphold?` with the stronger alternative and the price of keeping the decision.
-3. **Veto list**: one line per auto-answer since the previous stop, under its Round: the question, the answer, the pointer, and for a departure from practice, the common approach beside the cited reason for leaving it.
+3. **Veto list**: one line per auto-answer since the previous stop, under its Round: the question, the answer, the pointer, and for a departure from practice, the common approach beside the cited reason for leaving it. The veto list stands in for the list of what the record settled that `grilling` puts under its questions, so a stop never shows both.
 
-Draw each Escalation and Challenge as **Draw the choice** says. Then wait. The Principal answers the Escalations, rules on each Challenge, and can strike any veto line.
+Draw each Escalation and Challenge as **Draw the choice** says. Then wait. The Principal answers the Escalations, rules on each Challenge, and can strike any veto line. A reply of `all` takes the Best fit on every Escalation only; each Challenge still needs its own "supersede" or "uphold".
 
 ### Draw the choice
 
@@ -63,7 +63,7 @@ Each Escalation and Challenge reads in this order: the question in one plain sen
 
 When you can show a visual inline in the conversation, draw the choice there: a card per option with the Best fit marked, a grid when cases meet options, a timeline when the options differ in when something happens, and on each option a button that sends it as the Principal's answer. The plain sentence and the Best fit stay in prose around it, and the transcript gets the text form. On Claude Code, [`CLAUDE-CODE.md`](CLAUDE-CODE.md) names the tool; read it before the first stop.
 
-Otherwise draw in text, which renders in a terminal: Markdown and ASCII, never a diagram language. Stack the options under labels `A:` and `B:`, mark the Best fit on its label, and keep every line within 72 characters. Never set options side by side in columns, which wrap on a narrow screen.
+Otherwise draw in text, which renders in a terminal: Markdown and ASCII, never a diagram language. Stack the options under labels `A:` and `B:`, mark the Best fit on its label (an Escalation's Best fit is always `A:`; a Challenge keeps uphold as `A:` and supersede as `B:`), and keep every line within 72 characters. Never set options side by side in columns, which wrap on a narrow screen.
 
 ```text
 3. Challenge: should saving a profile go through the job queue?
@@ -92,6 +92,6 @@ Recompute the Frontier and run the next Round. When the Principal says to wrap u
 
 ## 3. Finish
 
-Once the Frontier is empty, give the restatement `grilling` ends with, drawing only the settled design's moving part (a sequence, or the split a decision makes) by the rules in **Draw the choice**, with the rest as a list in words, and list every auto-answer of the session. The Principal alone confirms; any objection puts questions back on the Frontier and returns you to step 2.
+Once the Frontier is empty, first show any veto lines held since the last stop, in the full form step 2's veto list uses, and the Principal can strike any of them. Then give the restatement `grilling` ends with, drawing only the settled design's moving part (a sequence, or the split a decision makes) by the rules in **Draw the choice**, with the rest as a list in words. Auto-answers already shown at an earlier stop are not repeated: the restatement's record lines, each with its pointer, cover them. The Principal alone confirms; a struck veto line or any other objection puts questions back on the Frontier and returns you to step 2.
 
 After confirmation, report the confirmed restatement, every file written (glossary entries and ADRs, superseding ones included), where the transcript is, and a line recommending `/to-spec` in this conversation as the next step. That skill is the Principal's to run: ask them to, and leave it unstarted.
