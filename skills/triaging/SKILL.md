@@ -67,6 +67,8 @@ $ echo $?
 
 The Verify line is the bare command, `notes add "it's late"`: its own exit code is 1 while the bug lives and 0 once it is fixed, so it opens the Verify block unchanged and starts red. A bug counts as confirmed only with the command and its output in hand; a report that will not reproduce, or is too thin to try, is `needs-info`.
 
+A pruning issue is one whose body holds the heading `## Pruning opportunity`. Its "Is it true?" is answered by a proof, not a reproduction: read [`PRUNING.md`](PRUNING.md) and follow it. Triage never proposes removing a test itself: a removal comes only from a pruning issue or from a Test scenario that `harden` marks as replacing one.
+
 Done when each question has an answer you can point at.
 
 ## 3. Choose, and say so
@@ -78,6 +80,7 @@ Done when each question has an answer you can point at.
 | Will not reproduce, too thin, or a question only the reporter can answer | `needs-info` |
 | Split into behaviours that could each be shown alone, or needs a design choice across modules that nobody made | The Epic path |
 | True and clear, but a judgement call, a secret or manual testing is involved | `ready-for-human` |
+| A pruning issue whose **Keeper** stayed green under the break | `wontfix`, no record |
 | True, clear and buildable as one pull request | `ready-for-agent` |
 | You stopped before judging it | `needs-triage` |
 
@@ -136,6 +139,8 @@ Not ready to build yet. Found so far: the crash needs a quote in the text; plain
   gh issue close <N> --reason "not planned"
   ```
 
+- Keeper stayed green: comment as `PRUNING.md` says, then close as not planned.
+
 ### `needs-triage`
 
 Apply the role, and comment only when there is partial progress to keep.
@@ -148,5 +153,6 @@ For a reproduced bug that leaves as `ready-for-agent`, `ready-for-human` or the 
 
 - The issue holds one role, and a comment opening with the disclaimer says why.
 - For `ready-for-agent`: `spp lint ticket <N>` printed `ok`, the Verify block carries a pin from harden's file or from yours, exactly one size label is set, and for a bug the reproduction was seen failing and then found in the body's `## Verify`, first, before the role went on.
+- For a pruning issue: the Keeper was run under the break in a scratch copy, its output is in the comment, and the role is `ready-for-agent` only when that output was red.
 - For a rejection: the record sits in the repo's working tree and the issue is closed as not planned.
 - For a reproduced bug that left as `ready-for-agent`, `ready-for-human` or the Epic path: the escaped-defect trace was run, and the person was told what `spp signal` printed or that nothing gated the lines.
