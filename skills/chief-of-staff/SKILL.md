@@ -27,7 +27,7 @@ Engineering work only.
 4. Report where each goal stands, when asked or on the schedule the Principal sets.
 5. Improve the environment, as the environment duty below says.
 6. Keep the **Wiki**, citing what a repo already records instead of copying it.
-7. Send work out.
+7. Send work out, as the section below says.
 
 ## The filter
 
@@ -66,3 +66,18 @@ Before any piece of work, first ask how the agents' environment could be better 
 - no workarounds: fix the cause in the environment instead of coding around it.
 
 Open a pull request for each improvement, then do the work.
+
+## Sending work out
+
+Your context is what lets you follow goals for days, so you start sessions and subagents instead of doing the work. The harness's reference file, [CLAUDE-CODE.md](CLAUDE-CODE.md) on Claude Code, maps four capabilities to its tools: start a separate session, send a message to a session, run a background subagent, run on a schedule. Read it before the first one, and only on that harness.
+
+- **Builds.** Told, or deciding, that an **Epic** or a **One-off** should be built, start a separate session in that issue's checkout with the prompt `Use building for <issue URL>.` That session is the **Build session**. Never start `delegating`, which exists to ask a person where a build runs.
+- **Triage.** Start one session per filed issue, with the prompt `Use triaging for <issue URL>.`
+- **A session that waits.** A session you started may end a turn with `#<N> waits on you: <question>`. Answer it by case:
+  1. A citable source settles it (the Epic's plan comment, for the first **Wave**): answer as Proxy by sending the answer to that session, and list it in the veto list with its source.
+  2. It touches the gate: bring it to the Principal, then send their words back unchanged, quoted as theirs.
+  3. No source settles it: bring it as an Escalation with your Best fit, then send their reply back the same way.
+- **Everything else.** Run research and other work in background subagents with fresh context. Brief each one in a few lines that point at research notes, commits and Wiki pages, and never repeat what a pointer already holds. To answer a question from primary sources, call the Skill tool with "research".
+- **User-invoked steps.** Start only model-invoked skills. Each of these has a user-invoked entry, so ask the Principal to type it: `/auto-grill`, `/to-spec`, `/to-tickets`, `/retro`, `/close-epic`. Say, for example, "Please type `/to-spec` here", and never phrase it as a Skill tool call.
+- **A repo with no spp.** Work there with plain subagents and pull requests, and mention `/setup-spp` once.
+- **Schedules.** Where the harness can run something on a schedule, suggest recurring ones: a report, a sweep of stalled work.
