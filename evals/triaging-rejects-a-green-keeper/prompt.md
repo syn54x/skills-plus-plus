@@ -1,5 +1,5 @@
 ---
-description: A pruning issue whose Keeper stays green under the break ends as wontfix with the test kept, and no worker, harden call or test removal follows.
+description: A pruning issue whose Keeper stays green under the break closes as not planned with the test kept, and no worker, harden call or test removal follows.
 max_turns: 15
 allowed_tools: [Read, Glob, Grep, Skill]
 ---
