@@ -1,5 +1,5 @@
 ---
-description: A worker at step 8 with a pushed pull request body that lacks the Laws section and says `Verify block corrected: none` runs the body lint and fixes the body before it reports.
+description: "A worker at step 8 with a pushed pull request body that lacks the Laws section and says `Verify block corrected: none` runs the body lint and fixes the body before it reports."
 max_turns: 15
 allowed_tools: [Read, Glob, Grep, Skill]
 ---

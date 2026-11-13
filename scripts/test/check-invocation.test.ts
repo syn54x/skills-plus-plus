@@ -109,6 +109,13 @@ test("a name that does not match its directory fails", () => {
   assert.match(result.stderr, /name 'other'/);
 });
 
+test("an unquoted ': ' in an eval prompt's frontmatter fails", () => {
+  const files = { ...skill("demo"), "evals/demo-case/prompt.md": "---\ndescription: It says `Verify: none` and stops.\n---\n\nGo.\n" };
+  const result = run("check-invocation.ts", tree(files));
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /evals\/demo-case\/prompt\.md/);
+});
+
 test("an unquoted ': ' in a frontmatter value fails", () => {
   const files = skill("demo");
   files["skills/demo/SKILL.md"] = files["skills/demo/SKILL.md"].replace("Demo skill.", "Use when: always.");

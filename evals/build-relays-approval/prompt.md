@@ -1,5 +1,5 @@
 ---
-description: After /build handed #340 to a sub-session, the user's answer to its waiting line, given in the parent, is relayed to that session quoted as the user's.
+description: "After /build handed #340 to a sub-session, the user's answer to its waiting line, given in the parent, is relayed to that session quoted as the user's."
 max_turns: 10
 allowed_tools: [Read, Glob, Grep, Skill]
 ---
