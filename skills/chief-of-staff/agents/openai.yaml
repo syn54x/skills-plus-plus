@@ -1,0 +1,5 @@
+interface:
+  display_name: "Chief of Staff"
+  short_description: "Act as your Proxy for goals across repos, bringing you only what needs you"
+policy:
+  allow_implicit_invocation: false

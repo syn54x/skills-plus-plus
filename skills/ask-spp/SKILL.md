@@ -76,6 +76,7 @@ The person can type any of these. Model-invoked skills also start on their own w
 | `/eli5` | Write and talk | person | an explanation did not land (modes eli5, adhd and wait-what) |
 | `/setup-spp` | Meta | person | a repo has not been set up, or its Routing block should change |
 | `/ask-spp` | Meta | person | the person does not know which of these fits |
+| `/chief-of-staff` | Meta | person | several goals across repos should be followed through by a Proxy that brings you only what needs you (experimental) |
 | `/spp:feedback` | Meta | either | you wish spp or a skill did something, or complain about one (the bare `/feedback` is Claude Code's own and reports to Anthropic) |
 
 ## Watching a build
