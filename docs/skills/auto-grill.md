@@ -31,7 +31,7 @@ Nothing to prepare. The interview runs on [grilling](grilling.md), terms and ADR
 
 ## The veto list
 
-Every stop lists the auto-answers given since the previous stop, a line apiece under the Round that produced them. Read it as you would review a pull request: the agent did the work, and anything it got wrong is yours to overrule. An overrule replaces that answer and is treated as your own decision from then on. A Round with nothing that needs you goes straight on, and its lines wait for the next stop.
+Every stop lists the auto-answers given since the previous stop, a line apiece in one list that names the Round that produced each. Read it as you would review a pull request: the agent did the work, and anything it got wrong is yours to overrule. An overrule replaces that answer and is treated as your own decision from then on. Each line opens with a handle, `V1`, `V2` and so on, numbered across the stop, with the answers that depart from common practice first, so "strike V3" is a complete reply. A Round with nothing that needs you goes straight on, and its lines wait for the next stop.
 
 ## How each choice is drawn
 
@@ -55,7 +55,7 @@ In a terminal, the options are stacked under `A:` and `B:` labels, within 72 col
    second retry path for one row.
 ```
 
-The deciding difference sits on the first line of each option, where you read it first. In the Claude desktop app, where the agent can show visuals inline, each choice is drawn as rendered cards, a grid or a timeline, with a button per option that sends your answer. The transcript keeps the text form either way.
+The deciding difference sits on the first line of each option, where you read it first. In the Claude desktop app, where the agent can show visuals inline, each choice is drawn as rendered cards, a grid or a timeline, with a button per option. Each drawing comes right after its own question, and a button sends the letter you would type, such as `1B`, on its own line, so two clicks read as two answers. The transcript keeps the text form either way.
 
 ## Common questions
 

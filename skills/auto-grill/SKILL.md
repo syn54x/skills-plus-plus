@@ -48,9 +48,9 @@ When the Round produced neither an Escalation nor a Challenge, begin the next Ro
 
 1. **Escalations**, laid out as `grilling` lays out its items, with the Best fit as option `A:`, marked `<- Best fit` on its label in place of `(recommended)`, and its basis on the `Rests on:` line. When the Best fit departs from what comparable products do, one more line says what they do; when research changed your drafted recommendation, one more line says why.
 2. **Challenges**: the prior decision and the answer it pins, then `Supersede or uphold?` with the stronger alternative and the price of keeping the decision.
-3. **Veto list**: one line per auto-answer since the previous stop, under its Round: the question, the answer, the pointer, and for a departure from practice, the common approach beside the cited reason for leaving it. The veto list stands in for the list of what the record settled that `grilling` puts under its questions, so a stop never shows both.
+3. **Veto list**: one line per auto-answer since the previous stop, as a single list across the stop, even when it holds lines from more than one Round. Each line opens with a handle, `V1`, `V2` and so on, numbered down the whole list, and the lines that depart from common practice come first, whatever their Round. Each line then names its Round, the question, the answer, the pointer, and for a departure from practice, the common approach beside the cited reason for leaving it. The veto list stands in for the list of what the record settled that `grilling` puts under its questions, so a stop never shows both.
 
-Draw each Escalation and Challenge as **Draw the choice** says. Then wait. The Principal answers the Escalations, rules on each Challenge, and can strike any veto line. A reply of `all` takes the Best fit on every Escalation only; each Challenge still needs its own "supersede" or "uphold".
+Draw each Escalation and Challenge as **Draw the choice** says. Then wait. The Principal answers the Escalations, rules on each Challenge, and can strike any veto line by its handle: "strike V3" is a complete reply. A reply of `all` takes the Best fit on every Escalation only; each Challenge still needs its own "supersede" or "uphold".
 
 ### Draw the choice
 
@@ -61,7 +61,7 @@ Each Escalation and Challenge reads in this order: the question in one plain sen
 - **The deciding difference comes first** in each option, never last in a column. A second rule that rides on an option gets its own sentence under the drawing.
 - **One meaning per arrow** within a drawing.
 
-When you can show a visual inline in the conversation, draw the choice there: a card per option with the Best fit marked, a grid when cases meet options, a timeline when the options differ in when something happens, and on each option a button that sends it as the Principal's answer. The plain sentence and the Best fit stay in prose around it, and the transcript gets the text form. On Claude Code, [`CLAUDE-CODE.md`](CLAUDE-CODE.md) names the tool; read it before the first stop.
+When you can show a visual inline in the conversation, draw the choice there: a card per option with the Best fit marked, a grid when cases meet options, a timeline when the options differ in when something happens, and on each option a button that sends it as the Principal's answer, in the letter form a typed reply uses (`1B`). The plain sentence stays in prose directly before each drawing and the Best fit directly after it, and the transcript gets the text form. On Claude Code, [`CLAUDE-CODE.md`](CLAUDE-CODE.md) names the tool; read it before the first stop.
 
 Otherwise draw in text, which renders in a terminal: Markdown and ASCII, never a diagram language. Stack the options under labels `A:` and `B:`, mark the Best fit on its label (an Escalation's Best fit is always `A:`; a Challenge keeps uphold as `A:` and supersede as `B:`), and keep every line within 72 characters. Never set options side by side in columns, which wrap on a narrow screen.
 
