@@ -92,6 +92,6 @@ Recompute the Frontier and run the next Round. When the Principal says to wrap u
 
 ## 3. Finish
 
-Once the Frontier is empty, give the restatement `grilling` ends with, drawing only the settled design's moving part (a sequence, or the split a decision makes) by the rules in **Draw the choice**, with the rest as a list in words. Its record lines, each with its pointer, are the list of the session's auto-answers, so none is listed twice. The Principal alone confirms; any objection puts questions back on the Frontier and returns you to step 2.
+Once the Frontier is empty, first show any veto lines held since the last stop, in the full form step 2's veto list uses, and the Principal can strike any of them. Then give the restatement `grilling` ends with, drawing only the settled design's moving part (a sequence, or the split a decision makes) by the rules in **Draw the choice**, with the rest as a list in words. Auto-answers already shown at an earlier stop are not repeated: the restatement's record lines, each with its pointer, cover them. The Principal alone confirms; a struck veto line or any other objection puts questions back on the Frontier and returns you to step 2.
 
 After confirmation, report the confirmed restatement, every file written (glossary entries and ADRs, superseding ones included), where the transcript is, and a line recommending `/to-spec` in this conversation as the next step. That skill is the Principal's to run: ask them to, and leave it unstarted.
