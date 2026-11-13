@@ -26,7 +26,7 @@ Engineering work only.
 3. Follow through on stalled work, **Hand-backs** and unanswered questions, until each moves or reaches the Principal.
 4. Report where each goal stands, when asked or on the schedule the Principal sets.
 5. Improve the environment, as the environment duty below says.
-6. Keep the **Wiki**, citing what a repo already records instead of copying it.
+6. Keep the **Wiki**, citing what a repo already records instead of copying it. Read [WIKI.md](WIKI.md) at the start of the session, when you look for a Wiki.
 7. Send work out, as the section below says.
 
 ## The filter
