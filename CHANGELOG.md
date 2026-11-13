@@ -1,5 +1,14 @@
 # @syn54x/spp
 
+## 2.8.0
+
+### Minor Changes
+
+- e9ef54f: `/chief-of-staff` now keeps a Wiki: a folder of dated, linked markdown pages above your repos, with one page per goal and an index. It recommends an existing Wiki and uses it only on your yes, cites what a repo records instead of copying it, and supersedes a changed claim instead of rewriting it.
+- e9ef54f: `/chief-of-staff` now sends work out instead of doing it: it starts a Build session for an Epic or One-off and a triage session for a filed issue, answers a waiting session as your Proxy when a source settles the question, relays the ones that touch the gate, runs research in background subagents, and asks you to type the user-invoked steps.
+- e9ef54f: Added `/chief-of-staff`, an experimental session role that acts as your Proxy for the goals you give it: it settles what the record settles, brings you Escalations, Challenges and a veto list, and asks before merging to a protected branch, releasing or closing an Epic.
+- 4ab3f54: A `grilling` Round can now be answered with letters: every option sits on its own line as `A:`, `B:` and so on, the recommended one first, with a `Rests on:` line naming what the recommendation assumes, and a reply such as `1A 2B` or `all` answers the whole Round, with a caveat after any letter. Each Round after the first reads back the replies that changed the plan, says how many choices are settled and which are held back, and lists the facts it looked up with their sources. The closing restatement marks each line with its source (you, the record, or the agent's inference) and puts the inferred lines last as the ones to check. In `auto-grill`, the veto list stands in for the list of looked-up facts.
+
 ## 2.7.0
 
 ### Minor Changes
