@@ -22,7 +22,7 @@ Type `/harden <N>`, or the agent starts it when a task fits. Most runs happen in
 
 | The worker's question | Sections | Checked against the code by |
 | --- | --- | --- |
-| What am I making? | What to build, Acceptance criteria, size | each criterion being false before the work starts |
+| What am I making? | What to build, Acceptance criteria, size | each criterion being false before the work starts, except one marked as already covered |
 | Which files are mine? | Files owned | output pins, callers of changed signatures, ADR placement |
 | What do my neighbours call things? | Interfaces | codebase-design, when a module is new or reshaped |
 | How do I know I am finished? | Test scenarios, Verify | the Necessity check, scenario data exists, Verify resolves and passes on the base branch |

@@ -59,25 +59,25 @@ Done when Verify has a result on `HEAD` (and on the trial merge when one ran) an
 
 The pull request body is the author grading their own work. Check each claim against the branch, never the reverse:
 
-- `## Ticket`: each line pairs one acceptance criterion or Test scenario with the test or `file:line` meant to prove it. When that test never touches the behaviour, or the hunk does something else, the pairing is a spec finding. A body without this section earns an Important spec finding, since a claim nobody made cannot be tested.
+- `## Ticket`: each line pairs one acceptance criterion or Test scenario with the test or `file:line` meant to prove it. A pairing whose test never touches the behaviour, or whose hunk does something else, is a spec finding. A body without this section earns an Important spec finding,.
 - `## Laws`: each line is a claim about one Law. A line the diff disproves, or `n/a` written against a Law the diff in fact triggers, is a quality finding under that Law. A body without this section is Important too.
 - `Verify block corrected:` must be present. `no` with a Verify run that differs from the issue's block is an Important finding.
 - `Interfaces changed:` lines are the declared deviations step 5 judges.
 
-A stated reason ("kept it small on purpose") explains a choice and never lowers a finding's severity.
+A stated reason explains a choice and never lowers a finding's severity.
 
 ## 5. Spec verdict
 
 Slices and fixes only. Judge against the linked issue and its Epic when it has one, setting aside how good the code is. Each gap is **Missing** (asked for and absent, or claimed and not done), **Extra** (built without being asked) or **Misunderstood** (the right thing, built the wrong way).
 
-- Each acceptance criterion holds, backed by a test that goes red if the change is reverted.
+- Each acceptance criterion holds, backed by a test that goes red if the change is reverted. A criterion marked ``(already covered by `file::name`)``, or a pruning criterion proven by Verify, needs no such test.
 - Each Test scenario line maps to a test of its own.
 - Nothing outside Files owned changed unless the body declares it with a reason that holds.
 - Each Produces line ships under exactly its stated name and signature, and each Consumes line is imported under the name its producer published. A mismatch with no `Interfaces changed:` line is Important. A declared deviation is judged against its new signature and may only touch code inside this repo; when it changes a contract between repos, or a signature the Epic itself fixes, it is Critical.
 - The Epic's Out of Scope is untouched. A `**Narrowed:**` line is approved scope; anything else the Epic promised that this slice owes and lacks is Missing.
 - Verify passed on `HEAD`. Green on `HEAD` but red after the trial merge, or a conflict, is Critical: the slice breaks a sibling, so name the base commits it collides with.
 
-What the diff cannot show (behaviour in unchanged code, a contract another Sub-issue holds) goes on a `Cannot verify:` line instead of widening the search.
+What the diff cannot show (unchanged code, another Sub-issue's contract) goes on a `Cannot verify:` line not a wider search.
 
 ## 6. Quality verdict
 
