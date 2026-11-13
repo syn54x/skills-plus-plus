@@ -24,7 +24,7 @@ Read `GLOSSARY.md` and the Laws line's documents first; the body speaks their te
 
 `## What to build` describes the change from where its user stands: "`report --since 2026-01-01` lists only entries on or after that date". Layers and file names belong elsewhere. If the caller hands you an approved narrowing, this section gains a `**Narrows:**` line, in the caller's words, stating which Epic behaviour is reduced and to what.
 
-`## Acceptance criteria` is a checklist in which every box can be ticked by an observation, and none could be ticked on the base commit. A box that is true before work starts measures nothing.
+`## Acceptance criteria` is a checklist in which every box can be ticked by an observation, and none could be ticked on the base commit. A box that is true before work starts measures nothing. The one exception is a criterion marked as already covered (see the **Necessity check** below), which is true on the base commit by design: an existing test already holds it.
 
 Then pick the size label, one only (or the field the Routing block's Sizes line names). Start from `size:M`. Raise it to `size:L` when the issue runs a migration, changes a contract other issues share, or edits callers in more than one package. Lower it to `size:S` when it fits a single session, touches three files or fewer, and does neither of those things. Remove any other `size:` label as you set it. Whether the issue is ready is the caller's call; harden never adds `ready-for-agent`.
 
@@ -32,7 +32,7 @@ Then pick the size label, one only (or the field the Routing block's Sizes line 
 
 `## Files owned` holds `Create:`, `Modify:` and `Test:` lines with paths in backticks, all in one repo (two repos means two issues). These paths are a lock: a **Wave** never runs two workers whose paths overlap, so a glob that locks a whole folder holds up everyone else who needs it. List files.
 
-Three of the five code checks exist to finish this list, because each finds a file the worker would otherwise edit without owning it:
+Three of the six code checks exist to finish this list, because each finds a file the worker would otherwise edit without owning it:
 
 - **Output pins.** If the issue changes text a user sees, find every place that asserts the current text, anywhere in the tree: `git grep -F "Entries:"` from the repository root turns up CI steps, docs samples, snapshots, fixtures and expected-output files as well as tests. Each one that would fail on the new text is owned, as Modify or Test. One that only mentions the text in passing, like a changelog line, is not. No visible output changed means nothing to search.
 - **Callers of changed signatures.** Changing what `buildReport(opts)` accepts makes every existing call site a Modify entry.
@@ -52,6 +52,16 @@ When the other issue lives in another repo, write it `owner/repo#N` and describe
 - Error path: run `report --since yesterday` → exit 2 with `invalid date: yesterday`
 
 The right side records an effect the left side caused. A control is something to use, never something to look at: "click Export → a CSV downloads" can only be tested by clicking, while "Export is enabled" can pass with nothing exported. If nothing behaves differently afterwards, the section is the one line `Test expectation: none, because <reason>`.
+
+The **Necessity check** applies here. Call the Skill tool with "tdd" for the rule, under its heading `## The Necessity check`; it is not restated. Put each scenario the plan proposed through it, and one of three things happens:
+
+| The scenario | What you write |
+| --- | --- |
+| An existing test already catches its break | No scenario line. Its criterion stays and ends ``(already covered by `file::name`)``, naming the **Keeper**. |
+| It differs from other scenarios only by input | One table scenario: one line, one test, each input with its result in the same order. |
+| It takes ownership of a behaviour an existing test covers at another layer | The line ends ``; replaces `file::name` `` and that test's file joins Files owned as a `Test:` entry. |
+
+`file` is the path from the repo root and `name` the test's name, the form the worker uses in the pull request's Ticket section. For `report --since`, a scenario that `test/report.test.ts::keeps entries on or after the date` already covers loses its line, and its criterion ends ``(already covered by `test/report.test.ts::keeps entries on or after the date`)``. Name the **Keeper** the way `tdd`'s deliberate-break check does, but you change no code in the working checkout, so make the break in a scratch copy. If the break was not run (no shell, or nothing can be run), the mark reads ``(already covered by `file::name`, break not run)``. When every scenario is dropped, the section is the one-line form, ``Test expectation: none, because `file::name` already covers it``, naming each **Keeper**. A replaced test needs no proof of its own, because its replacement is written test-first and seen red. You name no removal other than a test one of the ticket's own scenarios replaces; you do not sweep the ticket's test files for others.
 
 The **scenario data exists** check applies here. Whatever a result asserts on, be it a property, a message, a piece of the screen or an error, has to exist in today's code, or be created by a Produces line on this issue or on a blocker. Where it is missing, either add that Produces line and the work to fill it, or rewrite the result against something real.
 
@@ -73,5 +83,5 @@ Some gaps need a person: an output nobody has decided, a base-branch failure thi
 
 You tell the caller the size and one of two outcomes:
 
-- `spp lint ticket <N> --pin <file>` printed `ok` on the body as it now stands, and all five code checks and the read for open questions found nothing.
+- `spp lint ticket <N> --pin <file>` printed `ok` on the body as it now stands, and all six code checks and the read for open questions found nothing.
 - The issue carries `needs-info` and one comment listing every gap that remains.
