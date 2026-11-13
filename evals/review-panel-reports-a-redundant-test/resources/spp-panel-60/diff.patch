@@ -1,0 +1,36 @@
+diff --git a/shop/coupon.py b/shop/coupon.py
+index 1a2b3c4..5d6e7f8 100644
+--- a/shop/coupon.py
++++ b/shop/coupon.py
+@@ -1,3 +1,5 @@
+ def apply_coupon(subtotal, coupon):
+-    """Return the subtotal after the coupon's percent off."""
++    """Return the subtotal after the coupon's percent off, or unchanged under its minimum."""
++    if subtotal < coupon["minimum"]:
++        return subtotal
+     return subtotal - subtotal * coupon["percent"] // 100
+diff --git a/tests/test_cart.py b/tests/test_cart.py
+index 2b3c4d5..6e7f809 100644
+--- a/tests/test_cart.py
++++ b/tests/test_cart.py
+@@ -4,3 +4,8 @@ from shop.cart import cart_total
+ def test_a_coupon_over_its_minimum_takes_its_percent_off():
+     coupon = {"minimum": 5000, "percent": 10}
+     assert cart_total([4000, 3000], coupon) == 6300
++
++
++def test_a_coupon_under_its_minimum_leaves_the_total_unchanged():
++    coupon = {"minimum": 5000, "percent": 10}
++    assert cart_total([2000, 1500], coupon) == 3500
+diff --git a/tests/test_coupon.py b/tests/test_coupon.py
+new file mode 100644
+index 0000000..3c4d5e6
+--- /dev/null
++++ b/tests/test_coupon.py
+@@ -0,0 +1,6 @@
++from shop.coupon import apply_coupon
++
++
++def test_apply_coupon_under_the_minimum_returns_the_subtotal():
++    coupon = {"minimum": 5000, "percent": 10}
++    assert apply_coupon(3500, coupon) == 3500

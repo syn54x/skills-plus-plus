@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: review-panel-reports-a-redundant-test
+context:
+  # Copies resources/ into the run's working directory, then the plugin's live PERSONAS.md.
+  scaffold_script: scaffold.sh
