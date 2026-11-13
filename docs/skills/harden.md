@@ -29,9 +29,6 @@ Type `/harden <N>`, or the agent starts it when a task fits. Most runs happen in
 
 ## Common questions
 
-**What does the Necessity check do to a scenario?**
-`harden` asks of each scenario the plan proposed whether a test for it would add evidence. If an existing test already catches that break (its **Keeper**), the scenario gets no line, and its criterion ends with ``(already covered by `file::name`)`` so the worker ties the criterion to that test. Scenarios that differ only by input become one table scenario. A scenario that takes over a behaviour another layer's test covers ends with ``; replaces `file::name` ``, and that test's file joins Files owned. The rule itself lives in [tdd](tdd.md).
-
 **Why is this a separate skill from to-tickets?**
 Both to-tickets and triage need to write the same contract. When the rules lived inside to-tickets, triage had to read another skill's files to follow them, and a user-invoked skill cannot be called by another. One model-invoked skill now holds the rules and both callers use it.
 
@@ -56,4 +53,4 @@ Only one that runs tests the issue will add. Every other command, such as a lint
 - Workers' pull requests never report a corrected Verify block.
 - No pull request edits a file outside its Files owned to make a test or a caller pass.
 - Each Test scenario reads as something done and what it caused.
-- No Test scenario asks for a test that an existing test already covers: a covered scenario has no line, and its criterion names the test that keeps it.
+- The Necessity check left no Test scenario asking for a test that an existing test already covers: a covered scenario has no line, and its criterion names its **Keeper**.
