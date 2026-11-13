@@ -1,12 +1,6 @@
 ---
-type: llm
-focus: last_message
+type: regex
+target: last_message
+# One line holds the three percents (10, 25, 50) and the three totals in order (90, 60, 30, the 60 after the 90). The plan's own list, which a reply may quote, puts each case on its own line, so it cannot match. Whether that line is a Test scenario, and the only one, is `one-percent-scenario-line.md`.
+pattern: '(?:^|\n)(?=[^\n]*\b10\b)(?=[^\n]*\b25\b)(?=[^\n]*\b50\b)[^\n]*\b90\b[^\n]*\b60\b[^\n]*\b30\b'
 ---
-
-Scenarios 2, 3 and 4 of the plan (a 10 percent coupon on 100 gives 90, a 25 percent coupon on 80 gives 60, a 50 percent coupon on 60 gives 30) differ only by input.
-
-PASS if the reply's Test scenarios hold those three cases in one scenario line, with their three totals (90, 60 and 30) listed in the same order as their inputs, and no other scenario line carries a percent case of 10, 25 or 50 percent without a minimum spend.
-
-Read only the contract's own `## Test scenarios` section of the reply; if the reply quotes the issue's `## Test scenarios the plan proposed` list, ignore that quoted list.
-
-FAIL if the three cases appear as separate scenario lines, or any of them is missing.
