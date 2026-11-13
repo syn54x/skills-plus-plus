@@ -1,0 +1,5 @@
+interface:
+  display_name: "Test Audit"
+  short_description: "Find tests another test already covers and file the removals you pick"
+policy:
+  allow_implicit_invocation: false

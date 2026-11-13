@@ -48,6 +48,7 @@ Only you start these, by typing `/<name>`.
 | Build | [build](./skills/build/SKILL.md) | Builds an Epic or a hardened One-off into pull requests, here or in a sub-session you choose, by handing it to building |
 | Review | [review-panel](./skills/review-panel/SKILL.md) | Reads a pull request to main with several reviewer Personas and ends in MERGE, FIX FIRST or HUMAN DECISION |
 | Review | [improve-architecture](./skills/improve-architecture/SKILL.md) | Finds deepening opportunities in the repo or a pull request and files the ones you accept |
+| Review | [test-audit](./skills/test-audit/SKILL.md) | Finds tests another test already covers and files the removals you pick |
 | Ship | [prepare-release-notes](./skills/prepare-release-notes/SKILL.md) | Drafts release highlights since the latest tag and prints the release command |
 | Ship | [close-epic](./skills/close-epic/SKILL.md) | Finishes a merged Epic with its summary, retro and learnings |
 | Ship | [retro](./skills/retro/SKILL.md) | Reviews a session and suggests fixes to the agent's setup, ranked by severity |

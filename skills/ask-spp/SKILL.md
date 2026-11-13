@@ -29,7 +29,7 @@ Every path but tiny unfiled work needs the repo set up once with `/setup-spp`, s
 | 1. Epic | A change too large for one session, and you can see how to get there | `/grill`, or `/auto-grill` when the code and docs already answer most questions; `/to-spec`; `/to-tickets <epic>`; `/build <epic>`, which gates each slice and runs the review panel on its own when the Epic is large; the person merges; `/close-epic <epic>` |
 | 2. Single issue | A filed bug or enhancement | `/triage <N>` hardens it into a One-off (a bug's reproduction becomes its Verify block, red on main); `/build <N>` |
 | 3. Unknown territory | An effort too large for one sitting, and the way there is not visible yet | `/wayfinder` charts a map and settles one decision per session; once the map has a destination, `/to-spec` in that conversation joins path 1 |
-| 4. Architecture | Code that resists change, or a pull request whose shape you want judged | `/improve-architecture`; each issue it files enters path 1 or path 2 |
+| 4. Scans | Code that resists change, a pull request whose shape you want judged, or a suite carrying tests that add no evidence | `/improve-architecture` or `/test-audit`; each issue they file enters path 1 or path 2 (a `test-audit` issue always enters path 2) |
 | 5. Tiny unfiled work | A change one session finishes, with no issue behind it | No spp: make the change directly |
 
 Three pairs get confused:
@@ -67,6 +67,7 @@ The person can type any of these. Model-invoked skills also start on their own w
 | `/review` | Review | either | one pull request needs its spec and quality verdicts |
 | `/review-panel` | Review | person | a pull request to main should be read from several angles |
 | `/improve-architecture` | Review | person | path 4 |
+| `/test-audit` | Review | person | a suite carries tests that add no evidence (path 4) |
 | `/pr` | Ship | either | a pull request body is being written |
 | `/prepare-release-notes` | Ship | person | a release needs its highlights drafted |
 | `/close-epic` | Ship | person | an Epic's pull request to main has merged |

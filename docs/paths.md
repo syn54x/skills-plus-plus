@@ -5,7 +5,7 @@ A path is a route through spp's skills, from the situation you start in to merge
 | [1. Epic](#1-epic) | A change is too large for one session, and you can see how to get there |
 | [2. Single issue](#2-single-issue) | Someone filed a bug or an enhancement |
 | [3. Unknown territory](#3-unknown-territory) | An effort is too large for one sitting, and the way there is not visible yet |
-| [4. Architecture](#4-architecture) | Code resists change, or you want a pull request's shape judged |
+| [4. Scans](#4-scans) | Code resists change, you want a pull request's shape judged, or a suite carries tests that add no evidence |
 | [5. Tiny unfiled work](#5-tiny-unfiled-work) | One session finishes the change, and nothing is filed |
 
 Every path but the last needs the repo set up once with [setup-spp](skills/setup-spp.md), which writes the labels and the Routing block the other skills read.
@@ -36,11 +36,11 @@ If the idea is still too loose to chart, you can first explore it with [discuss]
 2. **Settle one decision per session.** Each ticket's label says how it settles: an interview with [grilling](skills/grilling.md), a cited note from [research](skills/research.md), a [prototype](skills/prototype.md), or one piece of manual work. Keep going until no decision stands between you and building.
 3. **Join the Epic path.** Once the map has a destination, [to-spec](skills/to-spec.md) in that conversation writes the Epic, and path 1 continues from step 3.
 
-## 4. Architecture
+## 4. Scans
 
-1. **Survey.** [improve-architecture](skills/improve-architecture.md) hunts for deepening opportunities across the repo or in one pull request, and explores the one you pick, using the words of [codebase-design](skills/codebase-design.md).
-2. **File.** It files each opportunity you accept as an issue.
-3. **Build it on another path.** A filed issue small enough for one pull request takes path 2; a larger one takes path 1.
+1. **Scan.** [improve-architecture](skills/improve-architecture.md) surveys for deepening opportunities across the repo or in one pull request, and explores the one you pick, using the words of [codebase-design](skills/codebase-design.md). [test-audit](skills/test-audit.md) reads a suite for Pruning opportunities: tests another test already covers.
+2. **File.** Each skill files what you accept as an issue.
+3. **Build it on another path.** A filed issue small enough for one pull request takes path 2; a larger one takes path 1. A `test-audit` issue is always one test's removal, so it takes path 2.
 
 ## 5. Tiny unfiled work
 

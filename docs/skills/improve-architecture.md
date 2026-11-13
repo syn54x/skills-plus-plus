@@ -22,7 +22,7 @@ Run it over the repo when a part of the codebase keeps resisting change, when te
 | You want a pass or fail on a pull request | the review gate, which reports a fired Depth check as an ordinary finding |
 | You want only the words, for designing one module yourself | [codebase-design](codebase-design.md) |
 
-It is the fourth of spp's five paths, the architecture path: the issues it files enter path 1 (an Epic) or path 2 (a single issue). The ask-spp router covers every skill when the right one is unclear.
+It is the fourth of spp's five paths, the scans path, shared with [test-audit](test-audit.md): the issues it files enter path 1 (an Epic) or path 2 (a single issue). The ask-spp router covers every skill when the right one is unclear.
 
 ## Timing and Strength
 
