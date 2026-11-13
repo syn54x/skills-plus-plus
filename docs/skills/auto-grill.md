@@ -31,7 +31,7 @@ Nothing to prepare. The interview runs on [grilling](grilling.md), terms and ADR
 
 ## The veto list
 
-Every stop lists the auto-answers given since the previous stop, a line apiece under the Round that produced them. Read it as you would review a pull request: the agent did the work, and anything it got wrong is yours to overrule. An overrule replaces that answer and is treated as your own decision from then on. Each line opens with a handle, `V1`, `V2` and so on, numbered across the stop, with the answers that depart from common practice first, so "strike V3" is a complete reply. A Round with nothing that needs you goes straight on, and its lines wait for the next stop.
+Every stop lists the auto-answers given since the previous stop, a line apiece in one list that names the Round that produced each. Read it as you would review a pull request: the agent did the work, and anything it got wrong is yours to overrule. An overrule replaces that answer and is treated as your own decision from then on. Each line opens with a handle, `V1`, `V2` and so on, numbered across the stop, with the answers that depart from common practice first, so "strike V3" is a complete reply. A Round with nothing that needs you goes straight on, and its lines wait for the next stop.
 
 ## How each choice is drawn
 

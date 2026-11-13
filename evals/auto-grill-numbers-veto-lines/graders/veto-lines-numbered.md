@@ -11,4 +11,4 @@ PASS if all of these hold:
 - Every veto line opens with a handle `V1`, `V2` and so on, numbered across the whole list in order with no gap and no repeat.
 - Every line that departs from common practice (it says what comparable products do and gives a reason for leaving that approach) comes before every line that does not.
 
-FAIL if any veto line has no handle, the numbers skip or repeat, or a line that departs from common practice comes after one that does not. FAIL too if the reply has no veto list.
+FAIL if no veto line departs from common practice, since the second rule then has nothing to check. FAIL if any veto line has no handle, the numbers skip or repeat, or a line that departs from common practice comes after one that does not. FAIL too if the reply has no veto list.
