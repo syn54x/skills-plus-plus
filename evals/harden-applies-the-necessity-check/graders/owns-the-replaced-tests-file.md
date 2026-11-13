@@ -1,7 +1,6 @@
 ---
 type: regex
 target: last_message
-flags: i
-# Files owned lists the replaced test's file as a Test: entry.
-pattern: 'Test:[^\n]*`tests/test_coupon\.py`'
+# A Files owned line (a list item or a bare line) that starts with Test: and names the replaced test's file.
+pattern: '(?:^|\n)[ \t]*(?:[-*][ \t]*)?Test:[^\n]*`tests/test_coupon\.py`'
 ---
