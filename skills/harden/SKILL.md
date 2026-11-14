@@ -38,6 +38,8 @@ Three of the five code checks exist to finish this list, because each finds a fi
 - **Callers of changed signatures.** Changing what `buildReport(opts)` accepts makes every existing call site a Modify entry.
 - **ADR placement.** For each Modify path, look up the ADRs and Laws documents covering that part of the tree. Some say where a kind of content has to live: in a reference file next to the one that links it, in a folder kept for it, or listed in an index. When one applies, own that file too, and say in What to build which part of the work lands where.
 
+**Domain docs.** When preparing this issue settled a glossary term or an ADR (the edit sits uncommitted in this checkout), own those files as Modify or Create and put their exact text under What to build, because the worker cannot see this checkout. They ship in this issue's pull request, never on the default branch ahead of it. A Sub-issue whose Epic has a domain docs slice leaves them to that slice.
+
 ## What do my neighbours call things
 
 `## Interfaces` has a `Consumes:` line and a `Produces:` line, each `none` when empty (as on most One-offs). Produces gives the exact name and shape another issue will code against, `parseSince(arg: string): Date`, and names that issue. Consumes names what this issue takes and the issue that makes it, and needs a blocked-by edge to that issue.

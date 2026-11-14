@@ -47,6 +47,9 @@ An Epic that still says `ready-for-agent` matches the readiness rule, so a build
 **Two Sub-issues that looked independent ended up one after the other. Why?**
 Their Files owned shared a path both would modify. A Wave never runs two workers on the same file, so `to-tickets` either adds an edge between them or merges them. You lose a little parallelism and avoid a conflict nobody would have noticed until the merge.
 
+**Why is the first Sub-issue only glossary entries and ADRs?**
+Planning the Epic changed them, and they ship with the code that makes them true. That Sub-issue blocks every other one, so it is the first merge into the integration branch and every worker starts from a branch that already holds the Epic's words and decisions. Nothing goes to the default branch ahead of the Epic.
+
 **What does a `Narrows:` line mean?**
 That Sub-issue delivers less of a requirement than the Epic states, and you agreed to it during the run. The same words appear as a Narrowed line on the plan, which reviewers read as accepted scope. A difference nobody agreed to is fixed in the Sub-issue instead of being recorded.
 
