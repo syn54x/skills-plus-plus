@@ -47,7 +47,18 @@ An ADR exists to stop a later reader from undoing a choice that was made on purp
 
 When any answer is no, write no ADR and say which question failed. When the person accepts, write it following [`ADR-FORMAT.md`](ADR-FORMAT.md).
 
+## Where a write lands
+
+A glossary entry or an ADR ships in the same change as the code that makes it true. Write it into the working tree and leave it uncommitted there. Never commit it to the default branch ahead of the work, open a pull request for it alone, or ask the person to merge it before work begins. Who carries it from the working tree:
+
+| The write happened while | It ships in |
+| --- | --- |
+| Planning an Epic (`grill`, `to-spec`, `to-tickets`) | The Epic's first Sub-issue, which `to-tickets` cuts and every other Sub-issue is blocked by. |
+| Preparing one issue (`triage`, `harden`) | That issue's pull request: `harden` owns the files and carries the text. |
+| Building an issue | The pull request of the issue being built. |
+
 ## Done when
 
+- Every write is left for the change that carries it, and none went to the default branch alone.
 - Every term agreed in the session is in the glossary in its format, and nothing but vocabulary was added there.
 - Every ADR written has three yes answers, and every decision that had three was offered one.

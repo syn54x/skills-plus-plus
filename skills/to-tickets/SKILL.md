@@ -21,6 +21,8 @@ Read the code the Epic touches, `GLOSSARY.md`, and the Laws line's documents. Wh
 
 Slice by behaviour, never by layer. A slice is a *tracer bullet* when merging it lets someone watch the Epic do one more thing: "export one saved report as CSV" is one, "add the exports table" is not, because a table alone shows nothing. Each slice carries every layer its behaviour touches, tests included, and is small enough for one worker session. Groundwork that makes the Epic's slices simpler goes first, as slices of its own.
 
+**The domain docs slice.** When planning this Epic changed the glossary or wrote an ADR (the edits sit uncommitted in this checkout, from the grill, to-spec or this step), the first slice is "Record the Epic's terms and decisions". It has no blockers and every other slice is blocked by it, directly or through its own blockers, so it is the first merge into the Epic's integration branch and every other worker branches from a tip that holds it. It is the one slice that need not be a tracer bullet. Its body carries the exact text of each change (the new or changed glossary entries, each ADR whole with its path), because its worker cannot see this checkout. Those edits never go to the default branch ahead of the Epic.
+
 Each slice lists its blockers, meaning only the slices whose merged code it needs. "Schedule a weekly export" needs "export one report"; "email the export" and "schedule it" probably need only the first, so they stay unblocked from each other and can share a Wave.
 
 **When a slice cannot land green alone.** Suppose the Epic renames `Report.title` to `Report.name`, and the export, the list view and the scheduler all read it. Any single edit breaks the other two, so no tracer bullet exists for it. Cut it into three phases instead:
@@ -89,4 +91,4 @@ Each call's `--narrowed` flags become the whole stored list, so repeat one for e
 
 ## 6. Report
 
-Show a table of the Sub-issues: size, blockers, `ready-for-agent` or `needs-info`, and any narrowing. For each `needs-info` one, say what it waits on. Then ask the user to run `/build <epic>`.
+Show a table of the Sub-issues: size, blockers, `ready-for-agent` or `needs-info`, and any narrowing. For each `needs-info` one, say what it waits on. When there is a domain docs slice, say that its Sub-issue now holds the text, so the uncommitted copies in this checkout are duplicates the build will merge over, and offer to discard them; discard only on the user's yes. Then ask the user to run `/build <epic>`.

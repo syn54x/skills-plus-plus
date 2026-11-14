@@ -86,7 +86,7 @@ Run `spp wait <epic>` in the background and do nothing else. It exits with one l
 A `NEEDS_CONTEXT` of that kind arrives as a handed-back issue. The decision belongs to the user; you bring the facts from the code and the Epic, and each question you put to them is a waiting line.
 
 1. Call the Skill tool with "grilling" on the question, and open each of its rounds with the waiting line, since `grilling` knows nothing of it.
-2. When the answer is hard to reverse, call the Skill tool with "domain-modeling" to record it as an ADR.
+2. When the answer is hard to reverse, call the Skill tool with "domain-modeling" to record it as an ADR. The ADR ships in the stopped issue's pull request: step 4 adds its path to that issue's Files owned and its text to What to build. Do not commit it to the base or the integration branch yourself.
 3. Write it into the Epic body as one `## Spec deltas` item: MODIFIED, ADDED, or REMOVED when the user drops the behaviour. Create the section when it is missing. `close-epic` later confirms each one shipped.
 4. Rewrite the What to build, Interfaces and Test scenarios of the stopped issue and of every issue whose Consumes or Produces line the decision changes (`gh issue edit <N> --body-file <file>`). A dropped behaviour closes its issue instead: `gh issue close <N> --reason "not planned"`.
 5. Record it: `spp plan <epic> --add-deviation "<issue>: <decision in one line>"`.

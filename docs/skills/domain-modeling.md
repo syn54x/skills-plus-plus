@@ -36,6 +36,9 @@ Length is the symptom. Entries have picked up decisions and implementation detai
 **We already have our own ADR style.**
 The skill writes into the directory it finds and follows that directory's naming. A template stated in your `CLAUDE.md` or `AGENTS.md` takes precedence over its default.
 
+**The glossary and a new ADR are sitting uncommitted. Should I merge them first?**
+No. A term or a decision ships with the code that makes it true. For an Epic, [to-tickets](to-tickets.md) makes them the first Sub-issue, which blocks all the others, so they are the first merge into the integration branch. For a single issue, [harden](harden.md) puts them in that issue's contract and they arrive in its pull request.
+
 **Is a glossary worth the upkeep?**
 It pays most where a name crosses a boundary: module and table names, status values, issue titles, commands. In everyday prose it matters less, and a short-lived prototype can do without one. A glossary an agent wrote and nobody reviewed does harm, because later sessions take its claims as settled.
 
