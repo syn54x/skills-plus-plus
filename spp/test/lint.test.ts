@@ -66,6 +66,10 @@ describe("edge cases", () => {
     await assertCase("lint", fixture("no-tests"));
   });
 
+  test("a Test scenario ending in a replaces clause passes the scenario rule", async () => {
+    await assertCase("lint", fixture("replaced-test"));
+  });
+
   test("a placeholder word inside a code span is not a placeholder", async () => {
     await assertCase("lint", fixture("hardened")); // hardened.md quotes `TBD` in What to build
   });

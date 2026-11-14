@@ -44,7 +44,20 @@ Logic errors and boundaries, state that can be seen half-updated, errors that ar
 
 ### testing
 
-Every acceptance criterion and Test scenario in `spec.md` has a test that would fail without the change. Tests assert behaviour through the interface, not mocks of the code under test. Look for skipped tests, snapshot-only assertions, tests that pass vacuously, missing edge and error cases the Sub-issue named, and noisy output. A scenario with no test is `important` even when the code works.
+Every acceptance criterion and Test scenario in `spec.md` has a test that would fail without the change. A criterion carrying `harden`'s already-covered mark is exempt in either form, since its named test is green before and after; for a `break not run` mark, the slice gate's reviewer, who has a shell, runs the break before the slice merges. A criterion that a test no longer exists is proven by Verify. Tests assert behaviour through the interface, not mocks of the code under test. Look for skipped tests, snapshot-only assertions, tests that pass vacuously, missing edge and error cases the Sub-issue named, and noisy output. A scenario with no test is `important` even when the code works.
+
+Also report a test the pull request adds or changes that fails the **Necessity check**. Call the Skill tool with "tdd" and judge by its `## The Necessity check` and the **Redundant** row of its `## Four anti-patterns` (the repair is under `## Redundant` in its `TESTS.md`); the rule is not repeated here. Two cases:
+
+- **No lost evidence.** Removing the test would lose nothing, because another test already fails on the same break.
+- **A scenario replayed at two layers.** The same case is driven through an outer interface and again on the code behind it. The finding sits on the lower-layer test.
+
+Both findings name the **Keeper**: the other test, or the test at the owning layer, by file and test name. Rules for these findings:
+
+- Judge only tests `diff.patch` adds or changes. A test the pull request did not touch is never a finding, though it may be the **Keeper**.
+- When the **Keeper** is not in the diff, looking for it is a focused check: say in the `body` what you checked.
+- You change nothing, so break no code. Name the **Keeper** by reading the test and the code it drives, and say in the `body` that the break was not run.
+- Report nothing for a lower test that one of the four reasons in the **Necessity check** justifies, or for a test you cannot pair with a **Keeper**.
+- `file` and `line` are the redundant test's first line in the head. The `body` names the **Keeper** and gives the fix: delete the redundant test and keep the **Keeper**. Severity is `minor`. Set no `law`.
 
 ### maintainability
 

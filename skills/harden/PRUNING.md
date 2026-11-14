@@ -1,0 +1,5 @@
+# Hardening a pruning issue
+
+A pruning issue (its body holds `## Pruning opportunity`) that triage proved arrives with the break and the **Keeper**'s red output, so you do not make the break again. Its contract is the removal. One acceptance criterion says the test on the `Remove` line no longer exists and ends with the plain mark ``(already covered by `file::name`)``, naming the Keeper; the mark has no `break not run`, because triage saw the Keeper fail. The Test scenarios section is the one line ``Test expectation: none, because `file::name` already covers it``. The file of the test on the `Remove` line is the one `Test:` entry in Files owned, and Verify runs the Keeper's test file and a command that fails while the removed test's name is still in its file.
+
+Unlike a covered scenario's criterion, which is true on the base commit, this criterion is false on the base commit and turns true when the worker removes the test. Its proof is the Verify command, since no test can show a test is gone.

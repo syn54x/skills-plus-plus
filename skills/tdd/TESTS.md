@@ -49,6 +49,42 @@ test("a 3 kg parcel costs 9.50 to ship", () => {
 
 This one shows in the history, not in a single test: a commit adding five tests and no code, or the code landing before any test exists. Write one test, make it pass, and let what that cycle taught pick the next test.
 
+## Redundant
+
+Here the cart's test already owns the expired-coupon case, and a second test replays it one layer down:
+
+```ts
+// cart.test.ts
+test("an expired coupon leaves the total unchanged", () => {
+  const items = [{ price: 12.5, qty: 2 }, { price: 5, qty: 1 }];
+  const coupon = { percentOff: 20, expires: new Date("2026-03-31") };
+  assert.equal(cartTotal(items, coupon, new Date("2026-04-01")), 30);
+});
+
+// coupon.test.ts
+test("applyCoupon gives no discount on an expired coupon", () => {
+  const coupon = { percentOff: 20, expires: new Date("2026-03-31") };
+  assert.equal(applyCoupon(30, coupon, new Date("2026-04-01")), 30);
+});
+```
+
+Break the expiry check in `applyCoupon` on purpose (flip `>` to `<`) and both tests go red, so the second one adds no evidence. It does add cost: it breaks when `applyCoupon` is renamed or folded into `cartTotal`, though no caller would notice. Delete it, and keep the cart test as its **Keeper**.
+
+When the break leaves the outer test green (say it asserted only that the total is a number), the outer assertion is the problem. Sharpen it to the worked total, 30, run the break again to see it go red, and only then delete the inner test.
+
+Keep a test of `applyCoupon` when one of the four reasons in [`SKILL.md`](SKILL.md) holds, for example when checkout also calls it, which makes it a seam with its own contract.
+
+## Junk patterns
+
+What an audit hunts for, one pattern per line, with how it shows in a test file:
+
+- **Replayed case**: the same inputs and expected value appear in a test of the outer interface and again in a test of a function it calls.
+- **Constant**: the assertion compares a named constant or config value with the literal it is set to.
+- **Message wording**: the assertion matches the full text of an error, a log line or a label, rather than its kind or code.
+- **Framework behaviour**: the test checks what a framework or library already promises (that the router routes, that a schema rejects a type it declares) with none of the project's logic in between.
+- **Trivial code**: the test calls a getter, constructor or forwarding function and asserts it hands back what it was given.
+- **Nothing a caller can see**: the test asserts only that a mock was called, that a call did not throw, or on a private field, so a real break leaves it green.
+
 ## Doubles at the edges
 
 Pass an edge in as an argument rather than reaching for it inside, so a test can hand over a fixed one:

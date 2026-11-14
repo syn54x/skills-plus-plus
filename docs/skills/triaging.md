@@ -2,7 +2,7 @@
 
 `triaging` takes one filed bug or enhancement and leaves it holding exactly one Triage role: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human` or `wontfix`. Before it picks one, it puts four questions to the issue: is the behaviour already built, was it refused before, is the claim true, and is the request clear? When the last answer is no, it interviews you, one round at a time.
 
-An issue only leaves as `ready-for-agent` when a worker could build it without asking anything. For that outcome `triaging` calls [harden](harden.md), so the issue gains the Ticket contract and one size label, and the role is added only once `spp lint ticket` prints `ok`. A bug gets one extra step: the agent reproduces it, and the reproduction becomes the first command of the Verify block, failing on the default branch until the fix lands. Every comment it posts opens with a line saying an AI wrote it.
+An issue only leaves as `ready-for-agent` when a worker could build it without asking anything. For that outcome `triaging` calls [harden](harden.md), so the issue gains the Ticket contract and one size label, and the role is added only once `spp lint ticket` prints `ok`. A bug gets one extra step: the agent reproduces it, and the reproduction becomes the first command of the Verify block, failing on the default branch until the fix lands. An issue filed by [test-audit](test-audit.md) is proved before it is built. Every comment it posts opens with a line saying an AI wrote it.
 
 ## When to reach for it
 
@@ -26,6 +26,12 @@ The repo needs the five state labels, which `/setup-spp` creates. Without them, 
 For a bug, the Verify block opens with the reproduction. Suppose the report says `notes add` crashes when the text holds a quote. The agent runs `notes add "it's late"` on the default branch, sees `Unterminated string` and exit code 1, and gives harden that command, noting that it fails today because it is the bug. harden writes it as the first Verify line, so the worker starts from a red it can see and the reviewer later runs the same line and watches it turn green.
 
 If the bug does not reproduce, or the report is too thin to try, the outcome is `needs-info` with specific questions, and no contract is written.
+
+## A pruning issue is proved by a break
+
+An issue from `test-audit` asks to remove a test and names the **Keeper**, the test that would still catch the behaviour. `test-audit` found the Keeper by reading, so `triaging` checks it. It makes the issue's break in a scratch copy of the default branch, never in your checkout, and runs the Keeper.
+
+Suppose the issue asks to remove `test/add.test.ts::saves a quoted note`. If the Keeper fails on its own assertion under the break, its red output goes in the triage comment and the issue goes on to [harden](harden.md), which writes the removal as the contract. If the Keeper stays green, the finding was wrong: the issue ends as `wontfix`, the comment shows the break and the green output, and the test stays.
 
 ## Waiting on you
 
@@ -61,6 +67,7 @@ No, only issues. A pull request goes to [review](review.md).
 Watching a run, you see:
 
 - the agent run the reproduction and show you its failing output before it calls a bug confirmed;
+- for a pruning issue, the triage comment show the Keeper's output under the break, and nothing in your checkout change;
 - a `ready-for-agent` label go on only after `spp lint ticket` has printed `ok`, with the issue already holding one size label and its Verify block pinned by harden, or re-pinned from the agent's own file when it had to put the reproduction back;
 - the agent reread the issue body after harden and confirm the reproduction is still the first Verify line;
 - every message that waits on you open with `#<N> waits on you:`;

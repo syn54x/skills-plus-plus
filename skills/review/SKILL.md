@@ -29,16 +29,7 @@ gh pr view "$PR" --json headRefOid,baseRefName,body,files,reviews
 gh pr diff "$PR"
 ```
 
-`HEAD` is `headRefOid` as read now; every check below runs on it and every verdict names it. `BASE` is `baseRefName`. Take the linked issue `N` from a `Closes #N` (or `Fixes`, `Resolves`) line in the body, never from GitHub's closing references, which stay empty on a pull request into a non-default branch. Then sort the run:
-
-| Linked issue | `spp kind N --json` | Run |
-| --- | --- | --- |
-| `#N` | `raw` with a `rule` | `pin-present` or `pin-match`: a hardened issue whose Verify block lost its pin. Stop as step 3.1 does on a refusal: post no verdict and report to whoever started the review that the issue needs harden again. |
-| no closing line to a Sub-issue of its Epic, but `Refs #N` (or `Refs owner/repo#N`, or an issue URL); `N` is read for this row only | `sub-issue`, and `BASE` is that Sub-issue's Epic's integration branch | A fix: both verdicts. Run the Sub-issue's Verify block with `spp verify N`, judge spec against the findings the body names and the Sub-issue's acceptance criteria, and record with `spp verdict --ticket N`. |
-| none, or `#N` (any other `Refs` shape is none) | `raw`, no `rule` | Quality only. The comment's first line says `No linked Sub-issue or One-off: quality verdict only.` (naming `#N` as raw when there is one) and no verdict marker is written, so a gate never passes it. |
-| `#N` | `epic` | The Epic's own pull request: read [`EPIC.md`](EPIC.md) and follow it in place of steps 4 to 6. |
-| `#N` | `sub-issue` | A slice of an Epic: both verdicts. |
-| `#N` | `one-off` | A slice with no Epic: both verdicts. |
+`HEAD` is `headRefOid` as read now; every check below runs on it and every verdict names it. `BASE` is `baseRefName`. Take the linked issue `N` from a `Closes #N` (or `Fixes`, `Resolves`) line in the body, never from GitHub's closing references, which stay empty on a pull request into a non-default branch. Then sort the run with [`SORT.md`](SORT.md): its table maps the linked issue and what `spp kind N --json` prints to the run (a hardened issue that lost its pin, a fix, quality only, an Epic, a slice or a One-off).
 
 For a slice or a fix (`sub-issue` or `one-off`), read the linked issue (`gh issue view N --json body,parent`). A Sub-issue has a parent Epic: read its Implementation Decisions and Out of Scope too, and its plan comment's `**Narrowed:**` and `**Deviated:**` lines. A One-off has no Epic, so its own body is the whole spec. Check `HEAD` out detached in a throwaway worktree; that checkout and an unpushed trial merge are the only things you change.
 
@@ -70,7 +61,7 @@ A stated reason ("kept it small on purpose") explains a choice and never lowers 
 
 Slices and fixes only. Judge against the linked issue and its Epic when it has one, setting aside how good the code is. Each gap is **Missing** (asked for and absent, or claimed and not done), **Extra** (built without being asked) or **Misunderstood** (the right thing, built the wrong way).
 
-- Each acceptance criterion holds, backed by a test that goes red if the change is reverted.
+- Each acceptance criterion holds, backed by a test that goes red if the change is reverted. A criterion carrying harden's already-covered mark is held by its named test instead. If it also says `break not run`, make the break yourself (call the Skill tool with "tdd" for how), undo it, and pass the criterion only when that named test turned red; any other outcome reports it unproven. A criterion that a test no longer exists is proven by Verify.
 - Each Test scenario line maps to a test of its own.
 - Nothing outside Files owned changed unless the body declares it with a reason that holds.
 - Each Produces line ships under exactly its stated name and signature, and each Consumes line is imported under the name its producer published. A mismatch with no `Interfaces changed:` line is Important. A declared deviation is judged against its new signature and may only touch code inside this repo; when it changes a contract between repos, or a signature the Epic itself fixes, it is Critical.

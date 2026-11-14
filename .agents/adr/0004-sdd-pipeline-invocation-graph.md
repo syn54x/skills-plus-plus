@@ -8,7 +8,7 @@ We give each step a person takes exactly one user-invoked entry, and make every 
 | --- | --- | --- |
 | Plan | `grill`, `auto-grill`, `discuss` (also model-invoked), `wayfinder`, `to-spec`, `to-tickets`, `triage` | `grilling`, `domain-modeling`, `codebase-design`, `research`, `prototype`, `triaging`, `harden` |
 | Build | `build` | `building`, `delegating`, `implement-issue`, `tdd`, `diagnosing-bugs` |
-| Review | `review` (also model-invoked), `review-panel`, `improve-architecture` | `review` |
+| Review | `review` (also model-invoked), `review-panel`, `improve-architecture`, `test-audit` | `review` |
 | Ship | `prepare-release-notes`, `close-epic`, `retro` | `pr` |
 | Write and talk | `eli5` | `writing-for-humans`, `writing-for-agents` |
 | Meta | `setup-spp`, `ask-spp`, `chief-of-staff` | |

@@ -48,6 +48,7 @@ Only you start these, by typing `/<name>`.
 | Build | [build](./skills/build/SKILL.md) | Builds an Epic or a hardened One-off into pull requests, here or in a sub-session you choose, by handing it to building |
 | Review | [review-panel](./skills/review-panel/SKILL.md) | Reads a pull request to main with several reviewer Personas and ends in MERGE, FIX FIRST or HUMAN DECISION |
 | Review | [improve-architecture](./skills/improve-architecture/SKILL.md) | Finds deepening opportunities in the repo or a pull request and files the ones you accept |
+| Review | [test-audit](./skills/test-audit/SKILL.md) | Finds tests another test already covers and files the removals you pick |
 | Ship | [prepare-release-notes](./skills/prepare-release-notes/SKILL.md) | Drafts release highlights since the latest tag and prints the release command |
 | Ship | [close-epic](./skills/close-epic/SKILL.md) | Finishes a merged Epic with its summary, retro and learnings |
 | Ship | [retro](./skills/retro/SKILL.md) | Reviews a session and suggests fixes to the agent's setup, ranked by severity |
@@ -95,6 +96,9 @@ spp carries concepts from these projects. Each skill that drew on one lists its 
 - [ECC](https://github.com/affaan-m/ECC): hooks that enforce a gate instead of trusting the model to remember it.
 - [OpenSpec](https://github.com/Fission-AI/OpenSpec): the spec as the source of truth, with changes recorded as deltas against it.
 - [GSD](https://github.com/gsd-build/get-shit-done): keeping each worker's context small and fresh, and state that survives an interrupted session.
+- [agent-native](https://github.com/BuilderIO/agent-native): a gate on each test before it is written, and one owner for each contract.
+- [mblode/agent-skills](https://github.com/mblode/agent-skills): the junk patterns a test audit hunts for, and evidence behind each removal.
+- [citypaul/.dotfiles](https://github.com/citypaul/.dotfiles): a test is kept only when it is necessary.
 - [gitleaks](https://github.com/gitleaks/gitleaks): the secret-detection rules behind the outbound check on Skill feedback, translated from its rule set.
 
 ## License

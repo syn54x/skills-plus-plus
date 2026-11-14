@@ -21,7 +21,8 @@ The routes it gives are the [five paths](../paths.md):
 | A change too large for one session, with a visible route | The Epic path, starting at [grill](grill.md) |
 | A filed bug or enhancement | The single-issue path, starting at [triage](triage.md) |
 | An effort too large for one sitting, route unclear | The unknown-territory path, starting at [wayfinder](wayfinder.md) |
-| Code that resists change | The architecture path, [improve-architecture](improve-architecture.md) |
+| Code that resists change | The scans path, [improve-architecture](improve-architecture.md) |
+| A suite with redundant tests | The scans path, [test-audit](test-audit.md) |
 | A change one session finishes, with nothing filed | No spp at all |
 
 ## Paths, not keywords

@@ -46,6 +46,7 @@ nav = [
       { "review" = "skills/review.md" },
       { "review-panel" = "skills/review-panel.md" },
       { "improve-architecture" = "skills/improve-architecture.md" },
+      { "test-audit" = "skills/test-audit.md" },
     ] },
     { "Ship" = [
       { "pr" = "skills/pr.md" },
