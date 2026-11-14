@@ -1,5 +1,20 @@
 # @syn54x/spp
 
+## 2.9.0
+
+### Minor Changes
+
+- 27003e7: `harden` now drops a Test scenario an existing test already covers, merges scenarios that differ only by input, and names the test a new scenario replaces.
+- 27003e7: `review` now accepts a criterion that `harden` marked as already covered by an existing test, and for a `break not run` mark it runs the deliberate break and reports the criterion unproven unless the named test turns red. The review panel's testing reviewer accepts both forms of the mark and leaves the break to `review`.
+- 27003e7: `tdd` now declines a test another test already covers, and refuses tests of constants, message wording, framework behaviour and trivial code.
+- 27003e7: Added `/test-audit`, which reads a test suite, reports the tests another test already covers, and files the removals you pick as issues for triage.
+- 27003e7: The review panel's `testing` Persona now reports a test the pull request adds that another test already covers, and names the test to keep.
+- 27003e7: Triage now proves an issue filed by `/test-audit` by breaking the code in a scratch copy and running the Keeper, and closes it as `wontfix` when the Keeper stays green.
+
+### Patch Changes
+
+- a0b1f1f: In `auto-grill`, every veto line now opens with a handle (`V1`, `V2` and so on, numbered across the stop, lines that depart from common practice first), so "strike V3" is a complete reply. In the Claude desktop app, each drawing is sent right after its own question, and a button sends the letter answer (`1B`) on its own line, so two clicks no longer run together.
+
 ## 2.8.0
 
 ### Minor Changes
