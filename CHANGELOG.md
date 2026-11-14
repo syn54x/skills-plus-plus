@@ -1,5 +1,11 @@
 # @syn54x/spp
 
+## 2.9.1
+
+### Patch Changes
+
+- 37b9a31: Glossary entries and ADRs now ship with the code that makes them true, never on the default branch ahead of it. `to-tickets` makes them an Epic's first Sub-issue, which blocks every other one, so they are the first merge into the integration branch. For a single issue, `harden` owns the files and carries their text, so they arrive in that issue's pull request.
+
 ## 2.9.0
 
 ### Minor Changes
