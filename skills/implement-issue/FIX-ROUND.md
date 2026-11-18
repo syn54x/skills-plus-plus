@@ -6,10 +6,10 @@ You are resumed with a gate's findings on work you built. The claim, the branch 
 
 Read each finding, the code around the line it names and any Law it cites. Then write one plan entry per finding:
 
-- **Cause.** The root cause, which is often not the named line. Findings that share a cause become one entry.
+- **Cause.** The root cause, which is often not the named line. Findings that share a cause become one entry. Then search the code for every other path with the same cause, a copy of the same logic or the same mistake made on its own in another file, that no finding named, and fix each in this entry.
 - **Reach.** Every caller, test, fixture and doc the change touches. Search for each name the fix changes; do not trust memory. A caller that relies on the current behaviour is part of the fix, not a side effect of it.
 - **Overlap.** Any other entry whose reach shares a file or a caller with this one. Plan those as one change, in an order you state.
-- **Guard.** The test that fails now and will pass after the fix, plus the test that would catch a regression in the reach. When the reach has no such test, the plan adds one. When the fix writes logic that was not there before (a function, a loop, a recursion, a branch or a parser, as opposed to a changed line), the Guard also lists that logic's own edge cases and one test for each case no existing test already catches. A recursive walk, for instance, has the edge case of a value that contains itself, and a parser has the empty input.
+- **Guard.** The test that fails now and will pass after the fix, plus the test that would catch a regression in the reach. When the reach has no such test, the plan adds one. When the fix writes logic that was not there before (a function, a loop, a recursion, a branch or a parser, as opposed to a changed line), the Guard also lists that logic's own edge cases and one test for each case no existing test already catches. A recursive walk, for instance, has the edge case of a value that contains itself, and a parser has the empty input. A Law the repo sets for a fix applies to a fix round's fixes too, and the Guard names what each such Law asks of this fix; where the Laws say a fix to skill text ships with an eval case, the Guard names that case.
 
 A finding you judge wrong gets no fix: its entry says why, and the gate decides.
 
