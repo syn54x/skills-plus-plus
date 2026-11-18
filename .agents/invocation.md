@@ -29,4 +29,4 @@ A friend is a skill another plugin ships that spp skills may call when it is ins
 
 ## The check
 
-`node scripts/check-invocation.ts` enforces this page in CI: the flag and the policy line agree, every skill has `agents/openai.yaml`, frontmatter values contain no unquoted `: ` or ` #`, and every `Call the Skill tool` target and every agent `skills:` preload is a model-invoked skill in `skills/` or a friend.
+`node scripts/check-invocation.ts` enforces this page in CI: the flag and the policy line agree, every skill has `agents/openai.yaml`, frontmatter values contain no unquoted `: ` or ` #`, every `Call the Skill tool` target and every agent `skills:` preload is a model-invoked skill in `skills/` or a friend, and every agent preload of an spp skill is plugin-qualified (`spp:<name>`), because a bare name can load another skill of the same name, as `review` loads Claude Code's built-in one.

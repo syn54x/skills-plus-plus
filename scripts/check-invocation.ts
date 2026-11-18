@@ -103,7 +103,12 @@ for (const file of [...skillDirs.flatMap((dir) => filesUnder(dir, ".md")), ...ag
   const fm = frontmatter(text);
   errors.push(...yamlColonErrors(file, fm));
   const preload = fm.match(/^skills:\n((?:\s+-\s*.+\n?)+)/m)?.[1] ?? "";
-  for (const [, target] of preload.matchAll(/-\s*([\w-]+)/g)) checkTarget(`${file} (skills: preload)`, target);
+  for (const [, prefix, target] of preload.matchAll(/-\s*(spp:)?([\w-]+)/g)) {
+    const where = `${file} (skills: preload)`;
+    if (!prefix && userInvoked.has(target))
+      errors.push(`${where}: '${target}' is bare; write it spp:${target}, because a bare name can load another skill of the same name`);
+    else checkTarget(where, target);
+  }
 }
 
 for (const file of filesUnder("evals", "prompt.md")) errors.push(...yamlColonErrors(file, frontmatter(readFileSync(file, "utf8"))));

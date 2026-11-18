@@ -94,11 +94,36 @@ test("two-call phrasing checks both targets", () => {
 test("an agent's skills preload must name a model-invoked skill", () => {
   const root = tree({
     ...skill("boss", { user: true }),
-    "agents/worker.md": "---\nname: worker\nskills:\n  - boss\n---\n\nWork.\n",
+    "agents/worker.md": "---\nname: worker\nskills:\n  - spp:boss\n---\n\nWork.\n",
   });
   const result = run("check-invocation.ts", root);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /agents\/worker\.md.*'boss'/);
+});
+
+const agent = (preload: string) => ({
+  ...skill("demo"),
+  "agents/worker.md": `---\nname: worker\nskills:\n  - ${preload}\n---\n\nWork.\n`,
+});
+
+test("an agent's bare preload of an spp skill fails, naming the file and spp:<name>", () => {
+  const result = run("check-invocation.ts", tree(agent("demo")));
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /agents\/worker\.md.*spp:demo/);
+  assert.equal(result.stderr.trim().split("\n").length, 1);
+});
+
+test("an agent's plugin-qualified preload of an spp skill passes", () => {
+  const result = run("check-invocation.ts", tree(agent("spp:demo")));
+  assert.equal(result.stderr, "");
+  assert.equal(result.status, 0);
+});
+
+test("an agent's bare preload of a friend stays allowed", () => {
+  const root = tree({ ...realInvocationLaw(), ...agent("ponytail-review") });
+  const result = run("check-invocation.ts", root);
+  assert.equal(result.stderr, "");
+  assert.equal(result.status, 0);
 });
 
 test("a name that does not match its directory fails", () => {
