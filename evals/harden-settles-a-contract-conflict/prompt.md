@@ -6,4 +6,4 @@ allowed_tools: [Read, Glob, Grep, Skill]
 
 /spp:harden 12
 
-Harden issue 12 of this project. You have no shell in this session, so the issue's text is the file `issue.md`, and the code and tests are the files under `src/` and `test/`. The repo is on the spp flow: its Routing block reads Mode: solo, Sizes: `size:S/M/L` labels, Laws: `GLOSSARY.md`, `docs/adr/`. Do not edit the issue or run the lint; reply with the full contract you would write.
+Harden issue 12 of this project. You have no shell in this session, so the issue's text is the file `issue.md`, the text of its blocker #11 is the file `blocker-11.md`, and the code and tests are the files under `src/` and `test/`. The repo is on the spp flow: its Routing block reads Mode: solo, Sizes: `size:S/M/L` labels, Laws: `GLOSSARY.md`, `docs/adr/`. Do not edit the issue or run the lint; reply with the full contract you would write.

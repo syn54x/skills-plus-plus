@@ -4,22 +4,19 @@
 
 None. This is a One-off.
 
+## Blocked by
+
+#11, the domain docs slice. Its body is the file `blocker-11.md`; it is still open.
+
 ## Problem
 
-The word "deleted" is wrong for what `deleteEntry` does: it hides an entry from the report and keeps it in the store. Rename `deleteEntry` to `archiveEntry`, and let the word "deleted" leave the code and the glossary.
+The word "deleted" is wrong for what `deleteEntry` does: it hides an entry from the report and keeps it in the store. Rename `deleteEntry` to `archiveEntry`, and let the word "deleted" leave the code and the glossary. #11 writes the glossary entry, including its `_Avoid_: deleted entry, removed entry` line.
 
 ## The plan
 
-The glossary entry to write:
-
-```
-**Archived entry**: An entry hidden from the report and kept in the store.
-_Avoid_: deleted entry, removed entry
-```
-
 A proposed Test scenario:
 
-- Happy path: archive entry 2, then add an entry → the new entry takes id 2
+- Happy path: archive entry 2, then add an entry → the entry list shows ids 1 and 2 again
 
 A proposed Verify block:
 
