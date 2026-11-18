@@ -1,5 +1,15 @@
 # @syn54x/spp
 
+## 2.9.2
+
+### Patch Changes
+
+- cd3779f: A fix round now plans tests for the edge cases of the logic its fix adds, such as a value that contains itself, not only for the finding's case.
+- cad412e: A fix round now fixes every path that shares a finding's cause, not only the line the finding names, and plans what the repo's Laws ask of a fix.
+- 69d8135: The reviewer agent now starts with spp's review skill and not Claude Code's built-in one.
+- 62df327: `to-tickets` now catches a Sub-issue whose Verify block names a path another Sub-issue moves or removes, and orders the mover first so the stale block is rewritten before anything is released.
+- f5a1461: Harden now puts the type-check and lint commands CI runs into every Verify block, so a pull request that passes Verify does not fail CI on them.
+
 ## 2.9.1
 
 ### Patch Changes
