@@ -1,5 +1,5 @@
 ---
-description: Hardening an issue, harden settles what the contract mandates against the ADR and the glossary: it keeps the Verify grep off the mandated _Avoid_ line and does not ask for an archived entry's id to be reused.
+description: Hardening an issue, harden settles what the contract mandates against the ADR and the glossary, keeping the Verify grep off the mandated avoid line and never asking for an archived entry's id to be reused.
 max_turns: 20
 allowed_tools: [Read, Glob, Grep, Skill]
 ---
