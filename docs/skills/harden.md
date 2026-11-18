@@ -2,7 +2,7 @@
 
 `harden` writes the Ticket contract into one GitHub issue: What to build, Acceptance criteria, Files owned, Interfaces, Test scenarios, a Verify block, and a single size label. After it runs, a worker who reads only that issue can build it.
 
-It writes from the repository, not from the plan. Before a section goes into the issue, `harden` checks it against the code, because the plan is usually where a wrong file list or an unrunnable command comes from. Then `spp lint ticket --pin <file>` checks the result mechanically and, when it passes, pins the Verify block `harden` wrote in that file. It ends in one of two states: the lint prints `ok` and the block is pinned, or the issue is labelled `needs-info` with a comment saying what a person still has to decide.
+It writes from the repository, not from the plan. Before a section goes into the issue, `harden` checks it against the code, because the plan is usually where a wrong file list or an unrunnable command comes from. Then `spp lint ticket --pin <file>` checks the result mechanically and, when it passes, pins the Verify block `harden` wrote in that file. It ends in one of two states: the lint prints `ok` and the block is pinned, or the issue is labelled `needs-info` with a comment saying what a person still has to decide. `harden` also checks what the contract mandates (a name, a value, text a user sees, a Verify pattern) against the ADRs, the glossary and the contract itself, so a worker is never told to write a word a glossary `_Avoid_` line retires or a value an ADR rules out.
 
 ## When to reach for it
 
@@ -54,3 +54,4 @@ Only one that runs tests the issue will add. Every other command, such as a lint
 - No pull request edits a file outside its Files owned to make a test or a caller pass.
 - Each Test scenario reads as something done and what it caused.
 - The Necessity check left no Test scenario asking for a test that an existing test already covers: a covered scenario has no line, and its criterion names its **Keeper**.
+- No contract asks for a name or text that an ADR or a glossary `_Avoid_` line rules out.

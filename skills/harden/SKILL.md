@@ -32,7 +32,7 @@ Then pick the size label, one only (or the field the Routing block's Sizes line 
 
 `## Files owned` holds `Create:`, `Modify:` and `Test:` lines with paths in backticks, all in one repo (two repos means two issues). These paths are a lock: a **Wave** never runs two workers whose paths overlap, so a glob that locks a whole folder holds up everyone else who needs it. List files.
 
-Three of the six code checks exist to finish this list, because each finds a file the worker would otherwise edit without owning it:
+Three of the seven code checks exist to finish this list, because each finds a file the worker would otherwise edit without owning it:
 
 - **Output pins.** If the issue changes text a user sees, find every place that asserts the current text, anywhere in the tree: `git grep -F "Entries:"` from the repository root turns up CI steps, docs samples, snapshots, fixtures and expected-output files as well as tests. Each one that would fail on the new text is owned, as Modify or Test. One that only mentions the text in passing, like a changelog line, is not. No visible output changed means nothing to search.
 - **Callers of changed signatures.** Changing what `buildReport(opts)` accepts makes every existing call site a Modify entry.
@@ -75,7 +75,7 @@ The **Verify resolves, and is green on the base branch where it can be** check a
 
 ## Nothing left to ask
 
-Read the six sections as the worker would, and remove every spot where they would have to come back with a question. `spp lint ticket` catches the literal markers: `TBD`, `TODO`, a lone `?`, "add appropriate ...", "similar to #N", a missing or empty section, a scenario without its category or arrow, and a size count other than one. You catch what a script cannot: a criterion with no way to observe it, a promise of tests with no scenarios, a Consumes name no issue produces.
+Read the six sections as the worker would, and remove every spot that would make them ask a question. `spp lint ticket` catches markers: `TBD`, `TODO`, a lone `?`, "add appropriate ...", "similar to #N", a missing or empty section, a scenario without its category or arrow, and a size count other than one. You catch the rest: a criterion with no way to observe it, a promise of tests with no scenarios, a Consumes name no issue produces. The **conflict check** applies to every literal the contract mandates: read [CONFLICTS.md](CONFLICTS.md) before writing the body.
 
 ## Write, lint, or route
 
@@ -87,5 +87,5 @@ Some gaps need a person: an output nobody has decided, a base-branch failure thi
 
 You tell the caller the size and one of two outcomes:
 
-- `spp lint ticket <N> --pin <file>` printed `ok` on the body as it now stands, and all six code checks and the read for open questions found nothing.
+- `spp lint ticket <N> --pin <file>` printed `ok` on the body as it now stands, and all seven code checks and the read for open questions found nothing.
 - The issue carries `needs-info` and one comment listing every gap that remains.
