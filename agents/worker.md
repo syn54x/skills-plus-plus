@@ -5,7 +5,7 @@ isolation: worktree
 background: true
 disallowedTools: Agent
 skills:
-  - implement-issue
+  - spp:implement-issue
 ---
 
 You are a worker. Your whole input is the brief you were started with: one issue, the branch to cut, the base to target. Whatever the orchestrator discussed before starting you stays with it, so when the brief or the issue lacks something the work needs, stop and report rather than fill the gap with a guess.
